@@ -26,7 +26,6 @@ AM_INIT_AUTOMAKE([1.14 foreign -Wno-portability no-define no-dist-gzip
                   dist-bzip2])
 AM_SILENT_RULES([yes])
 
-
 dnl ================================================================
 dnl Handle extra configure options
 dnl ================================================================
@@ -102,7 +101,7 @@ AC_C_CONST
 dnl ================================================================
 dnl Libtool stuff.
 dnl ================================================================
-dnl AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL
 dnl LIBTOOL="$LIBTOOL --preserve-dup-deps"
 
 
@@ -124,14 +123,11 @@ dnl ================================================================
 dnl Check for dependency packages.
 dnl ================================================================
 
-GPUTOP_PKG_REQUIRES="$GPUTOP_PKG_REQUIRES libuv"
-AC_SUBST(GPUTOP_PKG_REQUIRES)
-PKG_CHECK_MODULES(GPUTOP_DEP, [$GPUTOP_PKG_REQUIRES])
-
 AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
 
+PKG_CHECK_MODULES(GPUTOP_DEP, [libuv])
 
 dnl ================================================================
 dnl Misc program dependencies.
@@ -148,12 +144,12 @@ AC_SUBST(GPUTOP_EXTRA_LDFLAGS)
 AC_SUBST(GPUTOP_DEP_CFLAGS)
 AC_SUBST(GPUTOP_DEP_LIBS)
 
-
 dnl ================================================================
 dnl Dah Da!
 dnl ================================================================
 AC_OUTPUT(
-Makefile 
+Makefile
 gputop/Makefile
+gputop/registry/Makefile
 po/Makefile.in
 )
