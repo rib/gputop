@@ -123,6 +123,8 @@ dnl ================================================================
 dnl Check for dependency packages.
 dnl ================================================================
 
+AX_PYTHON_MODULE(lxml, [error])
+
 AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
