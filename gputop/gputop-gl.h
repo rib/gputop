@@ -109,9 +109,36 @@ struct winsys_surface
     struct frame_query frames[MAX_FRAME_QUERIES];
     _Atomic int started_frames;
     _Atomic int finished_frames;
+
+    /* One or more frames have associated monitors that
+     * will need to be deleted monitoring is disabled...
+     */
+    bool has_monitors;
 };
 
 extern pthread_rwlock_t gputop_gl_lock;
 extern struct array *gputop_gl_surfaces;
+
+extern _Atomic bool gputop_gl_monitoring_enabled;
+
+/* The number of monitors to delete if monitoring is disabled...
+ *
+ * We aim to delete all monitors when monitoring is disable in the
+ * hope that OpenGL will relinquish exclusive access to the kernel
+ * perf interface used to collect counter metrics so that gputop
+ * can switch from per-gl-context profiling to system wide
+ * profiling.
+ *
+ * When monitoring is disabled then the monitors associated with
+ * each surface are only destroyed on the next swap-buffers
+ * request for each surface so we don't have much control over
+ * when exactly that will be.
+ *
+ * The UI thread can check this atomic counter as a way to report
+ * to the user that we're still busy waiting for GL before system
+ * wide monitoring can be enabled.
+ */
+extern _Atomic int gputop_gl_n_monitors;
+
 
 #endif /* _GPUTOP_GL_H_ */

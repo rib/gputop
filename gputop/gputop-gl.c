@@ -117,6 +117,9 @@ pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
 static struct array *winsys_contexts;
 struct array *gputop_gl_surfaces;
 
+_Atomic bool gputop_gl_monitoring_enabled = true;
+_Atomic int gputop_gl_n_monitors;
+
 
 void *
 gputop_passthrough_gl_resolve(const char *name)
@@ -621,8 +624,11 @@ winsys_surface_start_frame(struct winsys_surface *wsurface)
     /* Although this probably doesn't matter too much on a per-frame
      * basis; it's not particularly cheap to create a query instance
      * so we aim to re-use the instances repeatedly... */
-    if (wctx->oa_query_info.id && !frame->oa_query)
+    if (wctx->oa_query_info.id && !frame->oa_query) {
 	GE(pfn_glCreatePerfQueryINTEL(wctx->oa_query_info.id, &frame->oa_query));
+	wsurface->has_monitors = true;
+	atomic_fetch_add(&gputop_gl_n_monitors, 1);
+    }
 
     /* XXX: pipeline statistic queries are apparently not working
      * a.t.m so just ignore for now */
@@ -739,6 +745,33 @@ winsys_surface_check_for_finished_frames(struct winsys_surface *wsurface)
 
 }
 
+static void
+winsys_surface_destroy_monitors(struct winsys_surface *wsurface)
+{
+    int i;
+
+    if (!wsurface->has_monitors)
+	return;
+
+    for (i = 0; i < MAX_FRAME_QUERIES; i++) {
+	struct frame_query *frame = &wsurface->frames[i];
+
+	pthread_rwlock_wrlock(&frame->lock);
+
+	if (frame->oa_query) {
+	    GE(pfn_glDeletePerfQueryINTEL(frame->oa_query));
+	    frame->oa_query = 0;
+
+	    atomic_fetch_sub(&gputop_gl_n_monitors, 1);
+	}
+
+	pthread_rwlock_unlock(&frame->lock);
+    }
+
+    atomic_store(&wsurface->finished_frames, wsurface->started_frames);
+    wsurface->has_monitors = false;
+}
+
 /* XXX: The GLX api allows multiple threads to render to the same
  * drawable and glXSwapBuffers doesn't refer to the current GL
  * context it is an operation on a drawable visible to all
@@ -763,6 +796,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
+    bool monitoring_enabled;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -778,6 +812,11 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     /* XXX: is checking wsurface->wctx->draw_surface == wsurface
      * redundant? */
 
+    monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
+
+    /* XXX: check the semantics of atomic_load() will it ensure
+     * the compiler won't perform multiple loads? */
+
     /* Since we need to use the GL api there's a risk that we might
      * trigger an error and we don't want the application to ever see
      * such errors; potentially triggering an abort or other
@@ -786,10 +825,16 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
      */
     save_glerror();
 
-    winsys_surface_end_frame(wsurface);
+    if (!monitoring_enabled)
+	winsys_surface_destroy_monitors(wsurface);
+
+    if (monitoring_enabled)
+	winsys_surface_end_frame(wsurface);
 
     real_glXSwapBuffers(dpy, drawable);
 
-    winsys_surface_check_for_finished_frames(wsurface);
-    winsys_surface_start_frame(wsurface);
+    if (monitoring_enabled) {
+	winsys_surface_check_for_finished_frames(wsurface);
+	winsys_surface_start_frame(wsurface);
+    }
 }
