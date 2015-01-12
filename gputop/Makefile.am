@@ -19,7 +19,12 @@ gputop_CPPFLAGS = \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
 lib_LTLIBRARIES = libgputop.la
-libgputop_la_SOURCES = gputop.c
+libgputop_la_SOURCES = \
+    gputop-gl.h \
+    gputop-gl.c \
+    gputop-util.h \
+    gputop-ui.h \
+    gputop-ui.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)

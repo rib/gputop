@@ -13,7 +13,7 @@ dnl Required versions for dependencies
 dnl ================================================================
 
 AC_INIT(gputop, [0.1.0])
-AC_CONFIG_SRCDIR(gputop/gputop.c)
+AC_CONFIG_SRCDIR(gputop/gputop-main.c)
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([build/autotools])
 AC_CONFIG_HEADERS(config.h)
