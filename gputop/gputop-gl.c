@@ -117,7 +117,7 @@ pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
 static struct array *winsys_contexts;
 struct array *gputop_gl_surfaces;
 
-_Atomic bool gputop_gl_monitoring_enabled = true;
+_Atomic bool gputop_gl_monitoring_enabled = false;
 _Atomic int gputop_gl_n_monitors;
 
 

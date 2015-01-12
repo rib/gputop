@@ -43,15 +43,31 @@ enum {
     GPUTOP_HEADER_COLOR,
 };
 
+struct tab
+{
+    const char *name;
+
+    void (*enter)(void);    /* when user switches to tab */
+    void (*leave)(void);    /* when user switches away from tab */
+    void (*input)(int key);
+    void (*redraw)(WINDOW *win);
+};
+
+enum {
+    INPUT_UNHANDLED = 1,
+    INPUT_HANDLED = 1
+};
 
 static int real_stdin;
 static int real_stdout;
 static int real_stderr;
 
-static int gputop_current_page = 0;
+static uv_poll_t input_poll;
+static uv_idle_t redraw_idle;
+
+static int current_tab = 0;
 
 uv_loop_t *gputop_ui_loop;
-
 
 
 /* Follow the horrible ncurses convention of passing y before x */
@@ -81,7 +97,73 @@ print_percentage_bar(WINDOW *win, int y, int x, float percent)
 }
 
 static void
-print_normalised_duration(WINDOW *win, int y, int x,
+perf_basic_tab_enter(void)
+{
+
+}
+
+static void
+perf_basic_tab_leave(void)
+{
+
+}
+
+static void
+perf_basic_tab_input(int key)
+{
+
+}
+
+static void
+perf_basic_tab_redraw(WINDOW *win)
+{
+
+}
+
+static void
+perf_3d_tab_enter(void)
+{
+
+}
+
+static void
+perf_3d_tab_leave(void)
+{
+
+}
+
+static void
+perf_3d_tab_input(int key)
+{
+
+}
+
+static void
+perf_3d_tab_redraw(WINDOW *win)
+{
+
+}
+
+static void
+gl_basic_tab_enter(void)
+{
+    atomic_store(&gputop_gl_monitoring_enabled, 1);
+}
+
+static void
+gl_basic_tab_leave(void)
+{
+    atomic_store(&gputop_gl_monitoring_enabled, 0);
+}
+
+static void
+gl_basic_tab_input(int key)
+{
+
+}
+
+static void
+print_percentage_counter(WINDOW *win, int y, int x,
                           struct intel_counter *counter, uint8_t *data)
 {
     float percentage;
@@ -112,65 +194,40 @@ print_normalised_duration(WINDOW *win, int y, int x,
 }
 
 static void
-print_frame_counter(struct intel_counter *counter, uint8_t *data)
+print_raw_counter(WINDOW *win, int y, int x,
+		  struct intel_counter *counter, uint8_t *data)
 {
-
-    switch(counter->data_type)
-    {
+    switch(counter->data_type) {
     case GL_PERFQUERY_COUNTER_DATA_UINT32_INTEL:
-	wprintw(stdscr, "%" PRIu32, *(uint32_t *)(data + counter->data_offset));
+	mvwprintw(win, y, x, "%" PRIu32, *(uint32_t *)(data + counter->data_offset));
 	break;
     case GL_PERFQUERY_COUNTER_DATA_UINT64_INTEL:
-	wprintw(stdscr, "%" PRIu64, *(uint64_t *)(data + counter->data_offset));
+	mvwprintw(win, y, x, "%" PRIu64, *(uint64_t *)(data + counter->data_offset));
 	break;
     case GL_PERFQUERY_COUNTER_DATA_FLOAT_INTEL:
-	wprintw(stdscr, "%f", *(float *)(data + counter->data_offset));
+	mvwprintw(win, y, x, "%f", *(float *)(data + counter->data_offset));
 	break;
     case GL_PERFQUERY_COUNTER_DATA_DOUBLE_INTEL:
-	wprintw(stdscr, "%f", *(double *)(data + counter->data_offset));
+	mvwprintw(win, y, x, "%f", *(double *)(data + counter->data_offset));
 	break;
     case GL_PERFQUERY_COUNTER_DATA_BOOL32_INTEL:
-	wprintw(stdscr, "%s", (*(uint32_t *)(data + counter->data_offset)) ? "TRUE" : "FALSE");
+	mvwprintw(win, y, x, "%s", (*(uint32_t *)(data + counter->data_offset)) ? "TRUE" : "FALSE");
 	break;
     }
 }
 
-
-
 static void
-redraw_cb(uv_timer_t *timer)
+gl_basic_tab_redraw(WINDOW *win)
 {
     struct winsys_surface **surfaces;
-    int screen_width;
-    int screen_height __attribute__ ((unused));
-    WINDOW *titlebar_win;
-    int n_pages = 1;
+    //int win_width;
+    //int win_height __attribute__ ((unused));
     int i;
 
-    init_pair(GPUTOP_DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(GPUTOP_HEADER_COLOR, COLOR_WHITE, COLOR_BLUE);
+    //getmaxyx(win, win_height, win_width);
 
-    werase(stdscr);
-
-    getmaxyx(stdscr, screen_height, screen_width);
-
-    titlebar_win = subwin(stdscr, 1, screen_width, 0, 0);
-    touchwin(stdscr);
-
-    wattrset(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
-    wbkgd(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
-    werase(titlebar_win);
-
-    mvwprintw(titlebar_win, 0, 0,
-              "     gputop %s       Tab %d/%d (Press Tab key to cycle through)",
-              PACKAGE_VERSION,
-              gputop_current_page, n_pages);
-
-    wnoutrefresh(titlebar_win);
-
-
-    mvwprintw(stdscr, 2, 0, "%40s  0%%                         100%%\n", "");
-    mvwprintw(stdscr, 3, 0, "%40s  ┌─────────────────────────────┐\n", "");
+    mvwprintw(win, 1, 0, "%40s  0%%                         100%%\n", "");
+    mvwprintw(win, 2, 0, "%40s  ┌─────────────────────────────┐\n", "");
 
     pthread_rwlock_rdlock(&gputop_gl_lock);
 
@@ -196,34 +253,34 @@ redraw_cb(uv_timer_t *timer)
 	for (j = 0; j < wctx->oa_query_info.n_counters; j++) {
 	    struct intel_counter *counter = &wctx->oa_query_info.counters[j];
 
-	    switch (counter->type)
-	    {
+	    switch (counter->type) {
 	    case GL_PERFQUERY_COUNTER_EVENT_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40ss: ", counter->name);
-		print_frame_counter(counter, frame->oa_data);
+		mvwprintw(win, j + 3, 0, "%40ss: ", counter->name);
+		print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
 		break;
 	    case GL_PERFQUERY_COUNTER_DURATION_NORM_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40s: ", counter->name);
-                print_normalised_duration(stdscr, j + 4, 41, counter, frame->oa_data);
-		//print_frame_counter(counter, frame->oa_data);
+		mvwprintw(win, j + 3, 0, "%40s: ", counter->name);
+		print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
 		break;
 	    case GL_PERFQUERY_COUNTER_DURATION_RAW_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40ss: ", counter->name);
-		print_frame_counter(counter, frame->oa_data);
+		mvwprintw(win, j + 3, 0, "%40ss: ", counter->name);
+		print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
 		break;
 	    case GL_PERFQUERY_COUNTER_THROUGHPUT_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40ss: ", counter->name);
-		print_frame_counter(counter, frame->oa_data);
-		wprintw(stdscr, " bytes/s");
+		mvwprintw(win, j + 3, 0, "%40ss: ", counter->name);
+		print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
+		wprintw(win, " bytes/s");
 		break;
 	    case GL_PERFQUERY_COUNTER_RAW_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40s: ", counter->name);
-                print_normalised_duration(stdscr, j + 4, 41, counter, frame->oa_data);
-		//print_frame_counter(counter, frame->oa_data);
+		mvwprintw(win, j + 3, 0, "%40s: ", counter->name);
+		if (counter->max_raw_value == 100)
+		    print_percentage_counter(win, j + 3, 41, counter, frame->oa_data);
+		else
+		    print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
 		break;
 	    case GL_PERFQUERY_COUNTER_TIMESTAMP_INTEL:
-		mvwprintw(stdscr, j + 4, 0, "%40s: ", counter->name);
-		print_frame_counter(counter, frame->oa_data);
+		mvwprintw(win, j + 3, 0, "%40s: ", counter->name);
+		print_raw_counter(win, j + 3, 41, counter, frame->oa_data);
 		break;
 	    }
 	}
@@ -245,11 +302,246 @@ redraw_cb(uv_timer_t *timer)
     }
 
     pthread_rwlock_unlock(&gputop_gl_lock);
+}
 
-    redrawwin(stdscr);
-    wrefresh(stdscr);
+static void
+gl_3d_tab_enter(void)
+{
+    atomic_store(&gputop_gl_monitoring_enabled, 1);
+}
+
+static void
+gl_3d_tab_leave(void)
+{
+    atomic_store(&gputop_gl_monitoring_enabled, 0);
+}
+
+static void
+gl_3d_tab_input(int key)
+{
+
+}
+
+static void
+gl_3d_tab_redraw(WINDOW *win)
+{
+
+}
+
+static void
+gl_debug_log_tab_enter(void)
+{
+
+}
+
+static void
+gl_debug_log_tab_leave(void)
+{
+
+}
+
+static void
+gl_debug_log_tab_input(int key)
+{
+
+}
+
+static void
+gl_debug_log_tab_redraw(WINDOW *win)
+{
+
+}
+
+static void
+gl_knobs_tab_enter(void)
+{
+
+}
+
+static void
+gl_knobs_tab_leave(void)
+{
+
+}
+
+static void
+gl_knobs_tab_input(int key)
+{
+
+}
+
+static void
+gl_knobs_tab_redraw(WINDOW *win)
+{
+
+}
+
+static void
+app_io_tab_enter(void)
+{
+
+}
+
+static void
+app_io_tab_leave(void)
+{
+
+}
+
+static void
+app_io_tab_input(int key)
+{
+
+}
+
+static void
+app_io_tab_redraw(WINDOW *win)
+{
+
+}
+
+static struct tab tabs[] =
+    {
+	{
+	    .name = "Basic Counters (system wide)",
+	    .enter = perf_basic_tab_enter,
+	    .leave = perf_basic_tab_leave,
+	    .input = perf_basic_tab_input,
+	    .redraw = perf_basic_tab_redraw,
+	},
+	{
+	    .name = "3D Counters (system wide)",
+	    .enter = perf_3d_tab_enter,
+	    .leave = perf_3d_tab_leave,
+	    .input = perf_3d_tab_input,
+	    .redraw = perf_3d_tab_redraw,
+	},
+	{
+	    .name = "Basic Counters (OpenGL context)",
+	    .enter = gl_basic_tab_enter,
+	    .leave = gl_basic_tab_leave,
+	    .input = gl_basic_tab_input,
+	    .redraw = gl_basic_tab_redraw,
+	},
+	{
+	    .name = "3D Counters (OpenGL context)",
+	    .enter = gl_3d_tab_enter,
+	    .leave = gl_3d_tab_leave,
+	    .input = gl_3d_tab_input,
+	    .redraw = gl_3d_tab_redraw,
+	},
+	{
+	    .name = "OpenGL debug log",
+	    .enter = gl_debug_log_tab_enter,
+	    .leave = gl_debug_log_tab_leave,
+	    .input = gl_debug_log_tab_input,
+	    .redraw = gl_debug_log_tab_redraw,
+	},
+	{
+	    .name = "3D Counters (OpenGL context)",
+	    .enter = gl_knobs_tab_enter,
+	    .leave = gl_knobs_tab_leave,
+	    .input = gl_knobs_tab_input,
+	    .redraw = gl_knobs_tab_redraw,
+	},
+	{
+	    .name = "Application IO",
+	    .enter = app_io_tab_enter,
+	    .leave = app_io_tab_leave,
+	    .input = app_io_tab_input,
+	    .redraw = app_io_tab_redraw,
+	},
+    };
+
+static void
+redraw_ui(void)
+{
+    struct tab *tab = &tabs[current_tab];
+    int screen_width;
+    int screen_height;
+    WINDOW *titlebar_win;
+    WINDOW *tab_win;
+
+    werase(stdscr); /* XXX: call after touchwin? */
+
+    getmaxyx(stdscr, screen_height, screen_width);
+
+    /* don't attempt to track what parts of stdscr have changed */
+    touchwin(stdscr);
+
+    titlebar_win = subwin(stdscr, 1, screen_width, 0, 0);
+    //touchwin(stdscr);
+
+    wattrset(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
+    wbkgd(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
+    werase(titlebar_win);
+
+    mvwprintw(titlebar_win, 0, 0,
+              "     gputop %s   «%s» (Press Tab key to cycle through)",
+              PACKAGE_VERSION,
+              tab->name);
+
+    wnoutrefresh(titlebar_win);
+
+    tab_win = subwin(stdscr, screen_height - 1, screen_width, 1, 0);
+    //touchwin(stdscr);
+
+    tabs[current_tab].redraw(tab_win);
+
+    wnoutrefresh(tab_win);
+
+    redrawwin(stdscr); /* indicate whole window has changed */
+    wrefresh(stdscr); /* XXX: can we just call doupdate() instead? */
 
     delwin(titlebar_win);
+    delwin(tab_win);
+}
+
+static void
+timer_cb(uv_timer_t *timer)
+{
+    redraw_ui();
+}
+
+static void
+redraw_idle_cb(uv_idle_t *idle)
+{
+    uv_idle_stop(&redraw_idle);
+
+    redraw_ui();
+}
+
+static int
+common_input(int key)
+{
+    if (key == 9) { /* Urgh, ncurses is not making things better :-/ */
+	int n_tabs = sizeof(tabs) / sizeof(tabs[0]);
+
+	tabs[current_tab].leave();
+
+	current_tab++;
+	current_tab %= n_tabs;
+	tabs[current_tab].enter();
+
+	return INPUT_HANDLED;
+    }
+
+    return INPUT_UNHANDLED;
+}
+
+static void
+input_read_cb(uv_poll_t *input_poll, int status, int events)
+{
+    int key;
+
+    while ((key = wgetch(stdscr)) != ERR) {
+	if (common_input(key) == INPUT_HANDLED)
+	    continue;
+
+	tabs[current_tab].input(key);
+    }
+
+    uv_idle_start(&redraw_idle, redraw_idle_cb);
 }
 
 static void
@@ -265,6 +557,8 @@ reset_terminal(void)
 void
 gputop_ui_quit_idle_cb(uv_idle_t *idle)
 {
+    tabs[current_tab].leave();
+
     reset_terminal();
     fprintf(stderr, "%s", (char *)idle->data);
     fflush(stderr);
@@ -295,6 +589,8 @@ init_ncurses(FILE *infile, FILE *outfile)
 
     screen = newterm(NULL, outfile, infile);
     set_term(screen);
+
+    nodelay(stdscr, true); /* wgetch shouldn't block if no input */
 
     nonl();
     intrflush(stdscr, false);
@@ -362,7 +658,14 @@ gputop_ui_run(void *arg)
     gputop_ui_loop = uv_loop_new();
 
     uv_timer_init(gputop_ui_loop, &timer);
-    uv_timer_start(&timer, redraw_cb, 1000, 1000);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    uv_idle_init(gputop_ui_loop, &redraw_idle);
+
+    uv_poll_init(gputop_ui_loop, &input_poll, real_stdin);
+    uv_poll_start(&input_poll, UV_READABLE, input_read_cb);
+
+    tabs[current_tab].enter();
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
