@@ -66,6 +66,7 @@ static uv_poll_t input_poll;
 static uv_idle_t redraw_idle;
 
 static int current_tab = 0;
+static bool debug_disable_ncurses = 0;
 
 uv_loop_t *gputop_ui_loop;
 
@@ -462,6 +463,9 @@ redraw_ui(void)
     WINDOW *titlebar_win;
     WINDOW *tab_win;
 
+    if (debug_disable_ncurses)
+	return;
+
     werase(stdscr); /* XXX: call after touchwin? */
 
     getmaxyx(stdscr, screen_height, screen_width);
@@ -547,11 +551,13 @@ input_read_cb(uv_poll_t *input_poll, int status, int events)
 static void
 reset_terminal(void)
 {
-    endwin();
+    if (!debug_disable_ncurses) {
+	endwin();
 
-    dup2(STDIN_FILENO, real_stdin);
-    dup2(STDOUT_FILENO, real_stdout);
-    dup2(STDERR_FILENO, real_stderr);
+	dup2(STDIN_FILENO, real_stdin);
+	dup2(STDOUT_FILENO, real_stdout);
+	dup2(STDERR_FILENO, real_stderr);
+    }
 }
 
 void
@@ -576,6 +582,9 @@ init_ncurses(FILE *infile, FILE *outfile)
 {
     SCREEN *screen;
     char *current_locale;
+
+    if (debug_disable_ncurses)
+	return;
 
     /* We assume we have a utf8 locale when writing unicode characters
      * to the terminal via ncurses...
@@ -603,23 +612,30 @@ init_ncurses(FILE *infile, FILE *outfile)
 
     start_color();
     use_default_colors();
+
+    init_pair(GPUTOP_DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
+    init_pair(GPUTOP_HEADER_COLOR, COLOR_WHITE, COLOR_BLUE);
 }
 
 void *
 gputop_ui_run(void *arg)
 {
-    FILE *infile;
-    FILE *outfile;
     uv_timer_t timer;
 
-    real_stdin = dup(STDIN_FILENO);
-    real_stdout = dup(STDOUT_FILENO);
-    real_stderr = dup(STDERR_FILENO);
+    gputop_ui_loop = uv_loop_new();
 
-    /* Instead of discarding the apps IO we might
-     * want to expose it via a gputop tab later... */
+    if (!debug_disable_ncurses) {
+	FILE *infile;
+	FILE *outfile;
+
+	real_stdin = dup(STDIN_FILENO);
+	real_stdout = dup(STDOUT_FILENO);
+	real_stderr = dup(STDERR_FILENO);
+
+	/* Instead of discarding the apps IO we might
+	 * want to expose it via a gputop tab later... */
 #if 0
-    {
+	{
 	int in_sp[2];
 	int out_sp[2];
 	int err_sp[2];
@@ -635,9 +651,9 @@ gputop_ui_run(void *arg)
 	close(in_sp[1]);
 	close(out_sp[1]);
 	close(err_sp[1]);
-    }
+	}
 #else
-    {
+	{
 	int null_fd = open("/dev/null", O_RDWR|O_CLOEXEC);
 
 	dup2(null_fd, STDIN_FILENO);
@@ -645,17 +661,23 @@ gputop_ui_run(void *arg)
 	dup2(null_fd, STDERR_FILENO);
 
 	close(null_fd);
-    }
+	}
+
+	infile = fdopen(real_stdin, "r+");
+	outfile = fdopen(real_stdout, "r+");
+
+	init_ncurses(infile, outfile);
+
+	uv_poll_init(gputop_ui_loop, &input_poll, real_stdin);
+	uv_poll_start(&input_poll, UV_READABLE, input_read_cb);
 #endif
-
-    infile = fdopen(real_stdin, "r+");
-    outfile = fdopen(real_stdout, "r+");
-
-    init_ncurses(infile, outfile);
+    } else {
+	real_stdin = STDIN_FILENO;
+	real_stdout = STDOUT_FILENO;
+	real_stderr = STDERR_FILENO;
+    }
 
     atexit(atexit_cb);
-
-    gputop_ui_loop = uv_loop_new();
 
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
