@@ -301,24 +301,29 @@ static void
 winsys_context_gl_initialise(struct winsys_context *wctx)
 {
     unsigned int query_id;
+    bool ok;
 
     pthread_once(&initialise_gl_once, initialise_gl);
 
+    /* NB: we need to be paranoid about leaking GL errors to the application */
+
+    ok = true;
     pfn_glGetPerfQueryIdByNameINTEL("Gen7 3D Observability Architecture Counters",
 				    &query_id);
-    get_query_info(query_id, &wctx->oa_query_info);
+    while (pfn_glGetError() != GL_NO_ERROR)
+	ok = false;
 
+    if (ok)
+	get_query_info(query_id, &wctx->oa_query_info);
+
+    ok = true;
     pfn_glGetPerfQueryIdByNameINTEL("Gen7 Pipeline Statistics Registers",
 				    &query_id);
-    get_query_info(query_id, &wctx->pipeline_stats_query_info);
+    while (pfn_glGetError() != GL_NO_ERROR)
+	ok = false;
 
-
-    for (pfn_glGetFirstPerfQueryIdINTEL(&query_id);
-	 query_id && wctx->n_query_types < MAX_QUERY_TYPES;
-	 pfn_glGetNextPerfQueryIdINTEL(query_id, &query_id))
-    {
-	get_query_info(query_id, &wctx->query_types[wctx->n_query_types++]);
-    }
+    if (ok)
+	get_query_info(query_id, &wctx->pipeline_stats_query_info);
 }
 
 static struct winsys_context *

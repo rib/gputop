@@ -57,7 +57,6 @@ struct intel_query_info
 
     char name[128];
 };
-#define MAX_QUERY_TYPES 10
 
 struct frame_query
 {
@@ -90,9 +89,6 @@ struct winsys_context
     struct winsys_surface *draw_wsurface;
 
     bool gl_initialised;
-
-    int n_query_types;
-    struct intel_query_info query_types[MAX_QUERY_TYPES];
 
     struct intel_query_info pipeline_stats_query_info;
     struct intel_query_info oa_query_info;
