@@ -39,12 +39,14 @@
 #include "gputop-ui.h"
 #include "gputop-util.h"
 
-
-/* XXX: As a GL interposer we have to be extra paranoid about checking
- * for GL errors if we use GL ourselves otherwise we will leak error
- * state that can affect the running of the application itself.
+/* XXX: As a GL interposer we have to be extra paranoid about
+ * generating GL errors that might trample on the error state that the
+ * application sees.
  *
- * Also see: gputop_save_glerror() and gputop_glGetError()
+ * For now we just try our best to never generate internal errors but
+ * if we find we can't always guarantee that then we should be able to
+ * intercept the KHR_debug extension and glGetError() to effectively
+ * hide any internal errors.
  */
 #define GE(X)                                                   \
     do {                                                        \
@@ -109,10 +111,6 @@ static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 					   GLsizei dataSize, GLvoid *data,
 					   GLuint *bytesWritten);
 
-static bool have_saved_glerror;
-static GLenum saved_glerror;
-
-
 pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
 static struct array *winsys_contexts;
 struct array *gputop_gl_surfaces;
@@ -169,22 +167,6 @@ gputop_passthrough_egl_resolve(const char *name)
     }
 
     return dlsym(libegl_handle, name);
-}
-
-static void
-save_glerror(void)
-{
-    saved_glerror = glGetError();
-    have_saved_glerror = true;
-}
-
-GLenum
-gputop_glGetError(void)
-{
-    if (have_saved_glerror)
-	return saved_glerror;
-    else
-	return pfn_glGetError();
 }
 
 static void
@@ -816,14 +798,6 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 
     /* XXX: check the semantics of atomic_load() will it ensure
      * the compiler won't perform multiple loads? */
-
-    /* Since we need to use the GL api there's a risk that we might
-     * trigger an error and we don't want the application to ever see
-     * such errors; potentially triggering an abort or other
-     * misinterpretation of the error so we save the applications
-     * current error state first...
-     */
-    save_glerror();
 
     if (!monitoring_enabled)
 	winsys_surface_destroy_monitors(wsurface);
