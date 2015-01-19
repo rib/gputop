@@ -741,9 +741,6 @@ gputop_ui_run(void *arg)
 
     uv_idle_init(gputop_ui_loop, &redraw_idle);
 
-    uv_poll_init(gputop_ui_loop, &input_poll, real_stdin);
-    uv_poll_start(&input_poll, UV_READABLE, input_read_cb);
-
     tabs[current_tab].enter();
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
