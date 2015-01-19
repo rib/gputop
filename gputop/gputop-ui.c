@@ -604,20 +604,27 @@ reset_terminal(void)
     if (!debug_disable_ncurses) {
 	endwin();
 
-	dup2(STDIN_FILENO, real_stdin);
-	dup2(STDOUT_FILENO, real_stdout);
-	dup2(STDERR_FILENO, real_stderr);
+	dup2(real_stdin, STDIN_FILENO);
+	dup2(real_stdout, STDOUT_FILENO);
+	dup2(real_stderr, STDERR_FILENO);
     }
 }
 
 void
 gputop_ui_quit_idle_cb(uv_idle_t *idle)
 {
+    char clear_screen[] = { 0x1b, '[', 'H',
+			    0x1b, '[', 'J',
+			    0x0 };
     tabs[current_tab].leave();
 
     reset_terminal();
-    fprintf(stderr, "%s", (char *)idle->data);
-    fflush(stderr);
+
+    fprintf(stderr, "%s", clear_screen);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", (char *)idle->data);
+    fprintf(stderr, "\n");
+
     _exit(EXIT_FAILURE);
 }
 
