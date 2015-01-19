@@ -95,6 +95,17 @@ static pthread_once_t initialise_gl_once = PTHREAD_ONCE_INIT;
 
 static const GLubyte *(*pfn_glGetStringi)(GLenum name, GLuint index);
 static GLenum (*pfn_glGetError)(void);
+static void (*pfn_glEnable)(GLenum cap);
+static void (*pfn_glDisable)(GLenum cap);
+
+static void (*pfn_glDebugMessageControl)(GLenum source,
+					 GLenum type,
+					 GLenum severity,
+					 GLsizei count,
+					 const GLuint *ids,
+					 GLboolean enabled);
+static void (*pfn_glDebugMessageCallback)(GLDEBUGPROC callback,
+					  const void *userParam);
 
 static void (*pfn_glGetPerfQueryInfoINTEL)(GLuint queryId, GLuint queryNameLength,
 					   GLchar *queryName, GLuint *dataSize,
@@ -126,10 +137,15 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 				  const int *attrib_list);
 
 pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
-static struct array *winsys_contexts;
+struct array *gputop_gl_contexts;
 struct array *gputop_gl_surfaces;
 
+bool gputop_gl_force_debug_ctx_enabled = false;
+
+_Atomic int gputop_gl_n_countext = 0;
+
 _Atomic bool gputop_gl_monitoring_enabled = false;
+_Atomic bool gputop_gl_khr_debug_enabled = true;
 _Atomic int gputop_gl_n_monitors;
 
 
@@ -205,8 +221,11 @@ gputop_gl_init(void)
 
     pthread_key_create(&winsys_context_key, NULL);
 
-    winsys_contexts = array_new(sizeof(void *), 5);
+    gputop_gl_contexts = array_new(sizeof(void *), 5);
     gputop_gl_surfaces = array_new(sizeof(void *), 5);
+
+    if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
+	gputop_gl_force_debug_ctx_enabled = true;
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_thread_id, &attrs, gputop_ui_run, NULL);
@@ -288,6 +307,13 @@ initialise_gl(void)
     } symbols[] = {
 	SYM(glGetError),
 
+	SYM(glEnable),
+	SYM(glDisable),
+
+	/* KHR_debug */
+	SYM(glDebugMessageControl),
+	SYM(glDebugMessageCallback),
+
 	/* GL_INTEL_performance_query */
 	SYM(glGetPerfQueryInfoINTEL),
 	SYM(glGetPerfCounterInfoINTEL),
@@ -362,6 +388,41 @@ get_query_info(unsigned id, struct intel_query_info *query_info)
 }
 
 static void
+gputop_khr_debug_callback(GLenum source,
+			  GLenum type,
+			  GLuint id,
+			  GLenum severity,
+			  GLsizei length,
+			  const GLchar *message,
+			  void *userParam)
+{
+    struct winsys_context *wctx = userParam;
+    struct log_entry *entry;
+
+    /* XXX: make sure we don't ever start using gputop_gl_lock
+     * around internal GL api usage otherwise we'll deadlock
+     * if we ever generate a performance warning ourselves!
+     */
+    pthread_rwlock_wrlock(&gputop_gl_lock);
+
+    if (wctx->khr_debug_log_len > 10000) {
+	entry = gputop_container_of(wctx->khr_debug_log.prev, entry, link);
+	gputop_list_remove(&entry->link);
+	free(entry->msg);
+	wctx->khr_debug_log_len--;
+    } else
+	entry = xmalloc(sizeof(*entry));
+
+    entry->severity = severity;
+    entry->msg = strndup(message, length);
+
+    gputop_list_insert(wctx->khr_debug_log.prev, &entry->link);
+    wctx->khr_debug_log_len++;
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
+}
+
+static void
 winsys_context_gl_initialise(struct winsys_context *wctx)
 {
     unsigned int query_id;
@@ -388,6 +449,30 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
 
     if (ok)
 	get_query_info(query_id, &wctx->pipeline_stats_query_info);
+
+
+    pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+			      GL_DONT_CARE, /* type */
+			      GL_DONT_CARE, /* severity */
+			      0,
+			      NULL,
+			      false);
+
+    pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+			      GL_DEBUG_TYPE_PERFORMANCE,
+			      GL_DONT_CARE, /* severity */
+			      0,
+			      NULL,
+			      true);
+
+    gputop_list_init(&wctx->khr_debug_log);
+    wctx->khr_debug_log_len = 0;
+
+    pfn_glDisable(GL_DEBUG_OUTPUT);
+    wctx->khr_debug_enabled = false;
+
+    pfn_glDebugMessageCallback((GLDEBUGPROC)gputop_khr_debug_callback, wctx);
+
 }
 
 static struct winsys_context *
@@ -399,7 +484,7 @@ winsys_context_create(GLXContext glx_ctx)
     wctx->gl_initialised = false;
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
-    array_append(winsys_contexts, &wctx);
+    array_append(gputop_gl_contexts, &wctx);
     pthread_rwlock_unlock(&gputop_gl_lock);
 
     return wctx;
@@ -413,9 +498,47 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 				  const int *attrib_list)
 {
     GLXContext glx_ctx;
+    bool is_debug_context = false;
     struct winsys_context *wctx;
+    int i;
 
     pthread_once(&init_once, gputop_gl_init);
+
+    if (gputop_gl_force_debug_ctx_enabled) {
+	int n_attribs;
+	int flags_index;
+	int *attribs_copy;
+
+	for (n_attribs = 0; attrib_list[n_attribs] != None; n_attribs += 2)
+	    ;
+
+	attribs_copy = alloca(sizeof(int) * n_attribs + 3);
+	memcpy(attribs_copy, attrib_list, sizeof(int) * (n_attribs + 1));
+
+	for (flags_index = 0;
+	     flags_index < n_attribs && attrib_list[flags_index] != GLX_CONTEXT_FLAGS_ARB;
+	     flags_index += 2)
+	    ;
+
+	if (flags_index == n_attribs) {
+	    attribs_copy[n_attribs++] = GLX_CONTEXT_FLAGS_ARB;
+	    attribs_copy[n_attribs++] = 0;
+	    attribs_copy[n_attribs] = None;
+	}
+
+	attribs_copy[flags_index + 1] = GLX_CONTEXT_DEBUG_BIT_ARB;
+
+	attrib_list = attribs_copy;
+	is_debug_context = true;
+    }
+
+    for (i = 0; attrib_list[i] != None; i += 2) {
+	if (attrib_list[i] == GLX_CONTEXT_FLAGS_ARB &&
+	    attrib_list[i+1] & GLX_CONTEXT_DEBUG_BIT_ARB)
+	{
+	    is_debug_context = true;
+	}
+    }
 
     glx_ctx = real_glXCreateContextAttribsARB(dpy, config, share_context,
 					      direct, attrib_list);
@@ -423,6 +546,7 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 	return glx_ctx;
 
     wctx = winsys_context_create(glx_ctx);
+    wctx->is_debug_context = is_debug_context;
 
     return glx_ctx;
 }
@@ -492,10 +616,10 @@ gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
 static struct winsys_context *
 winsys_context_lookup(GLXContext glx_ctx, int *idx)
 {
-    struct winsys_context **contexts = winsys_contexts->data;
+    struct winsys_context **contexts = gputop_gl_contexts->data;
     int i;
 
-    for (i = 0; i < winsys_contexts->len; i++) {
+    for (i = 0; i < gputop_gl_contexts->len; i++) {
 	struct winsys_context *wctx = contexts[i];
 
 	if (wctx->glx_ctx == glx_ctx) {
@@ -514,7 +638,7 @@ winsys_context_destroy(struct winsys_context *wctx)
 
     winsys_context_lookup(wctx->glx_ctx, &idx);
 
-    array_remove(winsys_contexts, idx);
+    array_remove(gputop_gl_contexts, idx);
 
     if (wctx->draw_wsurface)
 	wctx->draw_wsurface->wctx = NULL;
@@ -897,6 +1021,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
     bool monitoring_enabled;
+    bool khr_debug_enabled;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -911,6 +1036,16 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 
     /* XXX: is checking wsurface->wctx->draw_surface == wsurface
      * redundant? */
+
+    khr_debug_enabled = atomic_load(&gputop_gl_khr_debug_enabled);
+
+    if (khr_debug_enabled != wctx->khr_debug_enabled) {
+	if (khr_debug_enabled)
+	    pfn_glEnable(GL_DEBUG_OUTPUT);
+	else
+	    pfn_glDisable(GL_DEBUG_OUTPUT);
+	wctx->khr_debug_enabled = khr_debug_enabled;
+    }
 
     monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
 
@@ -930,3 +1065,39 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	winsys_surface_start_frame(wsurface);
     }
 }
+
+void
+gputop_glEnable(GLenum cap)
+{
+    if (cap == GL_DEBUG_OUTPUT) {
+	dbg("Ignoring application's conflicting use of KHR_debug extension");
+	return;
+    }
+
+    pfn_glEnable(cap);
+}
+
+void
+gputop_glDisable(GLenum cap)
+{
+    pfn_glDisable(cap);
+}
+
+void
+gputop_glDebugMessageControl(GLenum source,
+			     GLenum type,
+			     GLenum severity,
+			     GLsizei count,
+			     const GLuint *ids,
+			     GLboolean enabled)
+{
+    dbg("Ignoring application's conflicting use of KHR_debug extension");
+}
+
+void
+gputop_glDebugMessageCallback(GLDEBUGPROC callback,
+			      const void *userParam)
+{
+    dbg("Ignoring application's conflicting use of KHR_debug extension");
+}
+

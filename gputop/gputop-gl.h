@@ -28,6 +28,8 @@
 #include <GL/glx.h>
 #include <GL/glxext.h>
 
+#include "gputop-list.h"
+
 struct intel_counter
 {
     uint64_t max_raw_value;
@@ -78,6 +80,12 @@ struct frame_query
  */
 #define MAX_FRAME_QUERIES 3
 
+struct log_entry {
+    gputop_list_t link;
+    char *msg;
+    GLenum severity;
+};
+
 struct winsys_context
 {
     _Atomic int ref;
@@ -92,6 +100,12 @@ struct winsys_context
 
     struct intel_query_info pipeline_stats_query_info;
     struct intel_query_info oa_query_info;
+
+    bool try_create_new_context_failed;
+    bool is_debug_context;
+    bool khr_debug_enabled;
+    gputop_list_t khr_debug_log;
+    int khr_debug_log_len;
 };
 
 struct winsys_surface
@@ -113,9 +127,13 @@ struct winsys_surface
 };
 
 extern pthread_rwlock_t gputop_gl_lock;
+extern struct array *gputop_gl_contexts;
 extern struct array *gputop_gl_surfaces;
 
+extern bool gputop_gl_force_debug_ctx_enabled;
+
 extern _Atomic bool gputop_gl_monitoring_enabled;
+extern _Atomic bool gputop_gl_khr_debug_enabled;
 
 /* The number of monitors to delete if monitoring is disabled...
  *

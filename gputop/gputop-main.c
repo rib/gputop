@@ -42,6 +42,7 @@ usage(void)
 	    "\n"
 	    "     --libgl=<libgl_filename>      Explicitly specify the real libGL library to intercept\n"
 	    "     --libegl=<libegl_filename>    Explicitly specify the real libEGL library to intercept\n"
+	    "     --debug-context		Create a debug context and report KHR_debug perf issues\n"
 	    " -h, --help                        Display this help\n\n");
     exit(1);
 }
@@ -87,16 +88,18 @@ main (int argc, char **argv)
 {
     int opt;
 
-#define LIB_GL_OPT  (CHAR_MAX + 1)
-#define LIB_EGL_OPT (CHAR_MAX + 2)
+#define LIB_GL_OPT	(CHAR_MAX + 1)
+#define LIB_EGL_OPT	(CHAR_MAX + 2)
+#define DEBUG_CTX_OPT	(CHAR_MAX + 3)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
     const char *short_options="+h";
     const struct option long_options[] = {
-	{"help",   no_argument,	      0, 'h'},
-	{"libgl",  optional_argument, 0, LIB_GL_OPT},
-	{"libegl", optional_argument, 0, LIB_EGL_OPT},
+	{"help",	    no_argument,	0, 'h'},
+	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
+	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
+	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
 	{0, 0, 0, 0}
     };
     const char *prev_ld_library_path;
@@ -117,6 +120,9 @@ main (int argc, char **argv)
 		break;
 	    case LIB_EGL_OPT:
 		setenv("GPUTOP_EGL_LIBRARY", optarg, true);
+		break;
+	    case DEBUG_CTX_OPT:
+		setenv("GPUTOP_FORCE_DEBUG_CONTEXT", "1", true);
 		break;
 	    default:
 		fprintf (stderr, "Internal error: "

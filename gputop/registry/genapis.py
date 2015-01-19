@@ -328,7 +328,13 @@ glxapiHooks = {
     'glXCreateContextAttribsARB',
     'glXDestroyContext',
 
-    'glGetError'
+    'glGetError',
+
+    'glEnable',
+    'glDisable',
+
+    'glDebugMessageControl',
+    'glDebugMessageCallback',
 }
 
 glxapiHeaders = [

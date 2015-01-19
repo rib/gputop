@@ -332,13 +332,13 @@ gl_3d_tab_redraw(WINDOW *win)
 static void
 gl_debug_log_tab_enter(void)
 {
-
+    atomic_store(&gputop_gl_khr_debug_enabled, 1);
 }
 
 static void
 gl_debug_log_tab_leave(void)
 {
-
+    atomic_store(&gputop_gl_khr_debug_enabled, 0);
 }
 
 static void
@@ -350,7 +350,57 @@ gl_debug_log_tab_input(int key)
 static void
 gl_debug_log_tab_redraw(WINDOW *win)
 {
+    struct winsys_context **contexts;
+    struct winsys_context *wctx;
+    int win_width __attribute__ ((unused));
+    int win_height;
+    struct log_entry *tmp;
+    int i = 0;
 
+    getmaxyx(win, win_height, win_width);
+
+    pthread_rwlock_wrlock(&gputop_gl_lock);
+
+    if (!gputop_gl_contexts->len) {
+	pthread_rwlock_unlock(&gputop_gl_lock);
+
+	mvwprintw(win, 1, 0, "No contexts found");
+	return;
+    }
+
+    if (gputop_gl_contexts->len > 1)
+	mvwprintw(win, 0, 0, "Warning: only printing log for first context found");
+
+    contexts = gputop_gl_contexts->data;
+    wctx = contexts[i];
+
+    if (gputop_list_empty(&wctx->khr_debug_log)) {
+	mvwprintw(win, 1, 0, "No performance warnings have been reported from OpenGL so far...\n");
+
+	if (!wctx->is_debug_context) {
+	    mvwprintw(win, 3, 0,
+		      "Note: The application is not running with a debug context which\n"
+		      "might effectively disable the KHR_debug extension.");
+	    if (!gputop_gl_force_debug_ctx_enabled)
+		mvwprintw(win, 6, 0,
+			  "Note: GPU Top can force the creation of a debug context if\n"
+			  "you pass --debug-context or set the GPUTOP_FORCE_DEBUG_CONTEXT\n"
+			  "environment variable.");
+	    else if (wctx->try_create_new_context_failed)
+		mvwprintw(win, 6, 0,
+			  "Note: GPU Top failed to force this app using the legacy \n"
+			  "glXCreateContext API to create a debug context\n");
+	}
+    }
+
+    gputop_list_for_each(tmp, &wctx->khr_debug_log, link) {
+	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
+
+	if (i++ > win_height)
+	    break;
+    }
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
 }
 
 static void
