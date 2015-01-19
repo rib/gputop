@@ -87,6 +87,7 @@ static void (*real_glXSwapBuffers)(Display *dpy, GLXDrawable drawable);
 
 static pthread_once_t initialise_gl_once = PTHREAD_ONCE_INIT;
 
+static const GLubyte *(*pfn_glGetStringi)(GLenum name, GLuint index);
 static GLenum (*pfn_glGetError)(void);
 
 static void (*pfn_glGetPerfQueryInfoINTEL)(GLuint queryId, GLuint queryNameLength,
@@ -218,6 +219,33 @@ gputop_abort(const char *error)
     exit(EXIT_FAILURE);
 }
 
+static bool
+have_extension(const char *name)
+{
+    const char *gl_extensions = (const char *)glGetString(GL_EXTENSIONS);
+    int n_extensions = 0;
+    int i;
+
+    /* Note: we're not currently being careful to consider extension
+     * names that are an abbreviation of another name... */
+    if (gl_extensions)
+	return strstr(gl_extensions, name);
+
+    if (glGetError() != GL_INVALID_ENUM || pfn_glGetStringi == NULL)
+	gputop_abort("Spurious NULL from glGetString(GL_EXTENSIONS)");
+
+    /* If we got GL_INVALID_ENUM lets just assume we have a core
+     * profile context so we need to use glGetStringi() */
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n_extensions);
+    if (!n_extensions)
+	gputop_abort("glGetIntegerv(GL_NUM_EXTENSIONS) returned zero");
+
+    for (i = 0; i < n_extensions; i++)
+	if (strcmp(name, (char *)pfn_glGetStringi(GL_EXTENSIONS, i)) == 0)
+	    return true;
+    return false;
+}
+
 static void
 initialise_gl(void)
 {
@@ -241,12 +269,16 @@ initialise_gl(void)
 	SYM(glGetPerfQueryDataINTEL),
     };
 #undef SYM
-    const char *gl_extensions;
     int i;
 
-    gl_extensions = (const char *)glGetString(GL_EXTENSIONS);
-    if (!strstr(gl_extensions, "GL_INTEL_performance_query"))
+    /* Special case since we may need this to check the extensions... */
+    pfn_glGetStringi = (void *)glXGetProcAddress((GLubyte *)"glGetStringi");
+
+    if (!have_extension("GL_INTEL_performance_query"))
 	gputop_abort("Missing required GL_INTEL_performance_query");
+
+    if (!have_extension("GL_KHR_debug"))
+	gputop_abort("Missing required KHR_debug");
 
     for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++) {
 	void *sym = glXGetProcAddress((GLubyte *)symbols[i].name);
