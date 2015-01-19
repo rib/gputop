@@ -361,7 +361,7 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
 static struct winsys_context *
 winsys_context_create(GLXContext glx_ctx)
 {
-    struct winsys_context *wctx = xmalloc(sizeof(struct winsys_context));
+    struct winsys_context *wctx = xmalloc0(sizeof(struct winsys_context));
 
     wctx->glx_ctx = glx_ctx;
     wctx->gl_initialised = false;

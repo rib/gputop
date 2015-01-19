@@ -41,6 +41,15 @@ xmalloc(size_t size)
     return ret;
 }
 
+static inline void *
+xmalloc0(size_t size)
+{
+    void *ret = malloc(size);
+    if (!ret)
+	exit(1);
+    memset(ret, 0, size);
+    return ret;
+}
 
 struct array
 {
