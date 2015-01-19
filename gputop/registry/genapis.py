@@ -318,11 +318,14 @@ eglextVersionStrings = [
 ]
 
 glxapiHooks = {
+    'glXGetProcAddress',
+    'glXGetProcAddressARB',
     'glXMakeCurrent',
     'glXMakeContextCurrent',
     'glXSwapBuffers',
     'glXCreateContext',
     'glXCreateNewContext',
+    'glXCreateContextAttribsARB',
     'glXDestroyContext',
 
     'glGetError'

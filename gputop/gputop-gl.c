@@ -71,6 +71,7 @@ static pthread_key_t winsys_context_key;
 
 static pthread_t gputop_thread_id;
 
+static void *(*real_glXGetProcAddress)(const GLubyte *procName);
 static Bool (*real_glXMakeCurrent)(Display *dpy, GLXDrawable drawable,
 				   GLXContext ctx);
 static Bool (*real_glXMakeContextCurrent)(Display *dpy, GLXDrawable draw,
@@ -81,6 +82,11 @@ static GLXContext (*real_glXCreateNewContext)(Display *dpy, GLXFBConfig config,
 					      int render_type,
 					      GLXContext share_list,
 					      Bool direct);
+static GLXContext (*real_glXCreateContextAttribsARB)(Display *dpy,
+						     GLXFBConfig config,
+						     GLXContext share_context,
+						     Bool direct,
+						     const int *attrib_list);
 static void (*real_glXDestroyContext)(Display *dpy, GLXContext glx_ctx);
 static void (*real_glXSwapBuffers)(Display *dpy, GLXDrawable drawable);
 
@@ -111,6 +117,13 @@ static void (*pfn_glEndPerfQueryINTEL)(GLuint queryHandle);
 static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 					   GLsizei dataSize, GLvoid *data,
 					   GLuint *bytesWritten);
+
+GLXContext
+gputop_glXCreateContextAttribsARB(Display *dpy,
+				  GLXFBConfig config,
+				  GLXContext share_context,
+				  Bool direct,
+				  const int *attrib_list);
 
 pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
 static struct array *winsys_contexts;
@@ -173,10 +186,12 @@ gputop_passthrough_egl_resolve(const char *name)
 static void
 glx_winsys_init(void)
 {
+    real_glXGetProcAddress = gputop_passthrough_gl_resolve("glXGetProcAddress");
     real_glXMakeCurrent = gputop_passthrough_gl_resolve("glXMakeCurrent");
     real_glXMakeContextCurrent = gputop_passthrough_gl_resolve("glXMakeContextCurrent");
     real_glXCreateContext = gputop_passthrough_gl_resolve("glXCreateContext");
     real_glXCreateNewContext = gputop_passthrough_gl_resolve("glXCreateNewContext");
+    real_glXCreateContextAttribsARB = real_glXGetProcAddress((GLubyte *)"glXCreateContextAttribsARB");
     real_glXDestroyContext = gputop_passthrough_gl_resolve("glXDestroyContext");
     real_glXSwapBuffers = gputop_passthrough_gl_resolve("glXSwapBuffers");
 }
@@ -217,6 +232,23 @@ gputop_abort(const char *error)
     fprintf(stderr, "%s", error);
     fflush(stderr);
     exit(EXIT_FAILURE);
+}
+
+void *
+gputop_glXGetProcAddress(const GLubyte *procName)
+{
+    pthread_once(&init_once, gputop_gl_init);
+
+    if (strcmp((char *)procName, "glXCreateContextAttribsARB") == 0)
+	return gputop_glXCreateContextAttribsARB;
+
+    return real_glXGetProcAddress(procName);
+}
+
+void *
+gputop_glXGetProcAddressARB(const GLubyte *procName)
+{
+    return gputop_glXGetProcAddress(procName);
 }
 
 static bool
@@ -374,18 +406,23 @@ winsys_context_create(GLXContext glx_ctx)
 }
 
 GLXContext
-gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
-		       GLXContext shareList, Bool direct)
+gputop_glXCreateContextAttribsARB(Display *dpy,
+				  GLXFBConfig config,
+				  GLXContext share_context,
+				  Bool direct,
+				  const int *attrib_list)
 {
     GLXContext glx_ctx;
+    struct winsys_context *wctx;
 
     pthread_once(&init_once, gputop_gl_init);
 
-    glx_ctx = real_glXCreateContext(dpy, vis, shareList, direct);
+    glx_ctx = real_glXCreateContextAttribsARB(dpy, config, share_context,
+					      direct, attrib_list);
     if (!glx_ctx)
 	return glx_ctx;
 
-    winsys_context_create(glx_ctx);
+    wctx = winsys_context_create(glx_ctx);
 
     return glx_ctx;
 }
@@ -394,16 +431,60 @@ GLXContext
 gputop_glXCreateNewContext(Display *dpy, GLXFBConfig config,
 			  int render_type, GLXContext share_list, Bool direct)
 {
+    int attrib_list[] = { GLX_RENDER_TYPE, render_type, None };
+
+    return gputop_glXCreateContextAttribsARB(dpy, config, share_list,
+					     direct, attrib_list);
+}
+
+static GLXContext
+try_create_new_context(Display *dpy, XVisualInfo *vis,
+		       GLXContext shareList, Bool direct)
+{
+    int attrib_list[3] = { GLX_FBCONFIG_ID, None, None };
+    int n_configs;
+    int fb_config_id;
+    GLXFBConfig *configs;
+    GLXContext glx_ctx = NULL;
+
+    glXGetConfig(dpy, vis, GLX_FBCONFIG_ID, &fb_config_id);
+    attrib_list[1] = fb_config_id;
+
+    configs = glXChooseFBConfig(dpy, vis->screen,
+				attrib_list, &n_configs);
+
+    if (n_configs == 1) {
+	glx_ctx = gputop_glXCreateNewContext(dpy, configs[0], GLX_RGBA,
+					     shareList, direct);
+    }
+
+    XFree(configs);
+
+    return glx_ctx;
+}
+
+GLXContext
+gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
+			GLXContext shareList, Bool direct)
+{
     GLXContext glx_ctx;
+    struct winsys_context *wctx;
+
+    /* We'd rather be able to use glXCreateContextAttribsARB() so that
+     * we can optionally create a debug context, but sometimes it's
+     * not possible to map a visual to an fbconfig. */
+    glx_ctx = try_create_new_context(dpy, vis, shareList, direct);
+    if (glx_ctx)
+	return glx_ctx;
 
     pthread_once(&init_once, gputop_gl_init);
 
-    glx_ctx = real_glXCreateNewContext(dpy, config, render_type,
-				       share_list, direct);
+    glx_ctx = real_glXCreateContext(dpy, vis, shareList, direct);
     if (!glx_ctx)
-	return glx_ctx;
+	return NULL;
 
-    winsys_context_create(glx_ctx);
+    wctx = winsys_context_create(glx_ctx);
+    wctx->try_create_new_context_failed = true;
 
     return glx_ctx;
 }
