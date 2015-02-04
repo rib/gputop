@@ -129,7 +129,7 @@ AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
 
-PKG_CHECK_MODULES(GPUTOP_DEP, [libuv])
+PKG_CHECK_MODULES(GPUTOP_DEP, [libuv libdrm libdrm_intel])
 
 dnl ================================================================
 dnl Misc program dependencies.

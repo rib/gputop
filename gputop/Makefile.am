@@ -22,6 +22,8 @@ lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
     gputop-gl.h \
     gputop-gl.c \
+    gputop-perf.h \
+    gputop-perf.c \
     gputop-util.h \
     gputop-list.h \
     gputop-list.c \
