@@ -126,6 +126,9 @@ struct winsys_surface
     bool has_monitors;
 };
 
+extern bool gputop_has_intel_performance_query_ext;
+extern bool gputop_has_khr_debug_ext;
+
 extern pthread_rwlock_t gputop_gl_lock;
 extern struct array *gputop_gl_contexts;
 extern struct array *gputop_gl_surfaces;

@@ -136,6 +136,9 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 				  Bool direct,
 				  const int *attrib_list);
 
+bool gputop_has_intel_performance_query_ext;
+bool gputop_has_khr_debug_ext;
+
 pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
 struct array *gputop_gl_contexts;
 struct array *gputop_gl_surfaces;
@@ -332,20 +335,13 @@ initialise_gl(void)
     /* Special case since we may need this to check the extensions... */
     pfn_glGetStringi = (void *)glXGetProcAddress((GLubyte *)"glGetStringi");
 
-    if (!have_extension("GL_INTEL_performance_query"))
-	gputop_abort("Missing required GL_INTEL_performance_query");
+    gputop_has_intel_performance_query_ext =
+	have_extension("GL_INTEL_performance_query");
 
-    if (!have_extension("GL_KHR_debug"))
-	gputop_abort("Missing required KHR_debug");
+    gputop_has_khr_debug_ext = have_extension("GL_KHR_debug");
 
-    for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++) {
-	void *sym = glXGetProcAddress((GLubyte *)symbols[i].name);
-
-	if (!sym)
-	    gputop_abort("Missing required GL symbol");
-
-	*(symbols[i].ptr) = sym;
-    }
+    for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++)
+	*(symbols[i].ptr) = glXGetProcAddress((GLubyte *)symbols[i].name);
 }
 
 static void

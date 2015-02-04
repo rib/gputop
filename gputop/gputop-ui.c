@@ -148,13 +148,15 @@ perf_3d_tab_redraw(WINDOW *win)
 static void
 gl_basic_tab_enter(void)
 {
-    atomic_store(&gputop_gl_monitoring_enabled, 1);
+    if (gputop_has_intel_performance_query_ext)
+	atomic_store(&gputop_gl_monitoring_enabled, 1);
 }
 
 static void
 gl_basic_tab_leave(void)
 {
-    atomic_store(&gputop_gl_monitoring_enabled, 0);
+    if (gputop_has_intel_performance_query_ext)
+	atomic_store(&gputop_gl_monitoring_enabled, 0);
 }
 
 static void
