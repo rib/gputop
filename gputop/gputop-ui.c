@@ -69,6 +69,8 @@ static uv_idle_t redraw_idle;
 static int current_tab = 1;
 static bool debug_disable_ncurses = 0;
 
+static pthread_t gputop_ui_thread_id;
+
 uv_loop_t *gputop_ui_loop;
 
 
@@ -877,4 +879,13 @@ gputop_ui_run(void *arg)
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
     return 0;
+}
+
+__attribute__((constructor)) void
+gputop_ui_init(void)
+{
+    pthread_attr_t attrs;
+
+    pthread_attr_init(&attrs);
+    pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
 }

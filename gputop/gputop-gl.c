@@ -69,8 +69,6 @@ static pthread_once_t init_once = PTHREAD_ONCE_INIT;
 
 static pthread_key_t winsys_context_key;
 
-static pthread_t gputop_thread_id;
-
 static void *(*real_glXGetProcAddress)(const GLubyte *procName);
 static Bool (*real_glXMakeCurrent)(Display *dpy, GLXDrawable drawable,
 				   GLXContext ctx);
@@ -218,8 +216,6 @@ glx_winsys_init(void)
 static void
 gputop_gl_init(void)
 {
-    pthread_attr_t attrs;
-
     glx_winsys_init();
 
     pthread_key_create(&winsys_context_key, NULL);
@@ -229,9 +225,6 @@ gputop_gl_init(void)
 
     if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
 	gputop_gl_force_debug_ctx_enabled = true;
-
-    pthread_attr_init(&attrs);
-    pthread_create(&gputop_thread_id, &attrs, gputop_ui_run, NULL);
 }
 
 static void

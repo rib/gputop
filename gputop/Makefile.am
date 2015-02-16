@@ -1,6 +1,6 @@
 SUBDIRS = registry
 
-bin_PROGRAMS = gputop
+bin_PROGRAMS = gputop gputop-system
 
 gputop_SOURCES = gputop-main.c
 
@@ -53,4 +53,20 @@ libGL_la_LDFLAGS = -shared -version-info 1
 #    $(GPUTOP_EXTRA_CFLAGS)
 #libEGL_la_LIBADD = libgputop.la
 #libEGL_la_LDFLAGS = -shared -version-info 1
+
+gputop_system_LDFLAGS = \
+    $(GPUTOP_DEP_LIBS) \
+    $(GPUTOP_EXTRA_LDFLAGS) \
+    $(GL_DEP_LIBS) \
+    libgputop.la
+gputop_system_CFLAGS = \
+    $(GPUTOP_DEP_CFLAGS) \
+    $(GPUTOP_EXTRA_CFLAGS) \
+    $(GL_DEP_CFLAGS)
+gputop_system_CPPFLAGS = \
+    -I$(top_srcdir) \
+    -I$(srcdir) \
+    $(GPUTOP_EXTRA_CPPFLAGS) \
+    -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
+
 

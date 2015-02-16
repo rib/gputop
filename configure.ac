@@ -131,6 +131,10 @@ AC_CHECK_LIB(ncursesw, [subwin],
 
 PKG_CHECK_MODULES(GPUTOP_DEP, [libuv libdrm libdrm_intel])
 
+dnl gputop-system is a dummy "test application" that needs to be
+dnl linked against GL...
+PKG_CHECK_MODULES(GL_DEP, [gl x11])
+
 dnl ================================================================
 dnl Misc program dependencies.
 dnl ================================================================

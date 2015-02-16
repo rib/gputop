@@ -104,6 +104,11 @@ main (int argc, char **argv)
     };
     const char *prev_ld_library_path;
     char *ld_library_path;
+    char *gputop_system_args[] = {
+	"gputop-system",
+	NULL
+    };
+    char **args = argv;
     int err;
     int i;
 
@@ -132,8 +137,11 @@ main (int argc, char **argv)
     }
 
     if (optind >= argc) {
-	fprintf(stderr, "Error: No program name provided\n");
-	usage();
+	/* If no program is given then launch a dummy "test
+	 * application" so gputop can also be used for analysing
+	 * system wide metrics. */
+	args = gputop_system_args;
+	optind = 0;
     }
 
     if (!getenv("GPUTOP_GL_LIBRARY"))
@@ -150,13 +158,13 @@ main (int argc, char **argv)
     setenv("LD_LIBRARY_PATH", ld_library_path, true);
     free(ld_library_path);
 
-    execvp(argv[optind], &argv[optind]);
+    execvp(args[optind], &args[optind]);
     err = errno;
 
     fprintf(stderr, "gputop: Failed to run GL application: \n\n"
 	    "  ");
     for (i = optind; i < argc; i++)
-	fprintf(stderr, "%s ", argv[i]);
+	fprintf(stderr, "%s ", args[i]);
     fprintf(stderr, "\n\n%s\n", strerror(err));
 
     return 0;
