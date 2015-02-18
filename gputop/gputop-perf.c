@@ -643,7 +643,6 @@ read_report_timestamp(uint32_t *report)
    uint64_t timestamp = report[1];
 
    /* The least significant timestamp bit represents 80ns */
-#warning "check that the least significant timestamp bit represents 80ns for BDW+ too"
    timestamp *= 80;
 
    return timestamp;
