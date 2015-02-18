@@ -61,14 +61,10 @@
 /* Samples read from the perf circular buffer */
 struct oa_perf_sample {
    struct perf_event_header header;
-   uint64_t time; /* PERF_SAMPLE_TIME */
-   uint64_t value; /* PERF_SAMPLE_READ */
    uint32_t raw_size;
    uint8_t raw_data[];
 };
 #define MAX_OA_PERF_SAMPLE_SIZE (8 +   /* perf_event_header */       \
-                                 8 +   /* time: TODO remove */       \
-                                 8 +   /* value: TODO remove */      \
                                  4 +   /* raw_size */                \
                                  256 + /* raw OA counter snapshot */ \
                                  4)    /* alignment padding */
@@ -276,7 +272,7 @@ open_i915_oa_event(int counter_profile_id,
     attr.config |= report_format;
     attr.config |= (uint64_t)period_exponent << I915_PERF_OA_TIMER_EXPONENT_SHIFT;
 
-    attr.sample_type = PERF_SAMPLE_TIME | PERF_SAMPLE_READ | PERF_SAMPLE_RAW;
+    attr.sample_type = PERF_SAMPLE_RAW;
     attr.sample_period = 1;
 
     attr.watermark = true;
