@@ -23,7 +23,7 @@ AC_CONFIG_HEADERS(config.h)
 cflags_set=${CFLAGS+set}
 
 AM_INIT_AUTOMAKE([1.14 foreign -Wno-portability no-define no-dist-gzip
-                  dist-bzip2])
+                  dist-bzip2 subdir-objects])
 AM_SILENT_RULES([yes])
 
 AC_USE_SYSTEM_EXTENSIONS()
@@ -159,5 +159,6 @@ AC_OUTPUT(
 Makefile
 gputop/Makefile
 gputop/registry/Makefile
+h2o/Makefile
 po/Makefile.in
 )
