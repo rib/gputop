@@ -42,10 +42,15 @@
 enum {
     GPUTOP_DEFAULT_COLOR,
     GPUTOP_HEADER_COLOR,
+    GPUTOP_INACTIVE_COLOR,
+    GPUTOP_ACTIVE_COLOR,
 };
 
 struct tab
 {
+    gputop_list_t link;
+
+    const char *nick;
     const char *name;
 
     void (*enter)(void);    /* when user switches to tab */
@@ -53,6 +58,8 @@ struct tab
     void (*input)(int key);
     void (*redraw)(WINDOW *win);
 };
+
+#define TAB_TITLE_WIDTH 15
 
 enum {
     INPUT_UNHANDLED = 1,
@@ -66,8 +73,11 @@ static int real_stderr;
 static uv_poll_t input_poll;
 static uv_idle_t redraw_idle;
 
-static int current_tab = 1;
+static struct tab *current_tab;
 static bool debug_disable_ncurses = 0;
+
+static bool added_gl_tabs;
+static gputop_list_t tabs;
 
 static pthread_t gputop_ui_thread_id;
 
@@ -250,6 +260,16 @@ perf_basic_tab_redraw(WINDOW *win)
     perf_counters_redraw(win);
 }
 
+static struct tab tab_basic =
+{
+    .nick = "Basic",
+    .name = "Basic Counters (system wide)",
+    .enter = perf_basic_tab_enter,
+    .leave = perf_basic_tab_leave,
+    .input = perf_basic_tab_input,
+    .redraw = perf_basic_tab_redraw,
+};
+
 static void
 perf_3d_tab_enter(void)
 {
@@ -273,6 +293,16 @@ perf_3d_tab_redraw(WINDOW *win)
 {
     perf_counters_redraw(win);
 }
+
+static struct tab tab_3d =
+{
+    .nick = "3D",
+    .name = "3D Counters (system wide)",
+    .enter = perf_3d_tab_enter,
+    .leave = perf_3d_tab_leave,
+    .input = perf_3d_tab_input,
+    .redraw = perf_3d_tab_redraw,
+};
 
 static void
 gl_basic_tab_enter(void)
@@ -438,6 +468,16 @@ gl_basic_tab_redraw(WINDOW *win)
     pthread_rwlock_unlock(&gputop_gl_lock);
 }
 
+static struct tab tab_gl_basic =
+{
+    .nick = "Basic GL",
+    .name = "Basic Counters (OpenGL context)",
+    .enter = gl_basic_tab_enter,
+    .leave = gl_basic_tab_leave,
+    .input = gl_basic_tab_input,
+    .redraw = gl_basic_tab_redraw,
+};
+
 static void
 gl_3d_tab_enter(void)
 {
@@ -461,6 +501,16 @@ gl_3d_tab_redraw(WINDOW *win)
 {
 
 }
+
+static struct tab tab_gl_3d =
+{
+    .nick = "3D GL",
+    .name = "3D Counters (OpenGL context)",
+    .enter = gl_3d_tab_enter,
+    .leave = gl_3d_tab_leave,
+    .input = gl_3d_tab_input,
+    .redraw = gl_3d_tab_redraw,
+};
 
 static void
 gl_debug_log_tab_enter(void)
@@ -536,6 +586,16 @@ gl_debug_log_tab_redraw(WINDOW *win)
     pthread_rwlock_unlock(&gputop_gl_lock);
 }
 
+static struct tab tab_gl_debug_log =
+{
+    .nick = "Log",
+    .name = "OpenGL debug log",
+    .enter = gl_debug_log_tab_enter,
+    .leave = gl_debug_log_tab_leave,
+    .input = gl_debug_log_tab_input,
+    .redraw = gl_debug_log_tab_redraw,
+};
+
 static void
 gl_knobs_tab_enter(void)
 {
@@ -559,6 +619,16 @@ gl_knobs_tab_redraw(WINDOW *win)
 {
 
 }
+
+static struct tab tab_gl_knobs =
+{
+    .nick = "Tune",
+    .name = "OpenGL Tuneables",
+    .enter = gl_knobs_tab_enter,
+    .leave = gl_knobs_tab_leave,
+    .input = gl_knobs_tab_input,
+    .redraw = gl_knobs_tab_redraw,
+};
 
 static void
 app_io_tab_enter(void)
@@ -584,70 +654,37 @@ app_io_tab_redraw(WINDOW *win)
 
 }
 
-static struct tab tabs[] =
-    {
-	{
-	    .name = "Basic Counters (system wide)",
-	    .enter = perf_basic_tab_enter,
-	    .leave = perf_basic_tab_leave,
-	    .input = perf_basic_tab_input,
-	    .redraw = perf_basic_tab_redraw,
-	},
-	{
-	    .name = "3D Counters (system wide)",
-	    .enter = perf_3d_tab_enter,
-	    .leave = perf_3d_tab_leave,
-	    .input = perf_3d_tab_input,
-	    .redraw = perf_3d_tab_redraw,
-	},
-	{
-	    .name = "Basic Counters (OpenGL context)",
-	    .enter = gl_basic_tab_enter,
-	    .leave = gl_basic_tab_leave,
-	    .input = gl_basic_tab_input,
-	    .redraw = gl_basic_tab_redraw,
-	},
-	{
-	    .name = "3D Counters (OpenGL context)",
-	    .enter = gl_3d_tab_enter,
-	    .leave = gl_3d_tab_leave,
-	    .input = gl_3d_tab_input,
-	    .redraw = gl_3d_tab_redraw,
-	},
-	{
-	    .name = "OpenGL debug log",
-	    .enter = gl_debug_log_tab_enter,
-	    .leave = gl_debug_log_tab_leave,
-	    .input = gl_debug_log_tab_input,
-	    .redraw = gl_debug_log_tab_redraw,
-	},
-	{
-	    .name = "3D Counters (OpenGL context)",
-	    .enter = gl_knobs_tab_enter,
-	    .leave = gl_knobs_tab_leave,
-	    .input = gl_knobs_tab_input,
-	    .redraw = gl_knobs_tab_redraw,
-	},
-	{
-	    .name = "Application IO",
-	    .enter = app_io_tab_enter,
-	    .leave = app_io_tab_leave,
-	    .input = app_io_tab_input,
-	    .redraw = app_io_tab_redraw,
-	},
-    };
+static struct tab tab_io =
+{
+    .nick = "App",
+    .name = "Application IO",
+    .enter = app_io_tab_enter,
+    .leave = app_io_tab_leave,
+    .input = app_io_tab_input,
+    .redraw = app_io_tab_redraw,
+};
 
 static void
 redraw_ui(void)
 {
-    struct tab *tab = &tabs[current_tab];
     int screen_width;
     int screen_height;
     WINDOW *titlebar_win;
+    struct tab *tab;
     WINDOW *tab_win;
+    int i;
 
     if (debug_disable_ncurses)
 	return;
+
+    if (gputop_has_intel_performance_query_ext && added_gl_tabs) {
+	gputop_list_insert(tabs.prev, &tab_gl_basic.link);
+	gputop_list_insert(tabs.prev, &tab_gl_3d.link);
+	gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
+	gputop_list_insert(tabs.prev, &tab_gl_knobs.link);
+
+	added_gl_tabs = true;
+    }
 
     werase(stdscr); /* XXX: call after touchwin? */
 
@@ -658,6 +695,7 @@ redraw_ui(void)
 
     titlebar_win = subwin(stdscr, 1, screen_width, 0, 0);
     //touchwin(stdscr);
+    //
 
     wattrset(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
     wbkgd(titlebar_win, COLOR_PAIR (GPUTOP_HEADER_COLOR));
@@ -666,14 +704,42 @@ redraw_ui(void)
     mvwprintw(titlebar_win, 0, 0,
               "     gputop %s   «%s» (Press Tab key to cycle through)",
               PACKAGE_VERSION,
-              tab->name);
+              current_tab->name);
 
     wnoutrefresh(titlebar_win);
 
-    tab_win = subwin(stdscr, screen_height - 1, screen_width, 1, 0);
+    i = 0;
+    gputop_list_for_each(tab, &tabs, link) {
+	WINDOW *tab_title_win = subwin(stdscr, 1, TAB_TITLE_WIDTH,
+				       1, i * TAB_TITLE_WIDTH);
+	int len = strlen(tab->nick);
+	int offset;
+
+	if (tab == current_tab) {
+	    wattrset(tab_title_win, COLOR_PAIR (GPUTOP_ACTIVE_COLOR));
+	    wbkgd(tab_title_win, COLOR_PAIR (GPUTOP_ACTIVE_COLOR));
+	} else {
+	    wattrset(tab_title_win, COLOR_PAIR (GPUTOP_INACTIVE_COLOR));
+	    wbkgd(tab_title_win, COLOR_PAIR (GPUTOP_INACTIVE_COLOR));
+	}
+
+	werase(tab_title_win);
+
+	offset = (TAB_TITLE_WIDTH - len) / 2;
+	if (tab == current_tab)
+	    mvwprintw(tab_title_win, 0, offset, "[%s]", tab->nick);
+	else
+	    mvwprintw(tab_title_win, 0, offset, tab->nick);
+
+	wnoutrefresh(tab_title_win);
+
+	i++;
+    }
+
+    tab_win = subwin(stdscr, screen_height - 2, screen_width, 2, 0);
     //touchwin(stdscr);
 
-    tabs[current_tab].redraw(tab_win);
+    current_tab->redraw(tab_win);
 
     wnoutrefresh(tab_win);
 
@@ -702,13 +768,16 @@ static int
 common_input(int key)
 {
     if (key == 9) { /* Urgh, ncurses is not making things better :-/ */
-	int n_tabs = sizeof(tabs) / sizeof(tabs[0]);
+	struct tab *next;
 
-	tabs[current_tab].leave();
+	if (current_tab->link.next != &tabs)
+	    next = gputop_container_of(current_tab->link.next, next, link);
+	else
+	    next = gputop_container_of(current_tab->link.next->next, next, link);
 
-	current_tab++;
-	current_tab %= n_tabs;
-	tabs[current_tab].enter();
+	current_tab->leave();
+	current_tab = next;
+	current_tab->enter();
 
 	return INPUT_HANDLED;
     }
@@ -725,7 +794,7 @@ input_read_cb(uv_poll_t *input_poll, int status, int events)
 	if (common_input(key) == INPUT_HANDLED)
 	    continue;
 
-	tabs[current_tab].input(key);
+	current_tab->input(key);
     }
 
     uv_idle_start(&redraw_idle, redraw_idle_cb);
@@ -749,7 +818,7 @@ gputop_ui_quit_idle_cb(uv_idle_t *idle)
     char clear_screen[] = { 0x1b, '[', 'H',
 			    0x1b, '[', 'J',
 			    0x0 };
-    tabs[current_tab].leave();
+    current_tab->leave();
 
     reset_terminal();
 
@@ -805,6 +874,8 @@ init_ncurses(FILE *infile, FILE *outfile)
 
     init_pair(GPUTOP_DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
     init_pair(GPUTOP_HEADER_COLOR, COLOR_WHITE, COLOR_BLUE);
+    init_pair(GPUTOP_INACTIVE_COLOR, COLOR_WHITE, COLOR_BLACK);
+    init_pair(GPUTOP_ACTIVE_COLOR, COLOR_WHITE, COLOR_BLUE);
 }
 
 void *
@@ -874,7 +945,7 @@ gputop_ui_run(void *arg)
 
     uv_idle_init(gputop_ui_loop, &redraw_idle);
 
-    tabs[current_tab].enter();
+    current_tab->enter();
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
@@ -885,6 +956,12 @@ __attribute__((constructor)) void
 gputop_ui_init(void)
 {
     pthread_attr_t attrs;
+
+    gputop_list_init(&tabs);
+
+    gputop_list_insert(tabs.prev, &tab_basic.link);
+    current_tab = &tab_basic;
+    gputop_list_insert(tabs.prev, &tab_3d.link);
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
