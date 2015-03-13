@@ -169,8 +169,8 @@ struct gputop_oa_counter
 
    int accumulator_index;
    void (*accumulate)(struct gputop_oa_counter *counter,
-                      uint32_t *start,
-                      uint32_t *end,
+                      const uint32_t *start,
+                      const uint32_t *end,
                       uint64_t *accumulator);
    gputop_counter_data_type_t data_type;
    void (*read)(struct gputop_oa_counter *counter,
@@ -586,8 +586,8 @@ read_accumulated_oa_counter_cb(struct gputop_oa_counter *counter,
 
 static void
 accumulate_uint32_cb(struct gputop_oa_counter *counter,
-                     uint32_t *report0,
-                     uint32_t *report1,
+                     const uint32_t *report0,
+                     const uint32_t *report1,
                      uint64_t *accumulator)
 {
    accumulator[counter->accumulator_index] +=
@@ -597,8 +597,8 @@ accumulate_uint32_cb(struct gputop_oa_counter *counter,
 
 static void
 accumulate_uint40_cb(struct gputop_oa_counter *counter,
-                     uint32_t *report0,
-                     uint32_t *report1,
+                     const uint32_t *report0,
+                     const uint32_t *report1,
                      uint64_t *accumulator)
 {
     uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
@@ -655,8 +655,8 @@ read_report_timestamp(uint32_t *report)
 
 static void
 accumulate_elapsed_cb(struct gputop_oa_counter *counter,
-		      uint32_t *report0,
-		      uint32_t *report1,
+		      const uint32_t *report0,
+		      const uint32_t *report1,
 		      uint64_t *accumulator)
 {
    uint64_t timestamp0 = read_report_timestamp(report0);
