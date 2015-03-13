@@ -323,12 +323,17 @@ get_eu_count(int fd, uint32_t devid)
     if (IS_HSW_GT3(devid))
 	return 40;
 
+#ifdef I915_PARAM_CMD_EU_TOTAL
     gp.param = I915_PARAM_CMD_EU_TOTAL;
     gp.value = &count;
     ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
     assert(ret == 0 && count > 0);
 
     return count;
+#else
+    assert(0);
+    return 0;
+#endif
 }
 
 /* Handle restarting ioctl if interupted... */
