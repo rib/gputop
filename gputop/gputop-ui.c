@@ -970,8 +970,8 @@ gputop_ui_init(void)
     gputop_list_init(&tabs);
 
     gputop_list_insert(tabs.prev, &tab_basic.link);
-    current_tab = &tab_basic;
     gputop_list_insert(tabs.prev, &tab_3d.link);
+    current_tab = &tab_basic;
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
