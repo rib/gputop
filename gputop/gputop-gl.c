@@ -474,6 +474,7 @@ winsys_context_create(GLXContext glx_ctx)
 
     wctx->glx_ctx = glx_ctx;
     wctx->gl_initialised = false;
+    wctx->ref = 1;
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
     array_append(gputop_gl_contexts, &wctx);
