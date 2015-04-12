@@ -257,6 +257,9 @@ gputop_glXGetProcAddress(const GLubyte *procName)
     if (strcmp((char *)procName, "glXCreateContextAttribsARB") == 0)
 	return gputop_glXCreateContextAttribsARB;
 
+    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
+	return NULL;
+
     return real_glXGetProcAddress(procName);
 }
 
