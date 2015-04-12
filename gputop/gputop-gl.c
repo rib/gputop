@@ -755,7 +755,7 @@ make_context_current(Display *dpy,
 	return ret;
 
     wctx = winsys_context_lookup(glx_ctx, &wctx_idx);
-    if (!wctx) {
+    if (glx_ctx && !wctx) {
 	gputop_abort("Spurious glXMakeCurrent with unknown glx context\n"
 		     "\n"
 		     "GPU Top may be missing support for some new GLX API for creating contexts?\n");
