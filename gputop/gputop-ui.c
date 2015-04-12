@@ -195,7 +195,7 @@ perf_counters_redraw(WINDOW *win)
 	return;
     }
 
-    gputop_read_perf_samples();
+    gputop_perf_read_samples();
 
     mvwprintw(win, 1, 0, "%40s  0%%                         100%%\n", "");
     mvwprintw(win, 2, 0, "%40s  ┌─────────────────────────────┐\n", "");
@@ -237,18 +237,20 @@ perf_counters_redraw(WINDOW *win)
 	    break;
 	}
     }
+
+    gputop_perf_accumulator_clear();
 }
 
 static void
 perf_basic_tab_enter(void)
 {
-    gputop_perf_open(GPUTOP_PERF_QUERY_BASIC);
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_BASIC);
 }
 
 static void
 perf_basic_tab_leave(void)
 {
-    gputop_perf_close();
+    gputop_perf_overview_close();
 }
 
 static void
@@ -276,13 +278,13 @@ static struct tab tab_basic =
 static void
 perf_3d_tab_enter(void)
 {
-    gputop_perf_open(GPUTOP_PERF_QUERY_3D_BASIC);
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_3D_BASIC);
 }
 
 static void
 perf_3d_tab_leave(void)
 {
-    gputop_perf_close();
+    gputop_perf_overview_close();
 }
 
 static void
@@ -484,13 +486,15 @@ static struct tab tab_gl_basic =
 static void
 gl_3d_tab_enter(void)
 {
-    atomic_store(&gputop_gl_monitoring_enabled, 1);
+    if (gputop_has_intel_performance_query_ext)
+	atomic_store(&gputop_gl_monitoring_enabled, 1);
 }
 
 static void
 gl_3d_tab_leave(void)
 {
-    atomic_store(&gputop_gl_monitoring_enabled, 0);
+    if (gputop_has_intel_performance_query_ext)
+	atomic_store(&gputop_gl_monitoring_enabled, 0);
 }
 
 static void

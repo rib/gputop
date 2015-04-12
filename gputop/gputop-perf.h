@@ -42,6 +42,8 @@ typedef enum {
     GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
 } gputop_counter_type_t;
 
+struct gputop_oa_counter;
+
 struct gputop_perf_query_counter
 {
    const char *name;
@@ -61,6 +63,8 @@ struct gputop_perf_query
 
    int perf_profile_id;
    uint64_t perf_oa_format_id;
+   int perf_raw_size;
+
    struct gputop_oa_counter *oa_counters;
    int n_oa_counters;
 };
@@ -70,7 +74,6 @@ struct gputop_perf_query
 
 extern const struct gputop_perf_query *gputop_current_perf_query;
 extern char *gputop_perf_error;
-extern uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
 
 typedef enum gputop_perf_query_type
 {
@@ -78,28 +81,24 @@ typedef enum gputop_perf_query_type
     GPUTOP_PERF_QUERY_3D_BASIC,
 } gputop_perf_query_type_t;
 
-bool
-gputop_perf_open(gputop_perf_query_type_t query_type);
+bool gputop_perf_overview_open(gputop_perf_query_type_t query_type);
+void gputop_perf_overview_close(void);
 
-void
-gputop_perf_close(void);
+void gputop_perf_accumulator_clear(void);
+void gputop_perf_accumulate(const struct gputop_perf_query *query,
+			    const void *report0,
+			    const void *report1,
+			    uint64_t *accumulator);
 
-void
-gputop_read_perf_samples(void);
+void gputop_perf_read_samples(void);
+extern uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
 
-uint64_t
-read_uint64_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+uint64_t read_uint64_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+uint32_t read_uint32_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+bool read_bool_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+double read_double_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+float read_float_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
 
-uint32_t
-read_uint32_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-
-bool
-read_bool_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-
-double
-read_double_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-
-float
-read_float_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
+uint64_t read_report_timestamp(const uint32_t *report);
 
 #endif /* _GPUTOP_PERF_H_ */

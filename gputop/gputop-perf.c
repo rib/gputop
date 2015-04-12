@@ -139,6 +139,13 @@ struct intel_device {
     uint32_t subsystem_vendor;
 };
 
+/* E.g. for tracing vs rolling view */
+struct perf_oa_user {
+    void (*sample)(uint32_t *start, uint32_t *end);
+};
+
+static struct perf_oa_user *current_user;
+
 #define MAX_PERF_QUERIES 2
 #define MAX_PERF_QUERY_COUNTERS 150
 #define MAX_OA_QUERY_COUNTERS 100
@@ -367,45 +374,8 @@ write_perf_tail(struct perf_event_mmap_page *mmap_page,
     mmap_page->data_tail = tail;
 }
 
-/**
- * Given pointers to starting and ending OA snapshots, calculate the deltas for each
- * counter to update the results.
- */
-static void
-update_counters(uint32_t *start, uint32_t *end)
-{
-    int i;
-
-    memset(gputop_perf_accumulator, 0, sizeof(gputop_perf_accumulator));
-
-#if 0
-    fprintf(stderr, "Accumulating delta:\n");
-    fprintf(stderr, "> Start timestamp = %" PRIu64 "\n", read_report_timestamp(brw, start));
-    fprintf(stderr, "> End timestamp = %" PRIu64 "\n", read_report_timestamp(brw, end));
-#endif
-
-    for (i = 0; i < gputop_current_perf_query->n_oa_counters; i++) {
-	struct gputop_oa_counter *oa_counter =
-	    &gputop_current_perf_query->oa_counters[i];
-	//uint64_t pre_accumulate;
-
-	if (!oa_counter->accumulate)
-	    continue;
-
-	//pre_accumulate = query->oa.accumulator[counter->id];
-	oa_counter->accumulate(oa_counter,
-			       start, end,
-			       gputop_perf_accumulator);
-#if 0
-	fprintf(stderr, "> Updated %s from %" PRIu64 " to %" PRIu64 "\n",
-		counter->name, pre_accumulate,
-		query->oa.accumulator[counter->id]);
-#endif
-    }
-}
-
 void
-gputop_read_perf_samples(void)
+gputop_perf_read_samples(void)
 {
     uint8_t *data = perf_oa_mmap_base + page_size;
     const uint64_t mask = perf_oa_buffer_size - 1;
@@ -490,7 +460,8 @@ gputop_read_perf_samples(void)
 	    uint32_t *report = (uint32_t *)perf_sample->raw_data;
 
 	    if (last)
-		update_counters(last, report);
+		current_user->sample(last, report);
+
 	    last = report;
 	    last_tail = tail;
 	    break;
@@ -1320,6 +1291,7 @@ hsw_add_basic_oa_counter_query(void)
     query->n_oa_counters = 0;
     query->perf_profile_id = 0; /* default profile */
     query->perf_oa_format_id = I915_PERF_OA_FORMAT_A45_B8_C8_HSW;
+    query->perf_raw_size = 256;
 
     builder.query = query;
     builder.next_accumulator_index = 0;
@@ -1379,6 +1351,7 @@ hsw_add_3d_oa_counter_query(void)
     query->n_oa_counters = 0;
     query->perf_profile_id = I915_PERF_OA_PROFILE_3D;
     query->perf_oa_format_id = I915_PERF_OA_FORMAT_A45_B8_C8_HSW;
+    query->perf_raw_size = 256;
 
     builder.query = query;
     builder.next_accumulator_index = 0;
@@ -1703,6 +1676,7 @@ bdw_add_3d_oa_counter_query(void)
     query->n_oa_counters = 0;
     query->perf_profile_id = I915_PERF_OA_PROFILE_3D;
     query->perf_oa_format_id = I915_PERF_OA_FORMAT_A36_B8_C8_BDW;
+    query->perf_raw_size = 256;
 
     builder.query = query;
     builder.next_accumulator_index = 0;
@@ -1810,11 +1784,69 @@ initialize(void)
 static void
 perf_ready_cb(uv_poll_t *poll, int status, int events)
 {
-    gputop_read_perf_samples();
+    gputop_perf_read_samples();
 }
 
+void
+gputop_perf_accumulate(const struct gputop_perf_query *query,
+		       const void *report0,
+		       const void *report1,
+		       uint64_t *accumulator)
+{
+    int i;
+
+#if 0
+    fprintf(stderr, "Accumulating delta:\n");
+    fprintf(stderr, "> Start timestamp = %" PRIu64 "\n", read_report_timestamp(start));
+    fprintf(stderr, "> End timestamp = %" PRIu64 "\n", read_report_timestamp(end));
+#endif
+
+    for (i = 0; i < gputop_current_perf_query->n_oa_counters; i++) {
+	struct gputop_oa_counter *oa_counter =
+	    &gputop_current_perf_query->oa_counters[i];
+	//uint64_t pre_accumulate;
+
+	if (!oa_counter->accumulate)
+	    continue;
+
+	//pre_accumulate = gputop_perf_accumulator[oa_counter->accumulator_index];
+
+	oa_counter->accumulate(oa_counter,
+			       report0, report1,
+			       gputop_perf_accumulator);
+
+#if 0
+	fprintf(stderr, "> Updated %d from %" PRIu64 " to %" PRIu64 "\n",
+		oa_counter->accumulator_index, pre_accumulate,
+		gputop_perf_accumulator[oa_counter->accumulator_index]);
+#endif
+    }
+
+}
+
+/**
+ * Given pointers to starting and ending OA snapshots, calculate the deltas for each
+ * counter to update the results.
+ */
+static void
+overview_sample_cb(uint32_t *start, uint32_t *end)
+{
+    gputop_perf_accumulate(gputop_current_perf_query, start, end,
+			   gputop_perf_accumulator);
+}
+
+void
+gputop_perf_accumulator_clear(void)
+{
+    memset(gputop_perf_accumulator, 0, sizeof(gputop_perf_accumulator));
+}
+
+static struct perf_oa_user overview_user = {
+    .sample = overview_sample_cb,
+};
+
 bool
-gputop_perf_open(gputop_perf_query_type_t query_type)
+gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 {
     int period_exponent;
 
@@ -1826,7 +1858,11 @@ gputop_perf_open(gputop_perf_query_type_t query_type)
     if (!eu_count && !initialize())
 	return false;
 
+    current_user = &overview_user;
+
     gputop_current_perf_query = &perf_queries[query_type];
+
+    gputop_perf_accumulator_clear();
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1856,7 +1892,7 @@ gputop_perf_open(gputop_perf_query_type_t query_type)
 }
 
 void
-gputop_perf_close(void)
+gputop_perf_overview_close(void)
 {
     if (!gputop_current_perf_query)
 	return;
