@@ -677,17 +677,21 @@ redraw_ui(void)
     WINDOW *tab_win;
     int i;
 
-    if (debug_disable_ncurses)
-	return;
-
-    if (gputop_has_intel_performance_query_ext && added_gl_tabs) {
+    if (gputop_has_intel_performance_query_ext && !added_gl_tabs) {
 	gputop_list_insert(tabs.prev, &tab_gl_basic.link);
 	gputop_list_insert(tabs.prev, &tab_gl_3d.link);
 	gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
 	gputop_list_insert(tabs.prev, &tab_gl_knobs.link);
 
+	current_tab->leave();
+	current_tab = &tab_gl_basic;
+	current_tab->enter();
+
 	added_gl_tabs = true;
     }
+
+    if (debug_disable_ncurses)
+	return;
 
     werase(stdscr); /* XXX: call after touchwin? */
 
