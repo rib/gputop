@@ -642,8 +642,106 @@ add_raw_oa_counter(struct gputop_query_builder *builder, int report_offset)
    return counter;
 }
 
-static uint64_t
-read_report_timestamp(uint32_t *report)
+static void
+accumulate_start_uint32_cb(struct gputop_oa_counter *counter,
+			   const uint32_t *report0,
+			   const uint32_t *report1,
+			   uint64_t *accumulator)
+{
+    /* XXX: this assumes we never start with a value of 0... */
+    if (accumulator[counter->accumulator_index] == 0)
+	accumulator[counter->accumulator_index] = report0[counter->report_offset];
+}
+
+static void
+accumulate_start_uint40_cb(struct gputop_oa_counter *counter,
+			   const uint32_t *report0,
+			   const uint32_t *report1,
+			   uint64_t *accumulator)
+{
+    uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
+    uint64_t high0 = (uint64_t)(high_bytes0[counter->report_offset - 4]) << 32;
+    uint64_t value0 = report0[counter->report_offset] | high0;
+
+    /* XXX: this assumes we never start with a value of 0... */
+    if (accumulator[counter->accumulator_index] == 0)
+	accumulator[counter->accumulator_index] = value0;
+}
+
+static struct gputop_oa_counter *
+add_raw_start_oa_counter(struct gputop_query_builder *builder, int report_offset)
+{
+   struct gputop_oa_counter *counter =
+      &builder->query->oa_counters[builder->query->n_oa_counters++];
+
+   counter->report_offset = report_offset;
+   counter->accumulator_index = builder->next_accumulator_index++;
+
+   if (IS_BROADWELL(intel_dev.device) &&
+       builder->query->perf_oa_format_id == I915_PERF_OA_FORMAT_A36_B8_C8_BDW)
+   {
+       if (report_offset >= 4 && report_offset <= 35)
+	   counter->accumulate = accumulate_start_uint40_cb;
+       else
+	   counter->accumulate = accumulate_start_uint32_cb;
+   } else
+       counter->accumulate = accumulate_start_uint32_cb;
+
+   counter->read = read_accumulated_oa_counter_cb;
+   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+
+   return counter;
+}
+
+static void
+accumulate_end_uint32_cb(struct gputop_oa_counter *counter,
+			 const uint32_t *report0,
+			 const uint32_t *report1,
+			 uint64_t *accumulator)
+{
+    accumulator[counter->accumulator_index] = report1[counter->report_offset];
+}
+
+static void
+accumulate_end_uint40_cb(struct gputop_oa_counter *counter,
+			 uint32_t *report0,
+			 uint32_t *report1,
+			 uint64_t *accumulator)
+{
+    uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
+    uint64_t high1 = (uint64_t)(high_bytes1[counter->report_offset - 4]) << 32;
+    uint64_t value1 = report1[counter->report_offset] | high1;
+
+    accumulator[counter->accumulator_index] = value1;
+}
+
+static struct gputop_oa_counter *
+add_raw_end_oa_counter(struct gputop_query_builder *builder, int report_offset)
+{
+   struct gputop_oa_counter *counter =
+      &builder->query->oa_counters[builder->query->n_oa_counters++];
+
+   counter->report_offset = report_offset;
+   counter->accumulator_index = builder->next_accumulator_index++;
+
+   if (IS_BROADWELL(intel_dev.device) &&
+       builder->query->perf_oa_format_id == I915_PERF_OA_FORMAT_A36_B8_C8_BDW)
+   {
+       if (report_offset >= 4 && report_offset <= 35)
+	   counter->accumulate = accumulate_end_uint40_cb;
+       else
+	   counter->accumulate = accumulate_end_uint32_cb;
+   } else
+       counter->accumulate = accumulate_end_uint32_cb;
+
+   counter->read = read_accumulated_oa_counter_cb;
+   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+
+   return counter;
+}
+
+uint64_t
+read_report_timestamp(const uint32_t *report)
 {
    uint64_t timestamp = report[1];
 
@@ -673,6 +771,54 @@ add_elapsed_oa_counter(struct gputop_query_builder *builder)
 
    counter->accumulator_index = builder->next_accumulator_index++;
    counter->accumulate = accumulate_elapsed_cb;
+   counter->read = read_accumulated_oa_counter_cb;
+   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+
+   return counter;
+}
+
+static void
+accumulate_start_time_cb(struct gputop_oa_counter *counter,
+			 uint32_t *report0,
+			 uint32_t *report1,
+			 uint64_t *accumulator)
+{
+    /* XXX: this assumes we never start with a value of 0... */
+    if (accumulator[counter->accumulator_index] == 0)
+	accumulator[counter->accumulator_index] = read_report_timestamp(report0);
+}
+
+static struct gputop_oa_counter *
+add_start_time_oa_counter(struct gputop_query_builder *builder)
+{
+   struct gputop_oa_counter *counter =
+      &builder->query->oa_counters[builder->query->n_oa_counters++];
+
+   counter->accumulator_index = builder->next_accumulator_index++;
+   counter->accumulate = accumulate_start_time_cb;
+   counter->read = read_accumulated_oa_counter_cb;
+   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+
+   return counter;
+}
+
+static void
+accumulate_end_time_cb(struct gputop_oa_counter *counter,
+		       uint32_t *report0,
+		       uint32_t *report1,
+		       uint64_t *accumulator)
+{
+    accumulator[counter->accumulator_index] = read_report_timestamp(report1);
+}
+
+static struct gputop_oa_counter *
+add_end_time_oa_counter(struct gputop_query_builder *builder)
+{
+   struct gputop_oa_counter *counter =
+      &builder->query->oa_counters[builder->query->n_oa_counters++];
+
+   counter->accumulator_index = builder->next_accumulator_index++;
+   counter->accumulate = accumulate_end_time_cb;
    counter->read = read_accumulated_oa_counter_cb;
    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
 
@@ -1254,6 +1400,28 @@ hsw_add_3d_oa_counter_query(void)
 					 "GPU Time Elapsed",
 					 "Time elapsed on the GPU during the measurement.",
 					 elapsed);
+
+    raw = add_start_time_oa_counter(&builder);
+    report_uint64_oa_counter_as_uint64_event(&builder,
+					     "Start Timestamp",
+					     "Start Timestamp",
+					     raw);
+    raw = add_end_time_oa_counter(&builder);
+    report_uint64_oa_counter_as_uint64_event(&builder,
+					     "End Timestamp",
+					     "End Timestamp",
+					     raw);
+
+    raw = add_raw_start_oa_counter(&builder, c_offset + 2);
+    report_uint64_oa_counter_as_uint64_event(&builder,
+					     "Start Clock",
+					     "Start Clock",
+					     raw);
+    raw = add_raw_end_oa_counter(&builder, c_offset + 2);
+    report_uint64_oa_counter_as_uint64_event(&builder,
+					     "End Clock",
+					     "End Clock",
+					     raw);
 
     c = add_avg_frequency_oa_counter(&builder, elapsed);
     report_uint64_oa_counter_as_uint64_event(&builder,
