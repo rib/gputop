@@ -412,13 +412,14 @@ gputop_read_perf_samples(void)
     uint64_t head;
     uint64_t tail;
     uint32_t *last = NULL;
+    uint64_t last_tail;
     uint8_t scratch[MAX_OA_PERF_SAMPLE_SIZE];
 
     if (perf_ioctl(perf_oa_event_fd, PERF_EVENT_IOC_FLUSH, 0) < 0)
 	dbg("Failed to flush i915_oa perf samples");
 
     head = read_perf_head(perf_oa_mmap_page);
-    tail = perf_oa_mmap_page->data_tail;
+    tail = last_tail = perf_oa_mmap_page->data_tail;
 
     /* FIXME: since we only really care about the most recent sample
      * we should first figure out how many samples we have between
@@ -491,6 +492,7 @@ gputop_read_perf_samples(void)
 	    if (last)
 		update_counters(last, report);
 	    last = report;
+	    last_tail = tail;
 	    break;
 	}
 
@@ -499,11 +501,15 @@ gputop_read_perf_samples(void)
 	}
 
 	//fprintf(stderr, "Tail += %d\n", header->size);
-
 	tail += header->size;
     }
 
-    write_perf_tail(perf_oa_mmap_page, tail);
+    /* XXX: we don't progress the tail past the last report so that we
+     * can pick up where we left off later. Note: this means there's a
+     * slim chance we might parse some _LOST, _THROTTLE and
+     * _UNTHROTTLE records twice, but currently they are benign
+     * anyway. */
+    write_perf_tail(perf_oa_mmap_page, last_tail);
 }
 
 /******************************************************************************/
