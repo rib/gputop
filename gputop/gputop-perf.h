@@ -93,6 +93,18 @@ void gputop_perf_accumulate(const struct gputop_perf_query *query,
 void gputop_perf_read_samples(void);
 extern uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
 
+bool gputop_perf_trace_open(gputop_perf_query_type_t query_type);
+void gputop_perf_trace_start(void);
+void gputop_perf_trace_stop(void);
+void gputop_perf_trace_close(void);
+
+extern int gputop_perf_trace_buffer_size;
+extern uint8_t *gputop_perf_trace_buffer;
+extern bool gputop_perf_trace_empty;
+extern bool gputop_perf_trace_full;
+extern uint8_t *gputop_perf_trace_head;
+extern int gputop_perf_n_samples;
+
 uint64_t read_uint64_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
 uint32_t read_uint32_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
 bool read_bool_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);

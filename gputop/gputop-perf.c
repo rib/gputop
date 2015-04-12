@@ -1915,3 +1915,110 @@ gputop_perf_overview_close(void)
 
     gputop_current_perf_query = NULL;
 }
+
+int gputop_perf_trace_buffer_size;
+uint8_t *gputop_perf_trace_buffer;
+bool gputop_perf_trace_empty;
+bool gputop_perf_trace_full;
+uint8_t *gputop_perf_trace_head;
+int gputop_perf_n_samples = 0;
+
+static void
+trace_sample_cb(uint32_t *start, uint32_t *end)
+{
+    int sample_size = gputop_current_perf_query->perf_raw_size;
+
+    if (gputop_perf_trace_empty) {
+	memcpy(gputop_perf_trace_head, start, sample_size);
+	gputop_perf_trace_head += sample_size;
+	gputop_perf_trace_empty = false;
+    }
+
+    memcpy(gputop_perf_trace_head, end, sample_size);
+
+    gputop_perf_trace_head += sample_size;
+    if (gputop_perf_trace_head >= (gputop_perf_trace_buffer + gputop_perf_trace_buffer_size)) {
+	gputop_perf_trace_head = gputop_perf_trace_buffer;
+	gputop_perf_trace_full = true;
+    }
+
+    if (!gputop_perf_trace_full)
+	gputop_perf_n_samples++;
+}
+
+static struct perf_oa_user trace_user = {
+    .sample = trace_sample_cb,
+};
+
+bool
+gputop_perf_trace_open(gputop_perf_query_type_t query_type)
+{
+    int period_exponent;
+    double duration = 5.0; /* seconds */
+    uint64_t period_ns;
+    uint64_t n_samples;
+
+    assert(perf_oa_event_fd < 0);
+
+    if (gputop_perf_error)
+	free(gputop_perf_error);
+
+    if (!eu_count && !initialize())
+	return false;
+
+    current_user = &trace_user;
+
+    gputop_current_perf_query = &perf_queries[query_type];
+
+    /* The timestamp for HSW+ increments every 80ns
+     *
+     * The period_exponent gives a sampling period as follows:
+     *   sample_period = 80ns * 2^(period_exponent + 1)
+     *
+     * Sample ~ every 1 millisecond...
+     */
+    period_exponent = 11;
+
+    if (!open_i915_oa_event(gputop_current_perf_query->perf_oa_metrics_set,
+			    gputop_current_perf_query->perf_oa_format,
+			    period_exponent))
+    {
+	return false;
+    }
+
+    period_ns = 80 * (2 << period_exponent);
+    n_samples = (duration  * 1000000000.0) / period_ns;
+    n_samples *= 1.25; /* a bit of leeway */
+
+    gputop_perf_trace_buffer_size = n_samples * gputop_current_perf_query->perf_raw_size;
+    gputop_perf_trace_buffer = xmalloc0(gputop_perf_trace_buffer_size);
+    gputop_perf_trace_head = gputop_perf_trace_buffer;
+    gputop_perf_trace_empty = true;
+    gputop_perf_trace_full = false;
+
+    uv_poll_init(gputop_ui_loop, &perf_oa_event_fd_poll, perf_oa_event_fd);
+    uv_poll_start(&perf_oa_event_fd_poll, UV_READABLE, perf_ready_cb);
+
+    return true;
+}
+
+void
+gputop_perf_trace_close(void)
+{
+    if (!gputop_current_perf_query)
+	return;
+
+    if (perf_oa_event_fd > 0) {
+	uv_poll_stop(&perf_oa_event_fd_poll);
+
+	if (perf_oa_mmap_base) {
+	    munmap(perf_oa_mmap_base, perf_oa_buffer_size + page_size);
+	    perf_oa_mmap_base = NULL;
+	}
+
+	close(perf_oa_event_fd);
+	perf_oa_event_fd = -1;
+    }
+
+    gputop_current_perf_query = NULL;
+}
