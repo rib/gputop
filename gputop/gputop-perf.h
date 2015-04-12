@@ -61,8 +61,8 @@ struct gputop_perf_query
    struct gputop_perf_query_counter *counters;
    int n_counters;
 
-   int perf_profile_id;
-   uint64_t perf_oa_format_id;
+   int perf_oa_metrics_set;
+   int perf_oa_format;
    int perf_raw_size;
 
    struct gputop_oa_counter *oa_counters;

@@ -108,33 +108,6 @@ struct oa_perf_sample {
 
 /* attr.config */
 
-#define I915_PERF_OA_CTX_ID_MASK	    0xffffffff
-#define I915_PERF_OA_SINGLE_CONTEXT_ENABLE  (1ULL << 32)
-
-#define I915_PERF_OA_FORMAT_SHIFT	    33
-#define I915_PERF_OA_FORMAT_MASK	    (0x7ULL << 33)
-
-#define I915_PERF_OA_FORMAT_A13_HSW	    (0ULL << 33)
-#define I915_PERF_OA_FORMAT_A29_HSW	    (1ULL << 33)
-#define I915_PERF_OA_FORMAT_A13_B8_C8_HSW   (2ULL << 33)
-#define I915_PERF_OA_FORMAT_B4_C8_HSW	    (4ULL << 33)
-#define I915_PERF_OA_FORMAT_A45_B8_C8_HSW   (5ULL << 33)
-#define I915_PERF_OA_FORMAT_B4_C8_A16_HSW   (6ULL << 33)
-#define I915_PERF_OA_FORMAT_C4_B8_HSW	    (7ULL << 33)
-
-#define I915_PERF_OA_FORMAT_A12_BDW         (0ULL<<33)
-#define I915_PERF_OA_FORMAT_A12_B8_C8_BDW   (2ULL<<33)
-#define I915_PERF_OA_FORMAT_A36_B8_C8_BDW   (5ULL<<33)
-#define I915_PERF_OA_FORMAT_C4_B8_BDW       (7ULL<<33)
-
-#define I915_PERF_OA_TIMER_EXPONENT_SHIFT   36
-#define I915_PERF_OA_TIMER_EXPONENT_MASK    (0x3fULL << 36)
-
-#define I915_PERF_OA_PROFILE_SHIFT          42
-#define I915_PERF_OA_PROFILE_MASK           (0x3fULL << 42)
-#define I915_PERF_OA_PROFILE_3D             1
-
-
 /* FIXME: HACK to dig out the context id from the
  * otherwise opaque drm_intel_context struct! */
 struct _drm_intel_context {
@@ -217,8 +190,8 @@ static int perf_oa_event_fd = -1;
  *
  * These are the current profile/format being used...
  */
-static int perf_profile_id;
-static uint64_t perf_oa_format_id;
+static int perf_oa_metrics_set;
+static uint64_t perf_oa_format;
 
 /* The mmaped circular buffer for collecting samples from perf */
 static uint8_t *perf_oa_mmap_base;
@@ -271,27 +244,33 @@ perf_event_open (struct perf_event_attr *hw_event,
 }
 
 static bool
-open_i915_oa_event(int counter_profile_id,
-                   uint64_t report_format,
+open_i915_oa_event(int metrics_set,
+                   int report_format,
                    int period_exponent)
 {
+    drm_i915_oa_attr_t oa_attr;
     struct perf_event_attr attr;
     int event_fd;
     void *mmap_base;
 
-    memset(&attr, 0, sizeof (struct perf_event_attr));
-    attr.size = sizeof (struct perf_event_attr);
+    memset(&attr, 0, sizeof(attr));
+    attr.size = sizeof(attr);
     attr.type = lookup_i915_oa_id();
-
-    attr.config |= (uint64_t)counter_profile_id << I915_PERF_OA_PROFILE_SHIFT;
-    attr.config |= report_format;
-    attr.config |= (uint64_t)period_exponent << I915_PERF_OA_TIMER_EXPONENT_SHIFT;
 
     attr.sample_type = PERF_SAMPLE_RAW;
     attr.sample_period = 1;
 
     attr.watermark = true;
     attr.wakeup_watermark = perf_oa_buffer_size / 4;
+
+    memset(&oa_attr, 0, sizeof(oa_attr));
+    oa_attr.size = sizeof(oa_attr);
+
+    oa_attr.format = report_format;
+    oa_attr.metrics_set = metrics_set;
+    oa_attr.timer_exponent = period_exponent;
+
+    attr.config = (uint64_t)&oa_attr;
 
     event_fd = perf_event_open(&attr,
 			       -1, /* pid */
@@ -318,8 +297,8 @@ open_i915_oa_event(int counter_profile_id,
     perf_oa_mmap_base = mmap_base;
     perf_oa_mmap_page = mmap_base;
 
-    perf_profile_id = counter_profile_id;
-    perf_oa_format_id = report_format;
+    perf_oa_metrics_set = metrics_set;
+    perf_oa_format = report_format;
 
     return true;
 }
@@ -338,8 +317,8 @@ get_eu_count(int fd, uint32_t devid)
     if (IS_HSW_GT3(devid))
 	return 40;
 
-#ifdef I915_PARAM_CMD_EU_TOTAL
-    gp.param = I915_PARAM_CMD_EU_TOTAL;
+#ifdef I915_PARAM_EU_TOTAL
+    gp.param = I915_PARAM_EU_TOTAL;
     gp.value = &count;
     ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
     assert(ret == 0 && count > 0);
@@ -612,7 +591,7 @@ add_raw_oa_counter(struct gputop_query_builder *builder, int report_offset)
    counter->accumulator_index = builder->next_accumulator_index++;
 
    if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format_id == I915_PERF_OA_FORMAT_A36_B8_C8_BDW)
+       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
    {
        if (report_offset >= 4 && report_offset <= 35)
 	   counter->accumulate = accumulate_uint40_cb;
@@ -663,7 +642,7 @@ add_raw_start_oa_counter(struct gputop_query_builder *builder, int report_offset
    counter->accumulator_index = builder->next_accumulator_index++;
 
    if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format_id == I915_PERF_OA_FORMAT_A36_B8_C8_BDW)
+       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
    {
        if (report_offset >= 4 && report_offset <= 35)
 	   counter->accumulate = accumulate_start_uint40_cb;
@@ -689,8 +668,8 @@ accumulate_end_uint32_cb(struct gputop_oa_counter *counter,
 
 static void
 accumulate_end_uint40_cb(struct gputop_oa_counter *counter,
-			 uint32_t *report0,
-			 uint32_t *report1,
+			 const uint32_t *report0,
+			 const uint32_t *report1,
 			 uint64_t *accumulator)
 {
     uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
@@ -710,7 +689,7 @@ add_raw_end_oa_counter(struct gputop_query_builder *builder, int report_offset)
    counter->accumulator_index = builder->next_accumulator_index++;
 
    if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format_id == I915_PERF_OA_FORMAT_A36_B8_C8_BDW)
+       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
    {
        if (report_offset >= 4 && report_offset <= 35)
 	   counter->accumulate = accumulate_end_uint40_cb;
@@ -764,8 +743,8 @@ add_elapsed_oa_counter(struct gputop_query_builder *builder)
 
 static void
 accumulate_start_time_cb(struct gputop_oa_counter *counter,
-			 uint32_t *report0,
-			 uint32_t *report1,
+			 const uint32_t *report0,
+			 const uint32_t *report1,
 			 uint64_t *accumulator)
 {
     /* XXX: this assumes we never start with a value of 0... */
@@ -789,8 +768,8 @@ add_start_time_oa_counter(struct gputop_query_builder *builder)
 
 static void
 accumulate_end_time_cb(struct gputop_oa_counter *counter,
-		       uint32_t *report0,
-		       uint32_t *report1,
+		       const uint32_t *report0,
+		       const uint32_t *report1,
 		       uint64_t *accumulator)
 {
     accumulator[counter->accumulator_index] = read_report_timestamp(report1);
@@ -1297,8 +1276,8 @@ hsw_add_basic_oa_counter_query(void)
     query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
 				  MAX_OA_QUERY_COUNTERS);
     query->n_oa_counters = 0;
-    query->perf_profile_id = 0; /* default profile */
-    query->perf_oa_format_id = I915_PERF_OA_FORMAT_A45_B8_C8_HSW;
+    query->perf_oa_metrics_set = 0; /* default profile */
+    query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
     query->perf_raw_size = 256;
 
     builder.query = query;
@@ -1333,7 +1312,7 @@ static void
 hsw_add_3d_oa_counter_query(void)
 {
     struct gputop_query_builder builder;
-    struct gputop_perf_query *query = &perf_queries[I915_PERF_OA_PROFILE_3D];
+    struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_3D];
     int a_offset;
     int b_offset;
     int c_offset;
@@ -1357,8 +1336,8 @@ hsw_add_3d_oa_counter_query(void)
     query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
 				  MAX_OA_QUERY_COUNTERS);
     query->n_oa_counters = 0;
-    query->perf_profile_id = I915_PERF_OA_PROFILE_3D;
-    query->perf_oa_format_id = I915_PERF_OA_FORMAT_A45_B8_C8_HSW;
+    query->perf_oa_metrics_set = I915_OA_METRICS_SET_3D;
+    query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
     query->perf_raw_size = 256;
 
     builder.query = query;
@@ -1669,7 +1648,7 @@ static void
 bdw_add_3d_oa_counter_query(void)
 {
     struct gputop_query_builder builder;
-    struct gputop_perf_query *query = &perf_queries[I915_PERF_OA_PROFILE_3D];
+    struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_3D];
     struct gputop_oa_counter *elapsed;
     struct gputop_oa_counter *c;
     int a_offset = 4; /* A0 */
@@ -1682,8 +1661,8 @@ bdw_add_3d_oa_counter_query(void)
     query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
 				  MAX_OA_QUERY_COUNTERS);
     query->n_oa_counters = 0;
-    query->perf_profile_id = I915_PERF_OA_PROFILE_3D;
-    query->perf_oa_format_id = I915_PERF_OA_FORMAT_A36_B8_C8_BDW;
+    query->perf_oa_metrics_set = I915_OA_METRICS_SET_3D;
+    query->perf_oa_format = I915_OA_FORMAT_A36_B8_C8_BDW;
     query->perf_raw_size = 256;
 
     builder.query = query;
@@ -1886,8 +1865,8 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 16;
 
-    if (!open_i915_oa_event(gputop_current_perf_query->perf_profile_id,
-			    gputop_current_perf_query->perf_oa_format_id,
+    if (!open_i915_oa_event(gputop_current_perf_query->perf_oa_metrics_set,
+			    gputop_current_perf_query->perf_oa_format,
 			    period_exponent))
     {
 	return false;
