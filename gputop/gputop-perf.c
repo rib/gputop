@@ -58,6 +58,14 @@
 #include "gputop-ui.h"
 #include "gputop-perf.h"
 
+/* XXX: temporary hack... */
+#ifndef I915_OA_FORMAT_A36_B8_C8_BDW
+#define I915_OA_FORMAT_A12_BDW         0
+#define I915_OA_FORMAT_A12_B8_C8_BDW   2
+#define I915_OA_FORMAT_A36_B8_C8_BDW   5
+#define I915_OA_FORMAT_C4_B8_BDW       7
+#endif
+
 /* Samples read from the perf circular buffer */
 struct oa_perf_sample {
    struct perf_event_header header;
