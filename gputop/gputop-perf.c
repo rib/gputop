@@ -442,6 +442,23 @@ gputop_perf_read_samples(void)
 	    dbg("i915_oa: Sampling has been unthrottled\n");
 	    break;
 
+	case PERF_RECORD_DEVICE: {
+	    struct i915_oa_event {
+		struct perf_event_header header;
+		drm_i915_oa_event_header_t oa_header;
+	    } *oa_event = (void *)header;
+
+	    switch (oa_event->oa_header.type) {
+	    case I915_OA_RECORD_BUFFER_OVERFLOW:
+		dbg("i915_oa: OA buffer overflow\n");
+		break;
+	    case I915_OA_RECORD_REPORT_LOST:
+		dbg("i915_oa: OA report lost\n");
+		break;
+	    }
+	    break;
+	}
+
 	case PERF_RECORD_SAMPLE: {
 	    struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
 	    uint32_t *report = (uint32_t *)perf_sample->raw_data;
