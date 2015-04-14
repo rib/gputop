@@ -26,6 +26,8 @@ AM_INIT_AUTOMAKE([1.14 foreign -Wno-portability no-define no-dist-gzip
                   dist-bzip2])
 AM_SILENT_RULES([yes])
 
+AC_USE_SYSTEM_EXTENSIONS()
+
 dnl ================================================================
 dnl Handle extra configure options
 dnl ================================================================

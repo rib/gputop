@@ -29,8 +29,6 @@
 #include <string.h>
 
 #define unlikely(x) __builtin_expect(x, 0)
-#define dbg(format, ...) do { } while(0)
-
 
 static inline void *
 xmalloc(size_t size)

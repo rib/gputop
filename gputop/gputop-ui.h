@@ -25,6 +25,8 @@
 #ifndef _GPUTOP_UI_H_
 #define _GPUTOP_UI_H_
 
+#include <stdio.h>
+
 extern uv_loop_t *gputop_ui_loop;
 
 void *gputop_ui_run(void *arg);
@@ -39,5 +41,19 @@ enum gputop_ui_log_level {
 };
 
 void gputop_ui_log(int severity, const char *message, int len);
+
+#ifdef GPUTOP_ENABLE_DEBUG
+
+#define dbg(format, ...) do { \
+    char *message; \
+    asprintf(&message, format, ##__VA_ARGS__); \
+    gputop_ui_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
+} while(0)
+
+#else
+
+#define dbg(format, ...) do { } while(0)
+
+#endif
 
 #endif /* _GPUTOP_UI_H_ */
