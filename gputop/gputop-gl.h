@@ -80,12 +80,6 @@ struct frame_query
  */
 #define MAX_FRAME_QUERIES 3
 
-struct log_entry {
-    gputop_list_t link;
-    char *msg;
-    GLenum severity;
-};
-
 struct winsys_context
 {
     _Atomic int ref;
@@ -104,8 +98,6 @@ struct winsys_context
     bool try_create_new_context_failed;
     bool is_debug_context;
     bool khr_debug_enabled;
-    gputop_list_t khr_debug_log;
-    int khr_debug_log_len;
 };
 
 struct winsys_surface

@@ -31,4 +31,13 @@ void *gputop_ui_run(void *arg);
 
 void gputop_ui_quit_idle_cb(uv_idle_t *idle);
 
+enum gputop_ui_log_level {
+    GPUTOP_LOG_LEVEL_HIGH,
+    GPUTOP_LOG_LEVEL_LOW,
+    GPUTOP_LOG_LEVEL_MEDIUM,
+    GPUTOP_LOG_LEVEL_NOTIFICATION,
+};
+
+void gputop_ui_log(int severity, const char *message, int len);
+
 #endif /* _GPUTOP_UI_H_ */

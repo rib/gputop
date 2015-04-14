@@ -383,35 +383,29 @@ static void
 gputop_khr_debug_callback(GLenum source,
 			  GLenum type,
 			  GLuint id,
-			  GLenum severity,
+			  GLenum gl_severity,
 			  GLsizei length,
 			  const GLchar *message,
 			  void *userParam)
 {
-    struct winsys_context *wctx = userParam;
-    struct log_entry *entry;
+    int level = GPUTOP_LOG_LEVEL_NOTIFICATION;
 
-    /* XXX: make sure we don't ever start using gputop_gl_lock
-     * around internal GL api usage otherwise we'll deadlock
-     * if we ever generate a performance warning ourselves!
-     */
-    pthread_rwlock_wrlock(&gputop_gl_lock);
+    switch (gl_severity) {
+    case GL_DEBUG_SEVERITY_HIGH:
+	level = GPUTOP_LOG_LEVEL_HIGH;
+	break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+	level = GPUTOP_LOG_LEVEL_MEDIUM;
+	break;
+    case GL_DEBUG_SEVERITY_LOW:
+	level = GPUTOP_LOG_LEVEL_LOW;
+	break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+	level = GPUTOP_LOG_LEVEL_NOTIFICATION;
+	break;
+    }
 
-    if (wctx->khr_debug_log_len > 10000) {
-	entry = gputop_container_of(wctx->khr_debug_log.prev, entry, link);
-	gputop_list_remove(&entry->link);
-	free(entry->msg);
-	wctx->khr_debug_log_len--;
-    } else
-	entry = xmalloc(sizeof(*entry));
-
-    entry->severity = severity;
-    entry->msg = strndup(message, length);
-
-    gputop_list_insert(wctx->khr_debug_log.prev, &entry->link);
-    wctx->khr_debug_log_len++;
-
-    pthread_rwlock_unlock(&gputop_gl_lock);
+    gputop_ui_log(level, message, length);
 }
 
 static void
@@ -456,9 +450,6 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
 			      0,
 			      NULL,
 			      true);
-
-    gputop_list_init(&wctx->khr_debug_log);
-    wctx->khr_debug_log_len = 0;
 
     pfn_glDisable(GL_DEBUG_OUTPUT);
     wctx->khr_debug_enabled = false;

@@ -82,10 +82,55 @@ static bool debug_disable_ncurses = 0;
 static bool added_gl_tabs;
 static gputop_list_t tabs;
 
+static pthread_once_t log_init_once = PTHREAD_ONCE_INIT;
+static pthread_rwlock_t log_lock = PTHREAD_RWLOCK_INITIALIZER;
+static int log_len;
+static gputop_list_t log;
+
+struct log_entry {
+    gputop_list_t link;
+    char *msg;
+    int level;
+};
+
 static pthread_t gputop_ui_thread_id;
 
 uv_loop_t *gputop_ui_loop;
 
+static void
+log_init(void)
+{
+    gputop_list_init(&log);
+}
+
+void
+gputop_ui_log(int level, const char *message, int len)
+{
+    struct log_entry *entry;
+
+    pthread_once(&log_init_once, log_init);
+
+    if (len < 0)
+	len = strlen(message);
+
+    pthread_rwlock_wrlock(&log_lock);
+
+    if (log_len > 10000) {
+	entry = gputop_container_of(log.prev, entry, link);
+	gputop_list_remove(&entry->link);
+	free(entry->msg);
+	log_len--;
+    } else
+	entry = xmalloc(sizeof(*entry));
+
+    entry->level = level;
+    entry->msg = strndup(message, len);
+
+    gputop_list_insert(log.prev, &entry->link);
+    log_len++;
+
+    pthread_rwlock_unlock(&log_lock);
+}
 
 /* Follow the horrible ncurses convention of passing y before x */
 static void
@@ -540,8 +585,6 @@ gl_debug_log_tab_input(int key)
 static void
 gl_debug_log_tab_redraw(WINDOW *win)
 {
-    struct winsys_context **contexts;
-    struct winsys_context *wctx;
     int win_width __attribute__ ((unused));
     int win_height;
     struct log_entry *tmp;
@@ -549,7 +592,9 @@ gl_debug_log_tab_redraw(WINDOW *win)
 
     getmaxyx(win, win_height, win_width);
 
-    pthread_rwlock_wrlock(&gputop_gl_lock);
+    pthread_once(&log_init_once, log_init);
+
+    pthread_rwlock_rdlock(&log_lock);
 
     if (!gputop_gl_contexts->len) {
 	pthread_rwlock_unlock(&gputop_gl_lock);
@@ -558,13 +603,10 @@ gl_debug_log_tab_redraw(WINDOW *win)
 	return;
     }
 
-    if (gputop_gl_contexts->len > 1)
-	mvwprintw(win, 0, 0, "Warning: only printing log for first context found");
+    if (gputop_list_empty(&log)) {
+	struct winsys_context **contexts = gputop_gl_contexts->data;
+	struct winsys_context *wctx = contexts[i];
 
-    contexts = gputop_gl_contexts->data;
-    wctx = contexts[i];
-
-    if (gputop_list_empty(&wctx->khr_debug_log)) {
 	mvwprintw(win, 1, 0, "No performance warnings have been reported from OpenGL so far...\n");
 
 	if (!wctx->is_debug_context) {
@@ -583,14 +625,14 @@ gl_debug_log_tab_redraw(WINDOW *win)
 	}
     }
 
-    gputop_list_for_each(tmp, &wctx->khr_debug_log, link) {
+    gputop_list_for_each(tmp, &log, link) {
 	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
 
 	if (i++ > win_height)
 	    break;
     }
 
-    pthread_rwlock_unlock(&gputop_gl_lock);
+    pthread_rwlock_unlock(&log_lock);
 }
 
 static struct tab tab_gl_debug_log =
