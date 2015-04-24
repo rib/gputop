@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include <uv.h>
 
