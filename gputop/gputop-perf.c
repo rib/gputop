@@ -102,7 +102,7 @@ struct oa_perf_sample {
  * correspond too... */
 #ifndef PERF_EVENT_IOC_FLUSH
 #include <linux/ioctl.h>
-#define PERF_EVENT_IOC_FLUSH                 _IO ('$', 8)
+#define PERF_EVENT_IOC_FLUSH                 _IO ('$', 9)
 #endif
 
 
