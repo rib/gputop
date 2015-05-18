@@ -20,6 +20,7 @@ gputop_CPPFLAGS = \
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
+    intel_chipset.h \
     gputop-gl.h \
     gputop-gl.c \
     gputop-perf.h \
