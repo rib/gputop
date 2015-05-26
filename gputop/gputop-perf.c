@@ -101,11 +101,9 @@ struct oa_perf_sample {
 
 /* Allow building for a more recent kernel than the system headers
  * correspond too... */
-#ifndef PERF_EVENT_IOC_FLUSH
-#include <linux/ioctl.h>
-#define PERF_EVENT_IOC_FLUSH                 _IO ('$', 9)
+#ifndef PERF_RECORD_DEVICE
+#define PERF_RECORD_DEVICE                   13
 #endif
-
 
 /* attr.config */
 
@@ -373,7 +371,7 @@ gputop_perf_read_samples(void)
     uint64_t last_tail;
     uint8_t scratch[MAX_OA_PERF_SAMPLE_SIZE];
 
-    if (perf_ioctl(perf_oa_event_fd, PERF_EVENT_IOC_FLUSH, 0) < 0)
+    if (fsync(perf_oa_event_fd) < 0)
 	dbg("Failed to flush i915_oa perf samples");
 
     head = read_perf_head(perf_oa_mmap_page);
