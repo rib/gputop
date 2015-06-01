@@ -25,6 +25,8 @@
 #ifndef _GPUTOP_PERF_H_
 #define _GPUTOP_PERF_H_
 
+#include <libdrm/i915_drm.h>
+
 typedef enum {
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT32,
@@ -42,7 +44,13 @@ typedef enum {
     GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
 } gputop_counter_type_t;
 
-struct gputop_oa_counter;
+struct gputop_devinfo {
+    uint64_t n_eus;
+    uint64_t n_eu_slices;
+    uint64_t n_samplers;
+};
+
+struct gputop_perf_query;
 
 struct gputop_perf_query_counter
 {
@@ -52,7 +60,14 @@ struct gputop_perf_query_counter
    gputop_counter_data_type_t data_type;
    uint64_t max;
 
-   struct gputop_oa_counter *oa_counter;
+   union {
+      uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,
+                                         const struct gputop_perf_query *query,
+                                         uint64_t *accumulator);
+      float (*oa_counter_read_float)(struct gputop_devinfo *devinfo,
+                                     const struct gputop_perf_query *query,
+                                     uint64_t *accumulator);
+   };
 };
 
 struct gputop_perf_query
@@ -65,8 +80,11 @@ struct gputop_perf_query
    int perf_oa_format;
    int perf_raw_size;
 
-   struct gputop_oa_counter *oa_counters;
-   int n_oa_counters;
+   /* For indexing into the accumulator[] ... */
+   int gpu_time_offset;
+   int a_offset;
+   int b_offset;
+   int c_offset;
 };
 
 
@@ -86,8 +104,8 @@ void gputop_perf_overview_close(void);
 
 void gputop_perf_accumulator_clear(void);
 void gputop_perf_accumulate(const struct gputop_perf_query *query,
-			    const void *report0,
-			    const void *report1,
+			    const uint8_t *report0,
+			    const uint8_t *report1,
 			    uint64_t *accumulator);
 
 void gputop_perf_read_samples(void);
@@ -98,6 +116,8 @@ void gputop_perf_trace_start(void);
 void gputop_perf_trace_stop(void);
 void gputop_perf_trace_close(void);
 
+#define MAX_PERF_QUERIES 2
+extern struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;
 extern bool gputop_perf_trace_empty;
@@ -105,12 +125,69 @@ extern bool gputop_perf_trace_full;
 extern uint8_t *gputop_perf_trace_head;
 extern int gputop_perf_n_samples;
 
-uint64_t read_uint64_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-uint32_t read_uint32_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-bool read_bool_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-double read_double_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-float read_float_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated);
-
 uint64_t read_report_timestamp(const uint32_t *report);
+uint64_t read_uint64_oa_counter(const struct gputop_perf_query *query,
+				const struct gputop_perf_query_counter *counter,
+				uint64_t *accumulator);
+uint32_t read_uint32_oa_counter(const struct gputop_perf_query *query,
+				const struct gputop_perf_query_counter *counter,
+				uint64_t *accumulator);
+bool read_bool_oa_counter(const struct gputop_perf_query *query,
+			  const struct gputop_perf_query_counter *counter,
+			  uint64_t *accumulator);
+double read_double_oa_counter(const struct gputop_perf_query *query,
+			      const struct gputop_perf_query_counter *counter,
+			      uint64_t *accumulator);
+float read_float_oa_counter(const struct gputop_perf_query *query,
+			    const struct gputop_perf_query_counter *counter,
+			    uint64_t *accumulator);
+
+void gputop_perf_report_uint64_raw(struct gputop_perf_query_counter *counter,
+				   const char *name,
+				   const char *desc,
+				   uint64_t (*read)(struct gputop_devinfo *devinfo,
+						    const struct gputop_perf_query *query,
+						    uint64_t *accumulator),
+				   uint64_t (*max)(struct gputop_devinfo *devinfo));
+
+void gputop_perf_report_float_ratio(struct gputop_perf_query_counter *counter,
+				    const char *name,
+				    const char *desc,
+				    float (*read)(struct gputop_devinfo *devinfo,
+						  const struct gputop_perf_query *query,
+						  uint64_t *accumulator),
+				    uint64_t (*max)(struct gputop_devinfo *devinfo));
+
+void gputop_perf_report_uint64_event(struct gputop_perf_query_counter *counter,
+				     const char *name,
+				     const char *desc,
+				     uint64_t (*read)(struct gputop_devinfo *devinfo,
+						      const struct gputop_perf_query *query,
+						      uint64_t *accumulator),
+				     uint64_t (*max)(struct gputop_devinfo *devinfo));
+
+void gputop_perf_report_float_duration(struct gputop_perf_query_counter *counter,
+				       const char *name,
+				       const char *desc,
+				       float (*read)(struct gputop_devinfo *devinfo,
+						     const struct gputop_perf_query *query,
+						     uint64_t *accumulator),
+				       uint64_t (*max)(struct gputop_devinfo *devinfo));
+
+void gputop_perf_report_uint64_duration(struct gputop_perf_query_counter *counter,
+					const char *name,
+					const char *desc,
+					uint64_t (*read)(struct gputop_devinfo *devinfo,
+							 const struct gputop_perf_query *query,
+							 uint64_t *accumulator),
+					uint64_t (*max)(struct gputop_devinfo *devinfo));
+
+void gputop_perf_report_uint64_throughput(struct gputop_perf_query_counter *counter,
+					  const char *name,
+					  const char *desc,
+					  uint64_t (*read)(struct gputop_devinfo *devinfo,
+							   const struct gputop_perf_query *query,
+							   uint64_t *accumulator),
+					  uint64_t (*max)(struct gputop_devinfo *devinfo));
 
 #endif /* _GPUTOP_PERF_H_ */

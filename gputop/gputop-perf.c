@@ -29,7 +29,6 @@
 #include <linux/perf_event.h>
 
 #include <xf86drm.h>
-#include <libdrm/i915_drm.h>
 #include <libdrm/intel_bufmgr.h>
 
 #include <asm/unistd.h>
@@ -58,6 +57,8 @@
 #include "gputop-util.h"
 #include "gputop-ui.h"
 #include "gputop-perf.h"
+
+#include "oa-hsw.h"
 
 /* XXX: temporary hack... */
 #ifndef I915_OA_FORMAT_A36_B8_C8_BDW
@@ -119,63 +120,14 @@ struct intel_device {
     uint32_t subsystem_vendor;
 };
 
+static struct gputop_devinfo devinfo;
+
 /* E.g. for tracing vs rolling view */
 struct perf_oa_user {
-    void (*sample)(uint32_t *start, uint32_t *end);
+    void (*sample)(uint8_t *start, uint8_t *end);
 };
 
 static struct perf_oa_user *current_user;
-
-#define MAX_PERF_QUERIES 2
-#define MAX_PERF_QUERY_COUNTERS 150
-#define MAX_OA_QUERY_COUNTERS 100
-
-/* Describes how to read one OA counter which might be a raw counter read
- * directly from a counter snapshot or could be a higher level counter derived
- * from one or more raw counters.
- *
- * Raw counters will have set ->report_offset to the snapshot offset and have
- * an accumulator that can consider counter overflow according to the width of
- * that counter.
- *
- * Higher level counters can currently reference up to 3 other counters + use
- * ->config for anything. They don't need an accumulator.
- *
- * The data type that will be written to *value_out by the read function can
- * be determined by ->data_type
- */
-struct gputop_oa_counter
-{
-   struct gputop_oa_counter *reference0;
-   struct gputop_oa_counter *reference1;
-   struct gputop_oa_counter *reference2;
-   union {
-      int report_offset;
-      int config;
-   };
-
-   int accumulator_index;
-   void (*accumulate)(struct gputop_oa_counter *counter,
-                      const uint32_t *start,
-                      const uint32_t *end,
-                      uint64_t *accumulator);
-   gputop_counter_data_type_t data_type;
-   void (*read)(struct gputop_oa_counter *counter,
-                uint64_t *accumulated,
-                void *value_out);
-};
-
-struct gputop_query_builder
-{
-    struct gputop_perf_query *query;
-    int next_accumulator_index;
-
-    int a_offset;
-    int b_offset;
-    int c_offset;
-
-    struct gputop_oa_counter *gpu_core_clock;
-};
 
 static struct intel_device intel_dev;
 
@@ -198,10 +150,9 @@ static size_t perf_oa_buffer_size;
 static struct perf_event_mmap_page *perf_oa_mmap_page;
 
 
-static struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
-
 static uv_poll_t perf_oa_event_fd_poll;
 
+struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
 char *gputop_perf_error = NULL;
 const struct gputop_perf_query *gputop_current_perf_query;
 uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
@@ -302,31 +253,23 @@ open_i915_oa_event(int metrics_set,
     return true;
 }
 
-static int
-get_eu_count(int fd, uint32_t devid)
+static void
+init_dev_info(uint32_t devid)
 {
-    drm_i915_getparam_t gp;
-    int count = 0;
-    int ret;
-
-    if (IS_HSW_GT1(devid))
-	return 10;
-    if (IS_HSW_GT2(devid))
-	return 20;
-    if (IS_HSW_GT3(devid))
-	return 40;
-
-#ifdef I915_PARAM_EU_TOTAL
-    gp.param = I915_PARAM_EU_TOTAL;
-    gp.value = &count;
-    ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-    assert(ret == 0 && count > 0);
-
-    return count;
-#else
-    assert(0);
-    return 0;
-#endif
+    if (IS_HSW_GT1(devid)) {
+	devinfo.n_eus = 10;
+	devinfo.n_eu_slices = 1;
+	devinfo.n_samplers = 1;
+    } else if (IS_HSW_GT2(devid)) {
+	devinfo.n_eus = 20;
+	devinfo.n_eu_slices = 1;
+	devinfo.n_samplers = 2;
+    } else if (IS_HSW_GT3(devid)) {
+	devinfo.n_eus = 40;
+	devinfo.n_eu_slices = 2;
+	devinfo.n_samplers = 4;
+    } else
+	assert(0);
 }
 
 /* Handle restarting ioctl if interupted... */
@@ -367,7 +310,7 @@ gputop_perf_read_samples(void)
     const uint64_t mask = perf_oa_buffer_size - 1;
     uint64_t head;
     uint64_t tail;
-    uint32_t *last = NULL;
+    uint8_t *last = NULL;
     uint64_t last_tail;
     uint8_t scratch[MAX_OA_PERF_SAMPLE_SIZE];
 
@@ -460,7 +403,7 @@ gputop_perf_read_samples(void)
 
 	case PERF_RECORD_SAMPLE: {
 	    struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
-	    uint32_t *report = (uint32_t *)perf_sample->raw_data;
+	    uint8_t *report = (uint8_t *)perf_sample->raw_data;
 
 	    if (last)
 		current_user->sample(last, report);
@@ -488,236 +431,47 @@ gputop_perf_read_samples(void)
 
 /******************************************************************************/
 
-/* Type safe wrappers for reading OA counter values */
-
 uint64_t
-read_uint64_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated)
+read_uint64_oa_counter(const struct gputop_perf_query *query,
+		       const struct gputop_perf_query_counter *counter,
+		       uint64_t *accumulator)
 {
-   uint64_t value;
-
-   assert(counter->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_UINT64);
-
-   counter->read(counter, accumulated, &value);
-
-   return value;
+    return counter->oa_counter_read_uint64(&devinfo, query, accumulator);
 }
 
 uint32_t
-read_uint32_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated)
+read_uint32_oa_counter(const struct gputop_perf_query *query,
+		       const struct gputop_perf_query_counter *counter,
+		       uint64_t *accumulator)
 {
-   uint64_t value;
-
-   assert(counter->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_UINT32);
-
-   counter->read(counter, accumulated, &value);
-
-   return value;
+    assert(0);
+    //return counter->oa_counter_read_uint32(&devinfo, query, accumulator);
 }
 
 bool
-read_bool_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated)
+read_bool_oa_counter(const struct gputop_perf_query *query,
+		     const struct gputop_perf_query_counter *counter,
+		     uint64_t *accumulator)
 {
-   uint32_t value;
-
-   assert(counter->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32);
-
-   counter->read(counter, accumulated, &value);
-
-   return !!value;
+    assert(0);
+    //return counter->oa_counter_read_bool(&devinfo, query, accumulator);
 }
 
 double
-read_double_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated)
+read_double_oa_counter(const struct gputop_perf_query *query,
+		       const struct gputop_perf_query_counter *counter,
+		       uint64_t *accumulator)
 {
-   double value;
-
-   assert(counter->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE);
-
-   counter->read(counter, accumulated, &value);
-
-   return value;
+    assert(0);
+    //return counter->oa_counter_read_double(&devinfo, query, accumulator);
 }
 
 float
-read_float_oa_counter(struct gputop_oa_counter *counter, uint64_t *accumulated)
+read_float_oa_counter(const struct gputop_perf_query *query,
+		      const struct gputop_perf_query_counter *counter,
+		      uint64_t *accumulator)
 {
-   float value;
-
-   assert(counter->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT);
-
-   counter->read(counter, accumulated, &value);
-
-   return value;
-}
-
-/******************************************************************************/
-
-/*
- * OA counter normalisation support...
- */
-
-static void
-read_accumulated_oa_counter_cb(struct gputop_oa_counter *counter,
-                               uint64_t *accumulator,
-                               void *value)
-{
-   *((uint64_t *)value) = accumulator[counter->accumulator_index];
-}
-
-static void
-accumulate_uint32_cb(struct gputop_oa_counter *counter,
-                     const uint32_t *report0,
-                     const uint32_t *report1,
-                     uint64_t *accumulator)
-{
-   accumulator[counter->accumulator_index] +=
-      (uint32_t)(report1[counter->report_offset] -
-                 report0[counter->report_offset]);
-}
-
-static void
-accumulate_uint40_cb(struct gputop_oa_counter *counter,
-                     const uint32_t *report0,
-                     const uint32_t *report1,
-                     uint64_t *accumulator)
-{
-    uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
-    uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
-    uint64_t high0 = (uint64_t)(high_bytes0[counter->report_offset - 4]) << 32;
-    uint64_t high1 = (uint64_t)(high_bytes1[counter->report_offset - 4]) << 32;
-    uint64_t value0 = report0[counter->report_offset] | high0;
-    uint64_t value1 = report1[counter->report_offset] | high1;
-    uint64_t delta;
-
-    if (value0 > value1)
-	delta = (1ULL << 40) + value1 - value0;
-    else
-	delta = value1 - value0;
-
-    accumulator[counter->accumulator_index] += delta;
-}
-
-static struct gputop_oa_counter *
-add_raw_oa_counter(struct gputop_query_builder *builder, int report_offset)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->report_offset = report_offset;
-   counter->accumulator_index = builder->next_accumulator_index++;
-
-   if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
-   {
-       if (report_offset >= 4 && report_offset <= 35)
-	   counter->accumulate = accumulate_uint40_cb;
-       else
-	   counter->accumulate = accumulate_uint32_cb;
-   } else
-       counter->accumulate = accumulate_uint32_cb;
-
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-accumulate_start_uint32_cb(struct gputop_oa_counter *counter,
-			   const uint32_t *report0,
-			   const uint32_t *report1,
-			   uint64_t *accumulator)
-{
-    /* XXX: this assumes we never start with a value of 0... */
-    if (accumulator[counter->accumulator_index] == 0)
-	accumulator[counter->accumulator_index] = report0[counter->report_offset];
-}
-
-static void
-accumulate_start_uint40_cb(struct gputop_oa_counter *counter,
-			   const uint32_t *report0,
-			   const uint32_t *report1,
-			   uint64_t *accumulator)
-{
-    uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
-    uint64_t high0 = (uint64_t)(high_bytes0[counter->report_offset - 4]) << 32;
-    uint64_t value0 = report0[counter->report_offset] | high0;
-
-    /* XXX: this assumes we never start with a value of 0... */
-    if (accumulator[counter->accumulator_index] == 0)
-	accumulator[counter->accumulator_index] = value0;
-}
-
-static struct gputop_oa_counter *
-add_raw_start_oa_counter(struct gputop_query_builder *builder, int report_offset)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->report_offset = report_offset;
-   counter->accumulator_index = builder->next_accumulator_index++;
-
-   if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
-   {
-       if (report_offset >= 4 && report_offset <= 35)
-	   counter->accumulate = accumulate_start_uint40_cb;
-       else
-	   counter->accumulate = accumulate_start_uint32_cb;
-   } else
-       counter->accumulate = accumulate_start_uint32_cb;
-
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-accumulate_end_uint32_cb(struct gputop_oa_counter *counter,
-			 const uint32_t *report0,
-			 const uint32_t *report1,
-			 uint64_t *accumulator)
-{
-    accumulator[counter->accumulator_index] = report1[counter->report_offset];
-}
-
-static void
-accumulate_end_uint40_cb(struct gputop_oa_counter *counter,
-			 const uint32_t *report0,
-			 const uint32_t *report1,
-			 uint64_t *accumulator)
-{
-    uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
-    uint64_t high1 = (uint64_t)(high_bytes1[counter->report_offset - 4]) << 32;
-    uint64_t value1 = report1[counter->report_offset] | high1;
-
-    accumulator[counter->accumulator_index] = value1;
-}
-
-static struct gputop_oa_counter *
-add_raw_end_oa_counter(struct gputop_query_builder *builder, int report_offset)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->report_offset = report_offset;
-   counter->accumulator_index = builder->next_accumulator_index++;
-
-   if (IS_BROADWELL(intel_dev.device) &&
-       builder->query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
-   {
-       if (report_offset >= 4 && report_offset <= 35)
-	   counter->accumulate = accumulate_end_uint40_cb;
-       else
-	   counter->accumulate = accumulate_end_uint32_cb;
-   } else
-       counter->accumulate = accumulate_end_uint32_cb;
-
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
+    return counter->oa_counter_read_float(&devinfo, query, accumulator);
 }
 
 uint64_t
@@ -731,982 +485,106 @@ read_report_timestamp(const uint32_t *report)
    return timestamp;
 }
 
-static void
-accumulate_elapsed_cb(struct gputop_oa_counter *counter,
-		      const uint32_t *report0,
-		      const uint32_t *report1,
-		      uint64_t *accumulator)
+void
+gputop_perf_report_uint64_raw(struct gputop_perf_query_counter *counter,
+			      const char *name,
+			      const char *desc,
+			      uint64_t (*read)(struct gputop_devinfo *devinfo,
+					       const struct gputop_perf_query *query,
+					       uint64_t *accumulator),
+			      uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-   uint64_t timestamp0 = read_report_timestamp(report0);
-   uint64_t timestamp1 = read_report_timestamp(report1);
-
-   accumulator[counter->accumulator_index] += (timestamp1 - timestamp0);
+    counter->oa_counter_read_uint64 = read;
+    counter->name = name;
+    counter->desc = desc;
+    counter->type = GPUTOP_PERFQUERY_COUNTER_RAW;
+    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
-static struct gputop_oa_counter *
-add_elapsed_oa_counter(struct gputop_query_builder *builder)
+void
+gputop_perf_report_float_ratio(struct gputop_perf_query_counter *counter,
+			       const char *name,
+			       const char *desc,
+			       float (*read)(struct gputop_devinfo *devinfo,
+					     const struct gputop_perf_query *query,
+					     uint64_t *accumulator),
+			       uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->accumulator_index = builder->next_accumulator_index++;
-   counter->accumulate = accumulate_elapsed_cb;
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
+    counter->oa_counter_read_float = read;
+    counter->name = name;
+    counter->desc = desc;
+    counter->type = GPUTOP_PERFQUERY_COUNTER_EVENT;
+    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
-static void
-accumulate_start_time_cb(struct gputop_oa_counter *counter,
-			 const uint32_t *report0,
-			 const uint32_t *report1,
-			 uint64_t *accumulator)
+void
+gputop_perf_report_uint64_event(struct gputop_perf_query_counter *counter,
+				const char *name,
+				const char *desc,
+				uint64_t (*read)(struct gputop_devinfo *devinfo,
+						 const struct gputop_perf_query *query,
+						 uint64_t *accumulator),
+				uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-    /* XXX: this assumes we never start with a value of 0... */
-    if (accumulator[counter->accumulator_index] == 0)
-	accumulator[counter->accumulator_index] = read_report_timestamp(report0);
+    counter->oa_counter_read_uint64 = read;
+    counter->name = name;
+    counter->desc = desc;
+    counter->type = GPUTOP_PERFQUERY_COUNTER_EVENT;
+    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
-static struct gputop_oa_counter *
-add_start_time_oa_counter(struct gputop_query_builder *builder)
+void
+gputop_perf_report_float_duration(struct gputop_perf_query_counter *counter,
+				  const char *name,
+				  const char *desc,
+				  float (*read)(struct gputop_devinfo *devinfo,
+						const struct gputop_perf_query *query,
+						uint64_t *accumulator),
+				  uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->accumulator_index = builder->next_accumulator_index++;
-   counter->accumulate = accumulate_start_time_cb;
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-accumulate_end_time_cb(struct gputop_oa_counter *counter,
-		       const uint32_t *report0,
-		       const uint32_t *report1,
-		       uint64_t *accumulator)
-{
-    accumulator[counter->accumulator_index] = read_report_timestamp(report1);
-}
-
-static struct gputop_oa_counter *
-add_end_time_oa_counter(struct gputop_query_builder *builder)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->accumulator_index = builder->next_accumulator_index++;
-   counter->accumulate = accumulate_end_time_cb;
-   counter->read = read_accumulated_oa_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-read_frequency_cb(struct gputop_oa_counter *counter,
-                  uint64_t *accumulated,
-                  void *value) /* uint64 */
-{
-   uint64_t clk_delta = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t time_delta = read_uint64_oa_counter(counter->reference1, accumulated);
-   uint64_t *ret = value;
-
-   if (!clk_delta) {
-      *ret = 0;
-      return;
-   }
-
-   *ret = (clk_delta * 1000) / time_delta;
-}
-
-static struct gputop_oa_counter *
-add_avg_frequency_oa_counter(struct gputop_query_builder *builder,
-                             struct gputop_oa_counter *timestamp)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   assert(timestamp->data_type == GPUTOP_PERFQUERY_COUNTER_DATA_UINT64);
-
-   counter->reference0 = builder->gpu_core_clock;
-   counter->reference1 = timestamp;
-   counter->read = read_frequency_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-read_oa_counter_normalized_by_gpu_duration_cb(struct gputop_oa_counter *counter,
-                                              uint64_t *accumulated,
-                                              void *value) /* float */
-{
-   uint64_t delta = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t clk_delta = read_uint64_oa_counter(counter->reference1, accumulated);
-   float *ret = value;
-
-   if (!clk_delta) {
-      *ret = 0;
-      return;
-   }
-
-   *ret = ((double)delta * 100.0) / (double)clk_delta;
-}
-
-static struct gputop_oa_counter *
-add_oa_counter_normalised_by_gpu_duration(struct gputop_query_builder *builder,
-                                          struct gputop_oa_counter *raw)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = raw;
-   counter->reference1 = builder->gpu_core_clock;
-   counter->read = read_oa_counter_normalized_by_gpu_duration_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
-
-   return counter;
-}
-
-static void
-read_hsw_samplers_busy_duration_cb(struct gputop_oa_counter *counter,
-                                   uint64_t *accumulated,
-                                   void *value) /* float */
-{
-   uint64_t sampler0_busy = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t sampler1_busy = read_uint64_oa_counter(counter->reference1, accumulated);
-   uint64_t clk_delta = read_uint64_oa_counter(counter->reference2, accumulated);
-   float *ret = value;
-
-   if (!clk_delta) {
-      *ret = 0;
-      return;
-   }
-
-   *ret = ((double)(sampler0_busy + sampler1_busy) * 100.0) / ((double)clk_delta * 2.0);
-}
-
-static struct gputop_oa_counter *
-add_hsw_samplers_busy_duration_oa_counter(struct gputop_query_builder *builder,
-                                          struct gputop_oa_counter *sampler0_busy_raw,
-                                          struct gputop_oa_counter *sampler1_busy_raw)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = sampler0_busy_raw;
-   counter->reference1 = sampler1_busy_raw;
-   counter->reference2 = builder->gpu_core_clock;
-   counter->read = read_hsw_samplers_busy_duration_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
-
-   return counter;
-}
-
-static void
-read_hsw_slice_extrapolated_cb(struct gputop_oa_counter *counter,
-                               uint64_t *accumulated,
-                               void *value) /* float */
-{
-   uint64_t counter0 = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t counter1 = read_uint64_oa_counter(counter->reference1, accumulated);
-   int eu_count = counter->config;
-   uint64_t *ret = value;
-
-   *ret = (counter0 + counter1) * eu_count;
-}
-
-static struct gputop_oa_counter *
-add_hsw_slice_extrapolated_oa_counter(struct gputop_query_builder *builder,
-                                      struct gputop_oa_counter *counter0,
-                                      struct gputop_oa_counter *counter1)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = counter0;
-   counter->reference1 = counter1;
-   counter->config = eu_count;
-   counter->read = read_hsw_slice_extrapolated_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-read_oa_counter_normalized_by_eu_duration_cb(struct gputop_oa_counter *counter,
-                                             uint64_t *accumulated,
-                                             void *value) /* float */
-{
-   uint64_t delta = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t clk_delta = read_uint64_oa_counter(counter->reference1, accumulated);
-   float *ret = value;
-
-   if (!clk_delta) {
-      *ret = 0;
-      return;
-   }
-
-   delta /= counter->config; /* EU count */
-
-   *ret = (double)delta * 100.0 / (double)clk_delta;
-}
-
-static struct gputop_oa_counter *
-add_oa_counter_normalised_by_eu_duration(struct gputop_query_builder *builder,
-                                         struct gputop_oa_counter *raw)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = raw;
-   counter->reference1 = builder->gpu_core_clock;
-   counter->config = eu_count;
-   counter->read = read_oa_counter_normalized_by_eu_duration_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
-
-   return counter;
-}
-
-static void
-read_av_thread_cycles_counter_cb(struct gputop_oa_counter *counter,
-                                 uint64_t *accumulated,
-                                 void *value) /* uint64 */
-{
-   uint64_t delta = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t spawned = read_uint64_oa_counter(counter->reference1, accumulated);
-   uint64_t *ret = value;
-
-   if (!spawned) {
-      *ret = 0;
-      return;
-   }
-
-   *ret = delta / spawned;
-}
-
-static struct gputop_oa_counter *
-add_average_thread_cycles_oa_counter(struct gputop_query_builder *builder,
-                                     struct gputop_oa_counter *raw,
-                                     struct gputop_oa_counter *denominator)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = raw;
-   counter->reference1 = denominator;
-   counter->read = read_av_thread_cycles_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-read_scaled_uint64_counter_cb(struct gputop_oa_counter *counter,
-                              uint64_t *accumulated,
-                              void *value) /* uint64 */
-{
-   uint64_t delta = read_uint64_oa_counter(counter->reference0, accumulated);
-   uint64_t scale = counter->config;
-   uint64_t *ret = value;
-
-   *ret = delta * scale;
-}
-
-static struct gputop_oa_counter *
-add_scaled_uint64_oa_counter(struct gputop_query_builder *builder,
-                             struct gputop_oa_counter *input,
-                             int scale)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = input;
-   counter->config = scale;
-   counter->read = read_scaled_uint64_counter_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-
-   return counter;
-}
-
-static void
-read_max_of_float_counters_cb(struct gputop_oa_counter *counter,
-                              uint64_t *accumulated,
-                              void *value) /* float */
-{
-   float counter0 = read_float_oa_counter(counter->reference0, accumulated);
-   float counter1 = read_float_oa_counter(counter->reference1, accumulated);
-   float *ret = value;
-
-   *ret = counter0 >= counter1 ? counter0 : counter1;
-}
-
-
-static struct gputop_oa_counter *
-add_max_of_float_oa_counters(struct gputop_query_builder *builder,
-                             struct gputop_oa_counter *counter0,
-                             struct gputop_oa_counter *counter1)
-{
-   struct gputop_oa_counter *counter =
-      &builder->query->oa_counters[builder->query->n_oa_counters++];
-
-   counter->reference0 = counter0;
-   counter->reference1 = counter1;
-   counter->read = read_max_of_float_counters_cb;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
-
-   return counter;
-}
-
-static void
-report_uint64_oa_counter_as_raw_uint64(struct gputop_query_builder *builder,
-                                       const char *name,
-                                       const char *desc,
-                                       struct gputop_oa_counter *oa_counter)
-{
-   struct gputop_perf_query_counter *counter =
-      &builder->query->counters[builder->query->n_counters++];
-
-   counter->oa_counter = oa_counter;
-   counter->name = name;
-   counter->desc = desc;
-   counter->type = GPUTOP_PERFQUERY_COUNTER_RAW;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-   counter->max = 0; /* undefined range */
-}
-
-static void
-report_uint64_oa_counter_as_uint64_event(struct gputop_query_builder *builder,
-                                         const char *name,
-                                         const char *desc,
-                                         struct gputop_oa_counter *oa_counter)
-{
-   struct gputop_perf_query_counter *counter =
-      &builder->query->counters[builder->query->n_counters++];
-
-   counter->oa_counter = oa_counter;
-   counter->name = name;
-   counter->desc = desc;
-   counter->type = GPUTOP_PERFQUERY_COUNTER_EVENT;
-   counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-}
-
-static void
-report_float_oa_counter_as_percentage_duration(struct gputop_query_builder *builder,
-                                               const char *name,
-                                               const char *desc,
-                                               struct gputop_oa_counter *oa_counter)
-{
-    struct gputop_perf_query_counter *counter =
-	&builder->query->counters[builder->query->n_counters++];
-
-    counter->oa_counter = oa_counter;
+    counter->oa_counter_read_float = read;
     counter->name = name;
     counter->desc = desc;
     counter->type = GPUTOP_PERFQUERY_COUNTER_DURATION_RAW;
     counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT;
-    counter->max = 100;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
-static void
-report_uint64_oa_counter_as_throughput(struct gputop_query_builder *builder,
-                                       const char *name,
-                                       const char *desc,
-                                       struct gputop_oa_counter *oa_counter)
+void
+gputop_perf_report_uint64_duration(struct gputop_perf_query_counter *counter,
+				   const char *name,
+				   const char *desc,
+				   uint64_t (*read)(struct gputop_devinfo *devinfo,
+						    const struct gputop_perf_query *query,
+						    uint64_t *accumulator),
+				   uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-    struct gputop_perf_query_counter *counter =
-	&builder->query->counters[builder->query->n_counters++];
-
-    counter->oa_counter = oa_counter;
-    counter->name = name;
-    counter->desc = desc;
-    counter->type = GPUTOP_PERFQUERY_COUNTER_THROUGHPUT;
-    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-}
-
-static void
-report_uint64_oa_counter_as_duration(struct gputop_query_builder *builder,
-                                     const char *name,
-                                     const char *desc,
-                                     struct gputop_oa_counter *oa_counter)
-{
-    struct gputop_perf_query_counter *counter =
-	&builder->query->counters[builder->query->n_counters++];
-
-    counter->oa_counter = oa_counter;
+    counter->oa_counter_read_uint64 = read;
     counter->name = name;
     counter->desc = desc;
     counter->type = GPUTOP_PERFQUERY_COUNTER_DURATION_RAW;
     counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
-    counter->max = 0;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
-static void
-add_pipeline_stage_counters(struct gputop_query_builder *builder,
-                            const char *short_name,
-                            const char *long_name,
-                            int aggregate_active_counter,
-                            int aggregate_stall_counter,
-                            int n_threads_counter)
+void
+gputop_perf_report_uint64_throughput(struct gputop_perf_query_counter *counter,
+				     const char *name,
+				     const char *desc,
+				     uint64_t (*read)(struct gputop_devinfo *devinfo,
+						      const struct gputop_perf_query *query,
+						      uint64_t *accumulator),
+				     uint64_t (*max)(struct gputop_devinfo *devinfo))
 {
-    struct gputop_oa_counter *active, *stall, *n_threads, *c;
-    char *short_desc;
-    char *long_desc;
-
-
-    asprintf(&short_desc, "%s EU Active", short_name);
-    asprintf(&long_desc,
-	     "The percentage of time in which %s were "
-	     "processed actively on the EUs.", long_name);
-    active = add_raw_oa_counter(builder, aggregate_active_counter);
-    c = add_oa_counter_normalised_by_eu_duration(builder, active);
-    report_float_oa_counter_as_percentage_duration(builder, short_desc, long_desc, c);
-
-
-    asprintf(&short_desc, "%s EU Stall", short_name);
-    asprintf(&long_desc,
-	     "The percentage of time in which %s were "
-	     "stalled on the EUs.", long_name);
-    stall = add_raw_oa_counter(builder, aggregate_stall_counter);
-    c = add_oa_counter_normalised_by_eu_duration(builder, stall);
-    report_float_oa_counter_as_percentage_duration(builder, short_desc, long_desc, c);
-
-
-    n_threads = add_raw_oa_counter(builder, n_threads_counter);
-
-    asprintf(&short_desc, "%s AVG Active per Thread", short_name);
-    asprintf(&long_desc,
-	     "The average number of cycles per hardware "
-	     "thread run in which %s were processed actively "
-	     "on the EUs.", long_name);
-    c = add_average_thread_cycles_oa_counter(builder, active, n_threads);
-    report_uint64_oa_counter_as_raw_uint64(builder, short_desc, long_desc, c);
-
-
-    asprintf(&short_desc, "%s AVG Stall per Thread", short_name);
-    asprintf(&long_desc,
-	     "The average number of cycles per hardware "
-	     "thread run in which %s were stalled "
-	     "on the EUs.", long_name);
-    c = add_average_thread_cycles_oa_counter(builder, stall, n_threads);
-    report_uint64_oa_counter_as_raw_uint64(builder, short_desc, long_desc, c);
-}
-
-static void
-hsw_add_aggregate_counters(struct gputop_query_builder *builder)
-{
-    struct gputop_oa_counter *raw;
-    struct gputop_oa_counter *c;
-    int a_offset = builder->a_offset;
-
-    raw = add_raw_oa_counter(builder, a_offset + 41);
-    c = add_oa_counter_normalised_by_gpu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "GPU Busy",
-						   "The percentage of time in which the GPU has being processing GPU commands.",
-						   c);
-
-    raw = add_raw_oa_counter(builder, a_offset); /* aggregate EU active */
-    c = add_oa_counter_normalised_by_eu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "EU Active",
-						   "The percentage of time in which the Execution Units were actively processing.",
-						   c);
-
-    raw = add_raw_oa_counter(builder, a_offset + 1); /* aggregate EU stall */
-    c = add_oa_counter_normalised_by_eu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "EU Stall",
-						   "The percentage of time in which the Execution Units were stalled.",
-						   c);
-
-    add_pipeline_stage_counters(builder,
-				"VS",
-				"vertex shaders",
-				a_offset + 2, /* aggregate active */
-				a_offset + 3, /* aggregate stall */
-				a_offset + 5); /* n threads loaded */
-
-    /* Not currently supported by Mesa... */
-#if 0
-    add_pipeline_stage_counters(builder,
-				"HS",
-				"hull shaders",
-				a_offset + 7, /* aggregate active */
-				a_offset + 8, /* aggregate stall */
-				a_offset + 10); /* n threads loaded */
-
-    add_pipeline_stage_counters(builder,
-				"DS",
-				"domain shaders",
-				a_offset + 12, /* aggregate active */
-				a_offset + 13, /* aggregate stall */
-				a_offset + 15); /* n threads loaded */
-
-    add_pipeline_stage_counters(builder,
-				"CS",
-				"compute shaders",
-				a_offset + 17, /* aggregate active */
-				a_offset + 18, /* aggregate stall */
-				a_offset + 20); /* n threads loaded */
-#endif
-
-    add_pipeline_stage_counters(builder,
-				"GS",
-				"geometry shaders",
-				a_offset + 22, /* aggregate active */
-				a_offset + 23, /* aggregate stall */
-				a_offset + 25); /* n threads loaded */
-
-    add_pipeline_stage_counters(builder,
-				"PS",
-				"pixel shaders",
-				a_offset + 27, /* aggregate active */
-				a_offset + 28, /* aggregate stall */
-				a_offset + 30); /* n threads loaded */
-
-    raw = add_raw_oa_counter(builder, a_offset + 32); /* hiz fast z passing */
-    raw = add_raw_oa_counter(builder, a_offset + 33); /* hiz fast z failing */
-
-    raw = add_raw_oa_counter(builder, a_offset + 42); /* vs bottleneck */
-    raw = add_raw_oa_counter(builder, a_offset + 43); /* gs bottleneck */
-}
-
-static void
-hsw_add_basic_oa_counter_query(void)
-{
-    struct gputop_query_builder builder;
-    struct gputop_perf_query *query = &perf_queries[0];
-    struct gputop_oa_counter *elapsed;
-    struct gputop_oa_counter *c;
-    int a_offset = 3; /* A0 */
-    int b_offset = a_offset + 45; /* B0 */
-
-    query->name = "Gen7 Basic Observability Architecture Counters";
-    query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) *
-			       MAX_PERF_QUERY_COUNTERS);
-    query->n_counters = 0;
-    query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
-				  MAX_OA_QUERY_COUNTERS);
-    query->n_oa_counters = 0;
-    query->perf_oa_metrics_set = 0; /* default profile */
-    query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
-    query->perf_raw_size = 256;
-
-    builder.query = query;
-    builder.next_accumulator_index = 0;
-
-    builder.a_offset = a_offset;
-    builder.b_offset = b_offset;
-    builder.c_offset = -1;
-
-    /* Can be referenced by other counters... */
-    builder.gpu_core_clock = add_raw_oa_counter(&builder, b_offset);
-
-    elapsed = add_elapsed_oa_counter(&builder);
-    report_uint64_oa_counter_as_duration(&builder,
-					 "GPU Time Elapsed",
-					 "Time elapsed on the GPU during the measurement.",
-					 elapsed);
-
-    c = add_avg_frequency_oa_counter(&builder, elapsed);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "AVG GPU Core Frequency",
-					     "Average GPU Core Frequency in the measurement.",
-					     c);
-
-    hsw_add_aggregate_counters(&builder);
-
-    assert(query->n_counters < MAX_PERF_QUERY_COUNTERS);
-    assert(query->n_oa_counters < MAX_OA_QUERY_COUNTERS);
-}
-
-static void
-hsw_add_3d_oa_counter_query(void)
-{
-    struct gputop_query_builder builder;
-    struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_3D];
-    int a_offset;
-    int b_offset;
-    int c_offset;
-    struct gputop_oa_counter *elapsed;
-    struct gputop_oa_counter *raw;
-    struct gputop_oa_counter *c;
-    struct gputop_oa_counter *sampler0_busy_raw;
-    struct gputop_oa_counter *sampler1_busy_raw;
-    struct gputop_oa_counter *sampler0_bottleneck;
-    struct gputop_oa_counter *sampler1_bottleneck;
-    struct gputop_oa_counter *sampler0_texels;
-    struct gputop_oa_counter *sampler1_texels;
-    struct gputop_oa_counter *sampler0_l1_misses;
-    struct gputop_oa_counter *sampler1_l1_misses;
-    struct gputop_oa_counter *sampler_l1_misses;
-
-    query->name = "Gen7 3D Observability Architecture Counters";
-    query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) *
-			       MAX_PERF_QUERY_COUNTERS);
-    query->n_counters = 0;
-    query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
-				  MAX_OA_QUERY_COUNTERS);
-    query->n_oa_counters = 0;
-    query->perf_oa_metrics_set = I915_OA_METRICS_SET_3D;
-    query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
-    query->perf_raw_size = 256;
-
-    builder.query = query;
-    builder.next_accumulator_index = 0;
-
-    /* A counters offset = 12  bytes / 0x0c (45 A counters)
-     * B counters offset = 192 bytes / 0xc0 (8  B counters)
-     * C counters offset = 224 bytes / 0xe0 (8  C counters)
-     *
-     * Note: we index into the snapshots/reports as arrays of uint32 values
-     * relative to the A/B/C offset since different report layouts can vary how
-     * many A/B/C counters but with relative addressing it should be possible to
-     * re-use code for describing the counters available with different report
-     * layouts.
-     */
-
-    builder.a_offset = a_offset = 3;
-    builder.b_offset = b_offset = a_offset + 45;
-    builder.c_offset = c_offset = b_offset + 8;
-
-    /* Can be referenced by other counters... */
-    builder.gpu_core_clock = add_raw_oa_counter(&builder, c_offset + 2);
-
-    elapsed = add_elapsed_oa_counter(&builder);
-    report_uint64_oa_counter_as_duration(&builder,
-					 "GPU Time Elapsed",
-					 "Time elapsed on the GPU during the measurement.",
-					 elapsed);
-
-    raw = add_start_time_oa_counter(&builder);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Start Timestamp",
-					     "Start Timestamp",
-					     raw);
-    raw = add_end_time_oa_counter(&builder);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "End Timestamp",
-					     "End Timestamp",
-					     raw);
-
-    raw = add_raw_start_oa_counter(&builder, c_offset + 2);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Start Clock",
-					     "Start Clock",
-					     raw);
-    raw = add_raw_end_oa_counter(&builder, c_offset + 2);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "End Clock",
-					     "End Clock",
-					     raw);
-
-    c = add_avg_frequency_oa_counter(&builder, elapsed);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "AVG GPU Core Frequency",
-					     "Average GPU Core Frequency in the measurement.",
-					     c);
-
-    hsw_add_aggregate_counters(&builder);
-
-    raw = add_raw_oa_counter(&builder, a_offset + 35);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Early Depth Test Fails",
-					     "The total number of pixels dropped on early depth test.",
-					     raw);
-    /* XXX: caveat: it's 2x real No. when PS has 2 output colors */
-    raw = add_raw_oa_counter(&builder, a_offset + 36);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Samples Killed in PS",
-					     "The total number of samples or pixels dropped in pixel shaders.",
-					     raw);
-    raw = add_raw_oa_counter(&builder, a_offset + 37);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Alpha Test Fails",
-					     "The total number of pixels dropped on post-PS alpha test.",
-					     raw);
-    raw = add_raw_oa_counter(&builder, a_offset + 38);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Late Stencil Test Fails",
-					     "The total number of pixels dropped on post-PS stencil test.",
-					     raw);
-    raw = add_raw_oa_counter(&builder, a_offset + 39);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Late Depth Test Fails",
-					     "The total number of pixels dropped on post-PS depth test.",
-					     raw);
-    raw = add_raw_oa_counter(&builder, a_offset + 40);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Samples Written",
-					     "The total number of samples or pixels written to all render targets.",
-					     raw);
-
-    raw = add_raw_oa_counter(&builder, c_offset + 5);
-    /* I.e. assuming even work distribution across threads... */
-    c = add_scaled_uint64_oa_counter(&builder, raw, eu_count * 4);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Samples Blended",
-					     "The total number of blended samples or pixels written to all render targets.",
-					     c);
-
-    /* XXX: XML implies explicit sub-slice availability check, but surely we can assume we have a slice 0? */
-    sampler0_busy_raw = add_raw_oa_counter(&builder, b_offset + 0);
-    c = add_oa_counter_normalised_by_gpu_duration(&builder, sampler0_busy_raw);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Sampler 0 Busy",
-						   "The percentage of time in which sampler 0 was busy.",
-						   c);
-    /* XXX: XML implies explicit sub-slice availability check: might just have one sampler? */
-    sampler1_busy_raw = add_raw_oa_counter(&builder, b_offset + 1);
-    c = add_oa_counter_normalised_by_gpu_duration(&builder, sampler1_busy_raw);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Sampler 1 Busy",
-						   "The percentage of time in which sampler 1 was busy.",
-						   c);
-
-    c = add_hsw_samplers_busy_duration_oa_counter(&builder,
-						  sampler0_busy_raw,
-						  sampler1_busy_raw);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Samplers Busy",
-						   "The percentage of time in which samplers were busy.",
-						   c);
-
-    raw = add_raw_oa_counter(&builder, b_offset + 2);
-    sampler0_bottleneck = add_oa_counter_normalised_by_gpu_duration(&builder, raw);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Sampler 0 Bottleneck",
-						   "The percentage of time in which sampler 0 was a bottleneck.",
-						   sampler0_bottleneck);
-    raw = add_raw_oa_counter(&builder, b_offset + 3);
-    sampler1_bottleneck = add_oa_counter_normalised_by_gpu_duration(&builder, raw);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Sampler 1 Bottleneck",
-						   "The percentage of time in which sampler 1 was a bottleneck.",
-						   sampler1_bottleneck);
-
-    c = add_max_of_float_oa_counters(&builder, sampler0_bottleneck, sampler1_bottleneck);
-    report_float_oa_counter_as_percentage_duration(&builder,
-						   "Sampler Bottleneck",
-						   "The percentage of time in which samplers were bottlenecks.",
-						   c);
-    raw = add_raw_oa_counter(&builder, b_offset + 4);
-    sampler0_texels = add_scaled_uint64_oa_counter(&builder, raw, 4);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler 0 Texels LOD0", /* XXX LODO? */
-					     "The total number of texels lookups in LOD0 in sampler 0 unit.",
-					     sampler0_texels);
-    raw = add_raw_oa_counter(&builder, b_offset + 5);
-    sampler1_texels = add_scaled_uint64_oa_counter(&builder, raw, 4);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler 1 Texels LOD0", /* XXX LODO? */
-					     "The total number of texels lookups in LOD0 in sampler 1 unit.",
-					     sampler1_texels);
-
-    /* TODO find a test case to try and sanity check the numbers we're getting */
-    c = add_hsw_slice_extrapolated_oa_counter(&builder, sampler0_texels, sampler1_texels);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler Texels LOD0",
-					     "The total number of texels lookups in LOD0 in all sampler units.",
-					     c);
-
-    raw = add_raw_oa_counter(&builder, b_offset + 6);
-    sampler0_l1_misses = add_scaled_uint64_oa_counter(&builder, raw, 2);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler 0 Cache Misses",
-					     "The total number of misses in L1 sampler caches.",
-					     sampler0_l1_misses);
-    raw = add_raw_oa_counter(&builder, b_offset + 7);
-    sampler1_l1_misses = add_scaled_uint64_oa_counter(&builder, raw, 2);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler 1 Cache Misses",
-					     "The total number of misses in L1 sampler caches.",
-					     sampler1_l1_misses);
-    sampler_l1_misses = add_hsw_slice_extrapolated_oa_counter(&builder, sampler0_l1_misses, sampler1_l1_misses);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "Sampler Cache Misses",
-					     "The total number of misses in L1 sampler caches.",
-					     sampler_l1_misses);
-
-    c = add_scaled_uint64_oa_counter(&builder, sampler_l1_misses, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "L3 Sampler Throughput",
-					   "The total number of GPU memory bytes transferred between samplers and L3 caches.",
-					   c);
-
-    raw = add_raw_oa_counter(&builder, c_offset + 1);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI Fixed Pipe Throughput",
-					   "The total number of GPU memory bytes transferred between Fixed Pipeline (Command Dispatch, Input Assembly and Stream Output) and GTI.",
-					   c);
-
-    raw = add_raw_oa_counter(&builder, c_offset + 0);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI Depth Throughput",
-					   "The total number of GPU memory bytes transferred between depth caches and GTI.",
-					   c);
-    raw = add_raw_oa_counter(&builder, c_offset + 3);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI RCC Throughput",
-					   "The total number of GPU memory bytes transferred between render color caches and GTI.",
-					   c);
-    raw = add_raw_oa_counter(&builder, c_offset + 4);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI L3 Throughput",
-					   "The total number of GPU memory bytes transferred between L3 caches and GTI.",
-					   c);
-    raw = add_raw_oa_counter(&builder, c_offset + 6);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 128);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI Read Throughput",
-					   "The total number of GPU memory bytes read from GTI.",
-					   c);
-    raw = add_raw_oa_counter(&builder, c_offset + 7);
-    c = add_scaled_uint64_oa_counter(&builder, raw, 64);
-    report_uint64_oa_counter_as_throughput(&builder,
-					   "GTI Write Throughput",
-					   "The total number of GPU memory bytes written to GTI.",
-					   c);
-
-    assert(query->n_counters < MAX_PERF_QUERY_COUNTERS);
-    assert(query->n_oa_counters < MAX_OA_QUERY_COUNTERS);
-}
-
-static void
-bdw_add_aggregate_counters(struct gputop_query_builder *builder)
-{
-    struct gputop_oa_counter *raw;
-    struct gputop_oa_counter *c;
-    int a_offset = builder->a_offset;
-
-    raw = add_raw_oa_counter(builder, a_offset);
-    c = add_oa_counter_normalised_by_gpu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "GPU Busy",
-						   "The percentage of time in which the GPU has being processing GPU commands.",
-						   c);
-
-    raw = add_raw_oa_counter(builder, a_offset + 7); /* aggregate EU active */
-    c = add_oa_counter_normalised_by_eu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "EU Active",
-						   "The percentage of time in which the Execution Units were actively processing.",
-						   c);
-
-    raw = add_raw_oa_counter(builder, a_offset + 8); /* aggregate EU stall */
-    c = add_oa_counter_normalised_by_eu_duration(builder, raw);
-    report_float_oa_counter_as_percentage_duration(builder,
-						   "EU Stall",
-						   "The percentage of time in which the Execution Units were stalled.",
-						   c);
-
-    add_pipeline_stage_counters(builder,
-				"VS",
-				"vertex shaders",
-				a_offset + 13, /* aggregate active */
-				a_offset + 14, /* aggregate stall */
-				a_offset + 1); /* n threads loaded */
-
-    /* Not currently supported by Mesa... */
-#if 0
-    add_pipeline_stage_counters(builder,
-				"HS",
-				"hull shaders",
-				a_offset + 7, /* aggregate active */
-				a_offset + 8, /* aggregate stall */
-				a_offset + 10); /* n threads loaded */
-
-    add_pipeline_stage_counters(builder,
-				"DS",
-				"domain shaders",
-				a_offset + 12, /* aggregate active */
-				a_offset + 13, /* aggregate stall */
-				a_offset + 15); /* n threads loaded */
-
-    add_pipeline_stage_counters(builder,
-				"CS",
-				"compute shaders",
-				a_offset + 17, /* aggregate active */
-				a_offset + 18, /* aggregate stall */
-				a_offset + 20); /* n threads loaded */
-#endif
-
-#if 0
-    add_pipeline_stage_counters(builder,
-				"GS",
-				"geometry shaders",
-				a_offset + , /* aggregate active */
-				a_offset + , /* aggregate stall */
-				a_offset + 5); /* n threads loaded */
-#endif
-
-    add_pipeline_stage_counters(builder,
-				"PS",
-				"pixel shaders",
-				a_offset + 19, /* aggregate active */
-				a_offset + 20, /* aggregate stall */
-				a_offset + 6); /* n threads loaded */
-
-    raw = add_raw_oa_counter(builder, a_offset + 22); /* hiz fast z failing */
-#warning "TODO: HiZ failing needs scale by 4 to report"
-}
-
-
-static void
-bdw_add_3d_oa_counter_query(void)
-{
-    struct gputop_query_builder builder;
-    struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_3D];
-    struct gputop_oa_counter *elapsed;
-    struct gputop_oa_counter *c;
-    int a_offset = 4; /* A0 */
-    int b_offset = 48; /* B0 */
-
-    query->name = "Gen8 Basic Observability Architecture Counters";
-    query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) *
-			       MAX_PERF_QUERY_COUNTERS);
-    query->n_counters = 0;
-    query->oa_counters = xmalloc0(sizeof(struct gputop_oa_counter) *
-				  MAX_OA_QUERY_COUNTERS);
-    query->n_oa_counters = 0;
-    query->perf_oa_metrics_set = I915_OA_METRICS_SET_3D;
-    query->perf_oa_format = I915_OA_FORMAT_A36_B8_C8_BDW;
-    query->perf_raw_size = 256;
-
-    builder.query = query;
-    builder.next_accumulator_index = 0;
-
-    builder.a_offset = a_offset;
-    builder.b_offset = b_offset;
-    builder.c_offset = 56;
-
-    /* Can be referenced by other counters... */
-    builder.gpu_core_clock = add_raw_oa_counter(&builder, 3);
-
-    elapsed = add_elapsed_oa_counter(&builder);
-    report_uint64_oa_counter_as_duration(&builder,
-					 "GPU Time Elapsed",
-					 "Time elapsed on the GPU during the measurement.",
-					 elapsed);
-
-    c = add_avg_frequency_oa_counter(&builder, elapsed);
-    report_uint64_oa_counter_as_uint64_event(&builder,
-					     "AVG GPU Core Frequency",
-					     "Average GPU Core Frequency in the measurement.",
-					     c);
-
-    bdw_add_aggregate_counters(&builder);
-
-    assert(query->n_counters < MAX_PERF_QUERY_COUNTERS);
-    assert(query->n_oa_counters < MAX_OA_QUERY_COUNTERS);
+    counter->oa_counter_read_uint64 = read;
+    counter->name = name;
+    counter->desc = desc;
+    counter->type = GPUTOP_PERFQUERY_COUNTER_THROUGHPUT;
+    counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64;
+    counter->max = max ? max(&devinfo) : 0;
 }
 
 static uint32_t
@@ -1769,17 +647,16 @@ initialize(void)
     }
 
     /* NB: eu_count needs to be initialized before declaring counters */
-    eu_count = get_eu_count(drm_fd, intel_dev.device);
+    init_dev_info(intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
     perf_oa_buffer_size = 32 * page_size;
 
     close(drm_fd);
 
     if (IS_HASWELL(intel_dev.device)) {
-	hsw_add_basic_oa_counter_query();
-	hsw_add_3d_oa_counter_query();
-    } else if (IS_BROADWELL(intel_dev.device))
-	bdw_add_3d_oa_counter_query();
+	gputop_oa_add_render_basic_counter_query_hsw();
+    } else
+	assert(0);
 
     return true;
 }
@@ -1790,41 +667,30 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
     gputop_perf_read_samples();
 }
 
+static void
+accumulate_uint32(uint32_t *report0,
+                  uint32_t *report1,
+                  uint64_t *accumulator)
+{
+   *accumulator += (uint32_t)(*report1 - *report0);
+}
+
 void
 gputop_perf_accumulate(const struct gputop_perf_query *query,
-		       const void *report0,
-		       const void *report1,
+		       const uint8_t *report0,
+		       const uint8_t *report1,
 		       uint64_t *accumulator)
 {
-    int i;
+   int i;
+   uint32_t *start = (uint32_t *)report0;
+   uint32_t *end = (uint32_t *)report1;
 
-#if 0
-    fprintf(stderr, "Accumulating delta:\n");
-    fprintf(stderr, "> Start timestamp = %" PRIu64 "\n", read_report_timestamp(start));
-    fprintf(stderr, "> End timestamp = %" PRIu64 "\n", read_report_timestamp(end));
-#endif
+   assert(query->perf_oa_format == I915_OA_FORMAT_A45_B8_C8_HSW);
 
-    for (i = 0; i < gputop_current_perf_query->n_oa_counters; i++) {
-	struct gputop_oa_counter *oa_counter =
-	    &gputop_current_perf_query->oa_counters[i];
-	//uint64_t pre_accumulate;
+   accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
 
-	if (!oa_counter->accumulate)
-	    continue;
-
-	//pre_accumulate = gputop_perf_accumulator[oa_counter->accumulator_index];
-
-	oa_counter->accumulate(oa_counter,
-			       report0, report1,
-			       gputop_perf_accumulator);
-
-#if 0
-	fprintf(stderr, "> Updated %d from %" PRIu64 " to %" PRIu64 "\n",
-		oa_counter->accumulator_index, pre_accumulate,
-		gputop_perf_accumulator[oa_counter->accumulator_index]);
-#endif
-    }
-
+   for (i = 0; i < 61; i++)
+      accumulate_uint32(start + 3 + i, end + 3 + i, accumulator + 1 + i);
 }
 
 /**
@@ -1832,7 +698,7 @@ gputop_perf_accumulate(const struct gputop_perf_query *query,
  * counter to update the results.
  */
 static void
-overview_sample_cb(uint32_t *start, uint32_t *end)
+overview_sample_cb(uint8_t *start, uint8_t *end)
 {
     gputop_perf_accumulate(gputop_current_perf_query, start, end,
 			   gputop_perf_accumulator);
@@ -1858,7 +724,7 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
     if (gputop_perf_error)
 	free(gputop_perf_error);
 
-    if (!eu_count && !initialize())
+    if (!devinfo.n_eus && !initialize())
 	return false;
 
     current_user = &overview_user;
@@ -1923,7 +789,7 @@ uint8_t *gputop_perf_trace_head;
 int gputop_perf_n_samples = 0;
 
 static void
-trace_sample_cb(uint32_t *start, uint32_t *end)
+trace_sample_cb(uint8_t *start, uint8_t *end)
 {
     int sample_size = gputop_current_perf_query->perf_raw_size;
 

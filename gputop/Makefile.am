@@ -23,6 +23,8 @@ libgputop_la_SOURCES = \
     intel_chipset.h \
     gputop-gl.h \
     gputop-gl.c \
+    oa-hsw.h \
+    oa-hsw.c \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
@@ -70,4 +72,12 @@ gputop_system_CPPFLAGS = \
     $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
+BUILT_SOURCES = \
+    oa-hsw.h \
+    oa-hsw.c
 
+oa-hsw.c: oa-hsw.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-hsw.c --include="oa-hsw.h" $(srcdir)/oa-hsw.xml
+
+oa-hsw.h: oa-hsw.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-hsw.h $(srcdir)/oa-hsw.xml

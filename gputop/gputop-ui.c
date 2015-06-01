@@ -174,28 +174,29 @@ print_percentage_bar(WINDOW *win, int y, int x, float percent)
 
 static void
 print_percentage_oa_counter(WINDOW *win, int y, int x,
-			    struct gputop_perf_query_counter *counter)
+			    const struct gputop_perf_query *query,
+			    const struct gputop_perf_query_counter *counter)
 {
     float percentage;
 
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	percentage = read_uint32_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_uint32_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	percentage = read_uint64_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_uint64_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	percentage = read_float_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_float_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	percentage = read_double_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_double_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	percentage = read_bool_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_bool_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
     }
 
@@ -207,32 +208,38 @@ print_percentage_oa_counter(WINDOW *win, int y, int x,
 
 static void
 print_raw_oa_counter(WINDOW *win, int y, int x,
-		     struct gputop_perf_query_counter *counter)
+		     const struct gputop_perf_query *query,
+		     const struct gputop_perf_query_counter *counter)
 {
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
 	mvwprintw(win, y, x, "%" PRIu32,
-		  read_uint32_oa_counter(counter->oa_counter,
+		  read_uint32_oa_counter(query,
+					 counter,
 					 gputop_perf_accumulator));
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
 	mvwprintw(win, y, x, "%" PRIu64,
-		  read_uint64_oa_counter(counter->oa_counter,
+		  read_uint64_oa_counter(query,
+					 counter,
 					 gputop_perf_accumulator));
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
 	mvwprintw(win, y, x, "%f",
-		  read_float_oa_counter(counter->oa_counter,
+		  read_float_oa_counter(query,
+					counter,
 					gputop_perf_accumulator));
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
 	mvwprintw(win, y, x, "%f",
-		  read_double_oa_counter(counter->oa_counter,
+		  read_double_oa_counter(query,
+					 counter,
 					 gputop_perf_accumulator));
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
 	mvwprintw(win, y, x, "%s",
-		  read_bool_oa_counter(counter->oa_counter,
+		  read_bool_oa_counter(query,
+				       counter,
 				       gputop_perf_accumulator) ? "TRUE" : "FALSE");
 	break;
     }
@@ -266,36 +273,36 @@ perf_counters_redraw(WINDOW *win)
 	switch (counter->type) {
 	case GPUTOP_PERFQUERY_COUNTER_EVENT:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
-	    print_raw_oa_counter(win, y, 41, counter);
+	    print_raw_oa_counter(win, y, 41, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
-	    print_raw_oa_counter(win, y, 41, counter);
+	    print_raw_oa_counter(win, y, 41, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
 	    if (counter->max == 100)
-		print_percentage_oa_counter(win, y, 41, counter);
+		print_percentage_oa_counter(win, y, 41, query, counter);
 	    else
-		print_raw_oa_counter(win, y, 41, counter);
+		print_raw_oa_counter(win, y, 41, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
 	    if (wmove(win, y, 0) == ERR)
 		break;
 	    wprintw(win, "%40s: ", counter->name);
-	    print_raw_oa_counter(win, y, 41, counter);
+	    print_raw_oa_counter(win, y, 41, query, counter);
 	    wprintw(win, " bytes/s");
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_RAW:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
 	    if (counter->max == 100)
-		print_percentage_oa_counter(win, y, 41, counter);
+		print_percentage_oa_counter(win, y, 41, query, counter);
 	    else
-		print_raw_oa_counter(win, y, 41, counter);
+		print_raw_oa_counter(win, y, 41, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
-	    print_raw_oa_counter(win, y, 41, counter);
+	    print_raw_oa_counter(win, y, 41, query, counter);
 	    break;
 	}
 
@@ -338,28 +345,29 @@ print_percentage_spark(WINDOW *win, int x, int y, float percent)
 
 static void
 trace_print_percentage_oa_counter(WINDOW *win, int x, int y,
-				  struct gputop_perf_query_counter *counter)
+				  const struct gputop_perf_query *query,
+				  const struct gputop_perf_query_counter *counter)
 {
     float percentage;
 
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	percentage = read_uint32_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_uint32_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	percentage = read_uint64_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_uint64_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	percentage = read_float_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_float_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	percentage = read_double_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_double_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	percentage = read_bool_oa_counter(counter->oa_counter, gputop_perf_accumulator);
+	percentage = read_bool_oa_counter(query, counter, gputop_perf_accumulator);
 	break;
     }
 
@@ -376,7 +384,8 @@ trace_print_percentage_oa_counter(WINDOW *win, int x, int y,
 
 static void
 trace_print_raw_oa_counter(WINDOW *win, int x, int y,
-			   struct gputop_perf_query_counter *counter)
+			   const struct gputop_perf_query *query,
+			   const struct gputop_perf_query_counter *counter)
 {
 }
 
@@ -409,28 +418,28 @@ print_trace_counter_spark(WINDOW *win, const struct gputop_perf_query *query, in
 
 	switch (counter->type) {
 	case GPUTOP_PERFQUERY_COUNTER_EVENT:
-	    trace_print_raw_oa_counter(win, x, y, counter);
+	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
-	    trace_print_raw_oa_counter(win, x, y, counter);
+	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
 	    if (counter->max == 100)
-		trace_print_percentage_oa_counter(win, x, y, counter);
+		trace_print_percentage_oa_counter(win, x, y, query, counter);
 	    else
-		trace_print_raw_oa_counter(win, x, y, counter);
+		trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
-	    trace_print_raw_oa_counter(win, x, y, counter);
+	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_RAW:
 	    if (counter->max == 100)
-		trace_print_percentage_oa_counter(win, x, y, counter);
+		trace_print_percentage_oa_counter(win, x, y, query, counter);
 	    else
-		trace_print_raw_oa_counter(win, x, y, counter);
+		trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
-	    trace_print_raw_oa_counter(win, x, y, counter);
+	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	}
 
@@ -533,45 +542,6 @@ perf_trace_redraw(WINDOW *win)
 	}
     }
 }
-
-static void
-perf_basic_tab_enter(void)
-{
-    uv_timer_init(gputop_ui_loop, &timer);
-    uv_timer_start(&timer, timer_cb, 1000, 1000);
-
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_BASIC);
-}
-
-static void
-perf_basic_tab_leave(void)
-{
-    gputop_perf_overview_close();
-
-    uv_timer_stop(&timer);
-}
-
-static void
-perf_basic_tab_input(int key)
-{
-
-}
-
-static void
-perf_basic_tab_redraw(WINDOW *win)
-{
-    perf_counters_redraw(win);
-}
-
-static struct tab tab_basic =
-{
-    .nick = "Basic",
-    .name = "Basic Counters (system wide)",
-    .enter = perf_basic_tab_enter,
-    .leave = perf_basic_tab_leave,
-    .input = perf_basic_tab_input,
-    .redraw = perf_basic_tab_redraw,
-};
 
 static void
 perf_3d_tab_enter(void)
@@ -1326,11 +1296,10 @@ gputop_ui_init(void)
 
     gputop_list_init(&tabs);
 
-    gputop_list_insert(tabs.prev, &tab_basic.link);
     gputop_list_insert(tabs.prev, &tab_3d.link);
     gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
-    current_tab = &tab_basic;
+    current_tab = &tab_3d;
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
