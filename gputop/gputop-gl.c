@@ -424,6 +424,12 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
     while (pfn_glGetError() != GL_NO_ERROR)
 	ok = false;
 
+    ok = true;
+    pfn_glGetPerfQueryIdByNameINTEL("Render Metrics Basic Gen7.5",
+				    &query_id);
+    while (pfn_glGetError() != GL_NO_ERROR)
+	ok = false;
+
     if (ok)
 	get_query_info(query_id, &wctx->oa_query_info);
 
