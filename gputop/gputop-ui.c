@@ -583,6 +583,45 @@ static struct tab tab_3d =
 };
 
 static void
+perf_compute_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_COMPUTE_BASIC);
+}
+
+static void
+perf_compute_tab_leave(void)
+{
+    gputop_perf_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_compute_tab_input(int key)
+{
+
+}
+
+static void
+perf_compute_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_compute =
+{
+    .nick = "GPGPU",
+    .name = "Compute Counters (system wide)",
+    .enter = perf_compute_tab_enter,
+    .leave = perf_compute_tab_leave,
+    .input = perf_compute_tab_input,
+    .redraw = perf_compute_tab_redraw,
+};
+
+static void
 perf_3d_trace_tab_enter(void)
 {
     y_pos = 0;
@@ -1297,6 +1336,7 @@ gputop_ui_init(void)
     gputop_list_init(&tabs);
 
     gputop_list_insert(tabs.prev, &tab_3d.link);
+    gputop_list_insert(tabs.prev, &tab_compute.link);
     gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
     current_tab = &tab_3d;

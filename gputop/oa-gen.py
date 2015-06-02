@@ -25,6 +25,8 @@ import xml.etree.ElementTree as ET
 import argparse
 import sys
 
+symbol_to_perf_map = { 'RenderBasic' : '3D',
+                       'ComputeBasic' : 'COMPUTE' }
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
@@ -342,15 +344,15 @@ for set in tree.findall(".//set"):
     c("{\n")
     c_indent(3)
 
-    c("""struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_3D];
-""")
+    perf_suffix = symbol_to_perf_map[set.get('symbol_name')]
+    c("struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_" + perf_suffix + "];")
 
     c("query->name = \"" + set.get('name') + "\";\n")
 
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
-    c("""query->n_counters = 0;
-query->perf_oa_metrics_set = I915_OA_METRICS_SET_3D;
-query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
+    c("query->n_counters = 0;\n")
+    c("query->perf_oa_metrics_set = I915_OA_METRICS_SET_" + perf_suffix + ";\n")
+    c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
 query->perf_raw_size = 256;
 
 query->gpu_time_offset = 0;

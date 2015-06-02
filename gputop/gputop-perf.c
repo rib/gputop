@@ -655,6 +655,7 @@ initialize(void)
 
     if (IS_HASWELL(intel_dev.device)) {
 	gputop_oa_add_render_basic_counter_query_hsw();
+	gputop_oa_add_compute_basic_counter_query_hsw();
     } else
 	assert(0);
 
