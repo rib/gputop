@@ -621,6 +621,162 @@ static struct tab tab_compute =
 };
 
 static void
+perf_compute_extended_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_COMPUTE_EXTENDED);
+}
+
+static void
+perf_compute_extended_tab_leave(void)
+{
+    gputop_perf_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_compute_extended_tab_input(int key)
+{
+
+}
+
+static void
+perf_compute_extended_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_compute_extended =
+{
+    .nick = "GPGPU+",
+    .name = "Extended Compute Counters (system wide)",
+    .enter = perf_compute_extended_tab_enter,
+    .leave = perf_compute_extended_tab_leave,
+    .input = perf_compute_extended_tab_input,
+    .redraw = perf_compute_extended_tab_redraw,
+};
+
+static void
+perf_memory_reads_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_MEMORY_READS);
+}
+
+static void
+perf_memory_reads_tab_leave(void)
+{
+    gputop_perf_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_memory_reads_tab_input(int key)
+{
+
+}
+
+static void
+perf_memory_reads_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_memory_reads =
+{
+    .nick = "MemR",
+    .name = "Memory Reads (system wide)",
+    .enter = perf_memory_reads_tab_enter,
+    .leave = perf_memory_reads_tab_leave,
+    .input = perf_memory_reads_tab_input,
+    .redraw = perf_memory_reads_tab_redraw,
+};
+
+static void
+perf_memory_writes_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_MEMORY_WRITES);
+}
+
+static void
+perf_memory_writes_tab_leave(void)
+{
+    gputop_perf_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_memory_writes_tab_input(int key)
+{
+
+}
+
+static void
+perf_memory_writes_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_memory_writes =
+{
+    .nick = "MemW",
+    .name = "Memory Writes (system wide)",
+    .enter = perf_memory_writes_tab_enter,
+    .leave = perf_memory_writes_tab_leave,
+    .input = perf_memory_writes_tab_input,
+    .redraw = perf_memory_writes_tab_redraw,
+};
+
+static void
+perf_sampler_balance_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_perf_overview_open(GPUTOP_PERF_QUERY_SAMPLER_BALANCE);
+}
+
+static void
+perf_sampler_balance_tab_leave(void)
+{
+    gputop_perf_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_sampler_balance_tab_input(int key)
+{
+
+}
+
+static void
+perf_sampler_balance_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_sampler_balance =
+{
+    .nick = "Sampler Balance",
+    .name = "Sampler Balance (system wide)",
+    .enter = perf_sampler_balance_tab_enter,
+    .leave = perf_sampler_balance_tab_leave,
+    .input = perf_sampler_balance_tab_input,
+    .redraw = perf_sampler_balance_tab_redraw,
+};
+
+static void
 perf_3d_trace_tab_enter(void)
 {
     y_pos = 0;
@@ -1336,6 +1492,10 @@ gputop_ui_init(void)
 
     gputop_list_insert(tabs.prev, &tab_3d.link);
     gputop_list_insert(tabs.prev, &tab_compute.link);
+    gputop_list_insert(tabs.prev, &tab_compute_extended.link);
+    gputop_list_insert(tabs.prev, &tab_memory_reads.link);
+    gputop_list_insert(tabs.prev, &tab_memory_writes.link);
+    gputop_list_insert(tabs.prev, &tab_sampler_balance.link);
     gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
     current_tab = &tab_3d;

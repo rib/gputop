@@ -98,6 +98,10 @@ typedef enum gputop_perf_query_type
     GPUTOP_PERF_QUERY_BASIC,
     GPUTOP_PERF_QUERY_3D_BASIC,
     GPUTOP_PERF_QUERY_COMPUTE_BASIC,
+    GPUTOP_PERF_QUERY_COMPUTE_EXTENDED,
+    GPUTOP_PERF_QUERY_MEMORY_READS,
+    GPUTOP_PERF_QUERY_MEMORY_WRITES,
+    GPUTOP_PERF_QUERY_SAMPLER_BALANCE,
 } gputop_perf_query_type_t;
 
 bool gputop_perf_overview_open(gputop_perf_query_type_t query_type);
@@ -117,7 +121,7 @@ void gputop_perf_trace_start(void);
 void gputop_perf_trace_stop(void);
 void gputop_perf_trace_close(void);
 
-#define MAX_PERF_QUERIES 3
+#define MAX_PERF_QUERIES 7
 extern struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;

@@ -26,7 +26,11 @@ import argparse
 import sys
 
 symbol_to_perf_map = { 'RenderBasic' : '3D',
-                       'ComputeBasic' : 'COMPUTE' }
+                       'ComputeBasic' : 'COMPUTE',
+                       'ComputeExtended': 'COMPUTE_EXTENDED',
+                       'MemoryReads': 'MEMORY_READS',
+                       'MemoryWrites': 'MEMORY_WRITES',
+                       'SamplerBalance': 'SAMPLER_BALANCE' }
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
