@@ -329,18 +329,17 @@ print_percentage_spark(WINDOW *win, int x, int y, float percent)
     };
     int i;
 
-    for (i = bar_len; i >= 8; i -= 8) {
-	if (wmove(win, y, x) == ERR)
+    for (i = 0; i < SPARKLINE_HEIGHT; i++) {
+	if (wmove(win, y - i, x) == ERR)
 	    return;
-        wprintw(win, "%s", bars[8]);
-	y--;
+	if (bar_len > 8) {
+	    wprintw(win, "%s", bars[8]);
+	    bar_len -= 8;
+	} else {
+	    wprintw(win, "%s", bars[bar_len]);
+	    bar_len = 0;
+	}
     }
-    if (i) {
-	if (wmove(win, y, x) == ERR)
-	    return;
-        wprintw(win, "%s", bars[i]);
-    }
-
 }
 
 static void
@@ -1255,8 +1254,8 @@ init_ncurses(FILE *infile, FILE *outfile)
     init_pair(GPUTOP_INACTIVE_COLOR, COLOR_WHITE, COLOR_BLACK);
     init_pair(GPUTOP_ACTIVE_COLOR, COLOR_WHITE, COLOR_BLUE);
     init_pair(GPUTOP_TAB_COLOR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(GPUTOP_BAR_GOOD_COLOR, COLOR_GREEN, COLOR_GREEN);
-    init_pair(GPUTOP_BAR_BAD_COLOR, COLOR_RED, COLOR_RED);
+    init_pair(GPUTOP_BAR_GOOD_COLOR, COLOR_GREEN, COLOR_BLACK);
+    init_pair(GPUTOP_BAR_BAD_COLOR, COLOR_RED, COLOR_BLACK);
 }
 
 void *
