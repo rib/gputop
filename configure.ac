@@ -109,7 +109,7 @@ dnl LIBTOOL="$LIBTOOL --preserve-dup-deps"
 dnl ================================================================
 dnl I18n stuff.
 dnl ================================================================
-AM_GNU_GETTEXT_VERSION([0.17])
+AM_GNU_GETTEXT_VERSION([0.19.4])
 AM_GNU_GETTEXT([external])
 
 GETTEXT_PACKAGE="gputop"
