@@ -1,0 +1,54 @@
+all::
+
+E=$(if $(V),,@)
+
+export CC=emcc
+top_srcdir=../
+srcdir=../
+top_builddir=../
+builddir=.
+protobuf_c_dir=../protobuf-c
+
+VPATH=$(srcdir):$(builddir)
+
+#can be overriden by user...
+CFLAGS=-g -O0
+OBJ_CFLAGS=$(CFLAGS)
+BC_CFLAGS=$(CFLAGS)
+JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 -s NO_BROWSER=1 -s INVOKE_RUN=0
+
+_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(srcdir) -I$(protobuf_c_dir)
+_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(srcdir) -I$(protobuf_c_dir)
+_JSFLAGS=$(JSFLAGS)
+
+
+gputop_web_SOURCE=oa-hsw.c gputop-web-worker.c protobuf-c.c gputop-pb-c.c
+gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
+
+all:: gputop-web.bc gputop-web-worker.js
+
+gputop-web.bc: $(gputop_web_OBJECTS)
+
+%.o: %.c Makefile.emscripten | dirs
+	$(E)echo "(CC)     $(@)"
+	$(E)$(CC) $(srcdir)/$(*).c -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
+
+%.bc: | dirs
+	$(E)echo "(BC)     $(@)"
+	$(E)$(CC) $(_BC_CFLAGS) $(filter %.o %.c,$(^)) -o $@
+
+%.js: %.bc | dirs
+	$(CC) $(_JSFLAGS) -o $@ $^
+
+gputop-web-worker.js: gputop-web.bc gputop-web-worker-post.js | dirs
+	$(CC) $(_JSFLAGS) --post-js gputop-web-worker-post.js --js-library gputop-web-lib.js -s BUILD_AS_WORKER=1 -s INVOKE_RUN=0 -o $@ gputop-web.bc
+
+-include .deps/*.rules
+
+dirs:
+	$(E)mkdir -p $(builddirs) .deps
+
+clean:
+	-rm -f *.o *.bc
+
+.PHONY: all clean dirs

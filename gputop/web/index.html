@@ -1,0 +1,26 @@
+<html lang="en-US">
+    <head>
+	<title>GPU Top</title>
+	<meta charset="utf-8"/>
+	<meta http-equiv="Cache-Control" content="no-store" />
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.flot.js"></script>
+    </head>
+    <body>
+	<div id="placeholder" style="width:600px;height:300px"></div>
+
+	<script type="text/javascript">
+	    function on_page_load() {
+		var element = document.createElement("script");
+		element.src = "trace-view.js";
+		document.body.appendChild(element);
+	    }
+	    if (window.addEventListener)
+		window.addEventListener("load", on_page_load, false);
+	    else if (window.attachEvent)
+		window.attachEvent("onload", on_page_load);
+	    else
+		window.onload = on_page_load;
+	</script>
+    </body>
+</html>

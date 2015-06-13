@@ -106,6 +106,11 @@ oa-bdw.h: oa-bdw.xml oa-gen.py
 	protoc-c --c_out=$(top_builddir)/gputop $(srcdir)/$(*).proto
 
 webdir = $(datadir)/web
-web_DATA = web/index.html web/trace-view.js web/jquery.js web/jquery.flot.js
+web_DATA = \
+	web/index.html \
+	web/trace-view.js \
+	web/jquery.js \
+	web/jquery.flot.js \
+	web/gputop-web-worker.js
 
 EXTRA_DIST = gputop.proto
