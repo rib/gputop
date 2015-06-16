@@ -109,12 +109,6 @@ struct oa_perf_sample {
 
 /* attr.config */
 
-/* FIXME: HACK to dig out the context id from the
- * otherwise opaque drm_intel_context struct! */
-struct _drm_intel_context {
-   unsigned int ctx_id;
-};
-
 struct intel_device {
     uint32_t device;
     uint32_t subsystem_device;
