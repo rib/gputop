@@ -37,6 +37,7 @@
 #include "gputop-perf.h"
 #include "gputop-ui.h"
 #include "gputop-util.h"
+#include "gputop-server.h"
 
 
 enum {
@@ -1494,6 +1495,8 @@ gputop_ui_run(void *arg)
     uv_idle_init(gputop_ui_loop, &redraw_idle);
 
     current_tab->enter();
+
+    gputop_server_run();
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 

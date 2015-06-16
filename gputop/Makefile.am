@@ -15,6 +15,7 @@ gputop_CFLAGS = \
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
+    -I$(top_srcdir)/h2o/include \
     $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
@@ -31,6 +32,8 @@ libgputop_la_SOURCES = \
     gputop-perf.c \
     gputop.pb-c.h \
     gputop.pb-c.c \
+    gputop-server.h \
+    gputop-server.c \
     gputop-util.h \
     gputop-list.h \
     gputop-list.c \
@@ -38,8 +41,11 @@ libgputop_la_SOURCES = \
     gputop-ui.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
-    $(GPUTOP_EXTRA_CFLAGS)
-libgputop_la_LDFLAGS = $(GPUTOP_DEP_LIBS) $(GPUTOP_EXTRA_LDFLAGS) -lncursesw
+    $(GPUTOP_EXTRA_CFLAGS) \
+    -I$(top_srcdir)/h2o \
+    -I$(top_srcdir)/h2o/include \
+    -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
+libgputop_la_LDFLAGS = $(GPUTOP_DEP_LIBS) $(GPUTOP_EXTRA_LDFLAGS) -lncursesw $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lyaml
 
 wrapperdir = $(libdir)/wrappers
 wrapper_LTLIBRARIES = libGL.la #libEGL.la
@@ -50,7 +56,7 @@ libGL_la_SOURCES = \
 libGL_la_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)
-libGL_la_LIBADD = libgputop.la
+libGL_la_LIBADD = libgputop.la $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lcurl -lyaml -lm
 libGL_la_LDFLAGS = -shared -version-info 1
 
 #libEGL_la_SOURCES = \
@@ -98,5 +104,8 @@ oa-bdw.h: oa-bdw.xml oa-gen.py
 
 %.pb-c.c %.pb-c.h: %.proto
 	protoc-c --c_out=$(top_builddir)/gputop $(srcdir)/$(*).proto
+
+webdir = $(datadir)/web
+web_DATA = web/index.html web/trace-view.js web/jquery.js web/jquery.flot.js
 
 EXTRA_DIST = gputop.proto

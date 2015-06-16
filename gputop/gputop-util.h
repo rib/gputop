@@ -30,6 +30,8 @@
 
 #define unlikely(x) __builtin_expect(x, 0)
 
+#define MIN(x, y) (x < y ? x : y)
+
 static inline void *
 xmalloc(size_t size)
 {
