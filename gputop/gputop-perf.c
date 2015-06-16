@@ -59,6 +59,7 @@
 #include "gputop-perf.h"
 
 #include "oa-hsw.h"
+#include "oa-bdw.h"
 
 /* XXX: temporary hack... */
 #ifndef I915_OA_FORMAT_A36_B8_C8_BDW
@@ -254,7 +255,7 @@ open_i915_oa_event(int metrics_set,
 }
 
 static void
-init_dev_info(uint32_t devid)
+init_dev_info(int drm_fd, uint32_t devid)
 {
     if (IS_HSW_GT1(devid)) {
 	devinfo.n_eus = 10;
@@ -268,8 +269,25 @@ init_dev_info(uint32_t devid)
 	devinfo.n_eus = 40;
 	devinfo.n_eu_slices = 2;
 	devinfo.n_samplers = 4;
-    } else
+    } else {
+#ifdef I915_PARAM_EU_TOTAL
+	drm_i915_getparam_t gp;
+	int ret;
+	int n_eus;
+
+	gp.param = I915_PARAM_EU_TOTAL;
+	gp.value = &n_eus;
+	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	assert(ret == 0 && n_eus> 0);
+
+	devinfo.n_eus = n_eus;
+
+#warning "XXX: BDW: initialize devinfo.n_eu_slices + n_samplers - though not currently needed"
+
+#else
 	assert(0);
+#endif
+    }
 }
 
 /* Handle restarting ioctl if interupted... */
@@ -647,7 +665,7 @@ initialize(void)
     }
 
     /* NB: eu_count needs to be initialized before declaring counters */
-    init_dev_info(intel_dev.device);
+    init_dev_info(drm_fd, intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
     perf_oa_buffer_size = 32 * page_size;
 
@@ -660,6 +678,8 @@ initialize(void)
 	gputop_oa_add_memory_reads_counter_query_hsw();
 	gputop_oa_add_memory_writes_counter_query_hsw();
 	gputop_oa_add_sampler_balance_counter_query_hsw();
+    } else if (IS_BROADWELL(intel_dev.device)) {
+	gputop_oa_add_render_basic_counter_query_bdw();
     } else
 	assert(0);
 
@@ -673,11 +693,33 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
 }
 
 static void
-accumulate_uint32(uint32_t *report0,
-                  uint32_t *report1,
+accumulate_uint32(const uint32_t *report0,
+                  const uint32_t *report1,
                   uint64_t *accumulator)
 {
    *accumulator += (uint32_t)(*report1 - *report0);
+}
+
+static void
+accumulate_uint40(int a_index,
+		  const uint32_t *report0,
+		  const uint32_t *report1,
+		  uint64_t *accumulator)
+{
+    const uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
+    const uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
+    uint64_t high0 = (uint64_t)(high_bytes0[a_index]) << 32;
+    uint64_t high1 = (uint64_t)(high_bytes1[a_index]) << 32;
+    uint64_t value0 = report0[a_index + 4] | high0;
+    uint64_t value1 = report1[a_index + 4] | high1;
+    uint64_t delta;
+
+    if (value0 > value1)
+       delta = (1ULL << 40) + value1 - value0;
+    else
+       delta = value1 - value0;
+
+    *accumulator += delta;
 }
 
 void
@@ -687,15 +729,38 @@ gputop_perf_accumulate(const struct gputop_perf_query *query,
 		       uint64_t *accumulator)
 {
    int i;
-   uint32_t *start = (uint32_t *)report0;
-   uint32_t *end = (uint32_t *)report1;
+   const uint32_t *start = (const uint32_t *)report0;
+   const uint32_t *end = (const uint32_t *)report1;
 
-   assert(query->perf_oa_format == I915_OA_FORMAT_A45_B8_C8_HSW);
+   if (IS_BROADWELL(intel_dev.device) &&
+       query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
+   {
+       int idx = 0;
 
-   accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
+       accumulate_uint32(start + 1, end + 1, accumulator + idx++); /* timestamp */
+       accumulate_uint32(start + 3, end + 3, accumulator + idx++); /* clock */
 
-   for (i = 0; i < 61; i++)
-      accumulate_uint32(start + 3 + i, end + 3 + i, accumulator + 1 + i);
+       /* 32x 40bit A counters... */
+       for (i = 0; i < 32; i++)
+	   accumulate_uint40(i, start, end, accumulator + idx++);
+
+       /* 4x 32bit A counters... */
+       for (i = 0; i < 4; i++)
+	   accumulate_uint32(start + 36 + i, end + 36 + i, accumulator + idx++);
+
+       /* 8x 32bit B counters + 8x 32bit C counters... */
+       for (i = 0; i < 16; i++)
+	   accumulate_uint32(start + 48 + i, end + 48 + i, accumulator + idx++);
+
+   } else if (IS_HASWELL(intel_dev.device) &&
+	      query->perf_oa_format == I915_OA_FORMAT_A45_B8_C8_HSW)
+   {
+       accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
+
+       for (i = 0; i < 61; i++)
+	   accumulate_uint32(start + 3 + i, end + 3 + i, accumulator + 1 + i);
+   } else
+       assert(0);
 }
 
 /**

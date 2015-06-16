@@ -25,6 +25,8 @@ libgputop_la_SOURCES = \
     gputop-gl.c \
     oa-hsw.h \
     oa-hsw.c \
+    oa-bdw.h \
+    oa-bdw.c \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
@@ -74,10 +76,18 @@ gputop_system_CPPFLAGS = \
 
 BUILT_SOURCES = \
     oa-hsw.h \
-    oa-hsw.c
+    oa-hsw.c \
+    oa-bdw.h \
+    oa-bdw.c
 
 oa-hsw.c: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-hsw.c --include="oa-hsw.h" $(srcdir)/oa-hsw.xml
 
 oa-hsw.h: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-hsw.h $(srcdir)/oa-hsw.xml
+
+oa-bdw.c: oa-bdw.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-bdw.c --include="oa-bdw.h" $(srcdir)/oa-bdw.xml
+
+oa-bdw.h: oa-bdw.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-bdw.h $(srcdir)/oa-bdw.xml
