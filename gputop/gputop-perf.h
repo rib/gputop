@@ -26,8 +26,29 @@
 #define _GPUTOP_PERF_H_
 
 #include <stdbool.h>
+
+#ifndef EMSCRIPTEN
 #include <libdrm/i915_drm.h>
 #include <uv.h>
+#else
+
+#define I915_OA_FORMAT_A13_HSW		0
+#define I915_OA_FORMAT_A29_HSW		1
+#define I915_OA_FORMAT_A13_B8_C8_HSW	2
+#define I915_OA_FORMAT_B4_C8_HSW	4
+#define I915_OA_FORMAT_A45_B8_C8_HSW	5
+#define I915_OA_FORMAT_B4_C8_A16_HSW	6
+#define I915_OA_FORMAT_C4_B8_HSW	7
+
+#define I915_OA_METRICS_SET_3D			1
+#define I915_OA_METRICS_SET_COMPUTE		2
+#define I915_OA_METRICS_SET_COMPUTE_EXTENDED	3
+#define I915_OA_METRICS_SET_MEMORY_READS	4
+#define I915_OA_METRICS_SET_MEMORY_WRITES	5
+#define I915_OA_METRICS_SET_SAMPLER_BALANCE	6
+#define I915_OA_METRICS_SET_MAX			I915_OA_METRICS_SET_SAMPLER_BALANCE
+
+#endif
 
 #include "gputop-list.h"
 
@@ -79,6 +100,7 @@ struct gputop_perf_query_counter
 
 #define MAX_RAW_OA_COUNTERS 62
 
+#ifndef EMSCRIPTEN
 struct gputop_perf_stream
 {
     char *name;
@@ -95,6 +117,7 @@ struct gputop_perf_stream
 
     gputop_list_t link;
 };
+#endif
 
 struct gputop_perf_query
 {
@@ -115,7 +138,9 @@ struct gputop_perf_query
 
     uint64_t accumulator[MAX_RAW_OA_COUNTERS];
 
+#ifndef EMSCRIPTEN
     struct gputop_perf_stream stream;
+#endif
 };
 
 extern struct gputop_devinfo gputop_devinfo;
@@ -174,11 +199,13 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 			    const struct gputop_perf_query_counter *counter,
 			    uint64_t *accumulator);
 
+#ifndef EMSCRIPTEN
 bool gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 				    int period_exponent,
 				    size_t perf_buffer_size,
 				    void (*ready_cb)(uv_poll_t *poll, int status, int events),
 				    void *user_data);
 void gputop_perf_close_i915_oa_query(struct gputop_perf_query *query);
+#endif
 
 #endif /* _GPUTOP_PERF_H_ */
