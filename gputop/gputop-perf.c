@@ -177,10 +177,10 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
     gputop_perf_read_samples(query);
 }
 
-static bool
-open_i915_oa_query(struct gputop_perf_query *query,
-                   int period_exponent,
-		   size_t perf_buffer_size)
+bool
+gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
+			       int period_exponent,
+			       size_t perf_buffer_size)
 {
     struct gputop_perf_stream *stream= &query->stream;
     drm_i915_oa_attr_t oa_attr;
@@ -242,8 +242,8 @@ open_i915_oa_query(struct gputop_perf_query *query,
     return true;
 }
 
-static void
-close_i915_oa_query(struct gputop_perf_query *query)
+void
+gputop_perf_close_i915_oa_query(struct gputop_perf_query *query)
 {
     struct gputop_perf_stream *stream = &query->stream;
 
@@ -815,9 +815,9 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 16;
 
-    if (!open_i915_oa_query(gputop_current_perf_query,
-			    period_exponent,
-			    32 * page_size))
+    if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
+					period_exponent,
+					32 * page_size))
     {
 	gputop_current_perf_query = NULL;
 	return false;
@@ -832,7 +832,7 @@ gputop_perf_overview_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    close_i915_oa_query(gputop_current_perf_query);
+    gputop_perf_close_i915_oa_query(gputop_current_perf_query);
 
     gputop_current_perf_query = NULL;
 }
@@ -897,9 +897,9 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 11;
 
-    if (!open_i915_oa_query(gputop_current_perf_query,
-			    period_exponent,
-			    32 * page_size))
+    if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
+					period_exponent,
+					32 * page_size))
     {
 	gputop_current_perf_query = NULL;
 	return false;
@@ -924,7 +924,7 @@ gputop_perf_oa_trace_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    close_i915_oa_query(gputop_current_perf_query);
+    gputop_perf_close_i915_oa_query(gputop_current_perf_query);
 
     gputop_current_perf_query = NULL;
 }

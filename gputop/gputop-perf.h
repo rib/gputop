@@ -215,4 +215,10 @@ void gputop_perf_report_uint64_throughput(struct gputop_perf_query_counter *coun
 							   uint64_t *accumulator),
 					  uint64_t (*max)(struct gputop_devinfo *devinfo));
 
+bool gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
+				    int period_exponent,
+				    size_t perf_buffer_size);
+
+void gputop_perf_close_i915_oa_query(struct gputop_perf_query *query);
+
 #endif /* _GPUTOP_PERF_H_ */
