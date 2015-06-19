@@ -138,10 +138,8 @@ void gputop_perf_accumulate(struct gputop_perf_query *query,
 
 void gputop_perf_read_samples(struct gputop_perf_query *query);
 
-bool gputop_perf_trace_open(gputop_perf_query_type_t query_type);
-void gputop_perf_trace_start(void);
-void gputop_perf_trace_stop(void);
-void gputop_perf_trace_close(void);
+bool gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type);
+void gputop_perf_oa_trace_close(void);
 
 #define MAX_PERF_QUERIES 7
 extern struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];

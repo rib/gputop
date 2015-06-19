@@ -872,7 +872,7 @@ static struct perf_oa_user trace_user = {
 };
 
 bool
-gputop_perf_trace_open(gputop_perf_query_type_t query_type)
+gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
 {
     int period_exponent;
     double duration = 5.0; /* seconds */
@@ -919,7 +919,7 @@ gputop_perf_trace_open(gputop_perf_query_type_t query_type)
 }
 
 void
-gputop_perf_trace_close(void)
+gputop_perf_oa_trace_close(void)
 {
     if (!gputop_current_perf_query)
 	return;

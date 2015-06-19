@@ -461,7 +461,7 @@ get_next_trace_sample(struct gputop_perf_query *query, const uint8_t *current_sa
 }
 
 static void
-perf_trace_redraw(WINDOW *win)
+perf_oa_trace_redraw(WINDOW *win)
 {
     struct gputop_perf_query *query = gputop_current_perf_query;
     int win_width;
@@ -783,13 +783,13 @@ perf_3d_trace_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
-    gputop_perf_trace_open(GPUTOP_PERF_QUERY_3D_BASIC);
+    gputop_perf_oa_trace_open(GPUTOP_PERF_QUERY_3D_BASIC);
 }
 
 static void
 perf_3d_trace_tab_leave(void)
 {
-    gputop_perf_trace_close();
+    gputop_perf_oa_trace_close();
 
     uv_timer_stop(&timer);
 }
@@ -803,7 +803,7 @@ perf_3d_trace_tab_input(int key)
 static void
 perf_3d_trace_tab_redraw(WINDOW *win)
 {
-    perf_trace_redraw(win);
+    perf_oa_trace_redraw(win);
 }
 
 static struct tab tab_3d_trace =
