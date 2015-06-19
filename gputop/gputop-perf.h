@@ -26,6 +26,9 @@
 #define _GPUTOP_PERF_H_
 
 #include <libdrm/i915_drm.h>
+#include <uv.h>
+
+#include "gputop-list.h"
 
 typedef enum {
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
@@ -70,29 +73,48 @@ struct gputop_perf_query_counter
    };
 };
 
-struct gputop_perf_query
-{
-   const char *name;
-   struct gputop_perf_query_counter *counters;
-   int n_counters;
-
-   int perf_oa_metrics_set;
-   int perf_oa_format;
-   int perf_raw_size;
-
-   /* For indexing into the accumulator[] ... */
-   int gpu_time_offset;
-   int gpu_clock_offset;
-   int a_offset;
-   int b_offset;
-   int c_offset;
-};
-
-
 #define MAX_RAW_OA_COUNTERS 62
 
-extern const struct gputop_perf_query *gputop_current_perf_query;
-extern char *gputop_perf_error;
+struct gputop_perf_stream
+{
+    char *name;
+
+    int fd;
+    uv_poll_t fd_poll;
+
+    /* The mmaped circular buffer for collecting samples from perf */
+    struct perf_event_mmap_page *mmap_page;
+    uint8_t *buffer;
+    size_t buffer_size;
+
+    char *error;
+
+    gputop_list_t link;
+};
+
+struct gputop_perf_query
+{
+    const char *name;
+    struct gputop_perf_query_counter *counters;
+    int n_counters;
+
+    int perf_oa_metrics_set;
+    int perf_oa_format;
+    int perf_raw_size;
+
+    /* For indexing into the accumulator[] ... */
+    int gpu_time_offset;
+    int gpu_clock_offset;
+    int a_offset;
+    int b_offset;
+    int c_offset;
+
+    uint64_t accumulator[MAX_RAW_OA_COUNTERS];
+
+    struct gputop_perf_stream stream;
+};
+
+extern struct gputop_perf_query *gputop_current_perf_query;
 
 typedef enum gputop_perf_query_type
 {
@@ -105,17 +127,16 @@ typedef enum gputop_perf_query_type
     GPUTOP_PERF_QUERY_SAMPLER_BALANCE,
 } gputop_perf_query_type_t;
 
+
 bool gputop_perf_overview_open(gputop_perf_query_type_t query_type);
 void gputop_perf_overview_close(void);
 
-void gputop_perf_accumulator_clear(void);
-void gputop_perf_accumulate(const struct gputop_perf_query *query,
+void gputop_perf_accumulator_clear(struct gputop_perf_query *query);
+void gputop_perf_accumulate(struct gputop_perf_query *query,
 			    const uint8_t *report0,
-			    const uint8_t *report1,
-			    uint64_t *accumulator);
+			    const uint8_t *report1);
 
-void gputop_perf_read_samples(void);
-extern uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
+void gputop_perf_read_samples(struct gputop_perf_query *query);
 
 bool gputop_perf_trace_open(gputop_perf_query_type_t query_type);
 void gputop_perf_trace_start(void);

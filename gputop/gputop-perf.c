@@ -55,6 +55,7 @@
 #include "intel_chipset.h"
 
 #include "gputop-util.h"
+#include "gputop-list.h"
 #include "gputop-ui.h"
 #include "gputop-perf.h"
 
@@ -119,7 +120,7 @@ static struct gputop_devinfo devinfo;
 
 /* E.g. for tracing vs rolling view */
 struct perf_oa_user {
-    void (*sample)(uint8_t *start, uint8_t *end);
+    void (*sample)(struct gputop_perf_query *query, uint8_t *start, uint8_t *end);
 };
 
 static struct perf_oa_user *current_user;
@@ -128,29 +129,9 @@ static struct intel_device intel_dev;
 
 static unsigned int page_size;
 static int eu_count;
-static int perf_oa_event_fd = -1;
-
-/* An i915_oa perf event fd gives exclusive access to the OA unit that
- * will report counter snapshots for a specific counter set/profile in a
- * specific layout/format.
- *
- * These are the current profile/format being used...
- */
-static int perf_oa_metrics_set;
-static uint64_t perf_oa_format;
-
-/* The mmaped circular buffer for collecting samples from perf */
-static uint8_t *perf_oa_mmap_base;
-static size_t perf_oa_buffer_size;
-static struct perf_event_mmap_page *perf_oa_mmap_page;
-
-
-static uv_poll_t perf_oa_event_fd_poll;
 
 struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
-char *gputop_perf_error = NULL;
-const struct gputop_perf_query *gputop_current_perf_query;
-uint64_t gputop_perf_accumulator[MAX_RAW_OA_COUNTERS];
+struct gputop_perf_query *gputop_current_perf_query;
 
 /******************************************************************************/
 
@@ -188,15 +169,24 @@ perf_event_open (struct perf_event_attr *hw_event,
     return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
-static bool
-open_i915_oa_event(int metrics_set,
-                   int report_format,
-                   int period_exponent)
+static void
+perf_ready_cb(uv_poll_t *poll, int status, int events)
 {
+    struct gputop_perf_query *query = poll->data;
+
+    gputop_perf_read_samples(query);
+}
+
+static bool
+open_i915_oa_query(struct gputop_perf_query *query,
+                   int period_exponent,
+		   size_t perf_buffer_size)
+{
+    struct gputop_perf_stream *stream= &query->stream;
     drm_i915_oa_attr_t oa_attr;
     struct perf_event_attr attr;
     int event_fd;
-    void *mmap_base;
+    uint8_t *mmap_base;
 
     memset(&attr, 0, sizeof(attr));
     attr.size = sizeof(attr);
@@ -206,13 +196,13 @@ open_i915_oa_event(int metrics_set,
     attr.sample_period = 1;
 
     attr.watermark = true;
-    attr.wakeup_watermark = perf_oa_buffer_size / 4;
+    attr.wakeup_watermark = perf_buffer_size / 4;
 
     memset(&oa_attr, 0, sizeof(oa_attr));
     oa_attr.size = sizeof(oa_attr);
 
-    oa_attr.format = report_format;
-    oa_attr.metrics_set = metrics_set;
+    oa_attr.format = query->perf_oa_format;
+    oa_attr.metrics_set = query->perf_oa_metrics_set;
     oa_attr.timer_exponent = period_exponent;
 
     attr.config = (uint64_t)&oa_attr;
@@ -223,29 +213,53 @@ open_i915_oa_event(int metrics_set,
 			       -1, /* group fd */
 			       PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-	asprintf(&gputop_perf_error, "Error opening i915_oa perf event: %m\n");
+	asprintf(&stream->error, "Error opening i915_oa perf event: %m\n");
 	return false;
     }
 
     /* NB: A read-write mapping ensures the kernel will stop writing data when
      * the buffer is full, and will report samples as lost. */
     mmap_base = mmap(NULL,
-		     perf_oa_buffer_size + page_size,
+		     perf_buffer_size + page_size,
 		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-	asprintf(&gputop_perf_error, "Error mapping circular buffer, %m\n");
+	asprintf(&stream->error, "Error mapping circular buffer, %m\n");
 	close (event_fd);
 	return false;
     }
 
-    perf_oa_event_fd = event_fd;
-    perf_oa_mmap_base = mmap_base;
-    perf_oa_mmap_page = mmap_base;
+    stream->fd = event_fd;
+    stream->buffer = mmap_base + page_size;
+    stream->buffer_size = perf_buffer_size;
+    stream->mmap_page = (void *)mmap_base;
 
-    perf_oa_metrics_set = metrics_set;
-    perf_oa_format = report_format;
+    stream->fd_poll.data = query;
+    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+    uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
+
+    gputop_list_init(&stream->link);
 
     return true;
+}
+
+static void
+close_i915_oa_query(struct gputop_perf_query *query)
+{
+    struct gputop_perf_stream *stream = &query->stream;
+
+    if (stream->fd > 0) {
+	uv_poll_stop(&stream->fd_poll);
+
+	if (stream->mmap_page) {
+	    munmap(stream->mmap_page, stream->buffer_size + page_size);
+	    stream->mmap_page = NULL;
+	    stream->buffer = NULL;
+	    stream->buffer_size = 0;
+	}
+
+	close(stream->fd);
+	stream->fd = -1;
+    }
 }
 
 static void
@@ -316,21 +330,22 @@ write_perf_tail(struct perf_event_mmap_page *mmap_page,
 }
 
 void
-gputop_perf_read_samples(void)
+gputop_perf_read_samples(struct gputop_perf_query *query)
 {
-    uint8_t *data = perf_oa_mmap_base + page_size;
-    const uint64_t mask = perf_oa_buffer_size - 1;
+    struct gputop_perf_stream *stream = &query->stream;
+    uint8_t *data = stream->buffer;
+    const uint64_t mask = stream->buffer_size - 1;
     uint64_t head;
     uint64_t tail;
     uint8_t *last = NULL;
     uint64_t last_tail;
     uint8_t scratch[MAX_OA_PERF_SAMPLE_SIZE];
 
-    if (fsync(perf_oa_event_fd) < 0)
+    if (fsync(stream->fd) < 0)
 	dbg("Failed to flush i915_oa perf samples");
 
-    head = read_perf_head(perf_oa_mmap_page);
-    tail = last_tail = perf_oa_mmap_page->data_tail;
+    head = read_perf_head(stream->mmap_page);
+    tail = last_tail = stream->mmap_page->data_tail;
 
     /* FIXME: since we only really care about the most recent sample
      * we should first figure out how many samples we have between
@@ -339,7 +354,7 @@ gputop_perf_read_samples(void)
     //fprintf(stderr, "Handle event mask = 0x%" PRIx64
     //        " head=%" PRIu64 " tail=%" PRIu64 "\n", mask, head, tail);
 
-    while (TAKEN(head, tail, perf_oa_buffer_size)) {
+    while (TAKEN(head, tail, stream->buffer_size)) {
 	const struct perf_event_header *header =
 	    (const struct perf_event_header *)(data + (tail & mask));
 
@@ -358,7 +373,7 @@ gputop_perf_read_samples(void)
 	//fprintf(stderr, "header = %p tail=%" PRIu64 " size=%d\n",
 	//        header, tail, header->size);
 
-	if ((const uint8_t *)header + header->size > data + perf_oa_buffer_size) {
+	if ((const uint8_t *)header + header->size > data + stream->buffer_size) {
 	    int before;
 
 	    if (header->size > MAX_OA_PERF_SAMPLE_SIZE) {
@@ -367,7 +382,7 @@ gputop_perf_read_samples(void)
 		continue;
 	    }
 
-	    before = data + perf_oa_buffer_size - (const uint8_t *)header;
+	    before = data + stream->buffer_size - (const uint8_t *)header;
 
 	    memcpy(scratch, header, before);
 	    memcpy(scratch + before, data, header->size - before);
@@ -418,7 +433,7 @@ gputop_perf_read_samples(void)
 	    uint8_t *report = (uint8_t *)perf_sample->raw_data;
 
 	    if (last)
-		current_user->sample(last, report);
+		current_user->sample(query, last, report);
 
 	    last = report;
 	    last_tail = tail;
@@ -438,7 +453,7 @@ gputop_perf_read_samples(void)
      * slim chance we might parse some _LOST, _THROTTLE and
      * _UNTHROTTLE records twice, but currently they are benign
      * anyway. */
-    write_perf_tail(perf_oa_mmap_page, last_tail);
+    write_perf_tail(stream->mmap_page, last_tail);
 }
 
 /******************************************************************************/
@@ -654,14 +669,13 @@ initialize(void)
 {
     int drm_fd = open_render_node(&intel_dev);
     if (drm_fd < 0) {
-	gputop_perf_error = strdup("Failed to open render node");
+	gputop_ui_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
 	return false;
     }
 
     /* NB: eu_count needs to be initialized before declaring counters */
     init_dev_info(drm_fd, intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
-    perf_oa_buffer_size = 32 * page_size;
 
     close(drm_fd);
 
@@ -678,12 +692,6 @@ initialize(void)
 	assert(0);
 
     return true;
-}
-
-static void
-perf_ready_cb(uv_poll_t *poll, int status, int events)
-{
-    gputop_perf_read_samples();
 }
 
 static void
@@ -717,14 +725,14 @@ accumulate_uint40(int a_index,
 }
 
 void
-gputop_perf_accumulate(const struct gputop_perf_query *query,
+gputop_perf_accumulate(struct gputop_perf_query *query,
 		       const uint8_t *report0,
-		       const uint8_t *report1,
-		       uint64_t *accumulator)
+		       const uint8_t *report1)
 {
-   int i;
+   uint64_t *accumulator = query->accumulator;
    const uint32_t *start = (const uint32_t *)report0;
    const uint32_t *end = (const uint32_t *)report1;
+   int i;
 
    if (IS_BROADWELL(intel_dev.device) &&
        query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
@@ -762,16 +770,15 @@ gputop_perf_accumulate(const struct gputop_perf_query *query,
  * counter to update the results.
  */
 static void
-overview_sample_cb(uint8_t *start, uint8_t *end)
+overview_sample_cb(struct gputop_perf_query *query, uint8_t *start, uint8_t *end)
 {
-    gputop_perf_accumulate(gputop_current_perf_query, start, end,
-			   gputop_perf_accumulator);
+    gputop_perf_accumulate(query, start, end);
 }
 
 void
-gputop_perf_accumulator_clear(void)
+gputop_perf_accumulator_clear(struct gputop_perf_query *query)
 {
-    memset(gputop_perf_accumulator, 0, sizeof(gputop_perf_accumulator));
+    memset(query->accumulator, 0, sizeof(query->accumulator));
 }
 
 static struct perf_oa_user overview_user = {
@@ -783,10 +790,7 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 {
     int period_exponent;
 
-    assert(perf_oa_event_fd < 0);
-
-    if (gputop_perf_error)
-	free(gputop_perf_error);
+    assert(gputop_current_perf_query == NULL);
 
     if (!devinfo.n_eus && !initialize())
 	return false;
@@ -795,7 +799,7 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 
     gputop_current_perf_query = &perf_queries[query_type];
 
-    gputop_perf_accumulator_clear();
+    gputop_perf_accumulator_clear(gputop_current_perf_query);
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -811,15 +815,13 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 16;
 
-    if (!open_i915_oa_event(gputop_current_perf_query->perf_oa_metrics_set,
-			    gputop_current_perf_query->perf_oa_format,
-			    period_exponent))
+    if (!open_i915_oa_query(gputop_current_perf_query,
+			    period_exponent,
+			    32 * page_size))
     {
+	gputop_current_perf_query = NULL;
 	return false;
     }
-
-    uv_poll_init(gputop_ui_loop, &perf_oa_event_fd_poll, perf_oa_event_fd);
-    uv_poll_start(&perf_oa_event_fd_poll, UV_READABLE, perf_ready_cb);
 
     return true;
 }
@@ -830,17 +832,7 @@ gputop_perf_overview_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    if (perf_oa_event_fd > 0) {
-	uv_poll_stop(&perf_oa_event_fd_poll);
-
-	if (perf_oa_mmap_base) {
-	    munmap(perf_oa_mmap_base, perf_oa_buffer_size + page_size);
-	    perf_oa_mmap_base = NULL;
-	}
-
-	close(perf_oa_event_fd);
-	perf_oa_event_fd = -1;
-    }
+    close_i915_oa_query(gputop_current_perf_query);
 
     gputop_current_perf_query = NULL;
 }
@@ -853,9 +845,9 @@ uint8_t *gputop_perf_trace_head;
 int gputop_perf_n_samples = 0;
 
 static void
-trace_sample_cb(uint8_t *start, uint8_t *end)
+trace_sample_cb(struct gputop_perf_query *query, uint8_t *start, uint8_t *end)
 {
-    int sample_size = gputop_current_perf_query->perf_raw_size;
+    int sample_size = query->perf_raw_size;
 
     if (gputop_perf_trace_empty) {
 	memcpy(gputop_perf_trace_head, start, sample_size);
@@ -887,10 +879,7 @@ gputop_perf_trace_open(gputop_perf_query_type_t query_type)
     uint64_t period_ns;
     uint64_t n_samples;
 
-    assert(perf_oa_event_fd < 0);
-
-    if (gputop_perf_error)
-	free(gputop_perf_error);
+    assert(gputop_current_perf_query == NULL);
 
     if (!eu_count && !initialize())
 	return false;
@@ -908,10 +897,11 @@ gputop_perf_trace_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 11;
 
-    if (!open_i915_oa_event(gputop_current_perf_query->perf_oa_metrics_set,
-			    gputop_current_perf_query->perf_oa_format,
-			    period_exponent))
+    if (!open_i915_oa_query(gputop_current_perf_query,
+			    period_exponent,
+			    32 * page_size))
     {
+	gputop_current_perf_query = NULL;
 	return false;
     }
 
@@ -925,9 +915,6 @@ gputop_perf_trace_open(gputop_perf_query_type_t query_type)
     gputop_perf_trace_empty = true;
     gputop_perf_trace_full = false;
 
-    uv_poll_init(gputop_ui_loop, &perf_oa_event_fd_poll, perf_oa_event_fd);
-    uv_poll_start(&perf_oa_event_fd_poll, UV_READABLE, perf_ready_cb);
-
     return true;
 }
 
@@ -937,17 +924,7 @@ gputop_perf_trace_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    if (perf_oa_event_fd > 0) {
-	uv_poll_stop(&perf_oa_event_fd_poll);
-
-	if (perf_oa_mmap_base) {
-	    munmap(perf_oa_mmap_base, perf_oa_buffer_size + page_size);
-	    perf_oa_mmap_base = NULL;
-	}
-
-	close(perf_oa_event_fd);
-	perf_oa_event_fd = -1;
-    }
+    close_i915_oa_query(gputop_current_perf_query);
 
     gputop_current_perf_query = NULL;
 }
