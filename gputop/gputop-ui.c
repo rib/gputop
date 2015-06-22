@@ -281,7 +281,8 @@ perf_counters_redraw(WINDOW *win)
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
-	    if (counter->max == 100)
+	    if (counter->max &&
+		counter->max(&gputop_devinfo, query, query->accumulator) == 100)
 		print_percentage_oa_counter(win, y, 41, query, counter);
 	    else
 		print_raw_oa_counter(win, y, 41, query, counter);
@@ -295,7 +296,8 @@ perf_counters_redraw(WINDOW *win)
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_RAW:
 	    mvwprintw(win, y, 0, "%40s: ", counter->name);
-	    if (counter->max == 100)
+	    if (counter->max &&
+		counter->max(&gputop_devinfo, query, query->accumulator) == 100)
 		print_percentage_oa_counter(win, y, 41, query, counter);
 	    else
 		print_raw_oa_counter(win, y, 41, query, counter);
@@ -423,18 +425,22 @@ print_trace_counter_spark(WINDOW *win, struct gputop_perf_query *query, int x)
 	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
-	    if (counter->max == 100)
+	    if (counter->max &&
+		counter->max(&gputop_devinfo, query, query->accumulator) == 100)
+	    {
 		trace_print_percentage_oa_counter(win, x, y, query, counter);
-	    else
+	    } else
 		trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
 	    trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_RAW:
-	    if (counter->max == 100)
+	    if (counter->max &&
+		counter->max(&gputop_devinfo, query, query->accumulator) == 100)
+	    {
 		trace_print_percentage_oa_counter(win, x, y, query, counter);
-	    else
+	    } else
 		trace_print_raw_oa_counter(win, x, y, query, counter);
 	    break;
 	case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:

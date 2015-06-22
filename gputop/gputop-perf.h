@@ -63,7 +63,9 @@ struct gputop_perf_query_counter
    const char *desc;
    gputop_counter_type_t type;
    gputop_counter_data_type_t data_type;
-   uint64_t max;
+   uint64_t (*max)(struct gputop_devinfo *devinfo,
+		   const struct gputop_perf_query *query,
+		   uint64_t *accumulator);
 
    union {
       uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,

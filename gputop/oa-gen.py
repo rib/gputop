@@ -135,6 +135,7 @@ ops["USUB"] = (2, emit_usub)
 hw_vars = {}
 hw_vars["$EuCoresTotalCount"] = "devinfo->n_eus"
 hw_vars["$EuSlicesTotalCount"] = "devinfo->n_eu_slices"
+hw_vars["$EuSubslicesTotalCount"] = "devinfo->n_eu_sub_slices"
 hw_vars["$SamplersTotalCount"] = "devinfo->n_samplers"
 
 counter_vars = {}
@@ -184,7 +185,7 @@ def output_counter_read(set, counter, counter_vars):
         ret_type = "uint64_t"
 
     c("static " + ret_type)
-    read_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "_read"
+    read_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__read"
     c(read_sym + "(struct gputop_devinfo *devinfo,\n")
     c_indent(len(read_sym) + 1)
     c("const struct gputop_perf_query *query,\n")
@@ -206,15 +207,10 @@ def output_counter_max(set, counter, counter_vars):
     max_eq = counter.get('max_equation')
 
     if not max_eq:
-        return "NULL /* undefined max */"
+        return "NULL; /* undefined */"
 
     if max_eq == "100":
-        return "percentage_max_callback"
-
-    # We can only report constant maximum values via INTEL_performance_query
-    for token in max_eq.split():
-        if token[0] == '$' and token not in hw_vars:
-            return "NULL /* unsupported (variable) max */"
+        return "percentage_max_callback;"
 
     c("\n")
     c("/* " + set.get('name') + " :: " + counter.get('name') + " */")
@@ -223,10 +219,10 @@ def output_counter_max(set, counter, counter_vars):
         ret_type = "uint64_t"
 
     c("static " + ret_type)
-    max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "_max"
+    max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__max"
     c(max_sym + "(struct gputop_devinfo *devinfo,\n")
     c_indent(len(max_sym) + 1)
-    c("struct gputop_perf_query *query,\n")
+    c("const struct gputop_perf_query *query,\n")
     c("uint64_t *accumulator)\n")
     c_outdent(len(max_sym) + 1)
 
@@ -238,19 +234,36 @@ def output_counter_max(set, counter, counter_vars):
     c_outdent(3)
     c("}")
 
-    return max_sym
+    return max_sym + ";"
+
+
+semantic_type_map = {
+    "duration": "raw",
+    "ratio": "event"
+    }
 
 def output_counter_report(set, counter):
-    semantic_type = counter.get('semantic_type')
-    report_sym = "gputop_perf_report_" + counter.get('data_type') + "_" + semantic_type
+    data_type = counter.get('data_type')
+    data_type_uc = data_type.upper()
+    c_type = data_type
 
-    c(report_sym + "(&query->counters[query->n_counters++],\n")
-    c_indent(len(report_sym) + 1)
-    c("\"" + counter.get('name') + "\",\n")
-    c("\"" + counter.get('description') + "\",\n")
-    c(read_funcs[counter.get('symbol_name')] + ",\n")
-    c(max_funcs[counter.get('symbol_name')] + ");\n")
-    c_outdent(len(report_sym) + 1)
+    if "uint" in c_type:
+        c_type = c_type + "_t"
+
+    semantic_type = counter.get('semantic_type')
+    if semantic_type in semantic_type_map:
+        semantic_type = semantic_type_map[semantic_type]
+
+    semantic_type_uc = semantic_type.upper()
+
+    c("\ncounter = &query->counters[query->n_counters++];\n")
+    c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
+    c("counter->name = \"" + counter.get('name') + "\";\n")
+    c("counter->desc = \"" + counter.get('description') + "\";\n")
+    c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
+    c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
+    c("counter->max = " + max_funcs[counter.get('symbol_name')] + "\n")
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("xml", help="XML description of metrics")
@@ -323,7 +336,9 @@ c(
 #define MAX(a, b) ((a > b) ? (a) : (b))
 
 static uint64_t
-percentage_max_callback(struct gputop_devinfo *devinfo)
+percentage_max_callback(struct gputop_devinfo *devinfo,
+                        const struct gputop_perf_query *query,
+                        uint64_t *accumulator)
 {
    return 100;
 }
@@ -340,7 +355,7 @@ for set in tree.findall(".//set"):
     for counter in counters:
         empty_vars = {}
         read_funcs[counter.get('symbol_name')] = output_counter_read(set, counter, counter_vars)
-        max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, empty_vars)
+        max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
         counter_vars["$" + counter.get('symbol_name')] = counter
 
     h("void gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(void);\n")
@@ -351,10 +366,12 @@ for set in tree.findall(".//set"):
     c_indent(3)
 
     perf_suffix = symbol_to_perf_map[set.get('symbol_name')]
-    c("struct gputop_perf_query *query = &perf_queries[I915_OA_METRICS_SET_" + perf_suffix + "];")
 
+    c("struct gputop_perf_query *query;\n")
+    c("struct gputop_perf_query_counter *counter;\n\n")
+
+    c("query = &perf_queries[I915_OA_METRICS_SET_" + perf_suffix + "];\n")
     c("query->name = \"" + set.get('name') + "\";\n")
-
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")
     c("query->perf_oa_metrics_set = I915_OA_METRICS_SET_" + perf_suffix + ";\n")
