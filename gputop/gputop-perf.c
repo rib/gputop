@@ -180,7 +180,9 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
 bool
 gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
-			       size_t perf_buffer_size)
+			       size_t perf_buffer_size,
+			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+			       void *user_data)
 {
     struct gputop_perf_stream *stream= &query->stream;
     drm_i915_oa_attr_t oa_attr;
@@ -233,9 +235,9 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
     stream->buffer_size = perf_buffer_size;
     stream->mmap_page = (void *)mmap_base;
 
-    stream->fd_poll.data = query;
+    stream->fd_poll.data = user_data;
     uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
-    uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
+    uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
 
     gputop_list_init(&stream->link);
 
@@ -820,7 +822,9 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 
     if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
 					period_exponent,
-					32 * page_size))
+					32 * page_size,
+					perf_ready_cb,
+					gputop_current_perf_query))
     {
 	gputop_current_perf_query = NULL;
 	return false;
@@ -902,7 +906,9 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
 
     if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
 					period_exponent,
-					32 * page_size))
+					32 * page_size,
+					perf_ready_cb,
+					gputop_current_perf_query))
     {
 	gputop_current_perf_query = NULL;
 	return false;
