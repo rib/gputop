@@ -80,7 +80,8 @@ static uv_poll_t input_poll;
 static uv_idle_t redraw_idle;
 
 static struct tab *current_tab;
-static bool debug_disable_ncurses = 0;
+static bool debug_disable_ncurses = false;
+static bool web_ui = false;
 
 static int y_pos;
 static double zoom = 1;
@@ -1393,9 +1394,6 @@ init_ncurses(FILE *infile, FILE *outfile)
     SCREEN *screen;
     char *current_locale;
 
-    if (debug_disable_ncurses)
-	return;
-
     /* We assume we have a utf8 locale when writing unicode characters
      * to the terminal via ncurses...
      */
@@ -1492,11 +1490,15 @@ gputop_ui_run(void *arg)
 
     atexit(atexit_cb);
 
-    uv_idle_init(gputop_ui_loop, &redraw_idle);
+    if (web_ui) {
+	gputop_server_run();
 
-    current_tab->enter();
+    } else {
+	uv_idle_init(gputop_ui_loop, &redraw_idle);
 
-    gputop_server_run();
+	current_tab = &tab_3d;
+	current_tab->enter();
+    }
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
@@ -1518,7 +1520,6 @@ gputop_ui_init(void)
     gputop_list_insert(tabs.prev, &tab_sampler_balance.link);
     gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
-    current_tab = &tab_3d;
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
