@@ -268,14 +268,17 @@ init_dev_info(int drm_fd, uint32_t devid)
     if (IS_HSW_GT1(devid)) {
 	devinfo.n_eus = 10;
 	devinfo.n_eu_slices = 1;
+	devinfo.n_eu_sub_slices = 1;
 	devinfo.n_samplers = 1;
     } else if (IS_HSW_GT2(devid)) {
 	devinfo.n_eus = 20;
 	devinfo.n_eu_slices = 1;
+	devinfo.n_eu_sub_slices = 2;
 	devinfo.n_samplers = 2;
     } else if (IS_HSW_GT3(devid)) {
 	devinfo.n_eus = 40;
 	devinfo.n_eu_slices = 2;
+	devinfo.n_eu_sub_slices = 4;
 	devinfo.n_samplers = 4;
     } else {
 #ifdef I915_PARAM_EU_TOTAL
