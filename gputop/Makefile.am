@@ -29,6 +29,8 @@ libgputop_la_SOURCES = \
     oa-bdw.c \
     gputop-perf.h \
     gputop-perf.c \
+    gputop.pb-c.h \
+    gputop.pb-c.c \
     gputop-util.h \
     gputop-list.h \
     gputop-list.c \
@@ -78,7 +80,9 @@ BUILT_SOURCES = \
     oa-hsw.h \
     oa-hsw.c \
     oa-bdw.h \
-    oa-bdw.c
+    oa-bdw.c \
+    gputop.pb-c.h \
+    gputop.pb-c.c
 
 oa-hsw.c: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-hsw.c --include="oa-hsw.h" $(srcdir)/oa-hsw.xml
@@ -91,3 +95,8 @@ oa-bdw.c: oa-bdw.xml oa-gen.py
 
 oa-bdw.h: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-bdw.h $(srcdir)/oa-bdw.xml
+
+%.pb-c.c %.pb-c.h: %.proto
+	protoc-c --c_out=$(top_builddir)/gputop $(srcdir)/$(*).proto
+
+EXTRA_DIST = gputop.proto
