@@ -25,6 +25,7 @@
 #ifndef _GPUTOP_PERF_H_
 #define _GPUTOP_PERF_H_
 
+#include <stdbool.h>
 #include <libdrm/i915_drm.h>
 #include <uv.h>
 
