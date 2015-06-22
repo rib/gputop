@@ -28,6 +28,7 @@
 #ifndef _INTEL_CHIPSET_H
 #define _INTEL_CHIPSET_H
 
+#ifndef EMSCRIPTEN
 #include <pciaccess.h>
 
 struct pci_device *intel_get_pci_device(void);
@@ -35,6 +36,7 @@ uint32_t intel_get_drm_devid(int fd);
 int intel_gen(uint32_t devid);
 
 extern enum pch_type intel_pch;
+#endif
 
 enum pch_type {
 	PCH_NONE,
