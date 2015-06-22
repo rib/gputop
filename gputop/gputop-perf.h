@@ -116,6 +116,7 @@ struct gputop_perf_query
     struct gputop_perf_stream stream;
 };
 
+extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
 
 typedef enum gputop_perf_query_type

@@ -116,7 +116,7 @@ struct intel_device {
     uint32_t subsystem_vendor;
 };
 
-static struct gputop_devinfo devinfo;
+struct gputop_devinfo gputop_devinfo;
 
 /* E.g. for tracing vs rolling view */
 struct perf_oa_user {
@@ -267,20 +267,20 @@ static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
     if (IS_HSW_GT1(devid)) {
-	devinfo.n_eus = 10;
-	devinfo.n_eu_slices = 1;
-	devinfo.n_eu_sub_slices = 1;
-	devinfo.n_samplers = 1;
+	gputop_devinfo.n_eus = 10;
+	gputop_devinfo.n_eu_slices = 1;
+	gputop_devinfo.n_eu_sub_slices = 1;
+	gputop_devinfo.n_samplers = 1;
     } else if (IS_HSW_GT2(devid)) {
-	devinfo.n_eus = 20;
-	devinfo.n_eu_slices = 1;
-	devinfo.n_eu_sub_slices = 2;
-	devinfo.n_samplers = 2;
+	gputop_devinfo.n_eus = 20;
+	gputop_devinfo.n_eu_slices = 1;
+	gputop_devinfo.n_eu_sub_slices = 2;
+	gputop_devinfo.n_samplers = 2;
     } else if (IS_HSW_GT3(devid)) {
-	devinfo.n_eus = 40;
-	devinfo.n_eu_slices = 2;
-	devinfo.n_eu_sub_slices = 4;
-	devinfo.n_samplers = 4;
+	gputop_devinfo.n_eus = 40;
+	gputop_devinfo.n_eu_slices = 2;
+	gputop_devinfo.n_eu_sub_slices = 4;
+	gputop_devinfo.n_samplers = 4;
     } else {
 #ifdef I915_PARAM_EU_TOTAL
 	drm_i915_getparam_t gp;
@@ -292,9 +292,9 @@ init_dev_info(int drm_fd, uint32_t devid)
 	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	assert(ret == 0 && n_eus> 0);
 
-	devinfo.n_eus = n_eus;
+	gputop_devinfo.n_eus = n_eus;
 
-#warning "XXX: BDW: initialize devinfo.n_eu_slices + n_samplers - though not currently needed"
+#warning "XXX: BDW: initialize gputop_devinfo.n_eu_slices + n_samplers - though not currently needed"
 
 #else
 	assert(0);
@@ -467,7 +467,7 @@ read_uint64_oa_counter(const struct gputop_perf_query *query,
 		       const struct gputop_perf_query_counter *counter,
 		       uint64_t *accumulator)
 {
-    return counter->oa_counter_read_uint64(&devinfo, query, accumulator);
+    return counter->oa_counter_read_uint64(&gputop_devinfo, query, accumulator);
 }
 
 uint32_t
@@ -476,7 +476,7 @@ read_uint32_oa_counter(const struct gputop_perf_query *query,
 		       uint64_t *accumulator)
 {
     assert(0);
-    //return counter->oa_counter_read_uint32(&devinfo, query, accumulator);
+    //return counter->oa_counter_read_uint32(&gputop_devinfo, query, accumulator);
 }
 
 bool
@@ -485,7 +485,7 @@ read_bool_oa_counter(const struct gputop_perf_query *query,
 		     uint64_t *accumulator)
 {
     assert(0);
-    //return counter->oa_counter_read_bool(&devinfo, query, accumulator);
+    //return counter->oa_counter_read_bool(&gputop_devinfo, query, accumulator);
 }
 
 double
@@ -494,7 +494,7 @@ read_double_oa_counter(const struct gputop_perf_query *query,
 		       uint64_t *accumulator)
 {
     assert(0);
-    //return counter->oa_counter_read_double(&devinfo, query, accumulator);
+    //return counter->oa_counter_read_double(&gputop_devinfo, query, accumulator);
 }
 
 float
@@ -502,7 +502,7 @@ read_float_oa_counter(const struct gputop_perf_query *query,
 		      const struct gputop_perf_query_counter *counter,
 		      uint64_t *accumulator)
 {
-    return counter->oa_counter_read_float(&devinfo, query, accumulator);
+    return counter->oa_counter_read_float(&gputop_devinfo, query, accumulator);
 }
 
 uint64_t
