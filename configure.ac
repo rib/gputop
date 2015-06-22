@@ -130,7 +130,7 @@ AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
 
-PKG_CHECK_MODULES(GPUTOP_DEP, [libuv >= 1.0.0 libdrm libdrm_intel])
+PKG_CHECK_MODULES(GPUTOP_DEP, [libuv >= 1.0.0 libdrm libdrm_intel libprotobuf-c])
 
 dnl gputop-system is a dummy "test application" that needs to be
 dnl linked against GL...
