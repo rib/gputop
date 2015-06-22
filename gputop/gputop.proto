@@ -1,0 +1,113 @@
+package gputop;
+
+message DevInfo
+{
+    required uint32 devid = 1;
+    required uint32 n_eus = 2;
+    required uint32 n_eu_slices = 3;
+    required uint32 n_eu_sub_slices = 4;
+    required uint32 n_samplers = 5;
+}
+
+enum GLCounterType
+{
+    RAW = 1;
+    DURATION_RAW = 2;
+    DURATION_NORM = 3;
+    EVENT = 4;
+    THROUGHPUT = 5;
+    TIMESTAMP = 6;
+}
+
+enum GLCounterDataType
+{
+    UINT64 = 1;
+    UINT32 = 2;
+    DOUBLE = 3;
+    FLOAT = 4;
+    BOOL32 = 5;
+}
+
+message GLCounter
+{
+    required string name = 1;
+    required string description = 2;
+    required GLCounterType type = 3;
+    required GLCounterDataType data_type = 4;
+    required uint64 maximum = 5;
+}
+
+message GLQueryInfo
+{
+    required uint32 id = 1;
+    required string name = 2;
+    repeated GLCounter counters = 3;
+}
+
+message Features
+{
+    required DevInfo devinfo = 1;
+    required bool has_gl_performance_query = 2; /* implies single context view */
+    required bool has_i915_oa = 3;
+    repeated GLQueryInfo gl_queries = 4;
+    /* NB: Available OA queries are inferred from devinfo */
+}
+
+message LogEntry
+{
+  required uint32 log_level = 1;
+  required string log_message = 2;
+  //optional uint64 timestamp = 3;
+}
+
+message Log
+{
+  repeated LogEntry entries = 1;
+}
+
+message CloseNotify
+{
+    required uint32 id=1;
+}
+
+/*
+ * To Browser
+ */
+message Message
+{
+    oneof cmd {
+	Features features = 1;
+	Log log = 2;
+	CloseNotify close_notify = 3;
+    }
+}
+
+message OAQueryInfo
+{
+    required uint32 metric_set = 1;
+    //required uint32 format = 2;
+    required uint32 period_exponent = 3;
+    required bool overwrite = 4;
+}
+
+message OpenQuery
+{
+    required uint32 id = 1;
+
+    oneof type {
+	uint32 gl_query = 2;
+	OAQueryInfo oa_query = 3;
+    }
+}
+
+/*
+ * From Browser
+ */
+message Request
+{
+    oneof req {
+	bool get_features = 1;
+	OpenQuery open_query = 2;
+	uint32 close_query = 3;
+    }
+}
