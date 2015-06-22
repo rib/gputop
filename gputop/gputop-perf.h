@@ -130,6 +130,8 @@ typedef enum gputop_perf_query_type
 } gputop_perf_query_type_t;
 
 
+bool gputop_perf_initialize(void);
+
 bool gputop_perf_overview_open(gputop_perf_query_type_t query_type);
 void gputop_perf_overview_close(void);
 

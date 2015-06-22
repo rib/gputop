@@ -669,10 +669,15 @@ open_render_node(struct intel_device *dev)
     return fd;
 }
 
-static bool
-initialize(void)
+bool
+gputop_perf_initialize(void)
 {
-    int drm_fd = open_render_node(&intel_dev);
+    int drm_fd;
+
+    if (intel_dev.device)
+	return true;
+
+    drm_fd = open_render_node(&intel_dev);
     if (drm_fd < 0) {
 	gputop_ui_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
 	return false;
@@ -797,7 +802,7 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 
     assert(gputop_current_perf_query == NULL);
 
-    if (!devinfo.n_eus && !initialize())
+    if (!gputop_perf_initialize())
 	return false;
 
     current_user = &overview_user;
@@ -888,7 +893,7 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
 
     assert(gputop_current_perf_query == NULL);
 
-    if (!eu_count && !initialize())
+    if (!gputop_perf_initialize())
 	return false;
 
     current_user = &trace_user;
