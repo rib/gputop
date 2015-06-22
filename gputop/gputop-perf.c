@@ -128,7 +128,6 @@ static struct perf_oa_user *current_user;
 static struct intel_device intel_dev;
 
 static unsigned int page_size;
-static int eu_count;
 
 struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
 struct gputop_perf_query *gputop_current_perf_query;
