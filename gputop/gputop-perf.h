@@ -174,54 +174,6 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 			    const struct gputop_perf_query_counter *counter,
 			    uint64_t *accumulator);
 
-void gputop_perf_report_uint64_raw(struct gputop_perf_query_counter *counter,
-				   const char *name,
-				   const char *desc,
-				   uint64_t (*read)(struct gputop_devinfo *devinfo,
-						    const struct gputop_perf_query *query,
-						    uint64_t *accumulator),
-				   uint64_t (*max)(struct gputop_devinfo *devinfo));
-
-void gputop_perf_report_float_ratio(struct gputop_perf_query_counter *counter,
-				    const char *name,
-				    const char *desc,
-				    float (*read)(struct gputop_devinfo *devinfo,
-						  const struct gputop_perf_query *query,
-						  uint64_t *accumulator),
-				    uint64_t (*max)(struct gputop_devinfo *devinfo));
-
-void gputop_perf_report_uint64_event(struct gputop_perf_query_counter *counter,
-				     const char *name,
-				     const char *desc,
-				     uint64_t (*read)(struct gputop_devinfo *devinfo,
-						      const struct gputop_perf_query *query,
-						      uint64_t *accumulator),
-				     uint64_t (*max)(struct gputop_devinfo *devinfo));
-
-void gputop_perf_report_float_duration(struct gputop_perf_query_counter *counter,
-				       const char *name,
-				       const char *desc,
-				       float (*read)(struct gputop_devinfo *devinfo,
-						     const struct gputop_perf_query *query,
-						     uint64_t *accumulator),
-				       uint64_t (*max)(struct gputop_devinfo *devinfo));
-
-void gputop_perf_report_uint64_duration(struct gputop_perf_query_counter *counter,
-					const char *name,
-					const char *desc,
-					uint64_t (*read)(struct gputop_devinfo *devinfo,
-							 const struct gputop_perf_query *query,
-							 uint64_t *accumulator),
-					uint64_t (*max)(struct gputop_devinfo *devinfo));
-
-void gputop_perf_report_uint64_throughput(struct gputop_perf_query_counter *counter,
-					  const char *name,
-					  const char *desc,
-					  uint64_t (*read)(struct gputop_devinfo *devinfo,
-							   const struct gputop_perf_query *query,
-							   uint64_t *accumulator),
-					  uint64_t (*max)(struct gputop_devinfo *devinfo));
-
 bool gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 				    int period_exponent,
 				    size_t perf_buffer_size,
