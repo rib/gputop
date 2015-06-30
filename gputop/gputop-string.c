@@ -28,7 +28,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef EMSCRIPTEN
 #include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdarg.h>
