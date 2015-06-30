@@ -14,7 +14,7 @@ var buffer = 0, bufferSize = 0;
 ws.onmessage = function (e) {
     var data = e.data;
 
-    console.log("WS On Message");
+    //console.log("WS On Message");
     if (data) {
 	if (!buffer || bufferSize < data.byteLength) {
 	    if (buffer) _free(buffer);
