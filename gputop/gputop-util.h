@@ -53,6 +53,15 @@ xmalloc0(size_t size)
     return ret;
 }
 
+static inline void *
+xrealloc(void *ptr, size_t size)
+{
+    void *ret = realloc(ptr, size);
+    if (!ret)
+	exit(1);
+    return ret;
+}
+
 struct array
 {
     size_t elem_size;
@@ -88,9 +97,7 @@ array_set_len(struct array *array, int len)
     if (array->size >= needed)
 	return;
 
-    array->data = realloc(array->data, array->size * 1.7);
-    if (!array->data)
-	exit(1);
+    array->data = xrealloc(array->data, array->size * 1.7);
     array->size = needed;
 }
 
