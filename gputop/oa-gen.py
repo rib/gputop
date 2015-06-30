@@ -333,8 +333,6 @@ c(
 #include "gputop-perf.h"
 
 
-#define MAX(a, b) ((a > b) ? (a) : (b))
-
 static uint64_t
 percentage_max_callback(struct gputop_devinfo *devinfo,
                         const struct gputop_perf_query *query,
