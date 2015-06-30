@@ -110,6 +110,8 @@ web_DATA = \
 	web/index.html \
 	web/trace-view.js \
 	web/jquery.js \
+	web/jquery-ui.js \
+	web/jquery-ui.css \
 	web/jquery.flot.js \
 	web/gputop-web-worker.js
 
