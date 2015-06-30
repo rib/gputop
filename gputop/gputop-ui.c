@@ -908,7 +908,7 @@ print_raw_gl_pq_counter(WINDOW *win, int y, int x,
 }
 
 static void
-gl_basic_tab_redraw(WINDOW *win)
+gl_perf_query_tab_redraw(WINDOW *win)
 {
     struct winsys_surface **surfaces;
     //int win_width;
@@ -1003,6 +1003,12 @@ gl_basic_tab_redraw(WINDOW *win)
     pthread_rwlock_unlock(&gputop_gl_lock);
 }
 
+static void
+gl_basic_tab_redraw(WINDOW *win)
+{
+    gl_perf_query_tab_redraw(win);
+}
+
 static struct tab tab_gl_basic =
 {
     .nick = "Basic GL",
@@ -1041,7 +1047,7 @@ gl_3d_tab_input(int key)
 static void
 gl_3d_tab_redraw(WINDOW *win)
 {
-
+    gl_perf_query_tab_redraw(win);
 }
 
 static struct tab tab_gl_3d =
