@@ -26,6 +26,7 @@
 #define _GPUTOP_UTIL_H_
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #define unlikely(x) __builtin_expect(x, 0)
