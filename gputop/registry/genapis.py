@@ -24,6 +24,7 @@
 
 import sys, time, pdb, string, cProfile
 from reg import *
+import argparse
 
 # debug - start header generation in debugger
 # profile - enable Python profiling
@@ -247,6 +248,14 @@ if __name__ == '__main__':
             write('Unrecognized argument:', arg, file=sys.stderr)
             exit(1)
 
+parser = argparse.ArgumentParser()
+parser.add_argument("registry", help="Location of Khronos API XML files")
+parser.add_argument("--debug", dest='debug', action='store_true', help="Enable debug")
+parser.add_argument("--profile", dest='profile', action='store_true', help="Enable profile")
+parser.add_argument("--timing", dest='timeit', action='store_true', help="Enable timing")
+
+args = parser.parse_args()
+
 # Simple timer functions
 startTime = None
 def startTimer():
@@ -447,7 +456,7 @@ def genShims():
         reg = Registry()
 
         startTimer()
-        tree = etree.parse(genOpts.xmlfile)
+        tree = etree.parse(args.registry + '/' + genOpts.xmlfile)
         endTimer('Time to make ElementTree =')
 
         startTimer()
