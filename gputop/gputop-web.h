@@ -34,3 +34,4 @@ void _gputop_web_console_assert(bool condition, const char *message);
 
 void _gputop_web_console_trace(void);
 
+void _gputop_web_worker_post(const char *message);

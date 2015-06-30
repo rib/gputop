@@ -29,6 +29,10 @@ var LibraryGpuTopWeb = {
     _gputop_web_console_trace: function () {
         console.trace();
     },
+
+    _gputop_web_worker_post: function (message) {
+	postMessage(Pointer_stringify(message));
+    },
 };
 
 autoAddDeps(LibraryGpuTopWeb, '$GpuTopWeb');
