@@ -1,4 +1,7 @@
-SUBDIRS = registry
+# Note: dot here ensures we build the current directory before
+# entering into web/ so that we generate the shared protocol buffers
+# code
+SUBDIRS = registry . web
 
 bin_PROGRAMS = gputop gputop-system
 
@@ -105,7 +108,5 @@ oa-bdw.h: oa-bdw.xml oa-gen.py
 %.pb-c.c %.pb-c.h: %.proto
 	protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
 
-webdir = $(datadir)/web
-web_DATA = web/index.html web/trace-view.js web/jquery.js web/jquery.flot.js
-
 EXTRA_DIST = gputop.proto
+

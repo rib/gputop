@@ -159,6 +159,7 @@ AC_OUTPUT(
 Makefile
 gputop/Makefile
 gputop/registry/Makefile
+gputop/web/Makefile
 h2o/Makefile
 po/Makefile.in
 )

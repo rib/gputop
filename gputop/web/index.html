@@ -1,0 +1,63 @@
+<html lang="en-US">
+    <head>
+	<title>GPU Top</title>
+	<meta charset="utf-8"/>
+	<meta http-equiv="Cache-Control" content="no-store" />
+	<link rel="stylesheet" href="jquery-ui.css">
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.flot.js"></script>
+	<script type="text/javascript" src="jquery.flot.categories.js"></script>
+	<script type="text/javascript" src="jquery-ui.js"></script>
+	<script type="text/javascript" src="snap.svg.js"></script>
+	<style>
+#log_tab div:nth-child(odd){ background: white; }
+	</style>
+    </head>
+    <body>
+	<div id="tabs" style="overflow: auto;">
+	    <ul>
+		<li><a href="#overview_tab">Overview</a></li>
+		<li><a href="#trace_tab">Live Tracing</a></li>
+		<li><a href="#forensic_tab">Forensic Tracing</a></li>
+		<li><a href="#architecture_tab">Architecture View</a></li>
+		<li><a href="#log_tab">Log</a></li>
+	    </ul>
+	    <div id="overview_tab" style="display:flex; flex-direction: column;">
+		<!-- <div id="overview-graph" style="width:600px;height:300px;float:right;"></div> -->
+	    </div>
+	    <div id="trace_tab" style="display:flex;">
+		<div id ="sidebar" style="display:flex; flex-direction:column; width:20em;"></div>
+		<div id="timelines" style="flex:1; display:flex; flex-direction:column;"></div>
+	    </div>
+	    <div id="forensic_tab" style="display:flex;">
+	    </div>
+	    <div id="architecture_tab" style="display:flex; flex-direction:column;">
+		<svg id="architecture-diagram" style="flex: 0 1 auto; height:100%;">
+		    <!-- <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red"></circle> -->
+		</svg>
+	    </div>
+	    <div id="log_tab" style="display:flex; flex-direction:column; font-family:monospace; nth-child(odd)">
+	    </div>
+	</div>
+
+	<script type="text/javascript">
+	    function on_page_load() {
+		var element = document.createElement("script");
+		element.src = "gputop-ui.js";
+		document.body.appendChild(element);
+	    }
+	    if (window.addEventListener)
+		window.addEventListener("load", on_page_load, false);
+	    else if (window.attachEvent)
+		window.attachEvent("onload", on_page_load);
+	    else
+		window.onload = on_page_load;
+	</script>
+	<div style="display:none"> <!-- templates -->
+	    <div id="hbar-template" style="display:flex; flex: 0 1 auto; height:1.5em;">
+		<div class="bar-name" style="width:20em;"></div>
+		<canvas class="bar-canvas"></canvas>
+	    </div>
+	</div>
+    </body>
+</html>
