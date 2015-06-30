@@ -266,6 +266,8 @@ gputop_perf_close_i915_oa_query(struct gputop_perf_query *query)
 static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
+    gputop_devinfo.devid = devid;
+
     if (IS_HSW_GT1(devid)) {
 	gputop_devinfo.n_eus = 10;
 	gputop_devinfo.n_eu_slices = 1;
