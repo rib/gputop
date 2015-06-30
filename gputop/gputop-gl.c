@@ -408,40 +408,48 @@ gputop_khr_debug_callback(GLenum source,
     gputop_ui_log(level, message, length);
 }
 
+static bool
+lookup_query(const char **names, unsigned int *query_id)
+{
+    int i;
+
+    for (i = 0; names[i]; i++) {
+	bool ok = true;
+	pfn_glGetPerfQueryIdByNameINTEL((GLchar *)names[i], query_id);
+
+	/* NB: we need to be paranoid about leaking GL errors to the application */
+	while (pfn_glGetError() != GL_NO_ERROR)
+	    ok = false;
+
+	if (ok)
+	    return true;
+    }
+
+    return false;
+}
+
 static void
 winsys_context_gl_initialise(struct winsys_context *wctx)
 {
+    const char *render_basic_names[] = {
+	"Gen7 3D Observability Architecture Counters",
+	"Render Metrics Basic Gen7.5",
+	"Render Metrics Basic Gen8",
+	NULL
+    };
+    const char *stats_names[] = {
+	"Gen7 Pipeline Statistics Registers",
+	NULL
+    };
     unsigned int query_id;
-    bool ok;
 
     pthread_once(&initialise_gl_once, initialise_gl);
 
-    /* NB: we need to be paranoid about leaking GL errors to the application */
-
-    ok = true;
-    pfn_glGetPerfQueryIdByNameINTEL("Gen7 3D Observability Architecture Counters",
-				    &query_id);
-    while (pfn_glGetError() != GL_NO_ERROR)
-	ok = false;
-
-    ok = true;
-    pfn_glGetPerfQueryIdByNameINTEL("Render Metrics Basic Gen7.5",
-				    &query_id);
-    while (pfn_glGetError() != GL_NO_ERROR)
-	ok = false;
-
-    if (ok)
+    if (lookup_query(render_basic_names, &query_id))
 	get_query_info(query_id, &wctx->oa_query_info);
 
-    ok = true;
-    pfn_glGetPerfQueryIdByNameINTEL("Gen7 Pipeline Statistics Registers",
-				    &query_id);
-    while (pfn_glGetError() != GL_NO_ERROR)
-	ok = false;
-
-    if (ok)
+    if (lookup_query(stats_names, &query_id))
 	get_query_info(query_id, &wctx->pipeline_stats_query_info);
-
 
     pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
 			      GL_DONT_CARE, /* type */
