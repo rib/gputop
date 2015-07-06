@@ -108,6 +108,96 @@ struct gputop_perf_query_counter
 #define MAX_RAW_OA_COUNTERS 62
 
 #ifndef EMSCRIPTEN
+/*
+ * This structure tracks the offsets to the perf record headers in our
+ * perf circular buffer so that we can enable perf's flight recorder
+ * mode whereby perf may overwrite old samples and records with new
+ * ones but in doing so it trashes the perf headers that we need to
+ * determine the location of sequential records.
+ *
+ * The alternative to this would be to copy all data out of the perf
+ * circular buffer into another buffer, so it can't be overwritten by
+ * perf but that would demand further memory bandwidth that we want to
+ * avoid wasting.
+ *
+ * With this approach we don't *actually* enable perf's flight
+ * recorder mode, because as we update our record of header offsets we
+ * can update the perf tail to say that these records have been read
+ * so we can have our flight recorder mode without perf knowing. The
+ * advantage of this is that if for some corner case userspace gets
+ * blocked from updating its record of header offsets for a long time
+ * and the kernel comes to wrap around then we will get notified of
+ * that condition by the kernel. In that case we end up loosing recent
+ * samples instead of old ones, but something has to have gone quite
+ * badly wrong in that case anyway so it's hopefully better to report
+ * errors reliably instead.
+ *
+ * To simplify this, there is a limit on the number of headers we
+ * track, based on the expected number of samples that could fit
+ * in a full perf circular buffer.
+ *
+ * The header offsets are stored in a circular buffer of packed uint32
+ * values.
+ *
+ * Due to the fixed size of this buffer, but the possibility of many
+ * small perf records, (much smaller than our expected samples),
+ * there's a small chance that we fill this buffer and still loose
+ * track of some older headers. We can report this case as an error
+ * though, and this is a more graceful failure than having to scrap
+ * the entire perf buffer.
+ *
+ *
+ * For each update of this buffer we:
+ *
+ * 1) Check what new records have been added:
+ *
+ *    * if buf->last_perf_head uninitialized, set it to the perf tail
+ *    * foreach new record from buf->last_perf_head to the current perf head:
+ *        - check there's room for a new header offset, but if not:
+ *            - report an error
+ *            - move the tail forward (loosing a record)
+ *        - add a header offset to buf->offsets[buf->head]
+ *        - buf->head = (buf->head + 1) % buf->len;
+ *        - recognise when the perf head wraps and mark the buffer 'full'
+ *
+ * 2) Optionally parse any of the new records (i.e. before we update
+ *    tail)
+ *
+ *    Typically we aren't processing the records while tracing, but
+ *    beware that if anything does need passing on the fly then it
+ *    needs to be done before we update the tail pointer below.
+ *
+ * 3) If buf 'full'; check how much of perf's tail has been eaten:
+ *
+ *    * move buf->tail forward to the next offset that is ahead of
+ *      perf's (head + header->size)
+ *        XXX: we can assert() that we don't overtake buf->head. That
+ *        shouldn't be possible if we aren't enabling perf's
+ *        overwriting/flight recorder mode.
+ *	  XXX: Note: we do this after checking for new records so we
+ *	  don't have to worry about the corner case of eating more
+ *	  than we previously knew about.
+ *
+ * 4) Set perf's tail to perf's head (i.e. consume everything so that
+ *    perf won't block when wrapping around and overwriting old
+ *    samples.)
+ *
+ * XXX: Note: if tracing and using this structure to track headers
+ * then when you want to process all the collected data, it's
+ * necessary to stop/disable the event before consuming data from the
+ * perf circular buffer due to how we manage the tail pointer (there's
+ * nothing stopping perf from overwriting all the current data)
+ */
+struct gputop_perf_header_buf
+{
+    uint32_t *offsets;
+    uint32_t len;
+    uint32_t head;
+    uint32_t tail;
+    uint32_t last_perf_head;
+    bool full; /* Set when we first wrap. */
+};
+
 struct gputop_perf_stream
 {
     char *name;
@@ -121,6 +211,8 @@ struct gputop_perf_stream
     size_t buffer_size;
 
     char *error;
+
+    struct gputop_perf_header_buf header_buf;
 
     /* XXX: reserved for whoever opens the stream */
     uint32_t id;
@@ -218,6 +310,8 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
 			       void *user_data);
 void gputop_perf_close_i915_oa_query(struct gputop_perf_stream *stream);
+
+void gputop_perf_update_header_offsets(struct gputop_perf_stream *stream);
 #endif
 
 #endif /* _GPUTOP_PERF_H_ */

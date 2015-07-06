@@ -188,6 +188,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
     struct perf_event_attr attr;
     int event_fd;
     uint8_t *mmap_base;
+    int expected_max_samples;
 
     memset(&attr, 0, sizeof(attr));
     attr.size = sizeof(attr);
@@ -234,6 +235,14 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
     stream->buffer_size = perf_buffer_size;
     stream->mmap_page = (void *)mmap_base;
 
+    expected_max_samples =
+	(stream->buffer_size / MAX_OA_PERF_SAMPLE_SIZE) * 1.2;
+
+    memset(&stream->header_buf, 0, sizeof(stream->header_buf));
+    stream->header_buf.len = expected_max_samples;
+    stream->header_buf.offsets =
+	xmalloc(sizeof(uint32_t) * expected_max_samples);
+
     stream->fd_poll.data = user_data;
     uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
     uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
@@ -254,6 +263,11 @@ gputop_perf_close_i915_oa_query(struct gputop_perf_stream *stream)
 	    stream->mmap_page = NULL;
 	    stream->buffer = NULL;
 	    stream->buffer_size = 0;
+	}
+
+	if (stream->header_buf.offsets) {
+	    free(stream->header_buf.offsets);
+	    stream->header_buf.offsets = NULL;
 	}
 
 	close(stream->fd);
@@ -333,6 +347,172 @@ write_perf_tail(struct perf_event_mmap_page *mmap_page,
      * we're consuming before updating the tail... */
     mb();
     mmap_page->data_tail = tail;
+}
+
+/* Perf supports a flight recorder mode whereby it won't stop writing
+ * samples once the buffer is full and will instead overwrite old
+ * samples.
+ *
+ * The difficulty with this mode is that because samples don't have a
+ * uniform size, once the head gets trampled we can no longer parse
+ * *any* samples since the location of each sample depends of the
+ * length of the previous.
+ *
+ * Since we are paranoid about wasting memory bandwidth - as such a
+ * common gpu bottleneck - we would rather not resort to copying
+ * samples into another buffer, especially to implement a tracing
+ * feature where higher sampler frequencies are interesting.
+ *
+ * To simplify things to handle the main case we care about where
+ * the perf circular buffer is full of samples (as opposed to
+ * lots of throttle or status records) we can define a fixed number
+ * of pointers to track, given the size of the perf buffer and
+ * known size for samples. These can be tracked in a circular
+ * buffer with fixed size records where overwriting the head isn't
+ * a problem.
+ */
+
+/*
+ * For each update of this buffer we:
+ *
+ * 1) Check what new records have been added:
+ *
+ *    * if buf->last_perf_head uninitialized, set it to the perf tail
+ *    * foreach new record from buf->last_perf_head to the current perf head:
+ *        - check there's room for a new header offset, but if not:
+ *            - report an error
+ *            - move the tail forward (loosing a record)
+ *        - add a header offset to buf->offsets[buf->head]
+ *        - buf->head++;
+ *        - recognise when the perf head wraps and mark the buffer 'full'
+ *
+ * 2) Optionally parse any of the new records (i.e. before we update
+ *    tail)
+ *
+ *    Typically we aren't processing the records while tracing, but
+ *    beware that if anything does need passing on the fly then it
+ *    needs to be done before we update the tail pointer below.
+ *
+ * 3) If buf 'full'; check how much of perf's tail has been eaten:
+ *
+ *    * move buf->tail forward to the next offset that is ahead of
+ *      perf's (head + header->size)
+ *        XXX: we can assert() that we don't overtake buf->head. That
+ *        shouldn't be possible if we aren't enabling perf's
+ *        overwriting/flight recorder mode.
+ *	  XXX: Note: we do this after checking for new records so we
+ *	  don't have to worry about the corner case of eating more
+ *	  than we previously knew about.
+ *
+ * 4) Set perf's tail to perf's head (i.e. consume everything so that
+ *    perf won't block when wrapping around and overwriting old
+ *    samples.)
+ */
+void
+gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
+{
+    struct gputop_perf_header_buf *hdr_buf  = &stream->header_buf;
+    uint8_t *data = stream->buffer;
+    const uint64_t mask = stream->buffer_size - 1;
+    uint64_t perf_head;
+    uint64_t perf_tail;
+    uint32_t buf_head;
+    uint32_t buf_tail;
+    uint32_t n_new = 0;
+
+    perf_head = read_perf_head(stream->mmap_page);
+
+    if (hdr_buf->head == hdr_buf->tail)
+	perf_tail = hdr_buf->last_perf_head;
+    else
+	perf_tail = stream->mmap_page->data_tail;
+
+    if (perf_head == perf_tail)
+	return;
+
+    hdr_buf->last_perf_head = perf_head;
+
+    buf_head = hdr_buf->head;
+    buf_tail = hdr_buf->tail;
+
+    while (TAKEN(perf_head, perf_tail, stream->buffer_size)) {
+	uint64_t perf_offset = perf_tail & mask;
+	const struct perf_event_header *header =
+	    (const struct perf_event_header *)(data + perf_offset);
+
+	n_new++;
+
+	if (header->size == 0) {
+	    dbg("Spurious header size == 0\n");
+	    /* XXX: How should we handle this instead of exiting() */
+	    exit(1);
+	}
+
+	if (header->size > (perf_head - perf_tail)) {
+	    dbg("Spurious header size would overshoot head\n");
+	    /* XXX: How should we handle this instead of exiting() */
+	    exit(1);
+	}
+
+	/* Once perf wraps, the buffer is full of data and perf starts
+	 * to eat its tail, overwriting old data. */
+	if ((const uint8_t *)header + header->size > data + stream->buffer_size)
+	    hdr_buf->full = true;
+
+	if ((buf_head - buf_tail) == hdr_buf->len)
+	    buf_tail++;
+
+	/* Checking what tail records have been being overwritten by this
+	 * new record...
+	 *
+	 * NB: A record may be split at the end of the buffer
+	 * NB: A large record may trample multiple smaller records
+	 * NB: it's possible no records have been trampled
+	 */
+	while (1) {
+	    uint32_t buf_tail_offset = hdr_buf->offsets[buf_tail % hdr_buf->len];
+
+	    /* To simplify checking for an overlap, invariably ensure the
+	     * buf_tail_offset is ahead of perf, even if it means using a
+	     * fake offset beyond the bounds of the buffer... */
+	    if (buf_tail_offset < perf_offset)
+		buf_tail_offset += stream->buffer_size;
+
+	    if ((perf_offset + header->size) < buf_tail_offset) /* nothing eaten */
+		break;
+
+	    buf_tail++;
+	}
+
+	hdr_buf->offsets[buf_head++ % hdr_buf->len] = perf_offset;
+
+	perf_tail += header->size;
+    }
+
+    /* Consume all perf records so perf wont be blocked from
+     * overwriting old samples... */
+    write_perf_tail(stream->mmap_page, perf_head);
+
+    hdr_buf->head = buf_head;
+    hdr_buf->tail = buf_tail;
+
+#if 0
+    printf("headers update:\n");
+    printf("n new records = %d\n", n_new);
+    printf("buf len = %d\n", hdr_buf->len);
+    printf("perf head = %"PRIu64"\n", perf_head);
+    printf("perf tail = %"PRIu64"\n", perf_tail);
+    printf("buf head = %"PRIu32"\n", hdr_buf->head);
+    printf("buf tail = %"PRIu32"\n", hdr_buf->tail);
+
+    if (!hdr_buf->full) {
+	float percentage = (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] / (float)stream->buffer_size) * 100.0f;
+	printf("> %d%% full\n", (int)percentage);
+    } else
+	printf("> 100%% full\n");
+
+    printf("> n records = %u\n", (hdr_buf->head - hdr_buf->tail));
+#endif
 }
 
 void
