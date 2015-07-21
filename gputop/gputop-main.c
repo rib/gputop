@@ -60,6 +60,8 @@ usage(void)
 	    "                                   The gputop libGL.so interposer\n"
 	    "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
 	    "                                   to from interposer\n"
+	    "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
+	    "                                   (defaults to ncurses)\n"
 	    "\n"
 	    ""
 	    );
@@ -111,6 +113,7 @@ main (int argc, char **argv)
 #define LIB_GL_OPT	(CHAR_MAX + 1)
 #define LIB_EGL_OPT	(CHAR_MAX + 2)
 #define DEBUG_CTX_OPT	(CHAR_MAX + 3)
+#define REMOTE_OPT	(CHAR_MAX + 4)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -120,6 +123,7 @@ main (int argc, char **argv)
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
 	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
+	{"remote",	    no_argument,	0, REMOTE_OPT},
 	{0, 0, 0, 0}
     };
     const char *prev_ld_library_path;
@@ -148,6 +152,9 @@ main (int argc, char **argv)
 		break;
 	    case DEBUG_CTX_OPT:
 		setenv("GPUTOP_FORCE_DEBUG_CONTEXT", "1", true);
+		break;
+	    case REMOTE_OPT:
+		setenv("GPUTOP_MODE", "remote", true);
 		break;
 	    default:
 		fprintf (stderr, "Internal error: "
