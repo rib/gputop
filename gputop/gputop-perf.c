@@ -27,9 +27,7 @@
 #include <config.h>
 
 #include <linux/perf_event.h>
-
-#include <xf86drm.h>
-#include <libdrm/intel_bufmgr.h>
+#include <i915_oa_drm.h>
 
 #include <asm/unistd.h>
 #include <sys/types.h>
@@ -223,7 +221,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       bool overwrite)
 {
     struct gputop_perf_stream *stream;
-    drm_i915_oa_attr_t oa_attr;
+    i915_oa_attr_t oa_attr;
     struct perf_event_attr attr;
     int event_fd;
     uint8_t *mmap_base;
@@ -298,6 +296,18 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
     return stream;
 }
 
+/* Handle restarting ioctl if interupted... */
+static int
+perf_ioctl(int fd, unsigned long request, void *arg)
+{
+    int ret;
+
+    do {
+	ret = ioctl(fd, request, arg);
+    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+    return ret;
+}
+
 static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
@@ -320,13 +330,13 @@ init_dev_info(int drm_fd, uint32_t devid)
 	gputop_devinfo.n_samplers = 4;
     } else {
 #ifdef I915_PARAM_EU_TOTAL
-	drm_i915_getparam_t gp;
+	i915_getparam_t gp;
 	int ret;
 	int n_eus;
 
 	gp.param = I915_PARAM_EU_TOTAL;
 	gp.value = &n_eus;
-	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
 	assert(ret == 0 && n_eus> 0);
 
 	gputop_devinfo.n_eus = n_eus;
@@ -337,18 +347,6 @@ init_dev_info(int drm_fd, uint32_t devid)
 	assert(0);
 #endif
     }
-}
-
-/* Handle restarting ioctl if interupted... */
-static int
-perf_ioctl(int fd, unsigned long request, void *arg)
-{
-    int ret;
-
-    do {
-	ret = ioctl(fd, request, arg);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-    return ret;
 }
 
 static unsigned int
@@ -621,7 +619,7 @@ gputop_perf_print_records(struct gputop_perf_stream *stream,
 	case PERF_RECORD_DEVICE: {
 	    struct i915_oa_event {
 		struct perf_event_header header;
-		drm_i915_oa_event_header_t oa_header;
+		i915_oa_event_header_t oa_header;
 	    } *oa_event = (void *)header;
 
 	    switch (oa_event->oa_header.type) {
@@ -741,7 +739,7 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
 	case PERF_RECORD_DEVICE: {
 	    struct i915_oa_event {
 		struct perf_event_header header;
-		drm_i915_oa_event_header_t oa_header;
+		i915_oa_event_header_t oa_header;
 	    } *oa_event = (void *)header;
 
 	    switch (oa_event->oa_header.type) {

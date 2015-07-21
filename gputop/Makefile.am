@@ -48,7 +48,12 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
-libgputop_la_LDFLAGS = $(GPUTOP_DEP_LIBS) $(GPUTOP_EXTRA_LDFLAGS) -lncursesw $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lyaml
+libgputop_la_LDFLAGS = \
+    $(GPUTOP_DEP_LIBS) \
+    $(GPUTOP_EXTRA_LDFLAGS) \
+    $(top_builddir)/h2o/libh2o.la \
+    -lncursesw \
+    -lssl -lcrypto -lyaml
 
 wrapperdir = $(libdir)/wrappers
 wrapper_LTLIBRARIES = libGL.la #libEGL.la

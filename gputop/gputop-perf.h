@@ -28,9 +28,10 @@
 #include <stdbool.h>
 
 #ifndef EMSCRIPTEN
-#include <libdrm/i915_drm.h>
 #include <uv.h>
-#else
+#endif
+
+#include "gputop-list.h"
 
 #define I915_OA_FORMAT_A13_HSW		0
 #define I915_OA_FORMAT_A29_HSW		1
@@ -53,9 +54,6 @@
 #define I915_OA_METRICS_SET_SAMPLER_BALANCE	6
 #define I915_OA_METRICS_SET_MAX			I915_OA_METRICS_SET_SAMPLER_BALANCE
 
-#endif
-
-#include "gputop-list.h"
 
 typedef enum {
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,

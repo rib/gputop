@@ -30,7 +30,8 @@
 
 #include <emscripten.h>
 
-#include "intel_chipset.h"
+#include <intel_chipset.h>
+#include <i915_oa_drm.h>
 
 #include <gputop-perf.h>
 #include <gputop-web.h>
@@ -69,47 +70,6 @@ struct perf_event_header {
     uint32_t type;
     uint16_t misc;
     uint16_t size;
-};
-
-#if 0
-#define I915_OA_FORMAT_A13_HSW		0
-#define I915_OA_FORMAT_A29_HSW		1
-#define I915_OA_FORMAT_A13_B8_C8_HSW	2
-#define I915_OA_FORMAT_B4_C8_HSW	4
-#define I915_OA_FORMAT_A45_B8_C8_HSW	5
-#define I915_OA_FORMAT_B4_C8_A16_HSW	6
-#define I915_OA_FORMAT_C4_B8_HSW	7
-
-#define I915_OA_FORMAT_A12_BDW		0
-#define I915_OA_FORMAT_A12_B8_C8_BDW	2
-#define I915_OA_FORMAT_A36_B8_C8_BDW	5
-#define I915_OA_FORMAT_C4_B8_BDW	7
-#endif
-
-typedef struct _drm_i915_oa_event_header {
-	uint32_t type;
-	uint32_t padding;
-} drm_i915_oa_event_header_t;
-
-enum drm_i915_oa_event_type {
-
-	/*
-	 * struct {
-	 *	struct perf_event_header	header;
-	 *	drm_i915_oa_event_header_t	i915_oa_header;
-	 * };
-	 */
-	I915_OA_RECORD_BUFFER_OVERFLOW		= 1,
-
-	/*
-	 * struct {
-	 *	struct perf_event_header	header;
-	 *	drm_i915_oa_event_header_t	i915_oa_header;
-	 * };
-	 */
-	I915_OA_RECORD_REPORT_LOST		= 2,
-
-	I915_OA_RECORD_MAX,			/* non-ABI */
 };
 
 /* Samples read from the perf circular buffer */
@@ -386,7 +346,7 @@ handle_query_perf_data(struct gputop_worker_query *query, uint8_t *data, int len
 	case PERF_RECORD_DEVICE: {
 	    struct i915_oa_event {
 		struct perf_event_header header;
-		drm_i915_oa_event_header_t oa_header;
+		i915_oa_event_header_t oa_header;
 	    } *oa_event = (void *)header;
 
 	    switch (oa_event->oa_header.type) {
