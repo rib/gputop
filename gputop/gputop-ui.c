@@ -25,6 +25,7 @@
 #include <config.h>
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <stdatomic.h>
 
@@ -33,12 +34,14 @@
 
 #include <uv.h>
 
-#include "gputop-gl.h"
 #include "gputop-perf.h"
 #include "gputop-ui.h"
 #include "gputop-util.h"
 #include "gputop-server.h"
 
+#ifdef SUPPORT_GL
+#include "gputop-gl.h"
+#endif
 
 enum {
     GPUTOP_DEFAULT_COLOR,
@@ -892,6 +895,7 @@ static struct tab tab_3d_trace =
     .redraw = perf_3d_trace_tab_redraw,
 };
 
+#ifdef SUPPORT_GL
 static void
 gl_basic_tab_enter(void)
 {
@@ -1231,6 +1235,8 @@ static struct tab tab_gl_knobs =
     .redraw = gl_knobs_tab_redraw,
 };
 
+#endif /* SUPPORT_GL */
+
 static void
 app_io_tab_enter(void)
 {
@@ -1275,6 +1281,7 @@ redraw_ui(void)
     WINDOW *tab_win;
     int i;
 
+#ifdef SUPPORT_GL
     if (gputop_has_intel_performance_query_ext && !added_gl_tabs) {
 	gputop_list_insert(tabs.prev, &tab_gl_basic.link);
 	gputop_list_insert(tabs.prev, &tab_gl_3d.link);
@@ -1286,6 +1293,7 @@ redraw_ui(void)
 
 	added_gl_tabs = true;
     }
+#endif
 
     if (debug_disable_ncurses)
 	return;
@@ -1586,7 +1594,9 @@ gputop_ui_init(void)
     gputop_list_insert(tabs.prev, &tab_memory_writes.link);
     gputop_list_insert(tabs.prev, &tab_sampler_balance.link);
     gputop_list_insert(tabs.prev, &tab_3d_trace.link);
+#ifdef SUPPORT_GL
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
+#endif
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);

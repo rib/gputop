@@ -132,9 +132,20 @@ AC_CHECK_LIB(ncursesw, [subwin],
 
 PKG_CHECK_MODULES(GPUTOP_DEP, [libuv >= 1.0.0 libprotobuf-c])
 
-dnl gputop-system is a dummy "test application" that needs to be
-dnl linked against GL...
-PKG_CHECK_MODULES(GL_DEP, [gl x11])
+PKG_CHECK_EXISTS([gl x11], [have_glx=yes], [have_glx=no])
+AC_ARG_ENABLE(
+  [gl],
+  [AC_HELP_STRING([--enable-gl=@<:@no/yes@:>@],
+                  [Enable monitoring GL applications @<:@default=auto@:>@])],
+  [enable_gl="$enableval"],
+  [enable_gl="$have_glx"]
+)
+AS_IF([test "$enable_gl" = "yes"],
+      [
+	PKG_CHECK_MODULES(GLX_DEP, [gl x11])
+	AC_DEFINE([SUPPORT_GL], [1], [Support intercepting GL applications])
+      ])
+AM_CONDITIONAL(SUPPORT_GL, [test "$enable_gl" = "yes" ])
 
 dnl ================================================================
 dnl Misc program dependencies.
@@ -163,3 +174,16 @@ gputop/web/Makefile
 h2o/Makefile
 po/Makefile.in
 )
+
+echo ""
+echo "GPU Top configured:"
+echo ""
+echo " • Optional Features: ${FEATURES}"
+echo "        GL Intercept: ${enable_gl}"
+echo ""
+
+echo " • Compiler options:"
+echo "        Debug: ${enable_debug}"
+echo "        Compiler flags: ${CFLAGS} ${GPUTOP_EXTRA_CFLAGS}"
+echo "        Linker flags: ${LDFLAGS} ${GPUTOP_EXTRA_LDFLAGS}"
+echo ""

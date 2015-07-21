@@ -43,10 +43,13 @@
 
 #include "gputop-server.h"
 #include "gputop-perf.h"
-#include "gputop-gl.h"
 #include "gputop-util.h"
 #include "gputop-ui.h"
 #include "gputop.pb-c.h"
+
+#ifdef SUPPORT_GL
+#include "gputop-gl.h"
+#endif
 
 static h2o_websocket_conn_t *h2o_conn;
 static h2o_globalconf_t config;
@@ -480,7 +483,11 @@ handle_get_features(h2o_websocket_conn_t *conn)
     devinfo.n_samplers = gputop_devinfo.n_samplers;
 
     features.devinfo = &devinfo;
+#ifdef SUPPORT_GL
     features.has_gl_performance_query = gputop_has_intel_performance_query_ext;
+#else
+    features.has_gl_performance_query = false;
+#endif
     features.has_i915_oa = true;
 
     message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;

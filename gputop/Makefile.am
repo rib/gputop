@@ -1,7 +1,11 @@
 # Note: dot here ensures we build the current directory before
 # entering into web/ so that we generate the shared protocol buffers
 # code
+if SUPPORT_GL
 SUBDIRS = registry . web
+else
+SUBDIRS = . web
+endif
 
 bin_PROGRAMS = gputop gputop-system
 
@@ -25,8 +29,6 @@ gputop_CPPFLAGS = \
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
     intel_chipset.h \
-    gputop-gl.h \
-    gputop-gl.c \
     oa-hsw.h \
     oa-hsw.c \
     oa-bdw.h \
@@ -52,8 +54,14 @@ libgputop_la_LDFLAGS = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(top_builddir)/h2o/libh2o.la \
+    -lm \
     -lncursesw \
     -lssl -lcrypto -lyaml
+
+if SUPPORT_GL
+libgputop_la_SOURCES += \
+    gputop-gl.h \
+    gputop-gl.c
 
 wrapperdir = $(libdir)/wrappers
 wrapper_LTLIBRARIES = libGL.la #libEGL.la
@@ -66,6 +74,7 @@ libGL_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
 libGL_la_LIBADD = libgputop.la $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lcurl -lyaml -lm
 libGL_la_LDFLAGS = -shared -version-info 1
+endif
 
 #libEGL_la_SOURCES = \
 #    registry/eglapi.c
@@ -78,17 +87,20 @@ libGL_la_LDFLAGS = -shared -version-info 1
 gputop_system_LDFLAGS = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
-    $(GL_DEP_LIBS) \
     libgputop.la
 gputop_system_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
-    $(GPUTOP_EXTRA_CFLAGS) \
-    $(GL_DEP_CFLAGS)
+    $(GPUTOP_EXTRA_CFLAGS)
 gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
     $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
+
+if SUPPORT_GL
+gputop_system_LDFLAGS += $(GLX_DEP_LIBS)
+gputop_system_CFLAGS += $(GLX_DEP_CFLAGS)
+endif
 
 BUILT_SOURCES = \
     oa-hsw.h \
