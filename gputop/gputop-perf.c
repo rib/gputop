@@ -176,7 +176,7 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
     gputop_perf_read_samples(query);
 }
 
-bool
+struct gputop_perf_stream *
 gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
@@ -215,7 +215,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
 	asprintf(&stream->error, "Error opening i915_oa perf event: %m\n");
-	return false;
+	return NULL;
     }
 
     /* NB: A read-write mapping ensures the kernel will stop writing data when
@@ -226,7 +226,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
     if (mmap_base == MAP_FAILED) {
 	asprintf(&stream->error, "Error mapping circular buffer, %m\n");
 	close (event_fd);
-	return false;
+	return NULL;
     }
 
     stream->fd = event_fd;
@@ -240,14 +240,12 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 
     gputop_list_init(&stream->link);
 
-    return true;
+    return stream;
 }
 
 void
-gputop_perf_close_i915_oa_query(struct gputop_perf_query *query)
+gputop_perf_close_i915_oa_query(struct gputop_perf_stream *stream)
 {
-    struct gputop_perf_stream *stream = &query->stream;
-
     if (stream->fd > 0) {
 	uv_poll_stop(&stream->fd_poll);
 
@@ -260,6 +258,8 @@ gputop_perf_close_i915_oa_query(struct gputop_perf_query *query)
 
 	close(stream->fd);
 	stream->fd = -1;
+
+	gputop_list_remove(&stream->link);
     }
 }
 
@@ -743,7 +743,7 @@ gputop_perf_overview_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    gputop_perf_close_i915_oa_query(gputop_current_perf_query);
+    gputop_perf_close_i915_oa_query(&gputop_current_perf_query->stream);
 
     gputop_current_perf_query = NULL;
 }
@@ -837,7 +837,7 @@ gputop_perf_oa_trace_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    gputop_perf_close_i915_oa_query(gputop_current_perf_query);
+    gputop_perf_close_i915_oa_query(&gputop_current_perf_query->stream);
 
     gputop_current_perf_query = NULL;
 }
