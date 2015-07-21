@@ -27,6 +27,8 @@
 
 #include <stdio.h>
 
+#include <gputop.pb-c.h>
+
 extern uv_loop_t *gputop_ui_loop;
 
 void *gputop_ui_run(void *arg);
@@ -34,13 +36,16 @@ void *gputop_ui_run(void *arg);
 void gputop_ui_quit_idle_cb(uv_idle_t *idle);
 
 enum gputop_ui_log_level {
-    GPUTOP_LOG_LEVEL_HIGH,
+    GPUTOP_LOG_LEVEL_HIGH = 1,
     GPUTOP_LOG_LEVEL_LOW,
     GPUTOP_LOG_LEVEL_MEDIUM,
     GPUTOP_LOG_LEVEL_NOTIFICATION,
 };
 
 void gputop_ui_log(int severity, const char *message, int len);
+
+Gputop__Log *gputop_get_pb_log(void);
+void gputop_pb_log_free(Gputop__Log *log);
 
 #ifdef GPUTOP_ENABLE_DEBUG
 

@@ -88,9 +88,9 @@ static bool added_gl_tabs;
 static gputop_list_t tabs;
 
 static pthread_once_t log_init_once = PTHREAD_ONCE_INIT;
-static pthread_rwlock_t log_lock = PTHREAD_RWLOCK_INITIALIZER;
-static int log_len;
-static gputop_list_t log;
+static pthread_rwlock_t gputop_log_lock = PTHREAD_RWLOCK_INITIALIZER;
+static int gputop_log_len;
+static gputop_list_t gputop_log;
 
 struct log_entry {
     gputop_list_t link;
@@ -113,7 +113,7 @@ timer_cb(uv_timer_t *timer)
 static void
 log_init(void)
 {
-    gputop_list_init(&log);
+    gputop_list_init(&gputop_log);
 }
 
 void
@@ -121,28 +121,89 @@ gputop_ui_log(int level, const char *message, int len)
 {
     struct log_entry *entry;
 
+    if (web_ui) {
+	fprintf(stderr, "%s", message);
+    }
+
     pthread_once(&log_init_once, log_init);
 
     if (len < 0)
 	len = strlen(message);
 
-    pthread_rwlock_wrlock(&log_lock);
+    pthread_rwlock_wrlock(&gputop_log_lock);
 
-    if (log_len > 10000) {
-	entry = gputop_container_of(log.prev, entry, link);
+    if (gputop_log_len > 10000) {
+	entry = gputop_container_of(gputop_log.prev, entry, link);
 	gputop_list_remove(&entry->link);
 	free(entry->msg);
-	log_len--;
+	gputop_log_len--;
     } else
 	entry = xmalloc(sizeof(*entry));
 
     entry->level = level;
     entry->msg = strndup(message, len);
 
-    gputop_list_insert(log.prev, &entry->link);
-    log_len++;
+    gputop_list_insert(gputop_log.prev, &entry->link);
+    gputop_log_len++;
 
-    pthread_rwlock_unlock(&log_lock);
+    pthread_rwlock_unlock(&gputop_log_lock);
+}
+
+Gputop__Log *
+gputop_get_pb_log(void)
+{
+    Gputop__Log *log = NULL;
+    struct log_entry *entry, *tmp;
+    int i = 0;
+
+    pthread_once(&log_init_once, log_init);
+
+    if (!gputop_log_len) {
+	return NULL;
+    }
+
+    pthread_rwlock_rdlock(&gputop_log_lock);
+
+    log = xmalloc(sizeof(Gputop__Log));
+    gputop__log__init(log);
+    log->n_entries = gputop_log_len;
+    log->entries = xmalloc(gputop_log_len * sizeof(void *));
+
+    gputop_list_for_each_safe(entry, tmp, &gputop_log, link) {
+	Gputop__LogEntry *pb_entry = xmalloc(sizeof(Gputop__LogEntry));
+
+	gputop__log_entry__init(pb_entry);
+	pb_entry->log_level = entry->level;
+	pb_entry->log_message = entry->msg; /* steal the string */
+	log->entries[i] = pb_entry;
+
+	i++;
+
+	gputop_list_remove(&entry->link);
+    }
+    gputop_log_len = 0;
+
+    pthread_rwlock_unlock(&gputop_log_lock);
+
+    return log;
+}
+
+void
+gputop_pb_log_free(Gputop__Log *log)
+{
+    int i;
+
+    if (log->n_entries) {
+	for (i = 0; i < log->n_entries; i++) {
+	    Gputop__LogEntry *entry = log->entries[i];
+	    free(entry->log_message);
+	    free(entry);
+	}
+
+	free(log->entries);
+    }
+
+    free(log);
 }
 
 #define RANGE_BAR_WIDTH 30
@@ -1090,9 +1151,9 @@ gl_debug_log_tab_redraw(WINDOW *win)
 
     pthread_once(&log_init_once, log_init);
 
-    pthread_rwlock_rdlock(&log_lock);
+    pthread_rwlock_rdlock(&gputop_log_lock);
 
-    if (gputop_gl_contexts && gputop_list_empty(&log)) {
+    if (gputop_gl_contexts && gputop_list_empty(&gputop_log)) {
 	struct winsys_context **contexts = gputop_gl_contexts->data;
 	struct winsys_context *wctx = contexts[i];
 
@@ -1114,14 +1175,14 @@ gl_debug_log_tab_redraw(WINDOW *win)
 	}
     }
 
-    gputop_list_for_each(tmp, &log, link) {
+    gputop_list_for_each(tmp, &gputop_log, link) {
 	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
 
 	if (i++ > win_height)
 	    break;
     }
 
-    pthread_rwlock_unlock(&log_lock);
+    pthread_rwlock_unlock(&gputop_log_lock);
 }
 
 static struct tab tab_gl_debug_log =
