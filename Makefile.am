@@ -1,3 +1,3 @@
-SUBDIRS = h2o gputop po
+SUBDIRS = libuv h2o gputop po
 
 ACLOCAL_AMFLAGS = -I build/autotools ${ACLOCAL_FLAGS}

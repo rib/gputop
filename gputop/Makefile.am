@@ -47,12 +47,14 @@ libgputop_la_SOURCES = \
 libgputop_la_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS) \
+    -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
 libgputop_la_LDFLAGS = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
+    $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     -lm \
     -lncursesw \

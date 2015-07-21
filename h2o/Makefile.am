@@ -61,6 +61,7 @@ wslay_source = \
 noinst_LTLIBRARIES=libh2o.la
 
 libh2o_la_CFLAGS= \
+   -I$(top_srcdir)/libuv/include \
    -I$(top_builddir)/wslay/includes \
    -I$(srcdir)/include \
    -I$(srcdir)/klib \

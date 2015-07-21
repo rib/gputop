@@ -130,7 +130,7 @@ AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
 
-PKG_CHECK_MODULES(GPUTOP_DEP, [libuv >= 1.0.0 libprotobuf-c])
+PKG_CHECK_MODULES(GPUTOP_DEP, [libprotobuf-c])
 
 PKG_CHECK_EXISTS([gl x11], [have_glx=yes], [have_glx=no])
 AC_ARG_ENABLE(
@@ -168,10 +168,11 @@ dnl Dah Da!
 dnl ================================================================
 AC_OUTPUT(
 Makefile
+libuv/Makefile
+h2o/Makefile
 gputop/Makefile
 gputop/registry/Makefile
 gputop/web/Makefile
-h2o/Makefile
 po/Makefile.in
 )
 
