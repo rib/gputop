@@ -63,6 +63,7 @@ struct wslay_event_omsg {
 
   union wslay_event_msg_source source;
   wslay_event_fragmented_msg_callback read_callback;
+  wslay_event_fragmented_finish_callback finish_callback;
 };
 
 struct wslay_event_frame_user_data {

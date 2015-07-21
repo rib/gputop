@@ -572,6 +572,10 @@ typedef ssize_t (*wslay_event_fragmented_msg_callback)
  uint8_t *buf, size_t len, const union wslay_event_msg_source *source,
  int *eof, void *user_data);
 
+typedef void (*wslay_event_fragmented_finish_callback)
+(const union wslay_event_msg_source *source,
+ void *user_data);
+
 struct wslay_event_fragmented_msg {
   /* opcode */
   uint8_t opcode;
@@ -579,6 +583,7 @@ struct wslay_event_fragmented_msg {
   union wslay_event_msg_source source;
   /* Callback function to read message data from source. */
   wslay_event_fragmented_msg_callback read_callback;
+  wslay_event_fragmented_finish_callback finish_callback;
 };
 
 /*
