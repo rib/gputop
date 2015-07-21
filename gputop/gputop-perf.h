@@ -107,6 +107,31 @@ struct gputop_perf_query_counter
 
 #define MAX_RAW_OA_COUNTERS 62
 
+struct gputop_perf_query
+{
+    const char *name;
+    struct gputop_perf_query_counter *counters;
+    int n_counters;
+
+    int perf_oa_metrics_set;
+    int perf_oa_format;
+    int perf_raw_size;
+
+    /* For indexing into the accumulator[] ... */
+    int gpu_time_offset;
+    int gpu_clock_offset;
+    int a_offset;
+    int b_offset;
+    int c_offset;
+
+    uint64_t accumulator[MAX_RAW_OA_COUNTERS];
+
+    gputop_list_t link;
+
+    char *error;
+};
+
+
 #ifndef EMSCRIPTEN
 /*
  * This structure tracks the offsets to the perf record headers in our
@@ -200,7 +225,12 @@ struct gputop_perf_header_buf
 
 struct gputop_perf_stream
 {
-    char *name;
+    int ref_count;
+
+    /* TODO: support non i915_oa perf streams */
+    struct gputop_perf_query *query;
+    bool overwrite;
+    struct gputop_perf_header_buf header_buf;
 
     int fd;
     uv_poll_t fd_poll;
@@ -210,41 +240,16 @@ struct gputop_perf_stream
     uint8_t *buffer;
     size_t buffer_size;
 
-    char *error;
-
-    struct gputop_perf_header_buf header_buf;
 
     /* XXX: reserved for whoever opens the stream */
-    uint32_t id;
-    gputop_list_t link;
+    struct {
+	uint32_t id;
+	gputop_list_t link;
+	void *data;
+	void (*destroy_cb)(struct gputop_perf_stream *stream);
+    } user;
 };
 #endif
-
-struct gputop_perf_query
-{
-    const char *name;
-    struct gputop_perf_query_counter *counters;
-    int n_counters;
-
-    int perf_oa_metrics_set;
-    int perf_oa_format;
-    int perf_raw_size;
-
-    /* For indexing into the accumulator[] ... */
-    int gpu_time_offset;
-    int gpu_clock_offset;
-    int a_offset;
-    int b_offset;
-    int c_offset;
-
-    uint64_t accumulator[MAX_RAW_OA_COUNTERS];
-
-    gputop_list_t link;
-
-#ifndef EMSCRIPTEN
-    struct gputop_perf_stream stream;
-#endif
-};
 
 extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
@@ -272,6 +277,10 @@ void gputop_perf_accumulate(struct gputop_perf_query *query,
 			    const uint8_t *report1);
 
 void gputop_perf_read_samples(struct gputop_perf_query *query);
+void gputop_perf_print_records(struct gputop_perf_stream *stream,
+			       uint64_t head,
+			       uint64_t tail,
+			       bool sample_data);
 
 bool gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type);
 void gputop_perf_oa_trace_close(void);
@@ -308,10 +317,13 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+			       bool overwrite,
 			       void *user_data);
-void gputop_perf_close_i915_oa_query(struct gputop_perf_stream *stream);
 
 void gputop_perf_update_header_offsets(struct gputop_perf_stream *stream);
+
+void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
+void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
 #endif
 
 #endif /* _GPUTOP_PERF_H_ */
