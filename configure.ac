@@ -94,10 +94,7 @@ dnl ================================================================
 dnl Compiler stuff.
 dnl ================================================================
 AC_PROG_CC
-AC_PROG_CPP
-AM_PROG_CC_C_O
-AC_ISC_POSIX
-AC_C_CONST
+AC_PROG_CXX
 
 dnl ================================================================
 dnl Libtool stuff.
@@ -130,7 +127,7 @@ AC_CHECK_LIB(ncursesw, [subwin],
 	     [],
 	     [AC_MSG_ERROR([gputop requires ncurses])])
 
-PKG_CHECK_MODULES(GPUTOP_DEP, [libprotobuf-c])
+PKG_CHECK_MODULES(PROTOBUF_DEP, [protobuf])
 
 PKG_CHECK_EXISTS([gl x11], [have_glx=yes], [have_glx=no])
 AC_ARG_ENABLE(
@@ -160,8 +157,6 @@ dnl ================================================================
 AC_SUBST(GPUTOP_EXTRA_CPPFLAGS)
 AC_SUBST(GPUTOP_EXTRA_CFLAGS)
 AC_SUBST(GPUTOP_EXTRA_LDFLAGS)
-AC_SUBST(GPUTOP_DEP_CFLAGS)
-AC_SUBST(GPUTOP_DEP_LIBS)
 
 dnl ================================================================
 dnl Dah Da!
@@ -170,6 +165,8 @@ AC_OUTPUT(
 Makefile
 libuv/Makefile
 h2o/Makefile
+protobuf-c/Makefile
+protoc-c/Makefile
 gputop/Makefile
 gputop/registry/Makefile
 gputop/web/Makefile

@@ -45,17 +45,16 @@ libgputop_la_SOURCES = \
     gputop-ui.h \
     gputop-ui.c
 libgputop_la_CFLAGS = \
-    $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
 libgputop_la_LDFLAGS = \
-    $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
+    $(top_builddir)/protobuf-c/libprotobuf-c.la \
     -lm \
     -lncursesw \
     -lssl -lcrypto -lyaml
@@ -125,7 +124,7 @@ oa-bdw.h: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-bdw.h $(srcdir)/oa-bdw.xml
 
 %.pb-c.c %.pb-c.h: %.proto
-	protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
+	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
 
 EXTRA_DIST = gputop.proto
 
