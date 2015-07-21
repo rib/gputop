@@ -131,6 +131,7 @@ static unsigned int page_size;
 
 struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
 struct gputop_perf_query *gputop_current_perf_query;
+struct gputop_perf_stream *gputop_current_perf_stream;
 
 /******************************************************************************/
 
@@ -171,9 +172,9 @@ perf_event_open (struct perf_event_attr *hw_event,
 static void
 perf_ready_cb(uv_poll_t *poll, int status, int events)
 {
-    struct gputop_perf_query *query = poll->data;
+    struct gputop_perf_stream *stream = poll->data;
 
-    gputop_perf_read_samples(query);
+    gputop_perf_read_samples(stream);
 }
 
 void
@@ -219,8 +220,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite,
-			       void *user_data)
+			       bool overwrite)
 {
     struct gputop_perf_stream *stream;
     drm_i915_oa_attr_t oa_attr;
@@ -291,11 +291,9 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 	    xmalloc(sizeof(uint32_t) * expected_max_samples);
     }
 
-    stream->fd_poll.data = user_data;
+    stream->fd_poll.data = stream;
     uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
     uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
-
-    gputop_list_init(&stream->link);
 
     return stream;
 }
@@ -639,7 +637,7 @@ gputop_perf_print_records(struct gputop_perf_stream *stream,
 
 	case PERF_RECORD_SAMPLE: {
 	    struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
-	    uint8_t *report = (uint8_t *)perf_sample->raw_data;
+	    //uint8_t *report = (uint8_t *)perf_sample->raw_data;
 
 	    printf("   - Sample\n");
 
@@ -659,9 +657,9 @@ gputop_perf_print_records(struct gputop_perf_stream *stream,
 }
 
 void
-gputop_perf_read_samples(struct gputop_perf_query *query)
+gputop_perf_read_samples(struct gputop_perf_stream *stream)
 {
-    struct gputop_perf_stream *stream = &query->stream;
+    struct gputop_perf_query *query = stream->query;
     uint8_t *data = stream->buffer;
     const uint64_t mask = stream->buffer_size - 1;
     uint64_t head;
@@ -1047,13 +1045,13 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 16;
 
-    if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
-					period_exponent,
-					32 * page_size,
-					perf_ready_cb,
-					false,
-					gputop_current_perf_query))
-    {
+    gputop_current_perf_stream =
+	gputop_perf_open_i915_oa_query(gputop_current_perf_query,
+				       period_exponent,
+				       32 * page_size,
+				       perf_ready_cb,
+				       false);
+    if (!gputop_current_perf_stream) {
 	gputop_current_perf_query = NULL;
 	return false;
     }
@@ -1067,9 +1065,10 @@ gputop_perf_overview_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    gputop_perf_close_i915_oa_query(&gputop_current_perf_query->stream);
+    gputop_perf_stream_unref(gputop_current_perf_stream);
 
     gputop_current_perf_query = NULL;
+    gputop_current_perf_stream = NULL;
 }
 
 int gputop_perf_trace_buffer_size;
@@ -1132,13 +1131,13 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
      */
     period_exponent = 11;
 
-    if (!gputop_perf_open_i915_oa_query(gputop_current_perf_query,
-					period_exponent,
-					32 * page_size,
-					perf_ready_cb,
-					false,
-					gputop_current_perf_query))
-    {
+    gputop_current_perf_stream =
+	gputop_perf_open_i915_oa_query(gputop_current_perf_query,
+				       period_exponent,
+				       32 * page_size,
+				       perf_ready_cb,
+				       false);
+    if (!gputop_current_perf_stream) {
 	gputop_current_perf_query = NULL;
 	return false;
     }
@@ -1162,7 +1161,8 @@ gputop_perf_oa_trace_close(void)
     if (!gputop_current_perf_query)
 	return;
 
-    gputop_perf_close_i915_oa_query(&gputop_current_perf_query->stream);
+    gputop_perf_stream_unref(gputop_current_perf_stream);
 
     gputop_current_perf_query = NULL;
+    gputop_current_perf_stream = NULL;
 }

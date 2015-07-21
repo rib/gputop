@@ -253,6 +253,7 @@ struct gputop_perf_stream
 
 extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
+extern struct gputop_perf_stream *gputop_current_perf_stream;
 
 typedef enum gputop_perf_query_type
 {
@@ -276,7 +277,7 @@ void gputop_perf_accumulate(struct gputop_perf_query *query,
 			    const uint8_t *report0,
 			    const uint8_t *report1);
 
-void gputop_perf_read_samples(struct gputop_perf_query *query);
+void gputop_perf_read_samples(struct gputop_perf_stream *stream);
 void gputop_perf_print_records(struct gputop_perf_stream *stream,
 			       uint64_t head,
 			       uint64_t tail,
@@ -317,8 +318,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite,
-			       void *user_data);
+			       bool overwrite);
 
 void gputop_perf_update_header_offsets(struct gputop_perf_stream *stream);
 
