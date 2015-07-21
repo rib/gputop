@@ -273,7 +273,7 @@ perf_counters_redraw(WINDOW *win)
 	return;
     }
 
-    gputop_perf_read_samples(gputop_current_perf_query);
+    gputop_perf_read_samples(gputop_current_perf_stream);
 
     for (j = 0; j < query->n_counters; j++) {
 	struct gputop_perf_query_counter *counter = &query->counters[j];
@@ -501,7 +501,7 @@ perf_oa_trace_redraw(WINDOW *win)
 	return;
     }
 
-    gputop_perf_read_samples(gputop_current_perf_query);
+    gputop_perf_read_samples(gputop_current_perf_stream);
 
     if (!gputop_perf_trace_full) {
 	mvwprintw(win, 2, 0, "Trace buffer fill %3.0f%: ", fill_percentage);
