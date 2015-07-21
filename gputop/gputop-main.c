@@ -40,10 +40,30 @@ usage(void)
 {
     printf ("Usage: gputop [options] <program> [program args...]\n"
 	    "\n"
-	    "     --libgl=<libgl_filename>      Explicitly specify the real libGL library to intercept\n"
-	    "     --libegl=<libegl_filename>    Explicitly specify the real libEGL library to intercept\n"
-	    "     --debug-context		Create a debug context and report KHR_debug perf issues\n"
-	    " -h, --help                        Display this help\n\n");
+	    "     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
+	    "                                   library to intercept\n"
+	    "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
+	    "                                   library to intercept\n"
+	    "     --debug-context               Create a debug context and report\n"
+	    "                                   KHR_debug perf issues\n"
+	    "     --remote                      Enable remote web-based interface\n"
+	    " -h, --help                        Display this help\n"
+	    "\n"
+	    " Note: gputop is only a wrapper for setting environment variables\n"
+	    " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
+	    " system-wide metrics (when no program is specified) gputop-system\n"
+	    " is run as a dummy 'GL' application.\n"
+	    "\n"
+	    " Environment:\n"
+	    "\n"
+	    "     LD_LIBRARY_PATH=<prefix>/lib/wrappers/libGL.so\n"
+	    "                                   The gputop libGL.so interposer\n"
+	    "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
+	    "                                   to from interposer\n"
+	    "\n"
+	    ""
+	    );
+
     exit(1);
 }
 
