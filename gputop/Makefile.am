@@ -97,6 +97,6 @@ oa-bdw.h: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-bdw.h $(srcdir)/oa-bdw.xml
 
 %.pb-c.c %.pb-c.h: %.proto
-	protoc-c --c_out=$(top_builddir)/gputop $(srcdir)/$(*).proto
+	protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
 
 EXTRA_DIST = gputop.proto
