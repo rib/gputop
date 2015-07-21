@@ -23,7 +23,9 @@
 
 /* This list implementation is based on the Wayland source code */
 
+#ifndef EMSCRIPTEN
 #include <config.h>
+#endif
 
 #include <stdlib.h>
 #include <string.h>
