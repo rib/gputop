@@ -46,17 +46,18 @@ libgputop_la_SOURCES = \
     gputop-ui.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
+    $(NCURSES_DEP_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
 libgputop_la_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
+    $(NCURSES_DEP_LIBS) \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
     -lm \
-    -lncursesw \
     -lssl -lcrypto -lyaml
 
 if SUPPORT_GL

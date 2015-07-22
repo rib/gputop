@@ -123,10 +123,7 @@ dnl ================================================================
 
 AX_PYTHON_MODULE(lxml, [error])
 
-AC_CHECK_LIB(ncursesw, [subwin],
-	     [],
-	     [AC_MSG_ERROR([gputop requires ncurses])])
-
+PKG_CHECK_MODULES(NCURSES_DEP, [ncursesw])
 PKG_CHECK_MODULES(PROTOBUF_DEP, [protobuf])
 
 PKG_CHECK_EXISTS([gl x11], [have_glx=yes], [have_glx=no])
