@@ -87,7 +87,7 @@ endif
 #libEGL_la_LIBADD = libgputop.la
 #libEGL_la_LDFLAGS = -shared -version-info 1
 
-gputop_system_LDFLAGS = \
+gputop_system_LDADD = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     libgputop.la
@@ -101,7 +101,7 @@ gputop_system_CPPFLAGS = \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
 if SUPPORT_GL
-gputop_system_LDFLAGS += $(GLX_DEP_LIBS)
+gputop_system_LDADD += $(GLX_DEP_LIBS)
 gputop_system_CFLAGS += $(GLX_DEP_CFLAGS)
 endif
 
