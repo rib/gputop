@@ -15,7 +15,8 @@ gputop_SOURCES = gputop-main.c
 gputop_LDFLAGS = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
-    -export-dynamic
+    -export-dynamic \
+    -ldl
 gputop_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)
