@@ -640,7 +640,7 @@ bool gputop_server_run(void)
         dbg("uv_tcp_init:%s\n", uv_strerror(r));
         goto error;
     }
-    uv_ip4_addr("127.0.0.1", 7890, &sockaddr);
+    uv_ip4_addr("0.0.0.0", 7890, &sockaddr);
     if ((r = uv_tcp_bind(&listener, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) != 0) {
         dbg("uv_tcp_bind:%s\n", uv_strerror(r));
         goto error;
