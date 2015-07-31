@@ -209,8 +209,11 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
 
     if (!closure->header_written) {
 	assert(len > 8);
+
+	memset(data, 0, 8);
 	data[0] = WS_MESSAGE_PERF;
-	data[1] = closure->id;
+	*(uint32_t *)(data + 4) = closure->id;
+
 	total = 8;
 	data += 8;
 	len -= 8;
@@ -340,13 +343,10 @@ send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
 }
 
 static void
-timer_cb(uv_timer_t *timer)
+forward_logs(void)
 {
-    Gputop__Log *log;
+    Gputop__Log *log = gputop_get_pb_log();
 
-    flush_perf_samples();
-
-    log = gputop_get_pb_log();
     if (log) {
 	Gputop__Message msg = GPUTOP__MESSAGE__INIT;
 
@@ -359,6 +359,48 @@ timer_cb(uv_timer_t *timer)
 
 	gputop_pb_log_free(log);
     }
+}
+
+static void
+periodic_forward_cb(uv_timer_t *timer)
+{
+    flush_perf_samples();
+
+    forward_logs();
+}
+
+static void
+periodic_update_head_pointers(uv_timer_t *timer)
+{
+    struct gputop_perf_stream *stream;
+
+    gputop_list_for_each(stream, &perf_streams, user.link) {
+	struct gputop_perf_header_buf *hdr_buf  = &stream->header_buf;
+
+	if (stream->query) {
+	    if (fsync(stream->fd) < 0)
+		dbg("Failed to flush i915_oa perf samples");
+	}
+
+	gputop_perf_update_header_offsets(stream);
+
+	if (!hdr_buf->full) {
+	    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+	    Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
+
+	    notify.query_id = stream->user.id;
+	    notify.fill_percentage =
+		(hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
+		 (float)stream->buffer_size) * 100.0f;
+	    message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
+	    message.fill_notify = &notify;
+
+	    send_pb_message(h2o_conn, &message.base);
+	    dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
+	}
+    }
+
+    forward_logs();
 }
 
 static void
@@ -376,7 +418,19 @@ stream_close_cb(struct gputop_perf_stream *stream)
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__CloseNotify notify = GPUTOP__CLOSE_NOTIFY__INIT;
 
+    if (stream->user.data) {
+	message.reply_uuid = stream->user.data;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+	message.ack = true;
+
+	free(stream->user.data);
+	stream->user.data = NULL;
+
+	send_pb_message(h2o_conn, &message.base);
+    }
+
     notify.id = stream->user.id;
+
     message.cmd_case = GPUTOP__MESSAGE__CMD_CLOSE_NOTIFY;
     message.close_notify = &notify;
 
@@ -387,50 +441,212 @@ stream_close_cb(struct gputop_perf_stream *stream)
 
 static void
 handle_open_i915_oa_query(h2o_websocket_conn_t *conn,
-			  uint32_t id,
-			  Gputop__OAQueryInfo *oa_query_info)
+			  Gputop__Request *request)
 {
-    if (gputop_perf_initialize()) {
-	int page_size = sysconf(_SC_PAGE_SIZE);
-	struct gputop_perf_query *perf_query;
-	struct gputop_perf_stream *stream;
+    Gputop__OpenQuery *open_query = request->open_query;
+    uint32_t id = open_query->id;
+    Gputop__OAQueryInfo *oa_query_info = open_query->oa_query;
+    struct gputop_perf_query *perf_query;
+    struct gputop_perf_stream *stream;
+    char *error = NULL;
+    int buffer_size;
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
 
-	perf_query = &perf_queries[oa_query_info->metric_set];
-
-	stream = gputop_perf_open_i915_oa_query(perf_query,
-						oa_query_info->period_exponent,
-						32 * page_size,
-						perf_ready_cb,
-						oa_query_info->overwrite);
-	if (stream) {
-	    stream->user.id = id;
-	    stream->user.destroy_cb = stream_close_cb;
-	    gputop_list_init(&stream->user.link);
-	    gputop_list_insert(perf_streams.prev, &stream->user.link);
-
-	    uv_timer_start(&timer, timer_cb, 200, 200);
-	} else
-	    dbg("Failed to open perf query set=%d period=%d: %s\n",
-		oa_query_info->metric_set, oa_query_info->period_exponent,
-		perf_query->error);
+    if (!gputop_perf_initialize()) {
+	message.reply_uuid = request->uuid;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+	message.error = "Failed to initialize perf\n";
+	send_pb_message(conn, &message.base);
+	return;
     }
+    dbg("handle_open_i915_oa_query\n");
+
+    perf_query = &perf_queries[oa_query_info->metric_set];
+
+    /* NB: Perf buffer size must be a power of two.
+     * We don't need a large buffer if we're periodically forwarding data */
+    if (open_query->live_updates)
+	buffer_size = 128 * 1024;
+    else
+	buffer_size = 16 * 1024 * 1024;
+
+    stream = gputop_perf_open_i915_oa_query(perf_query,
+					    oa_query_info->period_exponent,
+					    buffer_size,
+					    perf_ready_cb,
+					    open_query->overwrite,
+					    &error);
+    if (stream) {
+	stream->user.id = id;
+	stream->user.data = NULL;
+	stream->user.destroy_cb = stream_close_cb;
+	gputop_list_init(&stream->user.link);
+	gputop_list_insert(perf_streams.prev, &stream->user.link);
+
+	if (open_query->live_updates)
+	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+	else
+	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+    } else {
+	dbg("Failed to open perf query set=%d period=%d: %s\n",
+	    oa_query_info->metric_set, oa_query_info->period_exponent,
+	    error);
+	free(error);
+    }
+
+    message.reply_uuid = request->uuid;
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+    message.ack = true;
+    send_pb_message(conn, &message.base);
 }
 
 static void
-handle_open_query(h2o_websocket_conn_t *conn,
-		  Gputop__OpenQuery *open_query)
+handle_open_trace_query(h2o_websocket_conn_t *conn,
+			Gputop__Request *request)
 {
-    if (open_query->type_case == GPUTOP__OPEN_QUERY__TYPE_OA_QUERY) {
-	handle_open_i915_oa_query(conn, open_query->id, open_query->oa_query);
-    } else
+    Gputop__OpenQuery *open_query = request->open_query;
+    uint32_t id = open_query->id;
+    Gputop__TraceInfo *trace_info = open_query->trace;
+    struct gputop_perf_stream *stream;
+    char *error = NULL;
+    int buffer_size;
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+
+    if (!gputop_perf_initialize()) {
+	message.reply_uuid = request->uuid;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+	message.error = "Failed to initialize perf\n";
+	send_pb_message(conn, &message.base);
+	return;
+    }
+
+    /* NB: Perf buffer size must be a power of two.
+     * We don't need a large buffer if we're periodically forwarding data */
+    if (open_query->live_updates)
+	buffer_size = 128 * 1024;
+    else
+	buffer_size = 16 * 1024 * 1024;
+
+    stream = gputop_perf_open_trace(trace_info->pid,
+				    trace_info->cpu,
+				    trace_info->system,
+				    trace_info->event,
+				    12, /* FIXME: guess trace struct size
+					 * used to estimate number of samples
+					 * that will fit in buffer */
+				    buffer_size,
+				    perf_ready_cb,
+				    open_query->overwrite,
+				    &error);
+    if (stream) {
+	stream->user.id = id;
+	stream->user.destroy_cb = stream_close_cb;
+	gputop_list_init(&stream->user.link);
+	gputop_list_insert(perf_streams.prev, &stream->user.link);
+
+	if (open_query->live_updates)
+	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+	else
+	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+    } else {
+	dbg("Failed to open trace %s:%s: %s\n",
+	    trace_info->system, trace_info->event, error);
+	free(error);
+    }
+
+    message.reply_uuid = request->uuid;
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+    message.ack = true;
+    send_pb_message(conn, &message.base);
+}
+
+static void
+handle_open_generic_query(h2o_websocket_conn_t *conn,
+			  Gputop__Request *request)
+{
+    Gputop__OpenQuery *open_query = request->open_query;
+    uint32_t id = open_query->id;
+    Gputop__GenericEventInfo *generic_info = open_query->generic;
+    struct gputop_perf_stream *stream;
+    char *error = NULL;
+    int buffer_size;
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+
+    if (!gputop_perf_initialize()) {
+	message.reply_uuid = request->uuid;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+	message.error = "Failed to initialize perf\n";
+	send_pb_message(conn, &message.base);
+	return;
+    }
+
+    /* NB: Perf buffer size must be a power of two.
+     * We don't need a large buffer if we're periodically forwarding data */
+    if (open_query->live_updates)
+	buffer_size = 128 * 1024;
+    else
+	buffer_size = 16 * 1024 * 1024;
+
+    stream = gputop_perf_open_generic_counter(generic_info->pid,
+					      generic_info->cpu,
+					      generic_info->type,
+					      generic_info->config,
+					      buffer_size,
+					      perf_ready_cb,
+					      open_query->overwrite,
+					      &error);
+    if (stream) {
+	stream->user.id = id;
+	stream->user.destroy_cb = stream_close_cb;
+	gputop_list_init(&stream->user.link);
+	gputop_list_insert(perf_streams.prev, &stream->user.link);
+
+	if (open_query->live_updates)
+	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+	else
+	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+    } else {
+	dbg("Failed to open perf event: %s\n", error);
+	free(error);
+    }
+
+    message.reply_uuid = request->uuid;
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+    message.ack = true;
+    send_pb_message(conn, &message.base);
+}
+static void
+handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
+{
+    Gputop__OpenQuery *open_query = request->open_query;
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+
+
+    switch (open_query->type_case) {
+    case GPUTOP__OPEN_QUERY__TYPE_OA_QUERY:
+	handle_open_i915_oa_query(conn, request);
+	break;
+    case GPUTOP__OPEN_QUERY__TYPE_TRACE:
+	handle_open_trace_query(conn, request);
+	break;
+    case GPUTOP__OPEN_QUERY__TYPE_GENERIC:
+	handle_open_generic_query(conn, request);
+	break;
+    default:
+	message.reply_uuid = request->uuid;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+	message.error = "FIXME: implement support for opening GL queries\n";
+
+	send_pb_message(conn, &message.base);
 	fprintf(stderr, "TODO: support opening GL queries");
+    }
 }
 
 static void
 close_stream(struct gputop_perf_stream *stream)
 {
     /* NB: we can't synchronously close the perf event since
-     * we may be in the middle of writting samples to the
+     * we may be in the middle of writing samples to the
      * websocket.
      *
      * By moving the stream into the closing_streams list
@@ -452,27 +668,105 @@ close_all_streams(void)
 }
 
 static void
-handle_close_query(h2o_websocket_conn_t *conn, uint32_t id)
+handle_close_query(h2o_websocket_conn_t *conn,
+		  Gputop__Request *request)
 {
     struct gputop_perf_stream *stream;
+    uint32_t id = request->close_query;
 
     gputop_list_for_each(stream, &perf_streams, user.link) {
 	if (stream->user.id == id) {
+	    assert(stream->user.data == NULL);
+
+	    stream->user.data = strdup(request->uuid);
 	    close_stream(stream);
 	    return;
 	}
     }
 }
 
-static void
-handle_get_features(h2o_websocket_conn_t *conn)
+static bool
+read_file(const char *filename, void *buf, int max)
 {
+    int fd;
+    int n;
+
+    memset(buf, 0, max);
+
+    fd = open(filename, 0);
+    if (fd < 0)
+	return false;
+    n = read(fd, buf, max - 1);
+    close(fd);
+    if (n < 0)
+	return false;
+
+    return true;
+}
+
+static int
+query_n_cpus(void)
+{
+    char buf[32];
+    unsigned ignore = 0, max_cpu = 0;
+
+    if (!read_file("/sys/devices/system/cpu/present", buf, sizeof(buf)))
+	return 0;
+
+    if (sscanf(buf, "%u-%u", &ignore, &max_cpu) != 2)
+	return 0;
+
+    return max_cpu + 1;
+}
+
+static bool
+read_cpu_model(char *buf, int len)
+{
+    FILE *fp;
+    char *line = NULL;
+    size_t line_len = 0;
+    ssize_t read;
+    const char *key = "model name\t: ";
+    int key_len = strlen(key);
+
+    memset(buf, 0, len);
+
+    snprintf(buf, len, "Unknown");
+
+    fp = fopen("/proc/cpuinfo", "r");
+    if (!fp)
+	return false;
+
+    while ((read = getline(&line, &line_len, fp)) != -1) {
+	if (strncmp(key, line, key_len) == 0) {
+	    snprintf(buf, len, "%s", line + key_len);
+	    fclose(fp);
+	    free(line);
+	    return true;
+	}
+    }
+
+    fclose(fp);
+    free(line);
+    return false;
+}
+
+static void
+handle_get_features(h2o_websocket_conn_t *conn,
+		    Gputop__Request *request)
+{
+    char kernel_release[128];
+    char kernel_version[256];
+    char cpu_model[128];
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__Features features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
 
     if (!gputop_perf_initialize()) {
-	dbg("Failed to initialize perf\n");
+	message.reply_uuid = request->uuid;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+	message.error = "Failed to initialize perf\n";
+	send_pb_message(conn, &message.base);
 	return;
     }
 
@@ -490,8 +784,36 @@ handle_get_features(h2o_websocket_conn_t *conn)
 #endif
     features.has_i915_oa = true;
 
+    features.n_cpus = query_n_cpus();
+
+    read_cpu_model(cpu_model, sizeof(cpu_model));
+    features.cpu_model = cpu_model;
+
+    read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
+    read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
+    features.kernel_release = kernel_release;
+    features.kernel_build = kernel_version;
+
+    message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;
     message.features = &features;
+
+    dbg("GPU:\n");
+    dbg("  Device ID = 0x%x\n", devinfo.devid);
+    dbg("  EU Count = %u\n", devinfo.n_eus);
+    dbg("  EU Slice Count = %u\n", devinfo.n_eu_slices);
+    dbg("  EU Sub Slice Count = %u\n", devinfo.n_eu_sub_slices);
+    dbg("  Sampler Count = %u\n", devinfo.n_samplers);
+    dbg("  OA Metrics Available = %s\n", features.has_i915_oa ? "true" : "false");
+    dbg("  OpenGL Metrics Available = %s\n", features.has_gl_performance_query ? "true" : "false");
+    dbg("\n");
+    dbg("CPU:\n");
+    dbg("  Model = %s\n", features.cpu_model);
+    dbg("  Core Count = %u\n", features.n_cpus);
+    dbg("\n");
+    dbg("SYSTEM:\n");
+    dbg("  Kernel Release = %s\n", features.kernel_release);
+    dbg("  Kernel Build = %s\n", features.kernel_build);
 
     send_pb_message(conn, &message.base);
 }
@@ -499,11 +821,11 @@ handle_get_features(h2o_websocket_conn_t *conn)
 static void on_ws_message(h2o_websocket_conn_t *conn,
 			  const struct wslay_event_on_msg_recv_arg *arg)
 {
-    fprintf(stderr, "on_ws_message\n");
-    dbg("on_ws_message\n");
+    //fprintf(stderr, "on_ws_message\n");
+    //dbg("on_ws_message\n");
 
     if (arg == NULL) {
-	dbg("socket closed\n");
+	//dbg("socket closed\n");
 	close_all_streams();
         h2o_websocket_close(conn);
         return;
@@ -525,15 +847,15 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
 	switch (request->req_case) {
 	case GPUTOP__REQUEST__REQ_GET_FEATURES:
 	    fprintf(stderr, "GetFeatures request received\n");
-	    handle_get_features(conn);
+	    handle_get_features(conn, request);
 	    break;
 	case GPUTOP__REQUEST__REQ_OPEN_QUERY:
 	    fprintf(stderr, "OpenQuery request received\n");
-	    handle_open_query(conn, request->open_query);
+	    handle_open_query(conn, request);
 	    break;
 	case GPUTOP__REQUEST__REQ_CLOSE_QUERY:
 	    fprintf(stderr, "CloseQuery request received\n");
-	    handle_close_query(conn, request->close_query);
+	    handle_close_query(conn, request);
 	    break;
 	case GPUTOP__REQUEST__REQ__NOT_SET:
 	    assert(0);
@@ -548,7 +870,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
     const char *client_key;
     ssize_t proto_header_index;
 
-    dbg("on_req\n");
+    //dbg("on_req\n");
 
     if (h2o_is_websocket_handshake(req, &client_key) != 0 || client_key == NULL) {
         return -1;
@@ -559,7 +881,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
                                                 strlen("sec-websocket-protocol"),
                                                 SIZE_MAX);
     if (proto_header_index != -1) {
-        dbg("sec-websocket-protocols found\n");
+        //dbg("sec-websocket-protocols found\n");
         h2o_add_header_by_str(&req->pool, &req->res.headers,
                               "sec-websocket-protocol",
                               strlen("sec-websocket-protocol"),
@@ -576,7 +898,7 @@ static void on_connect(uv_stream_t *server, int status)
     uv_tcp_t *conn;
     h2o_socket_t *sock;
 
-    dbg("on_connect\n");
+    //dbg("on_connect\n");
 
     if (status != 0)
         return;
