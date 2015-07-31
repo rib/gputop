@@ -37,28 +37,44 @@ onmessage = function(e) {
     var stack = Runtime.stackSave();
 
     /*
-     * UI messages to the web worker should look like:
+     * UI request messages to the web worker should look like:
      *
-     * { "method": "set_foo", "params": [ "arg", 0.35 ] }
+     *   { "method": "set_foo", "params": [ "arg", 0.35 ], "uuid": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx" }
      *
      * We lookup a C function based on the method name
      * (in this case "gputop_webworker_on_set_foo")
      *
      * Before calling the function we copy any strings in params[]
      * to the Emscripten stack.
+     *
+     * The ID may be used to send replies
+     *
+     * We use UUIDs to easily allow requests that start in different
+     * components (e.g. UI vs worker initiated requests)
      */
     var args = [];
     var i = 0;
+    /*
+    console.log("params:");
+    for (var arg of req.params) {
+	console.log("  " + arg);
+    }
+    */
+
     for (var arg of req.params) {
 	if (arg.substring) /* recognise literals or objects */
 	    args[i++] = allocate(intArrayFromString(arg), 'i8', ALLOC_STACK);
 	else if (arg.toFixed)
 	    args[i++] = arg;
-	else if (typeof arg == "boolean")
-	    args[i++] = true ? 1 : 0;
+	else if (typeof arg === "boolean")
+	    args[i++] = arg ? 1 : 0;
 	else
 	    console.warn("JS param couldn't be coerced for calling " + sym_name + ": param = " + arg)
     }
+
+    args[i++] = allocate(intArrayFromString(req.uuid), 'i8', ALLOC_STACK);
+
+    //console.log("n arguments = " + args.length);
 
     func.apply(this, args);
 
