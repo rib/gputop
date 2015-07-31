@@ -1,5 +1,9 @@
 package gputop;
 
+/*
+ * To Browser
+ */
+
 message DevInfo
 {
     required uint32 devid = 1;
@@ -51,6 +55,11 @@ message Features
     required bool has_i915_oa = 3;
     repeated GLQueryInfo gl_queries = 4;
     /* NB: Available OA queries are inferred from devinfo */
+
+    required uint32 n_cpus = 5;
+    required string cpu_model = 6;
+    required string kernel_release = 7;
+    required string kernel_build = 8;
 }
 
 message LogEntry
@@ -70,24 +79,50 @@ message CloseNotify
     required uint32 id=1;
 }
 
-/*
- * To Browser
- */
+message BufferFillNotify
+{
+    required uint32 query_id=1;
+    required uint32 fill_percentage=2;
+}
+
 message Message
 {
+    optional string reply_uuid = 1;
+
     oneof cmd {
-	Features features = 1;
-	Log log = 2;
-	CloseNotify close_notify = 3;
+	string error = 2;
+	bool ack = 3;
+	Features features = 4;
+	Log log = 5;
+	CloseNotify close_notify = 6;
+	BufferFillNotify fill_notify = 7;
     }
 }
 
+/*
+ * From Browser
+ */
 message OAQueryInfo
 {
     required uint32 metric_set = 1;
     //required uint32 format = 2;
     required uint32 period_exponent = 3;
-    required bool overwrite = 4;
+}
+
+message TraceInfo
+{
+    required int32 pid = 1;
+    required int32 cpu = 2;
+    required string system = 3;
+    required string event = 4;
+}
+
+message GenericEventInfo
+{
+    required int32 pid = 1;
+    required int32 cpu = 2;
+    required uint64 type = 3; //E.g. _TYPE_SOFTWARE or _TYPE_HARDWARE
+    required uint64 config = 4; //E.g _COUNT_SW_CONTEXT_SWITCHES
 }
 
 message OpenQuery
@@ -97,17 +132,20 @@ message OpenQuery
     oneof type {
 	uint32 gl_query = 2;
 	OAQueryInfo oa_query = 3;
+	TraceInfo trace = 4;
+	GenericEventInfo generic = 5;
     }
+    required bool overwrite = 6;
+    required bool live_updates = 7;
 }
 
-/*
- * From Browser
- */
 message Request
 {
+    required string uuid = 1;
+
     oneof req {
-	bool get_features = 1;
-	OpenQuery open_query = 2;
-	uint32 close_query = 3;
+	bool get_features = 2;
+	OpenQuery open_query = 3;
+	uint32 close_query = 4;
     }
 }
