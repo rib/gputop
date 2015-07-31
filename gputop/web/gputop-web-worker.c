@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
+#include <uuid/uuid.h>
 
 #include <emscripten.h>
 
@@ -298,7 +299,7 @@ forward_query_update(struct gputop_worker_query *query)
 }
 
 static void
-handle_query_perf_data(struct gputop_worker_query *query, uint8_t *data, int len)
+handle_oa_query_perf_data(struct gputop_worker_query *query, uint8_t *data, int len)
 {
     struct gputop_perf_query *oa_query = query->oa_query;
     const struct perf_event_header *header;
@@ -411,7 +412,8 @@ handle_perf_message(int id, uint8_t *data, int len)
     gputop_list_for_each(query, &open_queries, link) {
 
 	if (query->id == id) {
-	    handle_query_perf_data(query, data, len);
+	    if (query->oa_query)
+		handle_oa_query_perf_data(query, data, len);
 	    return;
 	}
     }
@@ -533,17 +535,38 @@ update_features(Gputop__Features *features)
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
 
 	gputop_oa_add_compute_basic_counter_query_hsw();
+	gputop_string_append(str, ",\n");
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_BASIC]);
 	gputop_oa_add_compute_extended_counter_query_hsw();
+	gputop_string_append(str, ",\n");
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_EXTENDED]);
 	gputop_oa_add_memory_reads_counter_query_hsw();
+	gputop_string_append(str, ",\n");
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_READS]);
 	gputop_oa_add_memory_writes_counter_query_hsw();
+	gputop_string_append(str, ",\n");
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_WRITES]);
 	gputop_oa_add_sampler_balance_counter_query_hsw();
+	gputop_string_append(str, ",\n");
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_SAMPLER_BALANCE]);
     } else if (IS_BROADWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Broadwell queries\n");
 	gputop_oa_add_render_basic_counter_query_bdw();
     } else
 	assert_not_reached();
 
-    gputop_string_append(str, "] } ] }\n");
+    gputop_string_append(str, "],\n");
+    gputop_string_append_printf(str, " \"n_cpus\": %u,\n", features->n_cpus);
+    gputop_string_append(str, " \"cpu_model\": \"");
+    gputop_string_append_escaped(str, features->cpu_model);
+    gputop_string_append(str, "\",\n");
+    gputop_string_append(str, " \"kernel_release\": \"");
+    gputop_string_append_escaped(str, features->kernel_release);
+    gputop_string_append(str, "\",\n");
+    gputop_string_append(str, " \"kernel_build\": \"");
+    gputop_string_append_escaped(str, features->kernel_build);
+    gputop_string_append(str, "\"\n");
+    gputop_string_append(str, " } ] }\n");
 
     _gputop_web_worker_post(str->str);
     gputop_string_free(str, true);
@@ -595,6 +618,48 @@ forward_close_notify(Gputop__CloseNotify *notify)
 }
 
 static void
+forward_fill_notify(Gputop__BufferFillNotify *notify)
+{
+    gputop_string_t *str = gputop_string_new("{ \"method\": \"fill_notify\", ");
+
+    gputop_string_append_printf(str, "\"params\": [ %u, %u ] }", notify->query_id, notify->fill_percentage);
+
+    _gputop_web_worker_post(str->str);
+    gputop_string_free(str, true);
+}
+
+static void
+post_empty_reply(const char *req_uuid)
+{
+    char *str = NULL;
+
+    asprintf(&str, "{ \"params\": [ {} ], \"uuid\": \"%s\" }", req_uuid);
+
+    _gputop_web_worker_post(str);
+
+    free(str);
+}
+
+static void
+forward_error(Gputop__Message *message)
+{
+    gputop_string_t *str = gputop_string_new("{ \"params\": [ { \"error\": \"");
+    gputop_string_append_escaped(str, message->error);
+    gputop_string_append(str, "\"} ], \"uuid\": \"");
+    gputop_string_append(str, message->reply_uuid);
+    gputop_string_append(str, "\" }");
+
+    _gputop_web_worker_post(str->str);
+    gputop_string_free(str, true);
+}
+
+static void
+forward_ack(Gputop__Message *message)
+{
+    post_empty_reply(message->reply_uuid);
+}
+
+static void
 handle_protobuf_message(uint8_t *data, int len)
 {
     Gputop__Message *message;
@@ -607,6 +672,14 @@ handle_protobuf_message(uint8_t *data, int len)
 						data);
 
     switch (message->cmd_case) {
+    case GPUTOP__MESSAGE__CMD_ERROR:
+	/* FIXME: check if the message originated here */
+	forward_error(message);
+	break;
+    case GPUTOP__MESSAGE__CMD_ACK:
+	/* FIXME: check if the message originated here */
+	forward_ack(message);
+	break;
     case GPUTOP__MESSAGE__CMD_FEATURES:
 	_gputop_web_console_log("Features message\n");
 	update_features(message->features);
@@ -618,6 +691,9 @@ handle_protobuf_message(uint8_t *data, int len)
     case GPUTOP__MESSAGE__CMD_CLOSE_NOTIFY:
 	forward_close_notify(message->close_notify);
 	break;
+    case GPUTOP__MESSAGE__CMD_FILL_NOTIFY:
+	forward_fill_notify(message->fill_notify);
+	break;
     case GPUTOP__MESSAGE__CMD__NOT_SET:
 	assert_not_reached();
     }
@@ -626,34 +702,41 @@ handle_protobuf_message(uint8_t *data, int len)
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_test(const char *msg, float val)
+gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 {
     gputop_web_console_log("test message from ui: (%s, %f)\n", msg, val);
+
+    post_empty_reply(req_uuid);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_open_oa_query(int id,
+gputop_webworker_on_open_oa_query(uint32_t id,
 				  int perf_metric_set,
 				  int period_exponent,
-				  bool overwrite,
-				  int aggregation_period)
+				  unsigned overwrite,
+				  int aggregation_period,
+				  unsigned live_updates,
+				  const char *req_uuid)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
     Gputop__OAQueryInfo oa_query = GPUTOP__OAQUERY_INFO__INIT;
     struct gputop_worker_query *query = malloc(sizeof(*query));
 
-    gputop_web_console_log("on_open_oa_query set=%d, exponent=%d, overwrite=%d\n",
-			   perf_metric_set, period_exponent, overwrite);
+    gputop_web_console_log("on_open_oa_query set=%d, exponent=%d, overwrite=%d live=%s\n",
+			   perf_metric_set, period_exponent, overwrite,
+			   live_updates ? "true" : "false");
 
     open.id = id;
     open.type_case = GPUTOP__OPEN_QUERY__TYPE_OA_QUERY;
     open.oa_query = &oa_query;
+    open.live_updates = live_updates;
+    open.overwrite = overwrite;
 
     oa_query.metric_set = perf_metric_set;
     oa_query.period_exponent = period_exponent;
-    oa_query.overwrite = overwrite;
 
+    req.uuid = req_uuid;
     req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
     req.open_query = &open;
 
@@ -667,7 +750,7 @@ gputop_webworker_on_open_oa_query(int id,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_close_oa_query(int id)
+gputop_webworker_on_close_oa_query(uint32_t id)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
     struct gputop_worker_query *query;
@@ -676,7 +759,13 @@ gputop_webworker_on_close_oa_query(int id)
 
     gputop_list_for_each(query, &open_queries, link) {
 	if (query->id == id) {
+	    char uuid_str[64];
+	    uuid_t uuid;
 
+	    uuid_generate(uuid);
+	    uuid_unparse(uuid, uuid_str);
+
+	    req.uuid = uuid_str;
 	    req.req_case = GPUTOP__REQUEST__REQ_CLOSE_QUERY;
 	    req.close_query = id;
 
@@ -691,6 +780,89 @@ gputop_webworker_on_close_oa_query(int id)
     gputop_web_console_warn("webworker: requested to close unknown query ID: %d\n", id);
 }
 
+void EMSCRIPTEN_KEEPALIVE
+gputop_webworker_on_open_tracepoint(uint32_t id,
+				    int pid,
+				    int cpu,
+				    const char *system,
+				    const char *event,
+				    unsigned overwrite,
+				    unsigned live_updates,
+				    const char *req_uuid)
+{
+    Gputop__Request req = GPUTOP__REQUEST__INIT;
+    Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
+    Gputop__TraceInfo trace = GPUTOP__TRACE_INFO__INIT;
+    struct gputop_worker_query *query = malloc(sizeof(*query));
+
+    gputop_web_console_log("on_open_trace pid=%d cpu=%d %s:%s overwrite=%s live=%s\n",
+			   pid, cpu, system, event, overwrite ? "true" : "false", live_updates ? "true" : "false");
+
+    open.id = id;
+    open.type_case = GPUTOP__OPEN_QUERY__TYPE_TRACE;
+    open.trace = &trace;
+    open.live_updates = live_updates;
+    open.overwrite = overwrite;
+
+    trace.pid = pid;
+    trace.cpu = cpu;
+    trace.system = system;
+    trace.event = event;
+
+    req.uuid = req_uuid;
+    req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
+    req.open_query = &open;
+
+    send_pb_message(socket, &req.base);
+
+    memset(query, 0, sizeof(*query));
+    query->id = id;
+    gputop_list_insert(open_queries.prev, &query->link);
+}
+
+void EMSCRIPTEN_KEEPALIVE
+gputop_webworker_on_open_generic(uint32_t id,
+				 int pid,
+				 int cpu,
+				 unsigned type,	    /* XXX: emscripten apparently
+						     * gets upset with uint64_t args!?
+						     * might just need to test with
+						     * a more recent version.*/
+				 unsigned config,
+				 unsigned overwrite,
+				 unsigned live_updates,
+				 const char *req_uuid)
+{
+    Gputop__Request req = GPUTOP__REQUEST__INIT;
+    Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
+    Gputop__GenericEventInfo generic = GPUTOP__GENERIC_EVENT_INFO__INIT;
+    struct gputop_worker_query *query = malloc(sizeof(*query));
+
+    gputop_web_console_log("on_open_generic pid=%d, cpu=%d, type=%u config=%u overwrite=%d live=%s\n",
+			   pid, cpu, type, config, overwrite, live_updates ? "true" : "false");
+
+    open.id = id;
+    open.type_case = GPUTOP__OPEN_QUERY__TYPE_GENERIC;
+    open.generic = &generic;
+    open.live_updates = live_updates;
+    open.overwrite = overwrite;
+
+    generic.pid = pid;
+    generic.cpu = cpu;
+    generic.type = type;
+    generic.config = config;
+
+    req.uuid = req_uuid;
+    req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
+    req.open_query = &open;
+
+    send_pb_message(socket, &req.base);
+
+    memset(query, 0, sizeof(*query));
+    query->id = id;
+    gputop_list_insert(open_queries.prev, &query->link);
+}
+
 /* Messages from the device... */
 static void
 gputop_websocket_onmessage(int socket, uint8_t *data, int len, void *user_data)
@@ -698,7 +870,8 @@ gputop_websocket_onmessage(int socket, uint8_t *data, int len, void *user_data)
     //gputop_web_console_log("onmessage len=%d\n", len);
 
     if (data[0] == 1) {
-	int id = data[1];
+	uint32_t id = *((uint32_t *)(data + 4));
+
 	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
 	handle_perf_message(id, data + 8, len - 8);
     } else
@@ -721,7 +894,13 @@ static void
 gputop_websocket_onopen(int socket, void *user_data)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
+    char uuid_str[64];
+    uuid_t uuid;
 
+    uuid_generate(uuid);
+    uuid_unparse(uuid, uuid_str);
+
+    req.uuid = uuid_str;
     req.req_case = GPUTOP__REQUEST__REQ_GET_FEATURES;
     req.get_features = true;
 
