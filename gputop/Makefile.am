@@ -43,6 +43,8 @@ libgputop_la_SOURCES = \
     gputop-util.h \
     gputop-list.h \
     gputop-list.c \
+    gputop-log.h \
+    gputop-log.c \
     gputop-ui.h \
     gputop-ui.c
 libgputop_la_CFLAGS = \

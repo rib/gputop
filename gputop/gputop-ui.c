@@ -38,6 +38,7 @@
 #include "gputop-ui.h"
 #include "gputop-util.h"
 #include "gputop-server.h"
+#include "gputop-log.h"
 
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
@@ -92,17 +93,6 @@ static double zoom = 1;
 static bool added_gl_tabs;
 static gputop_list_t tabs;
 
-static pthread_once_t log_init_once = PTHREAD_ONCE_INIT;
-static pthread_rwlock_t gputop_log_lock = PTHREAD_RWLOCK_INITIALIZER;
-static int gputop_log_len;
-static gputop_list_t gputop_log;
-
-struct log_entry {
-    gputop_list_t link;
-    char *msg;
-    int level;
-};
-
 static pthread_t gputop_ui_thread_id;
 
 uv_loop_t *gputop_ui_loop;
@@ -113,102 +103,6 @@ static void
 timer_cb(uv_timer_t *timer)
 {
     redraw_ui();
-}
-
-static void
-log_init(void)
-{
-    gputop_list_init(&gputop_log);
-}
-
-void
-gputop_ui_log(int level, const char *message, int len)
-{
-    struct log_entry *entry;
-
-    if (web_ui) {
-	fprintf(stderr, "%s", message);
-    }
-
-    pthread_once(&log_init_once, log_init);
-
-    if (len < 0)
-	len = strlen(message);
-
-    pthread_rwlock_wrlock(&gputop_log_lock);
-
-    if (gputop_log_len > 10000) {
-	entry = gputop_container_of(gputop_log.prev, entry, link);
-	gputop_list_remove(&entry->link);
-	free(entry->msg);
-	gputop_log_len--;
-    } else
-	entry = xmalloc(sizeof(*entry));
-
-    entry->level = level;
-    entry->msg = strndup(message, len);
-
-    gputop_list_insert(gputop_log.prev, &entry->link);
-    gputop_log_len++;
-
-    pthread_rwlock_unlock(&gputop_log_lock);
-}
-
-Gputop__Log *
-gputop_get_pb_log(void)
-{
-    Gputop__Log *log = NULL;
-    struct log_entry *entry, *tmp;
-    int i = 0;
-
-    pthread_once(&log_init_once, log_init);
-
-    if (!gputop_log_len) {
-	return NULL;
-    }
-
-    pthread_rwlock_rdlock(&gputop_log_lock);
-
-    log = xmalloc(sizeof(Gputop__Log));
-    gputop__log__init(log);
-    log->n_entries = gputop_log_len;
-    log->entries = xmalloc(gputop_log_len * sizeof(void *));
-
-    gputop_list_for_each_safe(entry, tmp, &gputop_log, link) {
-	Gputop__LogEntry *pb_entry = xmalloc(sizeof(Gputop__LogEntry));
-
-	gputop__log_entry__init(pb_entry);
-	pb_entry->log_level = entry->level;
-	pb_entry->log_message = entry->msg; /* steal the string */
-	log->entries[i] = pb_entry;
-
-	i++;
-
-	gputop_list_remove(&entry->link);
-    }
-    gputop_log_len = 0;
-
-    pthread_rwlock_unlock(&gputop_log_lock);
-
-    return log;
-}
-
-void
-gputop_pb_log_free(Gputop__Log *log)
-{
-    int i;
-
-    if (log->n_entries) {
-	for (i = 0; i < log->n_entries; i++) {
-	    Gputop__LogEntry *entry = log->entries[i];
-	    free(entry->log_message);
-	    free(entry);
-	}
-
-	free(log->entries);
-    }
-
-    free(log);
 }
 
 #define RANGE_BAR_WIDTH 30
@@ -526,7 +420,6 @@ print_trace_counter_spark(WINDOW *win, struct gputop_perf_query *query, int x)
 }
 
 static uint64_t trace_view_start;
-static double trace_view_scale;
 
 const uint8_t *
 get_next_trace_sample(struct gputop_perf_query *query, const uint8_t *current_sample)
@@ -544,9 +437,7 @@ perf_oa_trace_redraw(WINDOW *win)
 {
     struct gputop_perf_query *query = gputop_current_perf_query;
     int win_width;
-    int win_height;
-    int j;
-    int y = 0;
+    int win_height __attribute__ ((unused));
     size_t fill = gputop_perf_trace_full ?
 	gputop_perf_trace_buffer_size : gputop_perf_trace_head - gputop_perf_trace_buffer;
     float fill_percentage = 100.0f * ((float)fill / (float)gputop_perf_trace_buffer_size);
@@ -599,13 +490,12 @@ perf_oa_trace_redraw(WINDOW *win)
 	    (i *  ns_per_column) + ns_per_column;
 
 	while (1) {
-	    uint64_t report0_timestamp = read_report_timestamp((uint32_t *)report0);
-	    uint64_t report1_timestamp = read_report_timestamp((uint32_t *)report1);
+	    uint64_t report_timestamp = read_report_timestamp((uint32_t *)report1);
 
-	    if (report1_timestamp <= start_timestamp)
+	    if (report_timestamp <= start_timestamp)
 		return;
 
-	    if (report1_timestamp >= column_end) {
+	    if (report_timestamp >= column_end) {
 		print_trace_counter_spark(win, query, i);
 		gputop_perf_accumulator_clear(query);
 		break;
@@ -1150,16 +1040,16 @@ gl_debug_log_tab_redraw(WINDOW *win)
 {
     int win_width __attribute__ ((unused));
     int win_height;
-    struct log_entry *tmp;
+    struct gputop_log_entry *tmp;
     int i = 0;
 
     getmaxyx(win, win_height, win_width);
 
-    pthread_once(&log_init_once, log_init);
+    pthread_once(&gputop_log_init_once, gputop_log_init);
 
     pthread_rwlock_rdlock(&gputop_log_lock);
 
-    if (gputop_gl_contexts && gputop_list_empty(&gputop_log)) {
+    if (gputop_gl_contexts && gputop_list_empty(&gputop_log_entries)) {
 	struct winsys_context **contexts = gputop_gl_contexts->data;
 	struct winsys_context *wctx = contexts[i];
 
@@ -1181,7 +1071,7 @@ gl_debug_log_tab_redraw(WINDOW *win)
 	}
     }
 
-    gputop_list_for_each(tmp, &gputop_log, link) {
+    gputop_list_for_each(tmp, &gputop_log_entries, link) {
 	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
 
 	if (i++ > win_height)
@@ -1237,6 +1127,7 @@ static struct tab tab_gl_knobs =
 
 #endif /* SUPPORT_GL */
 
+#if 0
 static void
 app_io_tab_enter(void)
 {
@@ -1270,6 +1161,7 @@ static struct tab tab_io =
     .input = app_io_tab_input,
     .redraw = app_io_tab_redraw,
 };
+#endif
 
 static void
 redraw_ui(void)
@@ -1502,8 +1394,9 @@ init_ncurses(FILE *infile, FILE *outfile)
 void *
 gputop_ui_run(void *arg)
 {
-    gputop_ui_loop = uv_loop_new();
     const char *mode = getenv("GPUTOP_MODE");
+
+    gputop_ui_loop = uv_loop_new();
 
     if (mode && strcmp(mode, "remote") == 0) {
 	debug_disable_ncurses = true;

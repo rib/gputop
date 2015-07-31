@@ -22,32 +22,33 @@
  * SOFTWARE.
  */
 
-#ifndef _GPUTOP_UI_H_
-#define _GPUTOP_UI_H_
 
-#include <stdio.h>
+#pragma once
 
-#include "gputop-log.h"
+#include <pthread.h>
+
+#include "gputop-list.h"
 #include "gputop.pb-c.h"
 
-extern uv_loop_t *gputop_ui_loop;
+extern pthread_once_t gputop_log_init_once;
+extern pthread_rwlock_t gputop_log_lock;
+extern int gputop_log_len;
+extern gputop_list_t gputop_log_entries;
 
-void *gputop_ui_run(void *arg);
+enum gputop_log_level {
+    GPUTOP_LOG_LEVEL_HIGH = 1,
+    GPUTOP_LOG_LEVEL_MEDIUM,
+    GPUTOP_LOG_LEVEL_LOW,
+    GPUTOP_LOG_LEVEL_NOTIFICATION,
+};
 
-void gputop_ui_quit_idle_cb(uv_idle_t *idle);
+struct gputop_log_entry {
+    gputop_list_t link;
+    char *msg;
+    int level;
+};
 
-#ifdef GPUTOP_ENABLE_DEBUG
-
-#define dbg(format, ...) do { \
-    char *message; \
-    asprintf(&message, format, ##__VA_ARGS__); \
-    gputop_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
-} while(0)
-
-#else
-
-#define dbg(format, ...) do { } while(0)
-
-#endif
-
-#endif /* _GPUTOP_UI_H_ */
+void gputop_log_init(void);
+void gputop_log(int level, const char *message, int len);
+Gputop__Log *gputop_get_pb_log(void);
+void gputop_pb_log_free(Gputop__Log *log);

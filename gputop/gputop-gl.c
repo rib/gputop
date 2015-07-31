@@ -405,7 +405,7 @@ gputop_khr_debug_callback(GLenum source,
 	break;
     }
 
-    gputop_ui_log(level, message, length);
+    gputop_log(level, message, length);
 }
 
 static bool
