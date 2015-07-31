@@ -125,8 +125,6 @@ struct gputop_perf_query
     uint64_t accumulator[MAX_RAW_OA_COUNTERS];
 
     gputop_list_t link;
-
-    char *error;
 };
 
 
@@ -316,7 +314,28 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite);
+			       bool overwrite,
+			       char **error);
+struct gputop_perf_stream *
+gputop_perf_open_trace(int pid,
+		       int cpu,
+		       const char *system,
+		       const char *event,
+		       size_t trace_struct_size,
+		       size_t perf_buffer_size,
+		       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+		       bool overwrite,
+		       char **error);
+
+struct gputop_perf_stream *
+gputop_perf_open_generic_counter(int pid,
+				 int cpu,
+				 uint64_t type,
+				 uint64_t config,
+				 size_t perf_buffer_size,
+				 void (*ready_cb)(uv_poll_t *poll, int status, int events),
+				 bool overwrite,
+				 char **error);
 
 void gputop_perf_update_header_offsets(struct gputop_perf_stream *stream);
 

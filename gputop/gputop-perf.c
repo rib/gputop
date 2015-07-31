@@ -218,7 +218,8 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite)
+			       bool overwrite,
+			       char **error)
 {
     struct gputop_perf_stream *stream;
     i915_oa_attr_t oa_attr;
@@ -252,8 +253,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 			       -1, /* group fd */
 			       PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-	/* FIXME: find a better way to report this error! */
-	asprintf(&query->error, "Error opening i915_oa perf event: %m\n");
+	asprintf(error, "Error opening i915_oa perf event: %m\n");
 	return NULL;
     }
 
@@ -263,8 +263,7 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 		     perf_buffer_size + page_size,
 		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-	/* FIXME: find a better way to report this error! */
-	asprintf(&query->error, "Error mapping circular buffer, %m\n");
+	asprintf(error, "Error mapping circular buffer, %m\n");
 	close (event_fd);
 	return NULL;
     }
@@ -279,6 +278,193 @@ gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
 
     expected_max_samples =
 	(stream->buffer_size / MAX_OA_PERF_SAMPLE_SIZE) * 1.2;
+
+    memset(&stream->header_buf, 0, sizeof(stream->header_buf));
+
+    stream->overwrite = overwrite;
+    if (overwrite) {
+	stream->header_buf.len = expected_max_samples;
+	stream->header_buf.offsets =
+	    xmalloc(sizeof(uint32_t) * expected_max_samples);
+    }
+
+    stream->fd_poll.data = stream;
+    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+    uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
+
+    return stream;
+}
+
+struct gputop_perf_stream *
+gputop_perf_open_trace(int pid,
+		       int cpu,
+		       const char *system,
+		       const char *event,
+		       size_t trace_struct_size,
+		       size_t perf_buffer_size,
+		       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+		       bool overwrite,
+		       char **error)
+{
+    struct gputop_perf_stream *stream;
+    struct perf_event_attr attr;
+    int event_fd;
+    uint8_t *mmap_base;
+    int expected_max_samples;
+    char *filename = NULL;
+    int id = 0;
+    size_t sample_size = 0;
+
+    asprintf(&filename, "/sys/kernel/debug/tracing/events/%s/%s/id", system, event);
+    if (filename) {
+	struct stat st;
+
+	if (stat(filename, &st) < 0) {
+	    int err = errno;
+
+	    free(filename);
+	    filename = NULL;
+
+	    if (err == EPERM) {
+		asprintf(error, "Permission denied to open tracepoint %s:%s"
+			 " (Linux tracepoints require root privileges)",
+			 system, event);
+		return NULL;
+	    } else {
+		asprintf(error, "Failed to open tracepoint %s:%s: %s",
+			 system, event,
+			 strerror(err));
+		return NULL;
+	    }
+	}
+    }
+
+    id = read_file_uint64(filename);
+    free(filename);
+    filename = NULL;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.size = sizeof(attr);
+    attr.type = PERF_TYPE_TRACEPOINT;
+    attr.config = id;
+
+    attr.sample_type = PERF_SAMPLE_RAW | PERF_SAMPLE_TIME;
+    attr.sample_period = 1;
+
+    attr.watermark = true;
+    attr.wakeup_watermark = perf_buffer_size / 4;
+
+    event_fd = perf_event_open(&attr,
+			       pid,
+			       cpu,
+			       -1, /* group fd */
+			       PERF_FLAG_FD_CLOEXEC); /* flags */
+    if (event_fd == -1) {
+	asprintf(error, "Error opening i915_oa perf event: %m\n");
+	return NULL;
+    }
+
+    /* NB: A read-write mapping ensures the kernel will stop writing data when
+     * the buffer is full, and will report samples as lost. */
+    mmap_base = mmap(NULL,
+		     perf_buffer_size + page_size,
+		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
+    if (mmap_base == MAP_FAILED) {
+	asprintf(error, "Error mapping circular buffer, %m\n");
+	close (event_fd);
+	return NULL;
+    }
+
+    stream = xmalloc0(sizeof(*stream));
+    stream->ref_count = 1;
+    stream->fd = event_fd;
+    stream->buffer = mmap_base + page_size;
+    stream->buffer_size = perf_buffer_size;
+    stream->mmap_page = (void *)mmap_base;
+
+    sample_size =
+	sizeof(struct perf_event_header) +
+	8 /* _TIME */ +
+	trace_struct_size; /* _RAW */
+
+    expected_max_samples = (stream->buffer_size / sample_size) * 1.2;
+
+    memset(&stream->header_buf, 0, sizeof(stream->header_buf));
+
+    stream->overwrite = overwrite;
+    if (overwrite) {
+	stream->header_buf.len = expected_max_samples;
+	stream->header_buf.offsets =
+	    xmalloc(sizeof(uint32_t) * expected_max_samples);
+    }
+
+    stream->fd_poll.data = stream;
+    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+    uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
+
+    return stream;
+}
+
+struct gputop_perf_stream *
+gputop_perf_open_generic_counter(int pid,
+				 int cpu,
+				 uint64_t type,
+				 uint64_t config,
+				 size_t perf_buffer_size,
+				 void (*ready_cb)(uv_poll_t *poll, int status, int events),
+				 bool overwrite,
+				 char **error)
+{
+    struct gputop_perf_stream *stream;
+    struct perf_event_attr attr;
+    int event_fd;
+    uint8_t *mmap_base;
+    int expected_max_samples;
+    size_t sample_size = 0;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.size = sizeof(attr);
+    attr.type = type;
+    attr.config = config;
+
+    attr.sample_type = PERF_SAMPLE_READ | PERF_SAMPLE_TIME;
+    attr.sample_period = 1;
+
+    attr.watermark = true;
+    attr.wakeup_watermark = perf_buffer_size / 4;
+
+    event_fd = perf_event_open(&attr,
+			       pid,
+			       cpu,
+			       -1, /* group fd */
+			       PERF_FLAG_FD_CLOEXEC); /* flags */
+    if (event_fd == -1) {
+	asprintf(error, "Error opening i915_oa perf event: %m\n");
+	return NULL;
+    }
+
+    /* NB: A read-write mapping ensures the kernel will stop writing data when
+     * the buffer is full, and will report samples as lost. */
+    mmap_base = mmap(NULL,
+		     perf_buffer_size + page_size,
+		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
+    if (mmap_base == MAP_FAILED) {
+	asprintf(error, "Error mapping circular buffer, %m\n");
+	close (event_fd);
+	return NULL;
+    }
+
+    stream = xmalloc0(sizeof(*stream));
+    stream->ref_count = 1;
+    stream->fd = event_fd;
+    stream->buffer = mmap_base + page_size;
+    stream->buffer_size = perf_buffer_size;
+    stream->mmap_page = (void *)mmap_base;
+
+    sample_size =
+	sizeof(struct perf_event_header) +
+	8; /* _TIME */
+    expected_max_samples = (stream->buffer_size / sample_size) * 1.2;
 
     memset(&stream->header_buf, 0, sizeof(stream->header_buf));
 
@@ -441,18 +627,36 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 
     perf_head = read_perf_head(stream->mmap_page);
 
-    if (hdr_buf->head == hdr_buf->tail)
-	perf_tail = hdr_buf->last_perf_head;
-    else
+    //if (hdr_buf->head == hdr_buf->tail)
+	//perf_tail = hdr_buf->last_perf_head;
+    //else
 	perf_tail = stream->mmap_page->data_tail;
+
+#if 0
+    if (perf_tail > perf_head) {
+	dbg("Unexpected perf tail > head condition\n");
+	return;
+    }
+#endif
 
     if (perf_head == perf_tail)
 	return;
 
-    hdr_buf->last_perf_head = perf_head;
+    //hdr_buf->last_perf_head = perf_head;
 
     buf_head = hdr_buf->head;
     buf_tail = hdr_buf->tail;
+
+#if 1
+    printf("perf records:\n");
+    printf("> fd = %d\n", stream->fd);
+    printf("> size = %d\n", stream->buffer_size);
+    printf("> tail_ptr = %p\n", &stream->mmap_page->data_tail);
+    printf("> head=%"PRIu64"\n", perf_head);
+    printf("> tail=%"PRIu64"\n", stream->mmap_page->data_tail);
+    printf("> TAKEN=%"PRIu64"\n", (uint64_t)TAKEN(perf_head, stream->mmap_page->data_tail, stream->buffer_size));
+    printf("> records:\n");
+#endif
 
     while (TAKEN(perf_head, perf_tail, stream->buffer_size)) {
 	uint64_t perf_offset = perf_tail & mask;
@@ -464,13 +668,15 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 	if (header->size == 0) {
 	    dbg("Spurious header size == 0\n");
 	    /* XXX: How should we handle this instead of exiting() */
-	    exit(1);
+	    break;
+	    //exit(1);
 	}
 
 	if (header->size > (perf_head - perf_tail)) {
 	    dbg("Spurious header size would overshoot head\n");
 	    /* XXX: How should we handle this instead of exiting() */
-	    exit(1);
+	    break;
+	    //exit(1);
 	}
 
 	/* Once perf wraps, the buffer is full of data and perf starts
@@ -488,19 +694,21 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 	 * NB: A large record may trample multiple smaller records
 	 * NB: it's possible no records have been trampled
 	 */
-	while (1) {
-	    uint32_t buf_tail_offset = hdr_buf->offsets[buf_tail % hdr_buf->len];
+	if (hdr_buf->full) {
+	    while (1) {
+		uint32_t buf_tail_offset = hdr_buf->offsets[buf_tail % hdr_buf->len];
 
-	    /* To simplify checking for an overlap, invariably ensure the
-	     * buf_tail_offset is ahead of perf, even if it means using a
-	     * fake offset beyond the bounds of the buffer... */
-	    if (buf_tail_offset < perf_offset)
-		buf_tail_offset += stream->buffer_size;
+		/* To simplify checking for an overlap, invariably ensure the
+		 * buf_tail_offset is ahead of perf, even if it means using a
+		 * fake offset beyond the bounds of the buffer... */
+		if (buf_tail_offset < perf_offset)
+		    buf_tail_offset += stream->buffer_size;
 
-	    if ((perf_offset + header->size) < buf_tail_offset) /* nothing eaten */
-		break;
+		if ((perf_offset + header->size) < buf_tail_offset) /* nothing eaten */
+		    break;
 
-	    buf_tail++;
+		buf_tail++;
+	    }
 	}
 
 	hdr_buf->offsets[buf_head++ % hdr_buf->len] = perf_offset;
@@ -515,7 +723,7 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
     hdr_buf->head = buf_head;
     hdr_buf->tail = buf_tail;
 
-#if 0
+#if 1
     printf("headers update:\n");
     printf("n new records = %d\n", n_new);
     printf("buf len = %d\n", hdr_buf->len);
@@ -634,7 +842,7 @@ gputop_perf_print_records(struct gputop_perf_stream *stream,
 	}
 
 	case PERF_RECORD_SAMPLE: {
-	    struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
+	    //struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
 	    //uint8_t *report = (uint8_t *)perf_sample->raw_data;
 
 	    printf("   - Sample\n");
@@ -897,7 +1105,7 @@ gputop_perf_initialize(void)
 
     drm_fd = open_render_node(&intel_dev);
     if (drm_fd < 0) {
-	gputop_ui_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
+	gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
 	return false;
     }
 
@@ -1017,6 +1225,7 @@ bool
 gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 {
     int period_exponent;
+    char *error = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1048,8 +1257,12 @@ gputop_perf_overview_open(gputop_perf_query_type_t query_type)
 				       period_exponent,
 				       32 * page_size,
 				       perf_ready_cb,
-				       false);
+				       false,
+				       &error);
     if (!gputop_current_perf_stream) {
+	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+	free(error);
+
 	gputop_current_perf_query = NULL;
 	return false;
     }
@@ -1110,6 +1323,7 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
     double duration = 5.0; /* seconds */
     uint64_t period_ns;
     uint64_t n_samples;
+    char *error = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1134,8 +1348,12 @@ gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type)
 				       period_exponent,
 				       32 * page_size,
 				       perf_ready_cb,
-				       false);
+				       false,
+				       &error);
     if (!gputop_current_perf_stream) {
+	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+	free(error);
+
 	gputop_current_perf_query = NULL;
 	return false;
     }
