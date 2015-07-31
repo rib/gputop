@@ -146,7 +146,15 @@ dnl Misc program dependencies.
 dnl ================================================================
 AC_PROG_INSTALL
 AC_CHECK_PROGS([PYTHON2], [python2 python])
+AC_CHECK_PROGS([EMCC], [emcc])
 
+AS_IF([test -n "$EMCC"],
+      [
+        enable_webui="yes"
+	AC_DEFINE([SUPPORT_WEBUI], [1], [Support web based user interface])
+      ],
+      [enable_webui="no"])
+AM_CONDITIONAL(SUPPORT_WEBUI, [test "$enable_webui" = "yes"])
 
 dnl ================================================================
 dnl What needs to be substituted in other files
@@ -175,6 +183,7 @@ echo "GPU Top configured:"
 echo ""
 echo " • Optional Features: ${FEATURES}"
 echo "        GL Intercept: ${enable_gl}"
+echo "              Web UI: ${enable_webui}"
 echo ""
 
 echo " • Compiler options:"

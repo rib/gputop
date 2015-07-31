@@ -1,10 +1,16 @@
+SUBDIRS =
+
+if SUPPORT_GL
+SUBDIRS = registry . web
+endif
+
 # Note: dot here ensures we build the current directory before
 # entering into web/ so that we generate the shared protocol buffers
 # code
-if SUPPORT_GL
-SUBDIRS = registry . web
-else
-SUBDIRS = . web
+SUBDIRS += .
+
+if SUPPORT_WEBUI
+SUBDIRS += web
 endif
 
 bin_PROGRAMS = gputop gputop-system
