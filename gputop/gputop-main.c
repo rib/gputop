@@ -38,33 +38,37 @@
 static void
 usage(void)
 {
-    printf ("Usage: gputop [options] <program> [program args...]\n"
-	    "\n"
-	    "     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
-	    "                                   library to intercept\n"
-	    "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
-	    "                                   library to intercept\n"
-	    "     --debug-context               Create a debug context and report\n"
-	    "                                   KHR_debug perf issues\n"
-	    "     --remote                      Enable remote web-based interface\n"
-	    " -h, --help                        Display this help\n"
-	    "\n"
-	    " Note: gputop is only a wrapper for setting environment variables\n"
-	    " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
-	    " system-wide metrics (when no program is specified) gputop-system\n"
-	    " is run as a dummy 'GL' application.\n"
-	    "\n"
-	    " Environment:\n"
-	    "\n"
-	    "     LD_LIBRARY_PATH=<prefix>/lib/wrappers/libGL.so\n"
-	    "                                   The gputop libGL.so interposer\n"
-	    "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
-	    "                                   to from interposer\n"
-	    "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
-	    "                                   (defaults to ncurses)\n"
-	    "\n"
-	    ""
-	    );
+    printf("Usage: gputop [options] <program> [program args...]\n"
+	   "\n");
+#ifdef SUPPORT_GL
+    printf("     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
+	   "                                   library to intercept\n"
+	   "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
+	   "                                   library to intercept\n"
+	   "     --debug-context               Create a debug context and report\n"
+	   "                                   KHR_debug perf issues\n");
+#endif
+#ifdef SUPPORT_WEBUI
+    printf("     --remote                      Enable remote web-based interface\n");
+#endif
+    printf(" -h, --help                        Display this help\n"
+	   "\n"
+	   " Note: gputop is only a wrapper for setting environment variables\n"
+	   " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
+	   " system-wide metrics (when no program is specified) gputop-system\n"
+	   " is run as a dummy 'GL' application.\n"
+	   "\n"
+	   " Environment:\n"
+	   "\n"
+	   "     LD_LIBRARY_PATH=<prefix>/lib/wrappers/libGL.so\n"
+	   "                                   The gputop libGL.so interposer\n"
+	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
+	   "                                   to from interposer\n"
+	   "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
+	   "                                   (defaults to ncurses)\n"
+	   "\n"
+	   ""
+	   );
 
     exit(1);
 }
@@ -120,10 +124,14 @@ main (int argc, char **argv)
     const char *short_options="+h";
     const struct option long_options[] = {
 	{"help",	    no_argument,	0, 'h'},
+#ifdef SUPPORT_GL
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
 	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
+#endif
+#ifdef SUPPORT_WEBUI
 	{"remote",	    no_argument,	0, REMOTE_OPT},
+#endif
 	{0, 0, 0, 0}
     };
     const char *prev_ld_library_path;
