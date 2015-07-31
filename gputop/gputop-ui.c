@@ -1398,10 +1398,12 @@ gputop_ui_run(void *arg)
 
     gputop_ui_loop = uv_loop_new();
 
+#ifdef SUPPORT_WEBUI
     if (mode && strcmp(mode, "remote") == 0) {
 	debug_disable_ncurses = true;
 	web_ui = true;
     }
+#endif
 
     if (!debug_disable_ncurses) {
 	FILE *infile;
