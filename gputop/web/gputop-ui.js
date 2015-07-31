@@ -23,13 +23,16 @@
  */
 
 
+var features = null;
+
 var active_tab = $("#overview_tab");
 
 var all_oa_queries;
 var current_oa_query;
 
+var rpc_id = 1;
 var next_query_id = 1;
-var oa_query_handles = [];
+var query_handles = [];
 
 var current_oa_query_update_handler = function (update) {};
 
@@ -43,6 +46,34 @@ function queue_redraw(callback) {
 	redraw_queued = true;
     }
 }
+
+var rpc_closures = {};
+
+function generate_uuid()
+{
+    /* Concise uuid generator from:
+     * http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+     */
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+	var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+	return v.toString(16);
+    });
+}
+
+function rpc(msg, closure)
+{
+    msg.uuid = generate_uuid()
+
+    if (closure !== undefined) {
+	console.assert(msg.hasOwnProperty("uuid"), "Spurious message with closure but no ID");
+	rpc_closures[msg.uuid] = closure;
+
+	console.assert(Object.keys(rpc_closures).length < 1000, "Leaking RPC closures");
+    }
+
+    ww.postMessage(msg);
+}
+
 
 var trace_ui_updates = [];
 
@@ -187,39 +218,45 @@ function trace_ui_activate()
 {
     var oa_query = all_oa_queries[0];
 
-    close_oa_queries();
+    close_queries();
 
     current_oa_query_update_handler = trace_ui_handle_oa_query_update;
 
     trace_graphs = [];
-    $("#sidebar").empty();
+    $("#trace_counters").empty();
 
-    for (var query of all_oa_queries) {
-	var h3 = $("<h3/>", { html: query.name });
-	$("#sidebar").append(h3);
-	var div = document.createElement("div");
-	$("#sidebar").append(div);
+    //for (var query of all_oa_queries) {
+	//var h3 = $("<h3/>", { html: query.name });
+	//$("#trace_counters").append(h3);
+	//var div = document.createElement("div");
+	//$("#trace_counters").append(div);
 
-	for (var counter of query.counters) {
+	for (var counter of oa_query.counters) {
 	    var counter_div = $("<div/>", { id: "counter-trace-" + counter.index, "class": "counter", html: counter.name });
 	    counter_div.data("counter", counter);
 
 	    counter_div.draggable({ containment: "window", scroll: false, revert: true, helper: "clone" });
 
-	    $(div).append(counter_div);
+	    $("#trace_counter").append(counter_div);
 	}
-    }
-    $("#sidebar").accordion({heightStyle: "content"});
+    //}
+    //$("#trace_counters").accordion({heightStyle: "content"});
     $("#timelines").droppable({
 	drop: function(event, ui) {
 	    console.log("dropped class = " + ui.draggable.class);
 	    if (ui.draggable.hasClass("counter")) {
 		var counter = ui.draggable.data("counter");
+
 		var vbox = $("<div/>", { style: "display:flex; flex-direction:column;" });
 		var hbox_ltr = $("<div/>", { style: "display:flex; width:100%;" })
 		var hbox_rtl = $("<div/>", { style: "display:flex; flex-direction:row-reverse; flex:1 0 auto;" })
 		var name = $("<div/>", { html: ui.draggable.html(), style: "flex: 1 1 auto;" });
 		var close = $("<div/>").button( { icons: { primary: "ui-icon-close" }, text: false, style: "flex: 0 0 auto;" });
+		/* XXX: be careful to ensure we also free the plot data */
+		close.click(function() {
+		    vbox.remove();
+		    delete trace_graphs[counter.index];
+		})
 		hbox_ltr.append(name, hbox_rtl);
 		hbox_rtl.append(close);
 
@@ -236,7 +273,7 @@ function trace_ui_activate()
 		$(this).append(vbox);
 
 		$.plot($(graph), [ [[0, 0], [1, 1]] ], { yaxis: { max: 1 } });
-		//$("#sidebar").accordion();
+		//$("#trace_counters").accordion();
 	    }
 	}
     });
@@ -256,23 +293,42 @@ function trace_ui_activate()
      */
     var period_exponent = 16;
 
-    ww.postMessage({ "method": "open_oa_query",
-		     "params": [ next_query_id,
-				 oa_query.metric_set,
-				 period_exponent,
-				 false, /* don't overwrite old samples */
-				 100 /* milliseconds of aggregation
-				      * i.e. request updates from the worker
-				      * as values that have been aggregated
-				      * over one second */ ] });
+    rpc({ "method": "open_oa_query",
+	  "params": [ next_query_id,
+		      oa_query.metric_set,
+		      period_exponent,
+		      false, /* don't overwrite old samples */
+		      100, /* milliseconds of aggregation
+			    * i.e. request updates from the worker
+			    * as values that have been aggregated
+			    * over this duration */
+		      true /* send live updates */
+		    ] });
 
-    oa_query_handles.push(next_query_id++);
+    query_handles.push(next_query_id++);
     current_oa_query = oa_query;
+}
+
+function forensic_trace_ui_handle_oa_query_update(update)
+{
+    var oa_query = current_oa_query;
+    //var i = 0;
+
+    //var graph_data = [];
+
+    if (!update) {
+	console.warn("Spurious undefined counters update");
+	return;
+    }
 }
 
 function forensic_ui_activate()
 {
-    close_oa_queries();
+    var oa_query = all_oa_queries[0];
+
+    close_queries();
+
+    current_oa_query_update_handler = forensic_trace_ui_handle_oa_query_update;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -288,35 +344,84 @@ function forensic_ui_activate()
      */
     var period_exponent = 16;
 
-    ww.postMessage({ "method": "open_oa_query",
-		     "params": [ next_query_id,
-				 1, /* 3D metric set */
-				 period_exponent,
-				 false, /* don't overwrite old samples */
-				 1000 /* milliseconds of aggregation
-				       * i.e. request updates from the worker
-				       * as values that have been aggregated
-				       * over one second */ ] });
-    oa_query_handles.push(next_query_id++);
+    rpc({ "method": "open_oa_query",
+	  "params": [ next_query_id,
+		      1, /* 3D metric set */
+		      period_exponent,
+		      true, /* overwrite old samples */
+		      100, /* milliseconds of aggregation
+			    * i.e. request updates from the worker
+			    * as values that have been aggregated
+			    * over this duration */
+		      false /* don't send live updates */
+	  ] });
+
+    //rpc({ method: "set_aggregation_duration",
+	//  params: [ 100 ] });
+
+    query_handles.push(next_query_id++);
+    current_oa_query = oa_query;
+
+    rpc({ "method": "open_generic",
+	  "params": [ next_query_id,
+		      -1, /* pid */
+		      0, /* cpu - FIXME: open trace for all cpus */
+		      1, /* _TYPE_SOFWARE */
+		      3, /* _COUNT_SW_CONTEXT_SWITCHES */
+		      true, /* overwrite old samples */
+		      false /* don't send live updates */
+		    ] });
+    query_handles.push(next_query_id++);
+
+    rpc({ "method": "open_tracepoint",
+	  "params": [ next_query_id,
+		      -1, /* pid */
+		      0, /* cpu - FIXME: open trace for all cpus */
+		      "i915",
+		      "intel_gpu_freq_change",
+		      true, /* overwrite old samples */
+		      false /* don't send live updates */
+		    ] });
+    query_handles.push(next_query_id++);
+
 }
 
-function gputop_ui_on_features_notify(features)
+function gputop_ui_on_features_notify(f)
 {
+    features = f;
+
     all_oa_queries = features.oa_queries;
     $("#tabs").tabs("option", "disabled", false);
+
+    $("#n_cpus").html(features.n_cpus);
+    $("#cpu_model").html(features.cpu_model);
+    $("#kernel_release").html(features.kernel_release);
+    $("#kernel_build").html(features.kernel_build);
+
     overview_ui_activate();
 }
 
-function close_oa_queries()
+function close_query(id, ondone)
 {
-    console.log("close_oa_queries()");
-    for (var id of oa_query_handles) {
-	console.log(" > close ID = " + id);
-	ww.postMessage({ "method": "close_oa_query",
-			 "params": [ id ] });
+    rpc({ "method": "close_oa_query",
+	  "params": [ id ] },
+	ondone);
+}
+
+function close_queries(ondone)
+{
+    var closing = [];
+
+    for (var id of query_handles) {
+	closing.push(id);
+	close_query(id, function (c) {
+	    delete closing[id];
+	    if (closing.length === 0)
+		ondone();
+	});
     }
 
-    oa_query_handles = [];
+    query_handles = [];
 }
 
 function gputop_ui_on_oa_query_update(update)
@@ -324,6 +429,7 @@ function gputop_ui_on_oa_query_update(update)
     current_oa_query_update_handler(update);
 }
 
+var current_overview_query_id = 0;
 var overview_elements = [];
 
 function overview_ui_handle_oa_query_update(update)
@@ -337,28 +443,31 @@ function overview_ui_handle_oa_query_update(update)
 	var counter = oa_query.counters[i];
 	var hbar = overview_elements[i];
 
-	var canvas = $(hbar).find(".bar-canvas");
+	var canvas = $(hbar).find(".bar-canvas")[0];
+	var ctx = canvas.getContext("2d");
 
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	var bar_width = 200;
 	var val = value[0];
+	if (val !== 0)
+	    hbar.css("display", "flex");
 	var maximum = value[1];
 	if (maximum) {
-	    var norm = (val / maximum) * 100;
-	    if (norm > 100) {
-		norm = 120;
-		canvas.css("background-color", "#ffff00");
-	    } else if (norm > 90)
-		canvas.css("background-color", "#ff0000");
+	    var norm = (val / maximum);
+	    if (norm > 1) {
+		norm = 1.1;
+		ctx.fillStyle = "#ffff00";
+	    } else if (norm > 0.9)
+		ctx.fillStyle = "#ff0000";
 	    else
-		canvas.css("background-color", "#00ff00");
+		ctx.fillStyle = "#00ff00";
 
-	    canvas.css("width", norm);
+	    ctx.fillRect(0, 0, norm * 200, canvas.height);
 	} else {
 	    var norm = val;
-	    if (norm > 100)
-		norm = 100;
-	    canvas.css("width", norm);
-	    canvas.css("background-color", "#000000");
-	    //canvas.css("display", "none");
+	    ctx.font = "30px Ariel";
+	    ctx.fillText("" + val, 0, 0);
 	}
 
 	/*
@@ -370,13 +479,9 @@ function overview_ui_handle_oa_query_update(update)
     }
 }
 
-function overview_ui_activate()
+function open_oa_query_for_overview(idx)
 {
-    var oa_query = all_oa_queries[0];
-
-    close_oa_queries();
-
-    current_oa_query_update_handler = overview_ui_handle_oa_query_update;
+    var oa_query = all_oa_queries[idx];
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -392,20 +497,39 @@ function overview_ui_activate()
      */
     var period_exponent = 16;
 
-    ww.postMessage({ "method": "open_oa_query",
-		     "params": [ next_query_id,
-				 oa_query.metric_set,
-				 period_exponent,
-				 false, /* don't overwrite old samples */
-				 1000 /* milliseconds of aggregation
-				       * i.e. request updates from the worker
-				       * as values that have been aggregated
-				       * over one second */ ] });
-    oa_query_handles.push(next_query_id++);
+    query_id = next_query_id++;
+    rpc({ "method": "open_oa_query",
+	  "params": [ query_id,
+		      oa_query.metric_set,
+		      period_exponent,
+		      false, /* don't overwrite old samples */
+		      1000, /* milliseconds of aggregation
+			     * i.e. request updates from the worker
+			     * as values that have been aggregated
+			     * over this duration */
+		      true /* send live updates */
+		    ] });
+    query_handles.push(query_id);
     current_oa_query = oa_query;
+    current_overview_query_id = query_id;
+}
 
-    $("#overview_tab").empty();
+function setup_overview_for_oa_query(idx)
+{
+    var oa_query = all_oa_queries[idx];
+
+    $("#overview_bar_graph").empty();
     overview_elements = [];
+
+	//$.plot($(graph), [ graph_data ], { series: { lines: { show: true, fill: true }, shadowSize: 0 },
+//					   xaxis: { min: x_min, max: x_max },
+//					   yaxis: { max: 100 }
+    var axis = $("<div/>", { style: "height:2em; width:200px;"});
+    var div = $("<div/>", { style: "display:flex; flex-direction:row;" } )
+		.append($("<div/>", { style: "width:20em; flex: 0 1 auto;" }))
+		    .append(axis);
+    $.plot($(axis), [], { yaxis: { show: false }, xaxis: { show: true, position: "top", min: 0, max: 100 }, grid: { borderWidth: 0 } });
+    $("#overview_bar_graph").append(div);
 
     for (var counter of oa_query.counters) {
 	var template = $("#hbar-template").clone();
@@ -414,13 +538,53 @@ function overview_ui_activate()
 	name.html(counter.name);
 
 	overview_elements.push(template);
-	$("#overview_tab").append(template);
+	$("#overview_bar_graph").append(template);
+    }
+}
+
+function overview_ui_activate()
+{
+    current_oa_query_update_handler = overview_ui_handle_oa_query_update;
+
+    close_queries(function () {
+	open_oa_query_for_overview(0);
+    });
+
+    var select = $("#overview_metrics_select");
+    select.empty();
+
+    for (var i in all_oa_queries) {
+	var q = all_oa_queries[i];
+	var opt = document.createElement("option");
+	opt.setAttribute("value", i);
+	if (i === 0)
+	    opt.setAttribute("selected", "selected");
+	opt.innerHTML = q.name;
+
+	select.append($(opt));
+    }
+
+    select.selectmenu({
+	change: function() {
+	    var selected = $("#overview_metrics_select").val();
+	    setup_overview_for_oa_query(selected);
+	    if (current_overview_query_id) {
+		close_query(current_overview_query_id, function() {
+		    open_oa_query_for_overview(selected);
+		})
+	    }
+	}
+    });
+
+    setup_overview_for_oa_query(0);
+    if (!current_overview_query_id) {
+	open_oa_query_for_overview(0);
     }
 }
 
 function architecture_ui_activate()
 {
-    close_oa_queries();
+    close_queries();
 
     var svg = $("#architecture-diagram");
     //svg.empty();
@@ -475,8 +639,6 @@ function gputop_ui_on_close_notify(query_id)
 
 var ww = new Worker("gputop-web-worker.js")
 
-var rpc_closures = {};
-
 ww.onmessage = function(e) {
     //console.log(e.data);
     var rpc = JSON.parse(e.data);
@@ -485,10 +647,10 @@ ww.onmessage = function(e) {
     if (rpc.method)
 	window["gputop_ui_on_" + rpc.method].apply(this, args);
     else {
-	var closure = rpc_closures[rpc.id];
-	if (closure) {
-	    closure.ondone.apply(this, args);
-	    delete rpc_closures[rpc.id];
+	if (rpc.uuid in rpc_closures) {
+	    var closure = rpc_closures[rpc.uuid];
+	    closure.apply(this, args);
+	    delete rpc_closures[rpc.uuid];
 	}
     }
 }
@@ -521,7 +683,10 @@ $("#tabs").tabs({ heightStyle: "content",
 		  },
 		});
 
-ww.postMessage({ "method": "test", "params": ["arg0", 3.1415 ] });
+rpc({ "method": "test", "params": ["arg0", 3.1415 ] },
+    function test_method_done(msg) {
+	console.log("Test method reply received: " + msg);
+    });
 
 //$.plot($("#overview-graph"), [ [[0, 0], [1, 1]] ], { yaxis: { max: 1 } });
 /*
