@@ -1,7 +1,7 @@
 SUBDIRS =
 
 if SUPPORT_GL
-SUBDIRS = registry . web
+SUBDIRS += registry
 endif
 
 # Note: dot here ensures we build the current directory before
