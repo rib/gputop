@@ -419,14 +419,17 @@ stream_close_cb(struct gputop_perf_stream *stream)
     Gputop__CloseNotify notify = GPUTOP__CLOSE_NOTIFY__INIT;
 
     if (stream->user.data) {
+
 	message.reply_uuid = stream->user.data;
 	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
 	message.ack = true;
 
-	free(stream->user.data);
-	stream->user.data = NULL;
+	dbg("CMD_ACK: %s\n", stream->user.data);
 
 	send_pb_message(h2o_conn, &message.base);
+
+	free(stream->user.data);
+	stream->user.data = NULL;
     }
 
     notify.id = stream->user.id;
@@ -673,6 +676,8 @@ handle_close_query(h2o_websocket_conn_t *conn,
 {
     struct gputop_perf_stream *stream;
     uint32_t id = request->close_query;
+
+    dbg("handle_close_query: uuid=%s\n", request->uuid);
 
     gputop_list_for_each(stream, &perf_streams, user.link) {
 	if (stream->user.id == id) {
