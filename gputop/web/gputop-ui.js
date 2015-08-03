@@ -62,10 +62,11 @@ function generate_uuid()
 
 function rpc(msg, closure)
 {
-    msg.uuid = generate_uuid()
+    msg.uuid = generate_uuid();
+
+    console.log("RPC: " + JSON.stringify(msg));
 
     if (closure !== undefined) {
-	console.assert(msg.hasOwnProperty("uuid"), "Spurious message with closure but no ID");
 	rpc_closures[msg.uuid] = closure;
 
 	console.assert(Object.keys(rpc_closures).length < 1000, "Leaking RPC closures");
@@ -75,26 +76,79 @@ function rpc(msg, closure)
 }
 
 
+var start_timestamp = null;
+var start_gpu_timestamp = null;
 var trace_ui_updates = [];
 
 function trace_ui_redraw(timestamp)
 {
     var n_updates = trace_ui_updates.length;
-    var n_counters = trace_ui_updates[0].counters.length;
-    var value = [0, 100];
+    var n_counters;
+    //var value = [0, 100];
     var x_min = 0;
     var x_max = 1;
 
-    x_max = trace_ui_updates[n_updates - 1].gpu_end;
+    if (n_updates == 0) {
+	console.log("Spurious queue redraw with no updates");
+	return;
+    }
+
+    if (!start_timestamp) {
+	start_timestamp = timestamp;
+	start_gpu_timestamp = trace_ui_updates[n_updates - 1].gpu_start;
+	//start_gpu_timestamp = trace_ui_updates[0].gpu_start;
+	console.log("GPU start timestamp = " + start_gpu_timestamp);
+    }
+
+    var elapsed = timestamp - start_timestamp;
+    //console.log("cpu elapsed = " + elapsed);
+
+    //var latest_gpu_timestamp = trace_ui_updates[n_updates - 1].gpu_end / 1000000;
+    //var latest_gpu_timestamp = trace_ui_updates[n_updates - 1].gpu_end;
+    //console.assert(start_gpu_timestamp < latest_gpu_timestamp, "GPU clock went backwards!");
+    //console.log("gpu start = " +start_gpu_timestamp + "latest = " + latest_gpu_timestamp + "elapsed = " + (latest_gpu_timestamp - start_gpu_timestamp));
+
+
+    x_max = start_gpu_timestamp + elapsed * 1000000;
     x_min = x_max - 5000000000; /* five second */
 
+    /* Delete old updates */
+    for (var j = 0; j < n_updates; j++) {
+	var update = trace_ui_updates[j];
+	var end = update.gpu_end;
+
+	if (end >= x_min)
+	    break;
+    }
+
+    if (j > 0)
+	trace_ui_updates.splice(0, j);
+
+    if (!trace_ui_updates.length) {
+	console.log("No recent counter updates to redraw");
+	return;
+    }
+
+    /*
+    if (trace_ui_updates[n_updates - 1].gpu_start > x_max) {
+	var latest_gpu_timestamp = trace_ui_updates[n_updates - 1].gpu_end;
+
+	console.log("More recent counter updates than expected: latest gpu ts = " + latest_gpu_timestamp + " expected max = " + x_max);
+	console.log("  > gpu start = " + start_gpu_timestamp + " elapsed ms = " + elapsed + " ns = " + (elapsed * 1000000));
+	return;
+    }*/
+
+    n_counters = trace_ui_updates[0].counters.length;
     for (var i = 0; i < n_counters; i++) {
 	var graph = trace_graphs[i];
 	if (!graph)
 	    continue;
 
+	var counter = update.counters[i];
+
 	var plot_data = graph.data("plot-data");
 	var graph_data = plot_data.values;
+	var max_value = plot_data.max;
 
 	/* what samples should we discard?... */
 	for (var j = 0; j < graph_data.length && graph_data[j][0] < x_min; j++) {}
@@ -106,20 +160,37 @@ function trace_ui_redraw(timestamp)
 	    var start = update.gpu_start;
 	    var end = update.gpu_end;
 
+	    if (start > x_max)
+		break;
+
 	    if (start < x_min || start === end || end < start || start === 0 || end === 0) {
 		console.warn("Spurious update timestamps: start=" + start + ", end=" + end);
 		continue;
 	    }
-	    var mid = start + ((end - start) / 2);
+	    //var mid = start + ((end - start) / 2);
+	    var mid = start;
 
-	    graph_data.push([mid, update.counters[i][0]]);
+	    var val = counter[0];
+	    var maximum = counter[1];
+
+	    if (maximum !== 0) {
+		var norm = (val / maximum) * 100;
+		max_value = 100;
+		graph_data.push([mid, norm]);
+	    } else {
+		if (val > max_value) {
+		    plot_data.max = val;
+		    max_value = val;
+		}
+		graph_data.push([mid, val]);
+	    }
 	}
 
 	plot_data.values = graph_data;
 
 	$.plot($(graph), [ graph_data ], { series: { lines: { show: true, fill: true }, shadowSize: 0 },
 					   xaxis: { min: x_min, max: x_max },
-					   yaxis: { max: 100 }
+					   yaxis: { max: max_value }
 	});
     }
 /*
@@ -152,7 +223,7 @@ function trace_ui_handle_oa_query_update(update)
 
     //var graph_data = [];
 
-    if (!update) {
+    if (!update || !update.hasOwnProperty("counters") || !Array.isArray(update.counters)) {
 	console.warn("Spurious undefined counters update");
 	return;
     }
@@ -213,14 +284,45 @@ function trace_ui_handle_oa_query_update(update)
 	   });
 	   */
 
-
-function trace_ui_activate()
+function open_oa_query_for_trace(idx)
 {
-    var oa_query = all_oa_queries[0];
+    var oa_query = all_oa_queries[idx];
 
-    close_queries();
+    /* The timestamp for HSW+ increments every 80ns
+     *
+     * The period_exponent gives a sampling period as follows:
+     *   sample_period = 80ns * 2^(period_exponent + 1)
+     *
+     * The overflow period for Haswell can be calculated as:
+     *
+     * 2^32 / (n_eus * max_gen_freq * 2)
+     * (E.g. 40 EUs @ 1GHz = ~53ms)
+     *
+     * We currently sample ~ every 10 milliseconds...
+     */
+    var period_exponent = 16;
 
-    current_oa_query_update_handler = trace_ui_handle_oa_query_update;
+    query_id = next_query_id++;
+    rpc({ "method": "open_oa_query",
+	  "params": [ query_id,
+		      oa_query.metric_set,
+		      period_exponent,
+		      false, /* don't overwrite old samples */
+		      100000000, /* nanoseconds of aggregation
+				  * i.e. request updates from the worker
+				  * as values that have been aggregated
+				  * over this duration */
+		      true /* send live updates */
+		    ] });
+
+    query_handles.push(query_id);
+    current_oa_query = oa_query;
+    current_oa_query_id = query_id;
+}
+
+function setup_trace_ui_for_oa_query(idx)
+{
+    var oa_query = all_oa_queries[idx];
 
     trace_graphs = [];
     $("#trace_counters").empty();
@@ -237,7 +339,7 @@ function trace_ui_activate()
 
 	    counter_div.draggable({ containment: "window", scroll: false, revert: true, helper: "clone" });
 
-	    $("#trace_counter").append(counter_div);
+	    $("#trace_counters").append(counter_div);
 	}
     //}
     //$("#trace_counters").accordion({heightStyle: "content"});
@@ -261,7 +363,7 @@ function trace_ui_activate()
 		hbox_rtl.append(close);
 
 		var graph = $("<div/>", { "class": "trace-graph", style: "flex:0 1 auto; height:10em;"});
-		var plot_data = { "counter": counter, values: [] };
+		var plot_data = { "counter": counter, values: [], "max": 0 };
 		graph.data("plot-data", plot_data);
 		//graph.data("counter", counter);
 		//graph.data("counter-values", []);
@@ -278,35 +380,47 @@ function trace_ui_activate()
 	}
     });
     $("#timelines").sortable();
+}
 
-    /* The timestamp for HSW+ increments every 80ns
-     *
-     * The period_exponent gives a sampling period as follows:
-     *   sample_period = 80ns * 2^(period_exponent + 1)
-     *
-     * The overflow period for Haswell can be calculated as:
-     *
-     * 2^32 / (n_eus * max_gen_freq * 2)
-     * (E.g. 40 EUs @ 1GHz = ~53ms)
-     *
-     * We currently sample ~ every 10 milliseconds...
-     */
-    var period_exponent = 16;
+function trace_ui_activate()
+{
+    start_timestamp = null;
+    current_oa_query_update_handler = trace_ui_handle_oa_query_update;
 
-    rpc({ "method": "open_oa_query",
-	  "params": [ next_query_id,
-		      oa_query.metric_set,
-		      period_exponent,
-		      false, /* don't overwrite old samples */
-		      100, /* milliseconds of aggregation
-			    * i.e. request updates from the worker
-			    * as values that have been aggregated
-			    * over this duration */
-		      true /* send live updates */
-		    ] });
+    var select = $("#trace_metrics_select");
+    select.empty();
 
-    query_handles.push(next_query_id++);
-    current_oa_query = oa_query;
+    for (var i in all_oa_queries) {
+	var q = all_oa_queries[i];
+	var opt = document.createElement("option");
+	opt.setAttribute("value", i);
+	if (i === 0)
+	    opt.setAttribute("selected", "selected");
+	opt.innerHTML = q.name;
+
+	select.append($(opt));
+    }
+
+    select.selectmenu({
+	change: function() {
+	    var selected = $("#trace_metrics_select").val();
+	    setup_trace_ui_for_oa_query(selected);
+	    if (current_oa_query_id) {
+		close_query(current_oa_query_id, function() {
+		    open_oa_query_for_trace(selected);
+		})
+	    }
+	}
+    });
+
+    setup_trace_ui_for_oa_query(0);
+    if (!current_oa_query_id) {
+	open_oa_query_for_trace(0);
+    } else {
+	close_query(current_oa_query_id, function () {
+	    open_oa_query_for_trace(0);
+	});
+    }
 }
 
 function forensic_trace_ui_handle_oa_query_update(update)
@@ -429,7 +543,7 @@ function gputop_ui_on_oa_query_update(update)
     current_oa_query_update_handler(update);
 }
 
-var current_overview_query_id = 0;
+var current_oa_query_id = 0;
 var overview_elements = [];
 
 function overview_ui_handle_oa_query_update(update)
@@ -503,7 +617,7 @@ function open_oa_query_for_overview(idx)
 		      oa_query.metric_set,
 		      period_exponent,
 		      false, /* don't overwrite old samples */
-		      1000, /* milliseconds of aggregation
+		      1000000000, /* nanoseconds of aggregation
 			     * i.e. request updates from the worker
 			     * as values that have been aggregated
 			     * over this duration */
@@ -511,7 +625,7 @@ function open_oa_query_for_overview(idx)
 		    ] });
     query_handles.push(query_id);
     current_oa_query = oa_query;
-    current_overview_query_id = query_id;
+    current_oa_query_id = query_id;
 }
 
 function setup_overview_for_oa_query(idx)
@@ -546,10 +660,6 @@ function overview_ui_activate()
 {
     current_oa_query_update_handler = overview_ui_handle_oa_query_update;
 
-    close_queries(function () {
-	open_oa_query_for_overview(0);
-    });
-
     var select = $("#overview_metrics_select");
     select.empty();
 
@@ -568,8 +678,8 @@ function overview_ui_activate()
 	change: function() {
 	    var selected = $("#overview_metrics_select").val();
 	    setup_overview_for_oa_query(selected);
-	    if (current_overview_query_id) {
-		close_query(current_overview_query_id, function() {
+	    if (current_oa_query_id) {
+		close_query(current_oa_query_id, function() {
 		    open_oa_query_for_overview(selected);
 		})
 	    }
@@ -577,8 +687,12 @@ function overview_ui_activate()
     });
 
     setup_overview_for_oa_query(0);
-    if (!current_overview_query_id) {
+    if (!current_oa_query_id) {
 	open_oa_query_for_overview(0);
+    } else {
+	close_query(current_oa_query_id, function () {
+	    open_oa_query_for_overview(0);
+	});
     }
 }
 
@@ -628,13 +742,18 @@ function gputop_ui_on_log(entries)
 	    default:
 	}
 	$("#log_tab").append(div);
+	console.log(JSON.stringify(entry));
     }
-    console.log(entries);
 }
 
 function gputop_ui_on_close_notify(query_id)
 {
     console.log("close notify: ID=" + query_id);
+}
+
+function gputop_ui_on_bad_report(e)
+{
+    console.warn("Bad report: query ID = " + e.id + " timestamp = " + e.timestamp);
 }
 
 var ww = new Worker("gputop-web-worker.js")
