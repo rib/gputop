@@ -375,7 +375,7 @@ for set in tree.findall(".//set"):
     c("query->perf_oa_metrics_set = I915_OA_METRICS_SET_" + perf_suffix + ";\n")
 
     if chipset == "bdw":
-        c("""query->perf_oa_format = I915_OA_FORMAT_A36_B8_C8_BDW;
+        c("""query->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
 
 query->perf_raw_size = 256;
 query->gpu_time_offset = 0;
@@ -386,7 +386,7 @@ query->c_offset = query->b_offset + 8;
 
 """)
     elif chipset == "hsw":
-        c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8_HSW;
+        c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
 
 query->perf_raw_size = 256;
 query->gpu_time_offset = 0;

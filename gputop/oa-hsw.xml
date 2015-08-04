@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1433376941">
+<metrics version="1438103344" merge_md5="71f1da5f04d5e4d487c89bcc941d29a9">
   <set name="Render Metrics Basic Gen7.5"
        chipset="HSW"
        underscore_name="render_basic"
@@ -431,7 +431,9 @@
              units="percent"
              symbol_name="Sampler0Busy"
              semantic_type="duration"
-             />
+             >
+        <condition equation="$SubsliceMask 0x1 AND" />
+    </counter>
     <counter name="Sampler 1 Busy"
              description="The percentage of time in which sampler 1 was busy."
              data_type="float"
@@ -441,7 +443,9 @@
              units="percent"
              symbol_name="Sampler1Busy"
              semantic_type="duration"
-             />
+             >
+        <condition equation="$SubsliceMask 0x2 AND" />
+    </counter>
     <counter name="Samplers Busy"
              description="The percentage of time in which samplers were busy."
              data_type="float"
@@ -461,7 +465,9 @@
              units="percent"
              symbol_name="Sampler0Bottleneck"
              semantic_type="duration"
-             />
+             >
+        <condition equation="$SubsliceMask 0x1 AND" />
+    </counter>
     <counter name="Sampler 1 Bottleneck"
              description="The percentage of time in which sampler 1 was bottlenecks."
              data_type="float"
@@ -471,7 +477,9 @@
              units="percent"
              symbol_name="Sampler1Bottleneck"
              semantic_type="duration"
-             />
+             >
+        <condition equation="$SubsliceMask 0x2 AND" />
+    </counter>
     <counter name="Sampler Bottleneck"
              description="The percentage of time in which samplers were bottlenecks."
              data_type="float"
@@ -490,7 +498,9 @@
              units="texels"
              symbol_name="Sampler0Texels"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x1 AND" />
+    </counter>
     <counter name="Sampler 1 Texels LOD0"
              description="The total number of texels lookups in LOD0 in sampler 1 unit."
              data_type="uint64"
@@ -499,7 +509,9 @@
              units="texels"
              symbol_name="Sampler1Texels"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x2 AND" />
+    </counter>
     <counter name="Sampler Texels LOD0"
              description="The total number of texels lookups in LOD0 in all sampler units."
              data_type="uint64"
@@ -2812,15 +2824,6 @@
              symbol_name="EuIdle"
              semantic_type="duration"
              />
-    <counter name="Sampler L2 cache misses"
-             description="Number of sampler L2 cache misses"
-             data_type="uint64"
-             equation="C 7 READ C 6 READ UADD C 5 READ UADD C 4 READ UADD C 3 READ UADD C 2 READ UADD C 1 READ UADD C 0 READ UADD"
-             underscore_name="sampler_l2_cache_misses"
-             units="messages"
-             symbol_name="SamplerL2CacheMisses"
-             semantic_type="event"
-             />
     <counter name="Sampler L2 cache misses (ss0)"
              description="Number of sampler L2 cache misses (ss0)"
              data_type="uint64"
@@ -2829,7 +2832,9 @@
              units="messages"
              symbol_name="Sampler0L2CacheMisses"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x1 AND" />
+    </counter>
     <counter name="Sampler L2 cache misses (ss1)"
              description="Number of sampler L2 cache misses (ss1)"
              data_type="uint64"
@@ -2838,7 +2843,9 @@
              units="messages"
              symbol_name="Sampler1L2CacheMisses"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x2 AND" />
+    </counter>
     <counter name="Sampler L2 cache misses (ss2)"
              description="Number of sampler L2 cache misses (ss2)"
              data_type="uint64"
@@ -2847,7 +2854,9 @@
              units="messages"
              symbol_name="Sampler2L2CacheMisses"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x4 AND" />
+    </counter>
     <counter name="Sampler L2 cache misses (ss3)"
              description="Number of sampler L2 cache misses (ss3)"
              data_type="uint64"
@@ -2856,7 +2865,9 @@
              units="messages"
              symbol_name="Sampler3L2CacheMisses"
              semantic_type="event"
-             />
+             >
+        <condition equation="$SubsliceMask 0x8 AND" />
+    </counter>
   </set>
 
 </metrics>
