@@ -1,58 +1,32 @@
 /*
- * Copyright © 2007 Intel Corporation
+ *
+ * Copyright 2003 Tungsten Graphics, Inc., Cedar Park, Texas.
+ * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
- * Authors:
- *    Eric Anholt <eric@anholt.net>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL TUNGSTEN GRAPHICS AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #ifndef _INTEL_CHIPSET_H
 #define _INTEL_CHIPSET_H
-
-#ifndef EMSCRIPTEN
-#include <pciaccess.h>
-
-struct pci_device *intel_get_pci_device(void);
-uint32_t intel_get_drm_devid(int fd);
-int intel_gen(uint32_t devid);
-
-extern enum pch_type intel_pch;
-#endif
-
-enum pch_type {
-	PCH_NONE,
-	PCH_IBX,
-	PCH_CPT,
-	PCH_LPT,
-};
-
-void intel_check_pch(void);
-
-#define HAS_IBX (intel_pch == PCH_IBX)
-#define HAS_CPT (intel_pch == PCH_CPT)
-#define HAS_LPT (intel_pch == PCH_LPT)
-
-/* Exclude chipset #defines, they just add noise */
-#ifndef __GTK_DOC_IGNORE__
 
 #define PCI_CHIP_I810			0x7121
 #define PCI_CHIP_I810_DC100		0x7123
@@ -174,12 +148,12 @@ void intel_check_pch(void);
 #define PCI_CHIP_HASWELL_CRW_E_GT1	0x0D0E /* Reserved */
 #define PCI_CHIP_HASWELL_CRW_E_GT2	0x0D1E
 #define PCI_CHIP_HASWELL_CRW_E_GT3	0x0D2E
-#define BDW_SPARE 0x2
-#define BDW_ULT 0x6
-#define BDW_HALO 0xb
-#define BDW_SERVER 0xa
-#define BDW_WORKSTATION 0xd
-#define BDW_ULX 0xe
+#define BDW_SPARE			0x2
+#define BDW_ULT				0x6
+#define BDW_SERVER			0xa
+#define BDW_IRIS			0xb
+#define BDW_WORKSTATION			0xd
+#define BDW_ULX				0xe
 
 #define PCI_CHIP_VALLEYVIEW_PO		0x0f30 /* VLV PO board */
 #define PCI_CHIP_VALLEYVIEW_1		0x0f31
@@ -191,7 +165,25 @@ void intel_check_pch(void);
 #define PCI_CHIP_CHERRYVIEW_2		0x22b2
 #define PCI_CHIP_CHERRYVIEW_3		0x22b3
 
-#endif /* __GTK_DOC_IGNORE__ */
+#define PCI_CHIP_SKYLAKE_ULT_GT2	0x1916
+#define PCI_CHIP_SKYLAKE_ULT_GT1	0x1906
+#define PCI_CHIP_SKYLAKE_ULT_GT3	0x1926
+#define PCI_CHIP_SKYLAKE_ULT_GT2F	0x1921
+#define PCI_CHIP_SKYLAKE_ULX_GT1	0x190E
+#define PCI_CHIP_SKYLAKE_ULX_GT2	0x191E
+#define PCI_CHIP_SKYLAKE_DT_GT2		0x1912
+#define PCI_CHIP_SKYLAKE_DT_GT1		0x1902
+#define PCI_CHIP_SKYLAKE_HALO_GT2	0x191B
+#define PCI_CHIP_SKYLAKE_HALO_GT3	0x192B
+#define PCI_CHIP_SKYLAKE_HALO_GT1 	0x190B
+#define PCI_CHIP_SKYLAKE_SRV_GT2	0x191A
+#define PCI_CHIP_SKYLAKE_SRV_GT3	0x192A
+#define PCI_CHIP_SKYLAKE_SRV_GT1	0x190A
+#define PCI_CHIP_SKYLAKE_WKS_GT2 	0x191D
+
+#define PCI_CHIP_BROXTON_0		0x0A84
+#define PCI_CHIP_BROXTON_1		0x1A84
+#define PCI_CHIP_BROXTON_2		0x5A84
 
 #define IS_MOBILE(devid)	((devid) == PCI_CHIP_I855_GM || \
 				 (devid) == PCI_CHIP_I915_GM || \
@@ -335,14 +327,14 @@ void intel_check_pch(void);
 				 IS_HSW_GT2(devid) || \
 				 IS_HSW_GT3(devid))
 
-#define IS_BROADWELL(devid)	((((devid) & 0xff00) != 0x1600) ? 0 : \
-				((((devid) & 0x00f0) >> 4) > 3) ? 0 : \
-				 (((devid) & 0x000f) == BDW_SPARE) ? 1 : \
-				 (((devid) & 0x000f) == BDW_ULT) ? 1 : \
-				 (((devid) & 0x000f) == BDW_HALO) ? 1 : \
-				 (((devid) & 0x000f) == BDW_SERVER) ? 1 : \
-				 (((devid) & 0x000f) == BDW_WORKSTATION) ? 1 : \
-				 (((devid) & 0x000f) == BDW_ULX) ? 1 : 0)
+#define IS_BROADWELL(devid)     (((devid & 0xff00) != 0x1600) ? 0 : \
+				(((devid & 0x00f0) >> 4) > 3) ? 0 : \
+				((devid & 0x000f) == BDW_SPARE) ? 1 : \
+				((devid & 0x000f) == BDW_ULT) ? 1 : \
+				((devid & 0x000f) == BDW_IRIS) ? 1 : \
+				((devid & 0x000f) == BDW_SERVER) ? 1 : \
+				((devid & 0x000f) == BDW_WORKSTATION) ? 1 : \
+				((devid & 0x000f) == BDW_ULX) ? 1 : 0)
 
 #define IS_CHERRYVIEW(devid)	((devid) == PCI_CHIP_CHERRYVIEW_0 || \
 				 (devid) == PCI_CHIP_CHERRYVIEW_1 || \
@@ -352,49 +344,42 @@ void intel_check_pch(void);
 #define IS_GEN8(devid)		(IS_BROADWELL(devid) || \
 				 IS_CHERRYVIEW(devid))
 
-#define IS_965(devid)		(IS_GEN4(devid) || \
-				 IS_GEN5(devid) || \
-				 IS_GEN6(devid) || \
-				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+#define IS_SKL_GT1(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULX_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_DT_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT1)
 
-#define IS_9XX(devid)		(IS_GEN3(devid) || \
-				 IS_GEN4(devid) || \
-				 IS_GEN5(devid) || \
-				 IS_GEN6(devid) || \
-				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+#define IS_SKL_GT2(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULT_GT2F	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULX_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_DT_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_WKS_GT2)
 
-#define IS_INTEL(devid)		(IS_GEN2(devid) || \
-				 IS_GEN3(devid) || \
-				 IS_GEN4(devid) || \
-				 IS_GEN5(devid) || \
-				 IS_GEN6(devid) || \
-				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+#define IS_SKL_GT3(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT3	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT3	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT3)
 
-#define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) || \
-				 IS_GEN6(devid) || \
-				 IS_IVYBRIDGE(devid) || IS_HASWELL(devid) || \
-				 IS_GEN8(devid))
+#define IS_SKYLAKE(devid)	(IS_SKL_GT1(devid) || \
+				 IS_SKL_GT2(devid) || \
+				 IS_SKL_GT3(devid))
 
-#define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
-				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+#define IS_BROXTON(devid)	((devid) == PCI_CHIP_BROXTON_0	|| \
+				 (devid) == PCI_CHIP_BROXTON_1	|| \
+				 (devid) == PCI_CHIP_BROXTON_2)
 
-#define HAS_BSD_RING(devid)	(IS_GEN5(devid) || \
-				 IS_GEN6(devid) || \
-				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+#define IS_GEN9(devid)		(IS_SKYLAKE(devid) || \
+				 IS_BROXTON(devid))
 
-#define IS_BROADWATER(devid)	((devid) == PCI_CHIP_I946_GZ || \
-				 (devid) == PCI_CHIP_I965_G_1 || \
-				 (devid) == PCI_CHIP_I965_Q || \
-				 (devid) == PCI_CHIP_I965_G)
+#define IS_9XX(dev)		(IS_GEN3(dev) || \
+				 IS_GEN4(dev) || \
+				 IS_GEN5(dev) || \
+				 IS_GEN6(dev) || \
+				 IS_GEN7(dev) || \
+				 IS_GEN8(dev) || \
+				 IS_GEN9(dev))
 
-#define IS_CRESTLINE(devid)	((devid) == PCI_CHIP_I965_GM || \
-				 (devid) == PCI_CHIP_I965_GME)
-
-#define HAS_VEBOX_RING(devid)   (IS_HASWELL(devid))
 
 #endif /* _INTEL_CHIPSET_H */
