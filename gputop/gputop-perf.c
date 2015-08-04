@@ -86,12 +86,6 @@ struct oa_perf_sample {
 #define mb()            __asm__ volatile("mfence" ::: "memory")
 #endif
 
-/* TODO: consider using <stdatomic.h> something like:
- *
- * #define rmb() atomic_thread_fence(memory_order_seq_consume)
- * #define mb() atomic_thread_fence(memory_order_seq_cst)
- */
-
 /* Allow building for a more recent kernel than the system headers
  * correspond too... */
 #ifndef PERF_RECORD_DEVICE
