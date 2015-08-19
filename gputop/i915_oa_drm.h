@@ -112,8 +112,8 @@ enum i915_oa_event_type {
 
 #define I915_PARAM_SUBSLICE_TOTAL	33
 #define I915_PARAM_EU_TOTAL		34
-#define I915_PARAM_SLICE_MASK		36
-#define I915_PARAM_SUBSLICE_MASK	37
+#define I915_PARAM_SLICE_MASK		37
+#define I915_PARAM_SUBSLICE_MASK	38
 
 typedef struct i915_getparam {
 	int param;

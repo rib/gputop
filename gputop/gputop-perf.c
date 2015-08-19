@@ -91,7 +91,7 @@ struct oa_perf_sample {
 /* Allow building for a more recent kernel than the system headers
  * correspond too... */
 #ifndef PERF_RECORD_DEVICE
-#define PERF_RECORD_DEVICE                   13
+#define PERF_RECORD_DEVICE                   14
 #endif
 
 /* attr.config */

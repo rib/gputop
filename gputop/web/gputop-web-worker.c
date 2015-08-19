@@ -74,7 +74,7 @@ enum perf_record_type {
     PERF_RECORD_THROTTLE = 5,
     PERF_RECORD_UNTHROTTLE = 6,
     PERF_RECORD_SAMPLE = 9,
-    PERF_RECORD_DEVICE = 13,
+    PERF_RECORD_DEVICE = 14,
 };
 
 struct perf_event_header {
