@@ -29,7 +29,7 @@ addons:
     apt:
         sources:
             - ubuntu-toolchain-r-test
-            - kalakris-cmake
+            - ppa:smspillaz/cmake-2.8.12
         packages:
             - gcc-4.8
             - g++-4.8
