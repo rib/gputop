@@ -1,0 +1,73 @@
+sudo: false
+
+language: c
+
+os:
+    - linux
+
+compiler:
+    - clang
+    - gcc
+
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+        packages:
+            - gcc-4.9
+            - g++-4.9
+            - clang-3.6
+            - autopoint
+            - python-lxml
+
+cache:
+    directories:
+        - cmake-2.8.12.2
+        - llvm-fastcomp
+        - protobuf
+
+env:
+    - CONFIG_OPTS="--enable-debug"
+    - CONFIG_OPTS="--disable-debug"
+
+before_install:
+    - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
+    - if test "$CC" = "clang"; then export CC=clang-3.6; export CXX=clang++-3.6; fi
+    # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
+    - (if test -f cmake-2.8.12.2/bin/cmake; then echo OK; else
+           git clone --branch v2.8.12.2 --single-branch --depth 1 git://cmake.org/cmake.git cmake-2.8.12.2-src &&
+           cd cmake-2.8.12.2-src &&
+           ./configure --prefix=$TRAVIS_BUILD_DIR/cmake-2.8.12.2 &&
+           make &&
+           make install;
+       fi)
+    # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
+    - (if test -d llvm-fastcomp/bin; then echo OK; else
+           git clone https://github.com/kripken/emscripten-fastcomp &&
+           git clone https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
+           mkdir emscripten-fastcomp/build &&
+           cd emscripten-fastcomp/build &&
+           PATH="$TRAVIS_BUILD_DIR/cmake-2.8.12.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF &&
+           make -j4 &&
+           make install;
+       fi)
+    - export LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin"
+    - (if test -d protobuf/lib; then echo OK; else
+            git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
+            cd protobuf-src &&
+            ./autogen.sh &&
+            ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf &&
+            make &&
+            make install;
+       fi)
+    - export PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig"
+    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
+    - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
+    - emcc -v
+
+before_script:
+    - NOCONFIGURE=1 ./autogen.sh
+
+script:
+    - ./configure --disable-gl $CONFIG_OPTS && make
