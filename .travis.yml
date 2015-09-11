@@ -10,10 +10,10 @@ compiler:
 
 cache:
     directories:
-        - emsdk
+        - emsdk_portable
 
 before_install:
-    - if ! test -d ./emsdk; then mkdir emsdk; pushd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; dos2unix ./emsdk; ./emsdk update; popd; fi
+    - (if ! test -d ./emsdk_portable; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; tar -xvf *.tar.gzp; cd emsdk_portable; ./emsdk update; fi)
     - git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf
     - (cd protobuf && ./autogen.sh && ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf-bin && make && sudo make install)
 
@@ -27,7 +27,6 @@ addons:
             - clang
             - autopoint
             - python-lxml
-            - dos2unix # emsdk script has windows line endings and stop it running on Linux :-/
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
