@@ -12,8 +12,8 @@ cache:
     directories:
         - emsdk
 
+#    - if ! test -d ./emsdk; then mkdir emsdk; pushd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; dos2unix ./emsdk; ./emsdk update; popd; fi
 before_install:
-    - if ! test -d ./emsdk; then mkdir emsdk; pushd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; dos2unix ./emsdk; ./emsdk update; popd; fi
     - git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf
     - (cd protobuf && ./autogen.sh && ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf-bin && make && sudo make install)
 
