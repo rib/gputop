@@ -22,7 +22,7 @@ AC_CONFIG_HEADERS(config.h)
 # want to know if the user specified custom cflags or not.
 cflags_set=${CFLAGS+set}
 
-AM_INIT_AUTOMAKE([1.14 foreign -Wno-portability no-define no-dist-gzip
+AM_INIT_AUTOMAKE([1.11 foreign -Wno-portability no-define no-dist-gzip
                   dist-bzip2 subdir-objects])
 AM_SILENT_RULES([yes])
 
