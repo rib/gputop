@@ -638,7 +638,7 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 #if 1
     printf("perf records:\n");
     printf("> fd = %d\n", stream->fd);
-    printf("> size = %d\n", stream->buffer_size);
+    printf("> size = %lu\n", stream->buffer_size);
     printf("> tail_ptr = %p\n", &stream->mmap_page->data_tail);
     printf("> head=%"PRIu64"\n", perf_head);
     printf("> tail=%"PRIu64"\n", stream->mmap_page->data_tail);
