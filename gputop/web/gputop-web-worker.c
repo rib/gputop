@@ -90,6 +90,11 @@ struct oa_perf_sample {
    uint8_t raw_data[];
 };
 
+struct oa_sample {
+   struct perf_event_header header;
+   uint8_t oa_report[];
+};
+
 
 static struct gputop_devinfo devinfo;
 static int socket = 0;
@@ -135,9 +140,9 @@ accumulate_uint40(int a_index,
 }
 
 void
-gputop_perf_accumulate(struct gputop_perf_query *query,
-		       const uint8_t *report0,
-		       const uint8_t *report1)
+accumulate_oa_reports(struct gputop_perf_query *query,
+		      const uint8_t *report0,
+		      const uint8_t *report1)
 {
     uint64_t *accumulator = query->accumulator;
     const uint32_t *start = (const uint32_t *)report0;
@@ -496,7 +501,7 @@ handle_oa_query_perf_data(struct gputop_worker_query *query, uint8_t *data, int 
 	    //str = strdup("SAMPLE\n");
 	    if (last) {
 		query->end_timestamp = timestamp;
-		gputop_perf_accumulate(oa_query, last, report);
+		accumulate_oa_reports(oa_query, last, report);
 	    }
 
 	    last = report;
@@ -535,6 +540,149 @@ handle_perf_message(int id, uint8_t *data, int len)
     }
     gputop_web_console_log("received perf data for unknown query id: %d", id);
 }
+
+static void
+handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data, int len)
+{
+    struct gputop_perf_query *oa_query = query->oa_query;
+    const struct perf_event_header *header;
+    uint8_t *last;
+    uint64_t end_timestamp;
+
+    if (query->continuation_report) {
+	last = query->continuation_report;
+	end_timestamp = query->end_timestamp;
+    }
+
+    for (header = (void *)data;
+	 (uint8_t *)header < (data + len);
+	 header = (void *)(((uint8_t *)header) + header->size))
+    {
+#if 0
+	gputop_web_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
+
+	i++;
+	if (i > 200) {
+	    gputop_web_console_log("perf message too large!\n");
+	    return;
+	}
+#endif
+
+	switch (header->type) {
+
+	case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
+		gputop_web_console_log("i915_oa: OA buffer overflow\n");
+		break;
+        case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+            gputop_web_console_log("i915_oa: OA report lost\n");
+            break;
+
+	case DRM_I915_PERF_RECORD_SAMPLE: {
+	    struct oa_sample *sample = (struct oa_sample *)header;
+	    uint8_t *report = sample->oa_report;
+	    uint32_t raw_timestamp = read_report_raw_timestamp((uint32_t *)report);
+	    uint64_t timestamp;
+
+	    if (raw_timestamp == 0) {
+#warning "check for zero report reason instead of checking timestamp"
+		/* FIXME: check reason field too, since a zero timestamp may sometimes be valid */
+		gputop_web_console_log("i915_oa: spurious report with zero timestamp\n");
+		notify_bad_report(query, oa_clock_get_time(&query->oa_clock));
+		continue;
+	    }
+
+	    if (!last) {
+		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
+
+		oa_clock_init(&query->oa_clock, raw_timestamp);
+		timestamp = oa_clock_get_time(&query->oa_clock);
+
+		query->start_timestamp = timestamp;
+		end_timestamp = timestamp + query->aggregation_period;
+	    } else {
+		oa_clock_accumulate_raw(&query->oa_clock, raw_timestamp);
+		timestamp = oa_clock_get_time(&query->oa_clock);
+	    }
+
+	    //gputop_web_console_log("timestamp = %"PRIu64" target duration=%u",
+	    //			     timestamp, (unsigned)(end_timestamp - query->start_timestamp));
+            if (timestamp >= end_timestamp) {
+		forward_query_update(query);
+		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
+		query->start_timestamp = timestamp;
+
+#if 0
+		/* Note: end_timestamp isn't the last timestamp that belonged
+		 * to the last update. We don't want the end_timestamp for the
+		 * next update to be skewed by exact duration of the previous
+		 * update otherwise the elapsed time relative to when the
+		 * query started will appear to drift from wall clock time */
+		end_timestamp += query->aggregation_period;
+
+		if (end_timestamp <= query->start_timestamp) {
+		    gputop_web_console_warn("i915_oa: not forwarding fast enough\n");
+		    end_timestamp = timestamp + query->aggregation_period;
+		}
+#else
+		/* XXX: the above comment proably isn't really a good way of
+		 * considering this. We want aggregated updates to have a consistent
+		 * statistical significance. If we always set our end_timestamp
+		 * relative to when we opened the query then there's a risk that
+		 * if we aren't keeping up with forwarding data or in cases where
+		 * where we have to skip spurious reports from the hardware then
+		 * some updates may represent quite varying durations. Setting
+		 * the end_timestamp relative to now might be better from this pov.
+		 * The issue of elapsed time appearing to drift described above isn't
+		 * really an issue since the timestamps themselves will correctly
+		 * reflect the progress of time which the UI can represent.
+		 */
+		end_timestamp = timestamp + query->aggregation_period;
+#endif
+	    }
+
+	    //str = strdup("SAMPLE\n");
+	    if (last) {
+		query->end_timestamp = timestamp;
+		accumulate_oa_reports(oa_query, last, report);
+	    }
+
+	    last = report;
+	    break;
+	}
+
+	default:
+	    gputop_web_console_log("i915 perf: Spurious header type = %d\n", header->type);
+	    return;
+	}
+    }
+
+    if (last) {
+	int raw_size = query->oa_query->perf_raw_size;
+
+	if (!query->continuation_report)
+	    query->continuation_report = malloc(raw_size);
+
+	memcpy(query->continuation_report, last, raw_size);
+	query->end_timestamp = end_timestamp;
+    }
+}
+
+static void
+handle_i915_perf_message(int id, uint8_t *data, int len)
+{
+    struct gputop_worker_query *query;
+
+    gputop_list_for_each(query, &open_queries, link) {
+
+	if (query->id == id) {
+	    if (query->oa_query)
+		handle_oa_query_i915_perf_data(query, data, len);
+	    return;
+	}
+    }
+    gputop_web_console_log("received perf data for unknown query id: %d", id);
+}
+
 
 static const char *
 counter_type_name(gputop_counter_type_t type)
@@ -993,13 +1141,26 @@ gputop_websocket_onmessage(int socket, uint8_t *data, int len, void *user_data)
 {
     //gputop_web_console_log("onmessage len=%d\n", len);
 
-    if (data[0] == 1) {
+    /* FIXME: don't use hardcoded enum values here! */
+    switch (data[0]) {
+    case 1: { /* WS_MESSAGE_PERF */
 	uint32_t id = *((uint32_t *)(data + 4));
 
 	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
 	handle_perf_message(id, data + 8, len - 8);
-    } else
+        break;
+    }
+    case 2: /* WS_MESSAGE_PROTOBUF */
 	handle_protobuf_message(data + 8, len - 8);
+        break;
+    case 3: {/* WS_MESSAGE_I915_PERF */
+	uint32_t id = *((uint32_t *)(data + 4));
+
+	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
+	handle_i915_perf_message(id, data + 8, len - 8);
+        break;
+    }
+    }
 }
 
 static void

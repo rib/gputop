@@ -120,6 +120,106 @@ typedef struct i915_getparam {
 	int *value;
 } i915_getparam_t;
 
+
+/* Note: same versioning scheme as struct perf_event_attr
+ *
+ * Userspace specified size defines ABI version and kernel
+ * zero extends to size of latest version. If userspace
+ * gives a larger structure than the kernel expects then
+ * kernel asserts that all unknown fields are zero.
+ */
+
+#define I915_OA_FLAG_PERIODIC		(1<<0)
+
+struct i915_perf_oa_attr {
+	uint32_t size;
+
+	uint32_t flags;
+
+	uint32_t metrics_set;
+	uint32_t oa_format;
+	uint32_t oa_timer_exponent;
+};
+
+
+enum i915_perf_event_type {
+	I915_PERF_OA_EVENT
+};
+
+#define I915_PERF_FLAG_FD_CLOEXEC	(1<<0)
+#define I915_PERF_FLAG_FD_NONBLOCK	(1<<1)
+#define I915_PERF_FLAG_SINGLE_CONTEXT	(1<<2)
+
+#define I915_PERF_SAMPLE_OA_REPORT	(1<<0)
+#define I915_PERF_SAMPLE_CTXID		(1<<1)
+#define I915_PERF_SAMPLE_TIMESTAMP	(1<<2)
+
+struct i915_perf_open_param {
+	/* Such as I915_PERF_OA_EVENT */
+	uint32_t type;
+
+	/* CLOEXEC, NONBLOCK, SINGLE_CONTEXT, PERIODIC... */
+	uint32_t flags;
+
+	/* What to include in samples */
+	uint64_t sample_flags;
+
+	/* A specific context to profile */
+	uint32_t ctx_id;
+
+	/* Event specific attributes struct pointer:
+	 * (E.g. to struct i915_perf_oa_attr)
+	 */
+	uint64_t attr;
+
+	/* OUT */
+	uint32_t fd;
+};
+
+
+/* Note: same as struct perf_event_header */
+struct i915_perf_event_header {
+	uint32_t type;
+	uint16_t misc;
+	uint16_t size;
+};
+
+enum i915_perf_record_type {
+
+	/*
+	 * struct {
+	 *     struct drm_i915_perf_event_header header;
+	 *
+	 *     { u32 ctx_id; }	    && I915_PERF_SAMPLE_CTXID
+	 *     { u32 timestamp; }   && I915_PERF_SAMPLE_TIMESTAMP
+	 *     { u32 oa_report[]; } && I915_PERF_SAMPLE_OA_REPORT
+	 *
+	 * };
+	 */
+	DRM_I915_PERF_RECORD_SAMPLE = 1,
+
+	/*
+	 * Indicates that one or more OA reports was not written
+	 * by the hardware.
+	 */
+	DRM_I915_PERF_RECORD_OA_REPORT_LOST = 2,
+
+	/*
+	 * Indicates that the internal circular buffer that Gen
+	 * graphics writes OA reports into has filled, which may
+	 * either mean that old reports could be overwritten or
+	 * subsequent reports lost until the buffer is cleared.
+	 */
+	DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW = 3,
+
+	DRM_I915_PERF_RECORD_MAX /* non-ABI */
+};
+
+
 #ifndef EMSCRIPTEN
 #define I915_IOCTL_GETPARAM         _IOWR('d', 0x46, i915_getparam_t)
+#define I915_IOCTL_PERF_OPEN        _IOWR('d', 0x76, struct i915_perf_open_param)
+
+#define I915_PERF_IOCTL_ENABLE      _IO('i', 0x0)
+#define I915_PERF_IOCTL_DISABLE     _IO('i', 0x1)
 #endif

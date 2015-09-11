@@ -278,7 +278,7 @@ perf_counters_redraw(WINDOW *win)
 	y++;
     }
 
-    gputop_perf_accumulator_clear(gputop_current_perf_query);
+    gputop_perf_accumulator_clear(gputop_current_perf_stream);
 }
 
 static void
@@ -481,7 +481,7 @@ perf_oa_trace_redraw(WINDOW *win)
     report1 = get_next_trace_sample(query, report0);
     start_timestamp = read_report_timestamp((uint32_t *)report0);
 
-    gputop_perf_accumulator_clear(query);
+    gputop_perf_accumulator_clear(gputop_current_perf_stream);
 
     print_trace_counter_names(win, query);
 
@@ -497,11 +497,11 @@ perf_oa_trace_redraw(WINDOW *win)
 
 	    if (report_timestamp >= column_end) {
 		print_trace_counter_spark(win, query, i);
-		gputop_perf_accumulator_clear(query);
+		gputop_perf_accumulator_clear(gputop_current_perf_stream);
 		break;
 	    }
 
-	    gputop_perf_accumulate(query, report0, report1);
+	    gputop_perf_accumulate(gputop_current_perf_stream, report0, report1);
 
 	    report0 = report1;
 	    report1 = get_next_trace_sample(query, report0);

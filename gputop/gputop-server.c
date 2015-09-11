@@ -62,6 +62,7 @@ static uv_timer_t timer;
 enum {
     WS_MESSAGE_PERF = 1,
     WS_MESSAGE_PROTOBUF,
+    WS_MESSAGE_I915_PERF,
 };
 
 struct protobuf_msg_closure;
@@ -118,17 +119,12 @@ on_protobuf_msg_sent_cb(const union wslay_event_msg_source *source, void *user_d
     free(closure);
 }
 
-static gputop_list_t perf_streams;
+static gputop_list_t streams;
 static gputop_list_t closing_streams;
 
 /*
  * FIXME: don't duplicate these...
  */
-
-#define MAX_OA_PERF_SAMPLE_SIZE (8 +   /* perf_event_header */       \
-                                 4 +   /* raw_size */                \
-                                 256 + /* raw OA counter snapshot */ \
-                                 4)    /* alignment padding */
 
 #define TAKEN(HEAD, TAIL, POT_SIZE)	(((HEAD) - (TAIL)) & (POT_SIZE - 1))
 
@@ -174,8 +170,6 @@ write_perf_tail(struct perf_event_mmap_page *mmap_page,
     mmap_page->data_tail = tail;
 }
 
-static int flushing_perf = 0;
-
 static void
 on_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
 {
@@ -183,9 +177,9 @@ on_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
         (struct perf_flush_closure *)source->data;
 
     //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
+    closure->stream->user.flushing = false;
     gputop_perf_stream_unref(closure->stream);
     free(closure);
-    flushing_perf--;
 }
 
 static ssize_t
@@ -198,7 +192,7 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     struct perf_flush_closure *closure =
         (struct perf_flush_closure *)source->data;
     struct gputop_perf_stream *stream = closure->stream;
-    const uint64_t mask = stream->buffer_size - 1;
+    const uint64_t mask = stream->perf.buffer_size - 1;
     int read_len;
     int total = 0;
     uint64_t head;
@@ -223,13 +217,13 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     head = closure->head;
     tail = closure->tail;
 
-    buffer = stream->buffer;
+    buffer = stream->perf.buffer;
 
     if ((head & mask) < (tail & mask)) {
 	int before;
 
 	p = buffer + (tail & mask);
-	before = stream->buffer_size - (tail & mask);
+	before = stream->perf.buffer_size - (tail & mask);
 	read_len = MIN(before, len);
 	memcpy(data, p, read_len);
 
@@ -242,7 +236,7 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     }
 
     p = buffer + (tail & mask);
-    remainder = TAKEN(head, tail, stream->buffer_size);
+    remainder = TAKEN(head, tail, stream->perf.buffer_size);
     read_len = MIN(remainder, len);
     memcpy(data, p, read_len);
 
@@ -253,69 +247,167 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
 
     closure->total_len += total;
 
-    if (TAKEN(head, tail, stream->buffer_size) == 0) {
+    if (TAKEN(head, tail, stream->perf.buffer_size) == 0) {
 	*eof = 1;
-	write_perf_tail(stream->mmap_page, tail);
+	write_perf_tail(stream->perf.mmap_page, tail);
     }
 
     return total;
 }
 
 static void
-flush_stream_samples(struct gputop_perf_stream *stream)
+flush_perf_stream_samples(struct gputop_perf_stream *stream)
 {
-    uint64_t head;
-    uint64_t tail;
+    uint64_t head = read_perf_head(stream->perf.mmap_page);
+    uint64_t tail = stream->perf.mmap_page->data_tail;
+    struct perf_flush_closure *closure;
+    struct wslay_event_fragmented_msg msg;
 
-    if (fsync(stream->fd) < 0)
-	dbg("Failed to flush i915_oa perf samples");
+    stream->user.flushing = true;
 
-    head = read_perf_head(stream->mmap_page);
-    tail = stream->mmap_page->data_tail;
+    /* Ensure the stream can't be freed while we're in the
+     * middle of forwarding samples... */
+    gputop_perf_stream_ref(stream);
 
-    if (TAKEN(head, tail, stream->buffer_size)) {
-	struct perf_flush_closure *closure;
-	struct wslay_event_fragmented_msg msg;
+    //gputop_perf_print_records(stream, head, tail, false);
 
-	flushing_perf++;
+    closure = xmalloc(sizeof(*closure));
+    closure->header_written = false;
+    closure->id = stream->user.id;
+    closure->total_len = 0;
+    closure->stream = stream;
+    closure->head = head;
+    closure->tail = tail;
 
-	/* Ensure the stream can't be freed while we're in the
-	 * middle of forwarding samples... */
-	gputop_perf_stream_ref(stream);
+    memset(&msg, 0, sizeof(msg));
+    msg.opcode = WSLAY_BINARY_FRAME;
+    msg.source.data = closure;
+    msg.read_callback = fragmented_perf_read_cb;
+    msg.finish_callback = on_perf_flush_done;
 
-	//gputop_perf_print_records(stream, head, tail, false);
+    wslay_event_queue_fragmented_msg(h2o_conn->ws_ctx, &msg);
 
-	closure = xmalloc(sizeof(*closure));
-	closure->header_written = false;
-	closure->id = stream->user.id;
-	closure->total_len = 0;
-	closure->stream = stream;
-	closure->head = head;
-	closure->tail = tail;
+    wslay_event_send(h2o_conn->ws_ctx);
+}
 
-	memset(&msg, 0, sizeof(msg));
-	msg.opcode = WSLAY_BINARY_FRAME;
-	msg.source.data = closure;
-	msg.read_callback = fragmented_perf_read_cb;
-	msg.finish_callback = on_perf_flush_done;
+struct i915_perf_flush_closure {
+    bool header_written;
+    int id;
+    int total_len;
+    struct gputop_perf_stream *stream;
+};
 
-	wslay_event_queue_fragmented_msg(h2o_conn->ws_ctx, &msg);
+static void
+on_i915_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
+{
+    struct i915_perf_flush_closure *closure =
+        (struct i915_perf_flush_closure *)source->data;
 
-	wslay_event_send(h2o_conn->ws_ctx);
+    //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
+    closure->stream->user.flushing = false;
+    gputop_perf_stream_unref(closure->stream);
+    free(closure);
+}
+
+static ssize_t
+fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
+			     uint8_t *data, size_t len,
+			     const union wslay_event_msg_source *source,
+			     int *eof,
+			     void *user_data)
+{
+    struct i915_perf_flush_closure *closure =
+        (struct i915_perf_flush_closure *)source->data;
+    struct gputop_perf_stream *stream = closure->stream;
+    int total = 0;
+    int read_len;
+
+    if (!closure->header_written) {
+	assert(len > 8);
+
+	memset(data, 0, 8);
+	data[0] = WS_MESSAGE_I915_PERF;
+	*(uint32_t *)(data + 4) = closure->id;
+
+	total = 8;
+	data += 8;
+	len -= 8;
+	closure->header_written = true;
     }
+
+    while ((read_len = read(stream->fd, data, len)) < 0 && errno == EINTR)
+	;
+
+    if (read_len >= 0) {
+	total += read_len;
+	closure->total_len += total;
+    } else {
+	*eof = 1;
+	if (errno != EAGAIN)
+	    dbg("Error reading i915 perf stream %m");
+    }
+
+    return total;
 }
 
 static void
-flush_perf_samples(void)
+flush_i915_perf_stream_samples(struct gputop_perf_stream *stream)
 {
-    struct gputop_perf_stream *stream;
+    struct i915_perf_flush_closure *closure;
+    struct wslay_event_fragmented_msg msg;
 
-    if (flushing_perf) {
+    stream->user.flushing = true;
+
+    /* Ensure the stream can't be freed while we're in the
+     * middle of forwarding samples... */
+    gputop_perf_stream_ref(stream);
+
+    //gputop_perf_print_records(stream, head, tail, false);
+
+    closure = xmalloc(sizeof(*closure));
+    closure->header_written = false;
+    closure->id = stream->user.id;
+    closure->total_len = 0;
+    closure->stream = stream;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.opcode = WSLAY_BINARY_FRAME;
+    msg.source.data = closure;
+    msg.read_callback = fragmented_i915_perf_read_cb;
+    msg.finish_callback = on_i915_perf_flush_done;
+
+    wslay_event_queue_fragmented_msg(h2o_conn->ws_ctx, &msg);
+
+    wslay_event_send(h2o_conn->ws_ctx);
+}
+
+static void
+flush_stream_samples(struct gputop_perf_stream *stream)
+{
+    if (stream->user.flushing) {
 	fprintf(stderr, "Throttling websocket forwarding");
 	return;
     }
 
-    gputop_list_for_each(stream, &perf_streams, user.link) {
+    if (!gputop_stream_data_pending(stream))
+	return;
+
+    switch (stream->type) {
+    case GPUTOP_STREAM_PERF:
+	flush_perf_stream_samples(stream);
+	break;
+    case GPUTOP_STREAM_I915_PERF:
+	flush_i915_perf_stream_samples(stream);
+	break;
+    }
+}
+
+static void
+flush_streams(void)
+{
+    struct gputop_perf_stream *stream;
+
+    gputop_list_for_each(stream, &streams, user.link) {
 	flush_stream_samples(stream);
     }
 }
@@ -364,7 +456,7 @@ forward_logs(void)
 static void
 periodic_forward_cb(uv_timer_t *timer)
 {
-    flush_perf_samples();
+    flush_streams();
 
     forward_logs();
 }
@@ -374,8 +466,13 @@ periodic_update_head_pointers(uv_timer_t *timer)
 {
     struct gputop_perf_stream *stream;
 
-    gputop_list_for_each(stream, &perf_streams, user.link) {
-	struct gputop_perf_header_buf *hdr_buf  = &stream->header_buf;
+    gputop_list_for_each(stream, &streams, user.link) {
+	struct gputop_perf_header_buf *hdr_buf;
+
+	if (stream->type != GPUTOP_STREAM_PERF)
+	    continue;
+
+	hdr_buf = &stream->perf.header_buf;
 
 	if (stream->query) {
 	    if (fsync(stream->fd) < 0)
@@ -391,7 +488,7 @@ periodic_update_head_pointers(uv_timer_t *timer)
 	    notify.query_id = stream->user.id;
 	    notify.fill_percentage =
 		(hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
-		 (float)stream->buffer_size) * 100.0f;
+		 (float)stream->perf.buffer_size) * 100.0f;
 	    message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
 	    message.fill_notify = &notify;
 
@@ -406,10 +503,9 @@ periodic_update_head_pointers(uv_timer_t *timer)
 static void
 perf_ready_cb(uv_poll_t *poll, int status, int events)
 {
-    /* Currently we just rely on periodic flusing instead
-     *
-     * flush_perf_samples();
+    /* Currently we just rely on periodic flushing instead
      */
+    //flush_streams();
 }
 
 static void
@@ -424,7 +520,7 @@ stream_close_cb(struct gputop_perf_stream *stream)
 	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
 	message.ack = true;
 
-	dbg("CMD_ACK: %s\n", stream->user.data);
+	dbg("CMD_ACK: %s\n", (char *)stream->user.data);
 
 	send_pb_message(h2o_conn, &message.base);
 
@@ -479,16 +575,26 @@ handle_open_i915_oa_query(h2o_websocket_conn_t *conn,
 					    perf_ready_cb,
 					    open_query->overwrite,
 					    &error);
+    if (!stream) {
+	stream = gputop_open_i915_perf_oa_query(perf_query,
+						oa_query_info->period_exponent,
+						buffer_size,
+						perf_ready_cb,
+						open_query->overwrite,
+						&error);
+    }
+
     if (stream) {
 	stream->user.id = id;
 	stream->user.data = NULL;
 	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
-	gputop_list_insert(perf_streams.prev, &stream->user.link);
+	gputop_list_insert(streams.prev, &stream->user.link);
 
 	if (open_query->live_updates)
 	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-	else
+
+	if (open_query->overwrite)
 	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
 	dbg("Failed to open perf query set=%d period=%d: %s\n",
@@ -545,7 +651,7 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
 	stream->user.id = id;
 	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
-	gputop_list_insert(perf_streams.prev, &stream->user.link);
+	gputop_list_insert(streams.prev, &stream->user.link);
 
 	if (open_query->live_updates)
 	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
@@ -602,7 +708,7 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
 	stream->user.id = id;
 	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
-	gputop_list_insert(perf_streams.prev, &stream->user.link);
+	gputop_list_insert(streams.prev, &stream->user.link);
 
 	if (open_query->live_updates)
 	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
@@ -618,6 +724,7 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
     message.ack = true;
     send_pb_message(conn, &message.base);
 }
+
 static void
 handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
 {
@@ -665,7 +772,7 @@ close_all_streams(void)
 {
     struct gputop_perf_stream *stream, *tmp;
 
-    gputop_list_for_each_safe(stream, tmp, &perf_streams, user.link) {
+    gputop_list_for_each_safe(stream, tmp, &streams, user.link) {
 	close_stream(stream);
     }
 }
@@ -679,7 +786,7 @@ handle_close_query(h2o_websocket_conn_t *conn,
 
     dbg("handle_close_query: uuid=%s\n", request->uuid);
 
-    gputop_list_for_each(stream, &perf_streams, user.link) {
+    gputop_list_for_each(stream, &streams, user.link) {
 	if (stream->user.id == id) {
 	    assert(stream->user.data == NULL);
 
@@ -955,7 +1062,7 @@ bool gputop_server_run(void)
     h2o_pathconf_t *root;
     int r;
 
-    gputop_list_init(&perf_streams);
+    gputop_list_init(&streams);
     gputop_list_init(&closing_streams);
 
     loop = gputop_ui_loop;
