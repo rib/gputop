@@ -40,6 +40,10 @@ libgputop_la_SOURCES = \
     oa-hsw.c \
     oa-bdw.h \
     oa-bdw.c \
+    oa-chv.h \
+    oa-chv.c \
+    oa-skl.h \
+    oa-skl.c \
     gputop-perf.h \
     gputop-perf.c \
     gputop.pb-c.h \
@@ -118,6 +122,10 @@ BUILT_SOURCES = \
     oa-hsw.c \
     oa-bdw.h \
     oa-bdw.c \
+    oa-chv.h \
+    oa-chv.c \
+    oa-skl.h \
+    oa-skl.c \
     gputop.pb-c.h \
     gputop.pb-c.c
 
@@ -132,6 +140,18 @@ oa-bdw.c: oa-bdw.xml oa-gen.py
 
 oa-bdw.h: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-bdw.h $(srcdir)/oa-bdw.xml
+
+oa-chv.c: oa-chv.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-chv.c --include="oa-chv.h" $(srcdir)/oa-chv.xml
+
+oa-chv.h: oa-chv.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-chv.h $(srcdir)/oa-chv.xml
+
+oa-skl.c: oa-skl.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --code=$(builddir)/oa-skl.c --include="oa-skl.h" $(srcdir)/oa-skl.xml
+
+oa-skl.h: oa-skl.xml oa-gen.py
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py --header=$(builddir)/oa-skl.h $(srcdir)/oa-skl.xml
 
 %.pb-c.c %.pb-c.h: %.proto
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto

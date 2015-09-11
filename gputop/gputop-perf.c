@@ -59,6 +59,8 @@
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"
+#include "oa-chv.h"
+#include "oa-skl.h"
 
 /* Samples read from the perf circular buffer */
 struct oa_perf_sample {
