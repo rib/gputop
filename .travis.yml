@@ -13,7 +13,7 @@ cache:
         - emsdk
 
 before_install:
-    - (if ! test -d ./emsdk; then mkdir emsdk; cd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; ./emsdk update; fi)
+    - if ! test -d ./emsdk; then mkdir emsdk; pushd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; dos2unix ./emsdk; ./emsdk update; popd; fi
 
 addons:
     apt:
@@ -23,6 +23,7 @@ addons:
             - gcc-4.8
             - g++-4.8
             - clang
+            - autopoint
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
