@@ -41,6 +41,8 @@
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"
+#include "oa-chv.h"
+#include "oa-skl.h"
 
 struct gputop_worker_query {
     int id;
@@ -639,33 +641,42 @@ update_features(Gputop__Features *features)
     devinfo.n_eus = features->devinfo->n_eus;
     devinfo.n_eu_slices = features->devinfo->n_eu_slices;
     devinfo.n_eu_sub_slices = features->devinfo->n_eu_sub_slices;
-    devinfo.n_samplers = features->devinfo->n_samplers;
+    devinfo.subslice_mask = features->devinfo->subslice_mask;
 
     str = gputop_string_new("{ \"method\": \"features_notify\", \"params\": [ { \"oa_queries\": [\n");
 
     if (IS_HASWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Haswell queries\n");
-	gputop_oa_add_render_basic_counter_query_hsw();
+	gputop_oa_add_render_basic_counter_query_hsw(&devinfo);
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
 
-	gputop_oa_add_compute_basic_counter_query_hsw();
+	gputop_oa_add_compute_basic_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_BASIC]);
-	gputop_oa_add_compute_extended_counter_query_hsw();
+	gputop_oa_add_compute_extended_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_EXTENDED]);
-	gputop_oa_add_memory_reads_counter_query_hsw();
+	gputop_oa_add_memory_reads_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_READS]);
-	gputop_oa_add_memory_writes_counter_query_hsw();
+	gputop_oa_add_memory_writes_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_WRITES]);
-	gputop_oa_add_sampler_balance_counter_query_hsw();
+	gputop_oa_add_sampler_balance_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
 	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_SAMPLER_BALANCE]);
     } else if (IS_BROADWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Broadwell queries\n");
-	gputop_oa_add_render_basic_counter_query_bdw();
+	gputop_oa_add_render_basic_counter_query_bdw(&devinfo);
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+    } else if (IS_CHERRYVIEW(devinfo.devid)) {
+	_gputop_web_console_log("Adding Cherryview queries\n");
+	gputop_oa_add_render_basic_counter_query_chv(&devinfo);
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+    } else if (IS_SKYLAKE(devinfo.devid)) {
+	_gputop_web_console_log("Adding Skylake queries\n");
+	gputop_oa_add_render_basic_counter_query_skl(&devinfo);
+	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
     } else
 	assert_not_reached();
 

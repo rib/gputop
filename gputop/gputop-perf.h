@@ -58,7 +58,7 @@ struct gputop_devinfo {
     uint64_t n_eus;
     uint64_t n_eu_slices;
     uint64_t n_eu_sub_slices;
-    uint64_t n_samplers;
+    uint64_t subslice_mask;
 };
 
 struct gputop_perf_query;

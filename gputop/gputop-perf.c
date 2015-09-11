@@ -487,36 +487,75 @@ init_dev_info(int drm_fd, uint32_t devid)
 {
     gputop_devinfo.devid = devid;
 
-    if (IS_HSW_GT1(devid)) {
-	gputop_devinfo.n_eus = 10;
-	gputop_devinfo.n_eu_slices = 1;
-	gputop_devinfo.n_eu_sub_slices = 1;
-	gputop_devinfo.n_samplers = 1;
-    } else if (IS_HSW_GT2(devid)) {
-	gputop_devinfo.n_eus = 20;
-	gputop_devinfo.n_eu_slices = 1;
-	gputop_devinfo.n_eu_sub_slices = 2;
-	gputop_devinfo.n_samplers = 2;
-    } else if (IS_HSW_GT3(devid)) {
-	gputop_devinfo.n_eus = 40;
-	gputop_devinfo.n_eu_slices = 2;
-	gputop_devinfo.n_eu_sub_slices = 4;
-	gputop_devinfo.n_samplers = 4;
+    if (IS_HASWELL(devid)) {
+	if (IS_HSW_GT1(devid)) {
+	    gputop_devinfo.n_eus = 10;
+	    gputop_devinfo.n_eu_slices = 1;
+	    gputop_devinfo.n_eu_sub_slices = 1;
+	    gputop_devinfo.subslice_mask = 0x1;
+	} else if (IS_HSW_GT2(devid)) {
+	    gputop_devinfo.n_eus = 20;
+	    gputop_devinfo.n_eu_slices = 1;
+	    gputop_devinfo.n_eu_sub_slices = 2;
+	    gputop_devinfo.subslice_mask = 0x3;
+	} else if (IS_HSW_GT3(devid)) {
+	    gputop_devinfo.n_eus = 40;
+	    gputop_devinfo.n_eu_slices = 2;
+	    gputop_devinfo.n_eu_sub_slices = 4;
+	    gputop_devinfo.subslice_mask = 0xf;
+	}
     } else {
 #ifdef I915_PARAM_EU_TOTAL
 	i915_getparam_t gp;
 	int ret;
-	int n_eus;
+	int n_eus = 0;
+	int slice_mask = 0;
+	int ss_mask = 0;
+	int s_max;
+	int ss_max;
+	uint64_t subslice_mask = 0;
+	int s;
+
+	if (IS_BROADWELL(devid)) {
+	    s_max = 2;
+	    ss_max = 3;
+	} else if (IS_CHERRYVIEW(devid)) {
+	    s_max = 1;
+	    ss_max = 2;
+	} else if (IS_SKYLAKE(devid)) {
+	    s_max = 3;
+	    ss_max = 4;
+	}
 
 	gp.param = I915_PARAM_EU_TOTAL;
 	gp.value = &n_eus;
 	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-	assert(ret == 0 && n_eus> 0);
+	assert(ret == 0 && n_eus > 0);
+
+	gp.param = I915_PARAM_SLICE_MASK;
+	gp.value = &slice_mask;
+	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+	assert(ret == 0 && slice_mask);
+
+	gp.param = I915_PARAM_SUBSLICE_MASK;
+	gp.value = &ss_mask;
+	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+	assert(ret == 0 && ss_mask);
 
 	gputop_devinfo.n_eus = n_eus;
+	gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
 
-#warning "XXX: BDW: initialize gputop_devinfo.n_eu_slices + n_samplers - though not currently needed"
-
+	/* Note: some of the metrics we have (as described in XML)
+	 * are conditional on a $SubsliceMask variable which is
+	 * expected to also reflect the slice mask by packing
+	 * together subslice masks for each slice in one value...
+	 */
+	for (s = 0; s < s_max; s++) {
+	    if (slice_mask & (1<<s)) {
+		slice_mask |= ss_mask << (ss_max * s);
+	    }
+	}
+	gputop_devinfo.subslice_mask = subslice_mask;
 #else
 	assert(0);
 #endif
@@ -1104,14 +1143,18 @@ gputop_perf_initialize(void)
     close(drm_fd);
 
     if (IS_HASWELL(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_hsw();
-	gputop_oa_add_compute_basic_counter_query_hsw();
-	gputop_oa_add_compute_extended_counter_query_hsw();
-	gputop_oa_add_memory_reads_counter_query_hsw();
-	gputop_oa_add_memory_writes_counter_query_hsw();
-	gputop_oa_add_sampler_balance_counter_query_hsw();
+	gputop_oa_add_render_basic_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_compute_basic_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_compute_extended_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_memory_reads_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_memory_writes_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_sampler_balance_counter_query_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_bdw();
+	gputop_oa_add_render_basic_counter_query_bdw(&gputop_devinfo);
+    } else if (IS_CHERRYVIEW(intel_dev.device)) {
+	gputop_oa_add_render_basic_counter_query_chv(&gputop_devinfo);
+    } else if (IS_SKYLAKE(intel_dev.device)) {
+	gputop_oa_add_render_basic_counter_query_skl(&gputop_devinfo);
     } else
 	assert(0);
 

@@ -45,6 +45,11 @@ def c(*args):
             text = ''.rjust(_c_indent) + line
             c_file.write(text.rstrip() + "\n")
 
+#without indenting or new lines
+def c_frag(*args):
+    code = ' '.join(map(str,args))
+    c_file.write(code)
+
 def c_indent(n):
     global _c_indent
     _c_indent = _c_indent + n
@@ -136,7 +141,7 @@ hw_vars = {}
 hw_vars["$EuCoresTotalCount"] = "devinfo->n_eus"
 hw_vars["$EuSlicesTotalCount"] = "devinfo->n_eu_slices"
 hw_vars["$EuSubslicesTotalCount"] = "devinfo->n_eu_sub_slices"
-hw_vars["$SamplersTotalCount"] = "devinfo->n_samplers"
+hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
 
 counter_vars = {}
 
@@ -256,13 +261,36 @@ def output_counter_report(set, counter):
 
     semantic_type_uc = semantic_type.upper()
 
-    c("\ncounter = &query->counters[query->n_counters++];\n")
+    c("\n");
+
+    conditions = counter.findall("./condition")
+    if len(conditions):
+        if len(conditions) > 1:
+            sys.exit("FIXME: multiple conditions per counter not handled");
+
+        cond = conditions[0].get('equation')
+        tokens = cond.split()
+        if len(tokens) != 3 or tokens[2] != "AND" or tokens[0][0] != '$':
+            sys.exit("FIXME: couldn't handle counter condition" + cond);
+
+        if tokens[0] not in hw_vars:
+            sys.exit("FIXME: failed to look up variable in counter condition: " + cond)
+
+        c("if (" + hw_vars[tokens[0]] + " & " + tokens[1] + ") {\n");
+        c_indent(4)
+
+
+    c("counter = &query->counters[query->n_counters++];\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
     c("counter->name = \"" + counter.get('name') + "\";\n")
     c("counter->desc = \"" + counter.get('description') + "\";\n")
     c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
     c("counter->max = " + max_funcs[counter.get('symbol_name')] + "\n")
+
+    if len(conditions):
+        c_outdent(4)
+        c("}\n")
 
 
 parser = argparse.ArgumentParser()
@@ -356,10 +384,10 @@ for set in tree.findall(".//set"):
         max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
         counter_vars["$" + counter.get('symbol_name')] = counter
 
-    h("void gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(void);\n")
+    h("void gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(struct gputop_devinfo *devinfo);\n")
 
     c("\nvoid\n")
-    c("gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(void)\n")
+    c("gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(struct gputop_devinfo *devinfo)\n")
     c("{\n")
     c_indent(3)
 

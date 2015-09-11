@@ -10,7 +10,7 @@ message DevInfo
     required uint32 n_eus = 2;
     required uint32 n_eu_slices = 3;
     required uint32 n_eu_sub_slices = 4;
-    required uint32 n_samplers = 5;
+    required uint64 subslice_mask = 5;
 }
 
 enum GLCounterType
