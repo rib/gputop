@@ -14,7 +14,7 @@ cache:
         - protobuf
 
 before_install:
-    - (if ! test -f emsdk_portable/emsdk; then wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz && tar -xvf *.tar.gz && cd emsdk_portable && ./emsdk update && ./emsdk install latest fi)
+    - (if test -f emsdk_portable/emsdk; then echo OK; else wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz && tar -xvf *.tar.gz && cd emsdk_portable && ./emsdk update && ./emsdk install latest; fi)
     - (if ! test -d protobuf/lib; then git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src && cd protobuf-src && ./autogen.sh && ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf && make && make install; fi)
 
 addons:
