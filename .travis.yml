@@ -25,6 +25,7 @@ addons:
             - clang
             - autopoint
             - python-lxml
+            - libprotobuf-dev
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
