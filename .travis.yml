@@ -10,16 +10,16 @@ compiler:
 
 cache:
     directories:
-        - cmake-2.8.12
+        - cmake-2.8.12.2
         - llvm-fastcomp
         - protobuf
 
 before_install:
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
-    - (if test -f cmake-2.8.12; then echo OK; else
-           git clone --branch v2.8.12 --single-branch --depth 1 git://cmake.org/cmake.git cmake-2.8.12-src &&
-           cd cmake-2.8.12-src &&
-           ./configure --prefix=$TRAVIS_BUILD_DIR/cmake-2.8.12 &&
+    - (if test -f cmake-2.8.12/bin/cmake; then echo OK; else
+           git clone --branch v2.8.12.2 --single-branch --depth 1 git://cmake.org/cmake.git cmake-2.8.12.2-src &&
+           cd cmake-2.8.12.2-src &&
+           ./configure --prefix=$TRAVIS_BUILD_DIR/cmake-2.8.12.2 &&
            make &&
            make install;
        fi)
@@ -39,7 +39,6 @@ addons:
     apt:
         sources:
             - ubuntu-toolchain-r-test
-            - ppa:smspillaz/cmake-2.8.12
         packages:
             - gcc-4.8
             - g++-4.8
