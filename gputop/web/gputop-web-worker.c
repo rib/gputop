@@ -137,43 +137,38 @@ gputop_perf_accumulate(struct gputop_perf_query *query,
 		       const uint8_t *report0,
 		       const uint8_t *report1)
 {
-   uint64_t *accumulator = query->accumulator;
-   const uint32_t *start = (const uint32_t *)report0;
-   const uint32_t *end = (const uint32_t *)report1;
-   uint32_t delta = end[1] - start[1];
-   int i;
+    uint64_t *accumulator = query->accumulator;
+    const uint32_t *start = (const uint32_t *)report0;
+    const uint32_t *end = (const uint32_t *)report1;
+    int idx = 0;
+    int i;
 
-   //gputop_web_console_log("report0[1] = %"PRIu32" report1[1] = %"PRIu32" delta=%"PRIu32"\n", start[1], end[1], delta);
+    switch (query->perf_oa_format) {
+    case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
+	accumulate_uint32(start + 1, end + 1, accumulator + idx++); /* timestamp */
+	accumulate_uint32(start + 3, end + 3, accumulator + idx++); /* clock */
 
-   if (IS_BROADWELL(devinfo.devid) &&
-       query->perf_oa_format == I915_OA_FORMAT_A36_B8_C8_BDW)
-   {
-       int idx = 0;
+	/* 32x 40bit A counters... */
+	for (i = 0; i < 32; i++)
+	    accumulate_uint40(i, start, end, accumulator + idx++);
 
-       accumulate_uint32(start + 1, end + 1, accumulator + idx++); /* timestamp */
-       accumulate_uint32(start + 3, end + 3, accumulator + idx++); /* clock */
+	/* 4x 32bit A counters... */
+	for (i = 0; i < 4; i++)
+	    accumulate_uint32(start + 36 + i, end + 36 + i, accumulator + idx++);
 
-       /* 32x 40bit A counters... */
-       for (i = 0; i < 32; i++)
-	   accumulate_uint40(i, start, end, accumulator + idx++);
+	/* 8x 32bit B counters + 8x 32bit C counters... */
+	for (i = 0; i < 16; i++)
+	    accumulate_uint32(start + 48 + i, end + 48 + i, accumulator + idx++);
 
-       /* 4x 32bit A counters... */
-       for (i = 0; i < 4; i++)
-	   accumulate_uint32(start + 36 + i, end + 36 + i, accumulator + idx++);
+    case I915_OA_FORMAT_A45_B8_C8:
+	accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
 
-       /* 8x 32bit B counters + 8x 32bit C counters... */
-       for (i = 0; i < 16; i++)
-	   accumulate_uint32(start + 48 + i, end + 48 + i, accumulator + idx++);
-
-   } else if (IS_HASWELL(devinfo.devid) &&
-	      query->perf_oa_format == I915_OA_FORMAT_A45_B8_C8_HSW)
-   {
-       accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
-
-       for (i = 0; i < 61; i++)
-	   accumulate_uint32(start + 3 + i, end + 3 + i, accumulator + 1 + i);
-   } else
-       assert_not_reached();
+	for (i = 0; i < 61; i++)
+	    accumulate_uint32(start + 3 + i, end + 3 + i, accumulator + 1 + i);
+	break;
+    default:
+	assert_not_reached();
+    }
 }
 
 uint64_t
