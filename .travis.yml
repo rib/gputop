@@ -8,6 +8,13 @@ compiler:
     - clang
     - gcc
 
+cache:
+    directories:
+        - emsdk
+
+before_install:
+    - (if ! test -d ./emsdk; then mkdir emsdk; cd emsdk; wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz; unzip *.zip; chmod +x ./emsdk; ./emsdk update; fi)
+
 addons:
     apt:
         sources:
