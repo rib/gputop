@@ -24,6 +24,7 @@ addons:
             - g++-4.8
             - clang
             - autopoint
+            - python-lxml
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
