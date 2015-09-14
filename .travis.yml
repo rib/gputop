@@ -42,8 +42,8 @@ addons:
         sources:
             - ubuntu-toolchain-r-test
         packages:
-            - gcc-4.8
-            - g++-4.8
+            - gcc-4.9
+            - g++-4.9
             - clang
             - autopoint
             - python-lxml
@@ -52,4 +52,4 @@ before_script:
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
-    - PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH" LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin" ./configure CC="gcc-4.8" CXX="g++-4.8" PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig" && make
+    - PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH" LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin" ./configure CC="gcc-4.9" CXX="g++-4.9" PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig" && make
