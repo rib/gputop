@@ -15,7 +15,7 @@ cache:
         - protobuf
 
 before_install:
-    - if test "$CC" = "gcc"; then export CC=gcc4.9; export CXX=g++-4.9; fi
+    - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
     - (if test -f cmake-2.8.12.2/bin/cmake; then echo OK; else
            git clone --branch v2.8.12.2 --single-branch --depth 1 git://cmake.org/cmake.git cmake-2.8.12.2-src &&
