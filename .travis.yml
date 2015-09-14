@@ -5,14 +5,27 @@ os:
     - linux
 
 compiler:
-    - clang
     - gcc
+
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - gcc-4.9
+            - g++-4.9
+            - autopoint
+            - python-lxml
 
 cache:
     directories:
         - cmake-2.8.12.2
         - llvm-fastcomp
         - protobuf
+
+env:
+    CONFIG_OPTS="--enable-debug"
+    CONFIG_OPTS="--disable-debug"
 
 before_install:
     - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
@@ -34,30 +47,22 @@ before_install:
            make -j4 &&
            make install;
        fi)
-    - (if ! test -d protobuf/lib; then git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src && cd protobuf-src && ./autogen.sh && ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf && make && make install; fi)
-    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
-    - PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH" LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin" emcc -v
-    - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
     - export LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin"
+    - (if test -d protobuf/lib; then echo OK; else
+            git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
+            cd protobuf-src &&
+            ./autogen.sh &&
+            ./configure --prefix=$TRAVIS_BUILD_DIR/protobuf &&
+            make &&
+            make install;
+       fi)
     - export PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig"
-
-addons:
-    apt:
-        sources:
-            - ubuntu-toolchain-r-test
-        packages:
-            - gcc-4.9
-            - g++-4.9
-            - clang
-            - autopoint
-            - python-lxml
+    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
+    - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
+    - emcc -v
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
-    - echo "Compiler version:"
-    - $CC --version
-    - echo "PATH:"
-    - echo $PATH
-    - ./configure --disable-gl && make
+    - ./configure --disable-gl $CONFIG_OPTS && make
