@@ -108,7 +108,10 @@ struct oa_sample {
 /* Allow building for a more recent kernel than the system headers
  * correspond too... */
 #ifndef PERF_RECORD_DEVICE
-#define PERF_RECORD_DEVICE                   14
+#define PERF_RECORD_DEVICE      14
+#endif
+#ifndef PERF_FLAG_FD_CLOEXEC
+#define PERF_FLAG_FD_CLOEXEC	(1UL << 3) /* O_CLOEXEC */
 #endif
 
 /* attr.config */
