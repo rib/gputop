@@ -105,6 +105,7 @@ gputop_system_LDADD = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \
+    -lrt \
     libgputop.la
 gputop_system_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
