@@ -60,6 +60,7 @@ libgputop_la_SOURCES = \
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(NCURSES_DEP_CFLAGS) \
+    $(PTHREAD_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
@@ -67,6 +68,7 @@ libgputop_la_CFLAGS = \
 libgputop_la_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \
+    $(PTHREAD_LIBS) \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
@@ -102,10 +104,12 @@ endif
 gputop_system_LDADD = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
+    $(PTHREAD_LIBS) \
     libgputop.la
 gputop_system_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
-    $(GPUTOP_EXTRA_CFLAGS)
+    $(GPUTOP_EXTRA_CFLAGS) \
+    $(PTHREAD_CFLAGS)
 gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
