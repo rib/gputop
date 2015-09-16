@@ -902,6 +902,8 @@ gl_perf_query_tab_redraw(WINDOW *win)
 	for (j = 0; j < wctx->oa_query_info.n_counters; j++) {
 	    struct intel_counter *counter = &wctx->oa_query_info.counters[j];
 
+	    wattrset(win, A_NORMAL);
+
 	    switch (counter->type) {
 	    case GL_PERFQUERY_COUNTER_EVENT_INTEL:
 		mvwprintw(win, y, 0, "%40s: ", counter->name);
