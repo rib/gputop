@@ -27,8 +27,8 @@ cache:
         - protobuf
 
 env:
-    CONFIG_OPTS="--enable-debug"
-    CONFIG_OPTS="--disable-debug"
+    - CONFIG_OPTS="--enable-debug"
+    - CONFIG_OPTS="--disable-debug"
 
 before_install:
     - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
