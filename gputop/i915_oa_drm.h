@@ -113,6 +113,16 @@ typedef struct i915_getparam {
 } i915_getparam_t;
 
 
+
+enum i915_perf_event_type {
+	I915_PERF_OA_EVENT = 1,
+
+	I915_PERF_EVENT_TYPE_MAX	/* non-ABI */
+};
+
+
+#define I915_OA_FLAG_PERIODIC		(1<<0)
+
 /* Note: same versioning scheme as struct perf_event_attr
  *
  * Userspace specified size defines ABI version and kernel
@@ -120,9 +130,6 @@ typedef struct i915_getparam {
  * gives a larger structure than the kernel expects then
  * kernel asserts that all unknown fields are zero.
  */
-
-#define I915_OA_FLAG_PERIODIC		(1<<0)
-
 struct i915_perf_oa_attr {
 	uint32_t size;
 
@@ -133,14 +140,10 @@ struct i915_perf_oa_attr {
 	uint32_t oa_timer_exponent;
 };
 
-
-enum i915_perf_event_type {
-	I915_PERF_OA_EVENT
-};
-
 #define I915_PERF_FLAG_FD_CLOEXEC	(1<<0)
 #define I915_PERF_FLAG_FD_NONBLOCK	(1<<1)
 #define I915_PERF_FLAG_SINGLE_CONTEXT	(1<<2)
+#define I915_PERF_FLAG_DISABLED         (1<<3)
 
 #define I915_PERF_SAMPLE_OA_REPORT	(1<<0)
 #define I915_PERF_SAMPLE_CTXID		(1<<1)
