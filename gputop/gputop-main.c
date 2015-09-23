@@ -62,7 +62,7 @@ usage(void)
 	   "\n"
 	   " Environment:\n"
 	   "\n"
-	   "     LD_LIBRARY_PATH=<prefix>/lib/wrappers/libGL.so\n"
+	   "     LD_LIBRARY_PATH=<prefix>/lib/wrappers\n"
 	   "                                   The gputop libGL.so interposer\n"
 	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
 	   "                                   to from interposer\n"
