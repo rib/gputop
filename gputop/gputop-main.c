@@ -64,10 +64,17 @@ usage(void)
 	   "\n"
 	   "     LD_LIBRARY_PATH=<prefix>/lib/wrappers\n"
 	   "                                   The gputop libGL.so interposer\n"
-	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain up\n"
-	   "                                   to from interposer\n"
+	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
+	   "                                   up to from interposer\n"
+#ifdef SUPPORT_WEBUI
 	   "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
 	   "                                   (defaults to ncurses)\n"
+#endif
+#ifdef SUPPORT_GL
+	   "     GPUTOP_FORCE_DEBUG_CONTEXT=1  Force GL contexts to be debug\n"
+	   "                                   contexts and report KHR_debug\n"
+	   "                                   perf issues\n"
+#endif
 	   "\n"
 	   ""
 	   );
