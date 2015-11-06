@@ -161,7 +161,6 @@ AM_CONDITIONAL(SUPPORT_WEBUI, [test "$enable_webui" = "yes"])
 dnl ================================================================
 dnl What needs to be substituted in other files
 dnl ================================================================
-AC_SUBST(GPUTOP_EXTRA_CPPFLAGS)
 AC_SUBST(GPUTOP_EXTRA_CFLAGS)
 AC_SUBST(GPUTOP_EXTRA_LDFLAGS)
 

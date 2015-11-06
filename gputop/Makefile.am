@@ -27,7 +27,6 @@ gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
     -I$(top_srcdir)/h2o/include \
-    $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
 lib_LTLIBRARIES = libgputop.la
@@ -107,7 +106,6 @@ gputop_system_CFLAGS = \
 gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
-    $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
 if SUPPORT_GL
