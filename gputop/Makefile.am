@@ -19,12 +19,10 @@ gputop_SOURCES = gputop-main.c
 
 #gputop_LDADD =
 gputop_LDFLAGS = \
-    $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     -export-dynamic \
     -ldl
 gputop_CFLAGS = \
-    $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
@@ -88,7 +86,6 @@ libGL_la_SOURCES = \
     registry/glxapi.c \
     registry/glapi.c
 libGL_la_CFLAGS = \
-    $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)
 libGL_la_LIBADD = libgputop.la $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lcurl -lyaml -lm
 libGL_la_LDFLAGS = -shared -version-info 1
@@ -97,18 +94,15 @@ endif
 #libEGL_la_SOURCES = \
 #    registry/eglapi.c
 #libEGL_la_CFLAGS = \
-#    $(GPUTOP_DEP_CFLAGS) \
 #    $(GPUTOP_EXTRA_CFLAGS)
 #libEGL_la_LIBADD = libgputop.la
 #libEGL_la_LDFLAGS = -shared -version-info 1
 
 gputop_system_LDADD = \
-    $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \
     libgputop.la
 gputop_system_CFLAGS = \
-    $(GPUTOP_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS)
 gputop_system_CPPFLAGS = \
