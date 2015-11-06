@@ -73,6 +73,7 @@ libgputop_la_LDFLAGS = \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
     -lm \
+    -lrt \
     -lssl -lcrypto -lyaml
 
 if SUPPORT_GL
@@ -105,7 +106,6 @@ gputop_system_LDADD = \
     $(GPUTOP_DEP_LIBS) \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \
-    -lrt \
     libgputop.la
 gputop_system_CFLAGS = \
     $(GPUTOP_DEP_CFLAGS) \
