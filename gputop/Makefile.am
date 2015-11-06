@@ -20,7 +20,6 @@ gputop_SOURCES = gputop-main.c
 #gputop_LDADD =
 gputop_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
-    -export-dynamic \
     -ldl
 gputop_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
