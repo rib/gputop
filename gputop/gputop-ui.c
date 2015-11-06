@@ -515,13 +515,13 @@ perf_3d_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_3D_BASIC);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D);
 }
 
 static void
 perf_3d_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -554,13 +554,13 @@ perf_compute_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_COMPUTE_BASIC);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE);
 }
 
 static void
 perf_compute_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -593,13 +593,13 @@ perf_compute_extended_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_COMPUTE_EXTENDED);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE_EXTENDED);
 }
 
 static void
 perf_compute_extended_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -632,13 +632,13 @@ perf_memory_reads_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_MEMORY_READS);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_READS);
 }
 
 static void
 perf_memory_reads_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -671,13 +671,13 @@ perf_memory_writes_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_MEMORY_WRITES);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_WRITES);
 }
 
 static void
 perf_memory_writes_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -710,13 +710,13 @@ perf_sampler_balance_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_perf_overview_open(GPUTOP_PERF_QUERY_SAMPLER_BALANCE);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_SAMPLER_BALANCE);
 }
 
 static void
 perf_sampler_balance_tab_leave(void)
 {
-    gputop_perf_overview_close();
+    gputop_i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -752,13 +752,13 @@ perf_3d_trace_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
-    gputop_perf_oa_trace_open(GPUTOP_PERF_QUERY_3D_BASIC);
+    gputop_i915_perf_oa_trace_open(I915_OA_METRICS_SET_3D);
 }
 
 static void
 perf_3d_trace_tab_leave(void)
 {
-    gputop_perf_oa_trace_close();
+    gputop_i915_perf_oa_trace_close();
 
     uv_timer_stop(&timer);
 }

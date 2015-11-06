@@ -540,8 +540,8 @@ stream_close_cb(struct gputop_perf_stream *stream)
 }
 
 static void
-handle_open_i915_oa_query(h2o_websocket_conn_t *conn,
-			  Gputop__Request *request)
+handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
+			       Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
@@ -561,7 +561,7 @@ handle_open_i915_oa_query(h2o_websocket_conn_t *conn,
     }
     dbg("handle_open_i915_oa_query\n");
 
-    perf_query = &perf_queries[oa_query_info->metric_set];
+    perf_query = &i915_perf_oa_queries[oa_query_info->metric_set];
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
@@ -570,21 +570,12 @@ handle_open_i915_oa_query(h2o_websocket_conn_t *conn,
     else
 	buffer_size = 16 * 1024 * 1024;
 
-    stream = gputop_perf_open_i915_oa_query(perf_query,
+    stream = gputop_open_i915_perf_oa_query(perf_query,
 					    oa_query_info->period_exponent,
 					    buffer_size,
 					    perf_ready_cb,
 					    open_query->overwrite,
 					    &error);
-    if (!stream) {
-	stream = gputop_open_i915_perf_oa_query(perf_query,
-						oa_query_info->period_exponent,
-						buffer_size,
-						perf_ready_cb,
-						open_query->overwrite,
-						&error);
-    }
-
     if (stream) {
 	stream->user.id = id;
 	stream->user.data = NULL;
@@ -735,7 +726,7 @@ handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
 
     switch (open_query->type_case) {
     case GPUTOP__OPEN_QUERY__TYPE_OA_QUERY:
-	handle_open_i915_oa_query(conn, request);
+	handle_open_i915_perf_oa_query(conn, request);
 	break;
     case GPUTOP__OPEN_QUERY__TYPE_TRACE:
 	handle_open_trace_query(conn, request);

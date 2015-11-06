@@ -396,7 +396,7 @@ for set in tree.findall(".//set"):
     c("struct gputop_perf_query *query;\n")
     c("struct gputop_perf_query_counter *counter;\n\n")
 
-    c("query = &perf_queries[I915_OA_METRICS_SET_" + perf_suffix + "];\n")
+    c("query = &i915_perf_oa_queries[I915_OA_METRICS_SET_" + perf_suffix + "];\n")
     c("query->name = \"" + set.get('name') + "\";\n")
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")

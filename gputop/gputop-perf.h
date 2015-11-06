@@ -250,22 +250,10 @@ extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
 extern struct gputop_perf_stream *gputop_current_perf_stream;
 
-typedef enum gputop_perf_query_type
-{
-    GPUTOP_PERF_QUERY_BASIC,
-    GPUTOP_PERF_QUERY_3D_BASIC,
-    GPUTOP_PERF_QUERY_COMPUTE_BASIC,
-    GPUTOP_PERF_QUERY_COMPUTE_EXTENDED,
-    GPUTOP_PERF_QUERY_MEMORY_READS,
-    GPUTOP_PERF_QUERY_MEMORY_WRITES,
-    GPUTOP_PERF_QUERY_SAMPLER_BALANCE,
-} gputop_perf_query_type_t;
-
-
 bool gputop_perf_initialize(void);
 
-bool gputop_perf_overview_open(gputop_perf_query_type_t query_type);
-void gputop_perf_overview_close(void);
+bool gputop_i915_perf_oa_overview_open(int metric_set);
+void gputop_i915_perf_oa_overview_close(void);
 
 void gputop_perf_accumulator_clear(struct gputop_perf_stream *stream);
 void gputop_perf_accumulate(struct gputop_perf_stream *stream,
@@ -273,16 +261,14 @@ void gputop_perf_accumulate(struct gputop_perf_stream *stream,
 			    const uint8_t *report1);
 
 void gputop_perf_read_samples(struct gputop_perf_stream *stream);
-void gputop_perf_print_records(struct gputop_perf_stream *stream,
-			       uint64_t head,
-			       uint64_t tail,
-			       bool sample_data);
+void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
+				    uint8_t *buf,
+				    int len);
 
-bool gputop_perf_oa_trace_open(gputop_perf_query_type_t query_type);
-void gputop_perf_oa_trace_close(void);
+bool gputop_i915_perf_oa_trace_open(int metric_set);
+void gputop_i915_perf_oa_trace_close(void);
 
-#define MAX_PERF_QUERIES 7
-extern struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
+extern struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;
 extern bool gputop_perf_trace_empty;

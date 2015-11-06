@@ -69,29 +69,8 @@ struct gputop_worker_query {
 
 static gputop_list_t open_queries;
 
-enum perf_record_type {
-    PERF_RECORD_LOST = 2,
-    PERF_RECORD_THROTTLE = 5,
-    PERF_RECORD_UNTHROTTLE = 6,
-    PERF_RECORD_SAMPLE = 9,
-    PERF_RECORD_DEVICE = 14,
-};
-
-struct perf_event_header {
-    uint32_t type;
-    uint16_t misc;
-    uint16_t size;
-};
-
-/* Samples read from the perf circular buffer */
-struct oa_perf_sample {
-   struct perf_event_header header;
-   uint32_t raw_size;
-   uint8_t raw_data[];
-};
-
 struct oa_sample {
-   struct perf_event_header header;
+   struct i915_perf_record_header header;
    uint8_t oa_report[];
 };
 
@@ -101,7 +80,7 @@ static int socket = 0;
 
 static int next_rpc_id = 1;
 
-struct gputop_perf_query perf_queries[MAX_PERF_QUERIES];
+struct gputop_perf_query i915_oa_perf_queries[I915_OA_METRICS_SET_MAX];
 
 static void __attribute__((noreturn))
 assert_not_reached(void)
@@ -373,159 +352,6 @@ notify_bad_report(struct gputop_worker_query *query, uint64_t last_timestamp)
 }
 
 static void
-handle_oa_query_perf_data(struct gputop_worker_query *query, uint8_t *data, int len)
-{
-    struct gputop_perf_query *oa_query = query->oa_query;
-    const struct perf_event_header *header;
-    uint8_t *last;
-    uint64_t end_timestamp;
-
-    if (query->continuation_report) {
-	last = query->continuation_report;
-	end_timestamp = query->end_timestamp;
-    }
-
-    for (header = (void *)data;
-	 (uint8_t *)header < (data + len);
-	 header = (void *)(((uint8_t *)header) + header->size))
-    {
-#if 0
-	gputop_web_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
-
-	i++;
-	if (i > 200) {
-	    gputop_web_console_log("perf message too large!\n");
-	    return;
-	}
-#endif
-
-	switch (header->type) {
-	case PERF_RECORD_LOST: {
-	    struct {
-		struct perf_event_header header;
-		uint64_t id;
-		uint64_t n_lost;
-	    } *lost = (void *)header;
-	    gputop_web_console_log("i915_oa: Lost %" PRIu64 " events\n", lost->n_lost);
-	    break;
-	}
-
-	case PERF_RECORD_THROTTLE:
-	    gputop_web_console_log("i915_oa: Sampling has been throttled\n");
-	    break;
-
-	case PERF_RECORD_UNTHROTTLE:
-	    gputop_web_console_log("i915_oa: Sampling has been unthrottled\n");
-	    break;
-
-	case PERF_RECORD_DEVICE: {
-	    struct i915_oa_event {
-		struct perf_event_header header;
-		i915_oa_event_header_t oa_header;
-	    } *oa_event = (void *)header;
-
-	    switch (oa_event->oa_header.type) {
-	    case I915_OA_RECORD_BUFFER_OVERFLOW:
-		gputop_web_console_log("i915_oa: OA buffer overflow\n");
-		break;
-	    case I915_OA_RECORD_REPORT_LOST:
-		gputop_web_console_log("i915_oa: OA report lost\n");
-		break;
-	    }
-	    break;
-	}
-
-	case PERF_RECORD_SAMPLE: {
-	    struct oa_perf_sample *perf_sample = (struct oa_perf_sample *)header;
-	    uint8_t *report = (uint8_t *)perf_sample->raw_data;
-	    uint32_t raw_timestamp = read_report_raw_timestamp((uint32_t *)report);
-	    uint64_t timestamp;
-
-	    if (raw_timestamp == 0) {
-#warning "check for zero report reason instead of checking timestamp"
-		/* FIXME: check reason field too, since a zero timestamp may sometimes be valid */
-		gputop_web_console_log("i915_oa: spurious report with zero timestamp\n");
-		notify_bad_report(query, oa_clock_get_time(&query->oa_clock));
-		continue;
-	    }
-
-	    if (!last) {
-		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
-
-		oa_clock_init(&query->oa_clock, raw_timestamp);
-		timestamp = oa_clock_get_time(&query->oa_clock);
-
-		query->start_timestamp = timestamp;
-		end_timestamp = timestamp + query->aggregation_period;
-	    } else {
-		oa_clock_accumulate_raw(&query->oa_clock, raw_timestamp);
-		timestamp = oa_clock_get_time(&query->oa_clock);
-	    }
-
-	    //gputop_web_console_log("timestamp = %"PRIu64" target duration=%u",
-	    //			     timestamp, (unsigned)(end_timestamp - query->start_timestamp));
-            if (timestamp >= end_timestamp) {
-		forward_query_update(query);
-		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
-		query->start_timestamp = timestamp;
-
-#if 0
-		/* Note: end_timestamp isn't the last timestamp that belonged
-		 * to the last update. We don't want the end_timestamp for the
-		 * next update to be skewed by exact duration of the previous
-		 * update otherwise the elapsed time relative to when the
-		 * query started will appear to drift from wall clock time */
-		end_timestamp += query->aggregation_period;
-
-		if (end_timestamp <= query->start_timestamp) {
-		    gputop_web_console_warn("i915_oa: not forwarding fast enough\n");
-		    end_timestamp = timestamp + query->aggregation_period;
-		}
-#else
-		/* XXX: the above comment proably isn't really a good way of
-		 * considering this. We want aggregated updates to have a consistent
-		 * statistical significance. If we always set our end_timestamp
-		 * relative to when we opened the query then there's a risk that
-		 * if we aren't keeping up with forwarding data or in cases where
-		 * where we have to skip spurious reports from the hardware then
-		 * some updates may represent quite varying durations. Setting
-		 * the end_timestamp relative to now might be better from this pov.
-		 * The issue of elapsed time appearing to drift described above isn't
-		 * really an issue since the timestamps themselves will correctly
-		 * reflect the progress of time which the UI can represent.
-		 */
-		end_timestamp = timestamp + query->aggregation_period;
-#endif
-	    }
-
-	    //str = strdup("SAMPLE\n");
-	    if (last) {
-		query->end_timestamp = timestamp;
-		accumulate_oa_reports(oa_query, last, report);
-	    }
-
-	    last = report;
-	    break;
-	}
-
-	default:
-	    gputop_web_console_log("i915_oa: Spurious header type = %d\n", header->type);
-	    return;
-	}
-    }
-
-    if (last) {
-	int raw_size = query->oa_query->perf_raw_size;
-
-	if (!query->continuation_report)
-	    query->continuation_report = malloc(raw_size);
-
-	memcpy(query->continuation_report, last, raw_size);
-	query->end_timestamp = end_timestamp;
-    }
-}
-
-static void
 handle_perf_message(int id, uint8_t *data, int len)
 {
     struct gputop_worker_query *query;
@@ -533,8 +359,7 @@ handle_perf_message(int id, uint8_t *data, int len)
     gputop_list_for_each(query, &open_queries, link) {
 
 	if (query->id == id) {
-	    if (query->oa_query)
-		handle_oa_query_perf_data(query, data, len);
+	    gputop_web_console_log("FIXME: parse perf data");
 	    return;
 	}
     }
@@ -545,7 +370,7 @@ static void
 handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data, int len)
 {
     struct gputop_perf_query *oa_query = query->oa_query;
-    const struct perf_event_header *header;
+    const struct i915_perf_record_header *header;
     uint8_t *last;
     uint64_t end_timestamp;
 
@@ -796,35 +621,35 @@ update_features(Gputop__Features *features)
     if (IS_HASWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Haswell queries\n");
 	gputop_oa_add_render_basic_counter_query_hsw(&devinfo);
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_3D]);
 
 	gputop_oa_add_compute_basic_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_BASIC]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_COMPUTE]);
 	gputop_oa_add_compute_extended_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_COMPUTE_EXTENDED]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_COMPUTE_EXTENDED]);
 	gputop_oa_add_memory_reads_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_READS]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_MEMORY_READS]);
 	gputop_oa_add_memory_writes_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_MEMORY_WRITES]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_MEMORY_WRITES]);
 	gputop_oa_add_sampler_balance_counter_query_hsw(&devinfo);
 	gputop_string_append(str, ",\n");
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_SAMPLER_BALANCE]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_SAMPLER_BALANCE]);
     } else if (IS_BROADWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Broadwell queries\n");
 	gputop_oa_add_render_basic_counter_query_bdw(&devinfo);
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_3D]);
     } else if (IS_CHERRYVIEW(devinfo.devid)) {
 	_gputop_web_console_log("Adding Cherryview queries\n");
 	gputop_oa_add_render_basic_counter_query_chv(&devinfo);
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_3D]);
     } else if (IS_SKYLAKE(devinfo.devid)) {
 	_gputop_web_console_log("Adding Skylake queries\n");
 	gputop_oa_add_render_basic_counter_query_skl(&devinfo);
-	append_i915_oa_query(str, &perf_queries[GPUTOP_PERF_QUERY_3D_BASIC]);
+	append_i915_oa_query(str, &i915_oa_perf_queries[I915_OA_METRICS_SET_3D]);
     } else
 	assert_not_reached();
 
@@ -1023,7 +848,7 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     memset(query, 0, sizeof(*query));
     query->id = id;
     query->aggregation_period = aggregation_period;
-    query->oa_query = &perf_queries[perf_metric_set];
+    query->oa_query = &i915_oa_perf_queries[perf_metric_set];
     gputop_list_insert(open_queries.prev, &query->link);
 }
 
