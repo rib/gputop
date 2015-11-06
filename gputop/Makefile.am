@@ -97,11 +97,9 @@ endif
 
 gputop_system_LDADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
-    $(PTHREAD_LIBS) \
     libgputop.la
 gputop_system_CFLAGS = \
-    $(GPUTOP_EXTRA_CFLAGS) \
-    $(PTHREAD_CFLAGS)
+    $(GPUTOP_EXTRA_CFLAGS)
 gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
