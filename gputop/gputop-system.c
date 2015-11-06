@@ -5,8 +5,8 @@
  * nothing interesting itself that can be used while investigating
  * system-wide metrics.
  *
- * Note that the ui will be initialized/run via a library constructor
- * (gputop_ui_init)
+ * Note that gputop-system is linked against libgputop.so and the ui
+ * will be initialized/run via a library constructor (gputop_ui_init)
  */
 
 int
