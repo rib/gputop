@@ -102,8 +102,7 @@ gputop_system_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
 gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
-    -I$(srcdir) \
-    -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
+    -I$(srcdir)
 
 if SUPPORT_GL
 gputop_system_LDADD += $(GLX_DEP_LIBS)
