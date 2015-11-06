@@ -70,14 +70,14 @@ libgputop_la_LDFLAGS = \
     -lm \
     -lrt \
     -lssl -lcrypto -lyaml
+libgputop_la_LIBADD =
 
 if SUPPORT_GL
 libgputop_la_SOURCES += \
     gputop-gl.h \
     gputop-gl.c
 
-# Note: we don't explicitly link with GL, instead using dlopen() +
-# dlsym()/GetProcAddress as necessary at runtime.
+libgputop_la_LIBADD += $(GLX_DEP_LIBS)
 libgputop_la_CFLAGS += $(GLX_DEP_CFLAGS)
 
 wrapperdir = $(libdir)/wrappers
