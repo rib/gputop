@@ -26,7 +26,6 @@ gputop_CFLAGS = \
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
-    -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
 
 lib_LTLIBRARIES = libgputop.la
