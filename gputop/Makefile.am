@@ -104,11 +104,6 @@ gputop_system_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir)
 
-if SUPPORT_GL
-gputop_system_LDADD += $(GLX_DEP_LIBS)
-gputop_system_CFLAGS += $(GLX_DEP_CFLAGS)
-endif
-
 BUILT_SOURCES = \
     oa-hsw.h \
     oa-hsw.c \
