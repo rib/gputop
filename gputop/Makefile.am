@@ -32,6 +32,7 @@ gputop_CPPFLAGS = \
     -I$(top_srcdir)/h2o/include \
     $(GPUTOP_EXTRA_CPPFLAGS) \
     -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
+gputop_LDADD = libgputop.la
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
@@ -76,6 +77,10 @@ libgputop_la_LDFLAGS = \
     -lssl -lcrypto -lyaml
 
 if SUPPORT_GL
+libgputop_la_CFLAGS += \
+    $(GLX_DEP_CFLAGS)
+libgputop_la_LDFLAGS += \
+    $(GLX_DEP_LIBS)
 libgputop_la_SOURCES += \
     gputop-gl.h \
     gputop-gl.c
@@ -87,7 +92,7 @@ libGL_la_SOURCES = \
     registry/glxapi.c \
     registry/glapi.c
 libGL_la_CFLAGS = \
-    $(GPUTOP_DEP_CFLAGS) \
+    $(GLX_DEP_CFLAGS) \
     $(GPUTOP_EXTRA_CFLAGS)
 libGL_la_LIBADD = libgputop.la $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lcurl -lyaml -lm
 libGL_la_LDFLAGS = -shared -version-info 1
