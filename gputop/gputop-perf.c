@@ -1076,18 +1076,13 @@ gputop_perf_initialize(void)
     page_size = sysconf(_SC_PAGE_SIZE);
 
     if (IS_HASWELL(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_hsw(&gputop_devinfo);
-	gputop_oa_add_compute_basic_counter_query_hsw(&gputop_devinfo);
-	gputop_oa_add_compute_extended_counter_query_hsw(&gputop_devinfo);
-	gputop_oa_add_memory_reads_counter_query_hsw(&gputop_devinfo);
-	gputop_oa_add_memory_writes_counter_query_hsw(&gputop_devinfo);
-	gputop_oa_add_sampler_balance_counter_query_hsw(&gputop_devinfo);
+	gputop_oa_add_queries_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_bdw(&gputop_devinfo);
+	gputop_oa_add_queries_bdw(&gputop_devinfo);
     } else if (IS_CHERRYVIEW(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_chv(&gputop_devinfo);
+	gputop_oa_add_queries_chv(&gputop_devinfo);
     } else if (IS_SKYLAKE(intel_dev.device)) {
-	gputop_oa_add_render_basic_counter_query_skl(&gputop_devinfo);
+	gputop_oa_add_queries_skl(&gputop_devinfo);
     } else
 	assert(0);
 

@@ -26,11 +26,7 @@ import argparse
 import sys
 
 symbol_to_perf_map = { 'RenderBasic' : '3D',
-                       'ComputeBasic' : 'COMPUTE',
-                       'ComputeExtended': 'COMPUTE_EXTENDED',
-                       'MemoryReads': 'MEMORY_READS',
-                       'MemoryWrites': 'MEMORY_WRITES',
-                       'SamplerBalance': 'SAMPLER_BALANCE' }
+                       'ComputeBasic' : 'COMPUTE' }
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
@@ -124,8 +120,12 @@ def emit_usub(tmp_id, args):
     c("uint64_t tmp" + str(tmp_id) +" = " + args[1] + " - " + args[0] + ";")
     return tmp_id + 1
 
+def emit_umin(tmp_id, args):
+    c("uint64_t tmp" + str(tmp_id) +" =  MIN(" + args[1] + ", " + args[0] + ");")
+    return tmp_id + 1
+
 ops = {}
-# n operands, type, emitter
+#             (n operands, type, emitter)
 ops["FADD"] = (2, emit_fadd)
 ops["FDIV"] = (2, emit_fdiv)
 ops["FMAX"] = (2, emit_fmax)
@@ -136,11 +136,39 @@ ops["UADD"] = (2, emit_uadd)
 ops["UDIV"] = (2, emit_udiv)
 ops["UMUL"] = (2, emit_umul)
 ops["USUB"] = (2, emit_usub)
+ops["UMIN"] = (2, emit_umin)
+
+def brkt(subexp):
+    if " " in subexp:
+        return "(" + subexp + ")"
+    else:
+        return subexp
+
+def splice_bitwise_and(args):
+    return brkt(args[1]) + " & " + brkt(args[0])
+
+def splice_logical_and(args):
+    return brkt(args[1]) + " && " + brkt(args[0])
+
+def splice_ult(args):
+    return brkt(args[1]) + " < " + brkt(args[0])
+
+def splice_ugte(args):
+    return brkt(args[1]) + " >= " + brkt(args[0])
+
+exp_ops = {}
+#                 (n operands, splicer)
+exp_ops["AND"]  = (2, splice_bitwise_and)
+exp_ops["UGTE"] = (2, splice_ugte)
+exp_ops["ULT"]  = (2, splice_ult)
+exp_ops["&&"]   = (2, splice_logical_and)
 
 hw_vars = {}
 hw_vars["$EuCoresTotalCount"] = "devinfo->n_eus"
 hw_vars["$EuSlicesTotalCount"] = "devinfo->n_eu_slices"
 hw_vars["$EuSubslicesTotalCount"] = "devinfo->n_eu_sub_slices"
+hw_vars["$EuThreadsCount"] = "devinfo->eu_threads_count"
+hw_vars["$SliceMask"] = "devinfo->slice_mask"
 hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
 
 counter_vars = {}
@@ -175,12 +203,13 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
             tmp = "tmp" + str(tmp_id - 1)
             stack.append(tmp)
 
-    if tmp_id == 0:
+    if len(stack) != 1:
         raise Exception("Spurious empty rpn code for " + set.get('name') + " :: " +
                 counter.get('name') + ".\nThis is probably due to some unhandled RPN function, in the equation \"" +
-                counter.get('equation') + "\"")
+                equation + "\"")
 
-    c("\nreturn tmp" + str(tmp_id - 1) + ";")
+    value = stack.pop()
+    c("\nreturn " + value + ";")
 
 def output_counter_read(set, counter, counter_vars):
     c("\n")
@@ -297,9 +326,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("xml", help="XML description of metrics")
 parser.add_argument("--header", help="Header file to write")
 parser.add_argument("--code", help="C file to write")
-parser.add_argument("--include", help="Header name to include from C file")
+parser.add_argument("--chipset", help="Chipset to generate code for")
 
 args = parser.parse_args()
+
+chipset = args.chipset.lower()
 
 if args.header:
     header_file = open(args.header, 'w')
@@ -349,11 +380,11 @@ c(
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 
 """)
 
-if args.include:
-    c("#include \"" + args.include + "\"")
+c("#include \"oa-" + chipset + ".h\"")
 
 c(
 """
@@ -371,6 +402,13 @@ percentage_max_callback(struct gputop_devinfo *devinfo,
 
 """)
 
+def metric_set_perf_name(set):
+    name = set.get('symbol_name')
+    if name in symbol_to_perf_map:
+        return "I915_OA_METRICS_SET_" + symbol_to_perf_map[name]
+    else:
+        return "I915_OA_METRICS_SET_" + set.get('underscore_name').upper()
+
 for set in tree.findall(".//set"):
     max_funcs = {}
     read_funcs = {}
@@ -384,23 +422,21 @@ for set in tree.findall(".//set"):
         max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
         counter_vars["$" + counter.get('symbol_name')] = counter
 
-    h("void gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(struct gputop_devinfo *devinfo);\n")
-
-    c("\nvoid\n")
-    c("gputop_oa_add_" + set.get('underscore_name') + "_counter_query_" + chipset + "(struct gputop_devinfo *devinfo)\n")
+    c("\nstatic void\n")
+    c("add_" + set.get('underscore_name') + "_counter_query(struct gputop_devinfo *devinfo)\n")
     c("{\n")
     c_indent(3)
 
-    perf_suffix = symbol_to_perf_map[set.get('symbol_name')]
+    perf_id = metric_set_perf_name(set)
 
     c("struct gputop_perf_query *query;\n")
     c("struct gputop_perf_query_counter *counter;\n\n")
 
-    c("query = &i915_perf_oa_queries[I915_OA_METRICS_SET_" + perf_suffix + "];\n")
+    c("query = &i915_perf_oa_queries[" + perf_id + "];\n")
     c("query->name = \"" + set.get('name') + "\";\n")
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")
-    c("query->perf_oa_metrics_set = I915_OA_METRICS_SET_" + perf_suffix + ";\n")
+    c("query->perf_oa_metrics_set = " + perf_id + ";\n")
 
     if chipset == "hsw":
         c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
@@ -429,4 +465,17 @@ query->c_offset = query->b_offset + 8;
 
     c_outdent(3)
     c("}\n")
+
+h("void gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo);\n")
+
+c("\nvoid")
+c("gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo)")
+c("{")
+c_indent(4)
+
+for set in tree.findall(".//set"):
+    c("add_" + set.get('underscore_name') + "_counter_query(devinfo);")
+
+c_outdent(4)
+c("}")
 
