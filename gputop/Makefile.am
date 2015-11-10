@@ -50,22 +50,19 @@ libgputop_la_SOURCES = \
     gputop-ui.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
-    $(PROTOBUF_DEP_CFLAGS) \
     $(NCURSES_DEP_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
-libgputop_la_LDFLAGS = \
+libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \
     $(PTHREAD_LIBS) \
+    $(top_builddir)/libuv/libuv.la \
     -lm \
-    -lrt \
-    -lssl -lcrypto -lyaml
-libgputop_la_LIBADD = \
-    $(top_builddir)/libuv/libuv.la
+    -lrt
 
 if SUPPORT_WEBUI
 libgputop_la_SOURCES += \
@@ -73,9 +70,13 @@ libgputop_la_SOURCES += \
     gputop.pb-c.c \
     gputop-server.h \
     gputop-server.c
-libgputop_la_LIBADD = \
+libgputop_la_CFLAGS += \
+    $(PROTOBUF_DEP_CFLAGS)
+libgputop_la_LIBADD += \
     $(top_builddir)/h2o/libh2o.la \
-    $(top_builddir)/protobuf-c/libprotobuf-c.la
+    $(top_builddir)/protobuf-c/libprotobuf-c.la \
+    $(PROTOBUF_DEP_LIBS) \
+    -lssl -lcrypto -lyaml
 endif
 
 if SUPPORT_GL
