@@ -561,7 +561,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	 */
 	for (s = 0; s < s_max; s++) {
 	    if (slice_mask & (1<<s)) {
-		slice_mask |= ss_mask << (ss_max * s);
+		subslice_mask |= ss_mask << (ss_max * s);
 	    }
 	}
 	gputop_devinfo.subslice_mask = subslice_mask;
