@@ -121,25 +121,25 @@ BUILT_SOURCES = \
     gputop.pb-c.h \
     gputop.pb-c.c
 
-oa hsw.h oa-hsw.c: oa-hsw.xml oa-gen.py
+oa-hsw.h oa-hsw.c: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-hsw.h \
 	    --code=$(builddir)/oa-hsw.c \
 	    --chipset="hsw" $(srcdir)/oa-hsw.xml
 
-oa bdw.h oa-bdw.c: oa-bdw.xml oa-gen.py
+oa-bdw.h oa-bdw.c: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-bdw.h \
 	    --code=$(builddir)/oa-bdw.c \
 	    --chipset="bdw" $(srcdir)/oa-bdw.xml
 
-oa chv.h oa-chv.c: oa-chv.xml oa-gen.py
+oa-chv.h oa-chv.c: oa-chv.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-chv.h \
 	    --code=$(builddir)/oa-chv.c \
 	    --chipset="chv" $(srcdir)/oa-chv.xml
 
-oa skl.h oa-skl.c: oa-skl.xml oa-gen.py
+oa-skl.h oa-skl.c: oa-skl.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-skl.h \
 	    --code=$(builddir)/oa-skl.c \
