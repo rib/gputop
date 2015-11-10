@@ -28,7 +28,10 @@
 #include <stdio.h>
 
 #include "gputop-log.h"
+
+#ifdef SUPPORT_WEBUI
 #include "gputop.pb-c.h"
+#endif
 
 extern uv_loop_t *gputop_ui_loop;
 

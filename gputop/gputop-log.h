@@ -28,7 +28,10 @@
 #include <pthread.h>
 
 #include "gputop-list.h"
+
+#ifdef SUPPORT_WEBUI
 #include "gputop.pb-c.h"
+#endif
 
 extern pthread_once_t gputop_log_init_once;
 extern pthread_rwlock_t gputop_log_lock;
@@ -50,5 +53,8 @@ struct gputop_log_entry {
 
 void gputop_log_init(void);
 void gputop_log(int level, const char *message, int len);
+
+#ifdef SUPPORT_WEBUI
 Gputop__Log *gputop_get_pb_log(void);
 void gputop_pb_log_free(Gputop__Log *log);
+#endif

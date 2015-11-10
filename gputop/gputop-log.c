@@ -75,6 +75,7 @@ gputop_log(int level, const char *message, int len)
     pthread_rwlock_unlock(&gputop_log_lock);
 }
 
+#ifdef SUPPORT_WEBUI
 Gputop__Log *
 gputop_get_pb_log(void)
 {
@@ -131,5 +132,6 @@ gputop_pb_log_free(Gputop__Log *log)
 
     free(log);
 }
+#endif
 
 

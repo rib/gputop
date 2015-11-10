@@ -85,7 +85,10 @@ static uv_idle_t redraw_idle;
 
 static struct tab *current_tab;
 static bool debug_disable_ncurses = false;
+
+#ifdef SUPPORT_WEBUI
 static bool web_ui = false;
+#endif
 
 static int y_pos;
 static double zoom = 1;
@@ -1396,16 +1399,16 @@ init_ncurses(FILE *infile, FILE *outfile)
 void *
 gputop_ui_run(void *arg)
 {
+#ifdef SUPPORT_WEBUI
     const char *mode = getenv("GPUTOP_MODE");
 
-    gputop_ui_loop = uv_loop_new();
-
-#ifdef SUPPORT_WEBUI
     if (mode && strcmp(mode, "remote") == 0) {
 	debug_disable_ncurses = true;
 	web_ui = true;
     }
 #endif
+
+    gputop_ui_loop = uv_loop_new();
 
     if (!debug_disable_ncurses) {
 	FILE *infile;
@@ -1462,10 +1465,13 @@ gputop_ui_run(void *arg)
 
     atexit(atexit_cb);
 
+#ifdef SUPPORT_WEBUI
     if (web_ui) {
 	gputop_server_run();
 
-    } else {
+    } else
+#endif
+    {
 	uv_idle_init(gputop_ui_loop, &redraw_idle);
 
 	current_tab = &tab_3d;

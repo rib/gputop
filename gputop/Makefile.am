@@ -41,10 +41,6 @@ libgputop_la_SOURCES = \
     oa-skl.c \
     gputop-perf.h \
     gputop-perf.c \
-    gputop.pb-c.h \
-    gputop.pb-c.c \
-    gputop-server.h \
-    gputop-server.c \
     gputop-util.h \
     gputop-list.h \
     gputop-list.c \
@@ -65,13 +61,22 @@ libgputop_la_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \
     $(PTHREAD_LIBS) \
-    $(top_builddir)/libuv/libuv.la \
-    $(top_builddir)/h2o/libh2o.la \
-    $(top_builddir)/protobuf-c/libprotobuf-c.la \
     -lm \
     -lrt \
     -lssl -lcrypto -lyaml
-libgputop_la_LIBADD =
+libgputop_la_LIBADD = \
+    $(top_builddir)/libuv/libuv.la
+
+if SUPPORT_WEBUI
+libgputop_la_SOURCES += \
+    gputop.pb-c.h \
+    gputop.pb-c.c \
+    gputop-server.h \
+    gputop-server.c
+libgputop_la_LIBADD = \
+    $(top_builddir)/h2o/libh2o.la \
+    $(top_builddir)/protobuf-c/libprotobuf-c.la
+endif
 
 if SUPPORT_GL
 libgputop_la_SOURCES += \
@@ -117,9 +122,13 @@ BUILT_SOURCES = \
     oa-chv.h \
     oa-chv.c \
     oa-skl.h \
-    oa-skl.c \
+    oa-skl.c
+
+if SUPPORT_WEBUI
+BUILT_SOURCES += \
     gputop.pb-c.h \
     gputop.pb-c.c
+endif
 
 oa-hsw.h oa-hsw.c: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
