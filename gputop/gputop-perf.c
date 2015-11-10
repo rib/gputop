@@ -498,16 +498,19 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.n_eus = 10;
 	    gputop_devinfo.n_eu_slices = 1;
 	    gputop_devinfo.n_eu_sub_slices = 1;
+	    gputop_devinfo.slice_mask = 0x1;
 	    gputop_devinfo.subslice_mask = 0x1;
 	} else if (IS_HSW_GT2(devid)) {
 	    gputop_devinfo.n_eus = 20;
 	    gputop_devinfo.n_eu_slices = 1;
 	    gputop_devinfo.n_eu_sub_slices = 2;
+	    gputop_devinfo.slice_mask = 0x1;
 	    gputop_devinfo.subslice_mask = 0x3;
 	} else if (IS_HSW_GT3(devid)) {
 	    gputop_devinfo.n_eus = 40;
 	    gputop_devinfo.n_eu_slices = 2;
 	    gputop_devinfo.n_eu_sub_slices = 4;
+	    gputop_devinfo.slice_mask = 0x3;
 	    gputop_devinfo.subslice_mask = 0xf;
 	}
     } else {
@@ -549,6 +552,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 
 	gputop_devinfo.n_eus = n_eus;
 	gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
+	gputop_devinfo.slice_mask = slice_mask;
 
 	/* Note: some of the metrics we have (as described in XML)
 	 * are conditional on a $SubsliceMask variable which is

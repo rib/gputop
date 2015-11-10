@@ -60,6 +60,7 @@ struct gputop_devinfo {
     uint64_t n_eu_sub_slices;
     uint64_t eu_threads_count;
     uint64_t subslice_mask;
+    uint64_t slice_mask;
 };
 
 struct gputop_perf_query;
