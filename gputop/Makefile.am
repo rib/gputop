@@ -89,7 +89,7 @@ libGL_la_SOURCES = \
     registry/glapi.c
 libGL_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
-libGL_la_LIBADD = libgputop.la $(top_builddir)/h2o/libh2o.la -lssl -lcrypto -lcurl -lyaml -lm
+libGL_la_LIBADD = libgputop.la
 libGL_la_LDFLAGS = -shared -version-info 1
 endif
 
