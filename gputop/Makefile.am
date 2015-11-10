@@ -149,4 +149,4 @@ oa skl.h oa-skl.c: oa-skl.xml oa-gen.py
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
 
 EXTRA_DIST = gputop.proto
-
+CLEANFILES = $(BUILT_SOURCES)
