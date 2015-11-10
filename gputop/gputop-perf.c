@@ -509,7 +509,6 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.subslice_mask = 0xf;
 	}
     } else {
-#ifdef I915_PARAM_EU_TOTAL
 	i915_getparam_t gp;
 	int ret;
 	int n_eus = 0;
@@ -560,9 +559,6 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    }
 	}
 	gputop_devinfo.subslice_mask = subslice_mask;
-#else
-	assert(0);
-#endif
     }
 }
 
