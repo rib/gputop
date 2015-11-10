@@ -58,6 +58,7 @@ struct gputop_devinfo {
     uint64_t n_eus;
     uint64_t n_eu_slices;
     uint64_t n_eu_sub_slices;
+    uint64_t eu_threads_count;
     uint64_t subslice_mask;
 };
 

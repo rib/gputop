@@ -489,6 +489,8 @@ gputop_perf_open_generic_counter(int pid,
 static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
+    int threads_per_eu = 7;
+
     gputop_devinfo.devid = devid;
 
     if (IS_HASWELL(devid)) {
@@ -560,6 +562,9 @@ init_dev_info(int drm_fd, uint32_t devid)
 	}
 	gputop_devinfo.subslice_mask = subslice_mask;
     }
+
+    gputop_devinfo.eu_threads_count =
+	gputop_devinfo.n_eus * threads_per_eu;
 }
 
 static unsigned int
