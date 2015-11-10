@@ -489,17 +489,7 @@ gputop_perf_open_generic_counter(int pid,
 static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
-    i915_getparam_t test;
-    int test_n_eus;
-    int status;
-
     gputop_devinfo.devid = devid;
-
-    test.param = I915_PARAM_EU_TOTAL;
-    test.value = &test_n_eus;
-    status = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &test);
-    if (status == -1)
-	fprintf(stderr, "error calling I915_IOCTL_GETPARAM %m\n");
 
     if (IS_HASWELL(devid)) {
 	if (IS_HSW_GT1(devid)) {
