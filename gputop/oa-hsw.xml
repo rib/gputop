@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
-<metrics version="1444327518" merge_md5="71f1da5f04d5e4d487c89bcc941d29a9">
+<metrics version="1447117752" merge_md5="71f1da5f04d5e4d487c89bcc941d29a9">
   <set name="Render Metrics Basic Gen7.5"
-       chipset="HSW"
        mdapi_supported_apis="OGL OCL IO"
        underscore_name="render_basic"
+       chipset="HSW"
+       guid="403d8832-1a27-4aa6-a64e-f5389ce7b212"
        symbol_name="RenderBasic"
        >
     <counter name="GPU Core Clocks"
@@ -70,14 +71,13 @@
              underscore_name="sampler1_bottleneck"
              units="percent"
              symbol_name="Sampler1Bottleneck"
+             availability="$SubsliceMask 0x2 AND"
              semantic_type="duration"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Indicate Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
-             >
-        <condition equation="$SubsliceMask 0x2 AND" />
-    </counter>
+             />
     <counter name="TES Threads Dispatched"
              description="The total number of evaluation shader hardware threads dispatched."
              data_type="uint64"
@@ -289,7 +289,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -346,14 +346,13 @@
              underscore_name="sampler0_busy"
              units="percent"
              symbol_name="Sampler0Busy"
+             availability="$SubsliceMask 0x1 AND"
              semantic_type="duration"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Batch Frame Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
-             >
-        <condition equation="$SubsliceMask 0x1 AND" />
-    </counter>
+             />
     <counter name="Sampler 1 Busy"
              description="The percentage of time in which sampler 1 was busy."
              data_type="float"
@@ -362,14 +361,13 @@
              underscore_name="sampler1_busy"
              units="percent"
              symbol_name="Sampler1Busy"
+             availability="$SubsliceMask 0x2 AND"
              semantic_type="duration"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Batch Frame Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
-             >
-        <condition equation="$SubsliceMask 0x2 AND" />
-    </counter>
+             />
     <counter name="Samplers Busy"
              description="The percentage of time in which samplers were busy."
              data_type="float"
@@ -462,14 +460,13 @@
              underscore_name="sampler0_bottleneck"
              units="percent"
              symbol_name="Sampler0Bottleneck"
+             availability="$SubsliceMask 0x1 AND"
              semantic_type="duration"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Indicate Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
-             >
-        <condition equation="$SubsliceMask 0x1 AND" />
-    </counter>
+             />
     <counter name="GS AVG Stall per Thread"
              description="The average number of cycles per hardware thread run in which geometry shaders were stalled on the EUs."
              data_type="uint64"
@@ -490,14 +487,13 @@
              underscore_name="sampler0_texels"
              units="texels"
              symbol_name="Sampler0Texels"
+             availability="$SubsliceMask 0x1 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler"
-             >
-        <condition equation="$SubsliceMask 0x1 AND" />
-    </counter>
+             />
     <counter name="Sampler 1 Texels LOD0"
              description="The total number of texels lookups in LOD0 in sampler 1 unit."
              data_type="uint64"
@@ -505,14 +501,13 @@
              underscore_name="sampler1_texels"
              units="texels"
              symbol_name="Sampler1Texels"
+             availability="$SubsliceMask 0x2 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Tier3 Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler"
-             >
-        <condition equation="$SubsliceMask 0x2 AND" />
-    </counter>
+             />
     <counter name="Sampler Texels LOD0"
              description="The total number of texels lookups in LOD0 in all sampler units."
              data_type="uint64"
@@ -933,9 +928,10 @@
   </set>
 
   <set name="Compute Metrics Basic Gen7.5"
-       chipset="HSW"
        mdapi_supported_apis="OGL4 OCL IO"
        underscore_name="compute_basic"
+       chipset="HSW"
+       guid="39ad14bc-2380-45c4-91eb-fbcb3aa7ae7b"
        symbol_name="ComputeBasic"
        >
     <counter name="GPU Core Clocks"
@@ -1156,7 +1152,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -1618,9 +1614,10 @@
   </set>
 
   <set name="Compute Metrics Extended Gen7.5"
-       chipset="HSW"
        mdapi_supported_apis="OGL4 OCL IO"
        underscore_name="compute_extended"
+       chipset="HSW"
+       guid="3865be28-6982-49fe-9494-e4d1b4795413"
        symbol_name="ComputeExtended"
        >
     <counter name="EuUntypedWrites0"
@@ -1860,7 +1857,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -1886,9 +1883,10 @@
   </set>
 
   <set name="Memory Reads Distribution Gen7.5"
-       chipset="HSW"
        mdapi_supported_apis="OGL OCL IO"
        underscore_name="memory_reads"
+       chipset="HSW"
+       guid="bb5ed49b-2497-4095-94f6-26ba294db88a"
        symbol_name="MemoryReads"
        >
     <counter name="GPU Core Clocks"
@@ -2107,7 +2105,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -2617,9 +2615,10 @@
   </set>
 
   <set name="Memory Writes Distribution Gen7.5"
-       chipset="HSW"
        mdapi_supported_apis="OGL OCL IO"
        underscore_name="memory_writes"
+       chipset="HSW"
+       guid="3358d639-9b5f-45ab-976d-9b08cbfc6240"
        symbol_name="MemoryWrites"
        >
     <counter name="GPU Core Clocks"
@@ -2851,7 +2850,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -3335,15 +3334,16 @@
   </set>
 
   <set name="Metric set SamplerBalance"
-       chipset="HSW"
        mdapi_supported_apis="OGL OCL IO"
        underscore_name="sampler_balance"
+       chipset="HSW"
+       guid="bc274488-b4b6-40c7-90da-b77d7ad16189"
        symbol_name="SamplerBalance"
        >
     <counter name="GPU Core Clocks"
              description="The total number of GPU core clocks elapsed during the measurement."
              data_type="uint64"
-             equation="C 2 READ"
+             equation="B 7 READ"
              underscore_name="gpu_core_clocks"
              units="cycles"
              symbol_name="GpuCoreClocks"
@@ -3388,14 +3388,13 @@
              underscore_name="sampler3_l2_cache_misses"
              units="messages"
              symbol_name="Sampler3L2CacheMisses"
+             availability="$SubsliceMask 0x8 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
-             >
-        <condition equation="$SubsliceMask 0x8 AND" />
-    </counter>
+             />
     <counter name="Alpha Test Fails"
              description="The total number of pixels dropped on post-FS alpha test."
              data_type="uint64"
@@ -3620,7 +3619,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 80 UMUL"
+             equation="GPU_TIME 0 READ 1000000000 UMUL 12500000 UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -3755,14 +3754,13 @@
              underscore_name="sampler2_l2_cache_misses"
              units="messages"
              symbol_name="Sampler2L2CacheMisses"
+             availability="$SubsliceMask 0x4 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
-             >
-        <condition equation="$SubsliceMask 0x4 AND" />
-    </counter>
+             />
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
@@ -3983,14 +3981,13 @@
              underscore_name="sampler1_l2_cache_misses"
              units="messages"
              symbol_name="Sampler1L2CacheMisses"
+             availability="$SubsliceMask 0x2 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
-             >
-        <condition equation="$SubsliceMask 0x2 AND" />
-    </counter>
+             />
     <counter name="Early Hi-Depth Test Fails"
              description="The total number of pixels dropped on early hierarchical depth test."
              data_type="uint64"
@@ -4037,14 +4034,13 @@
              underscore_name="sampler0_l2_cache_misses"
              units="messages"
              symbol_name="Sampler0L2CacheMisses"
+             availability="$SubsliceMask 0x1 AND"
              semantic_type="event"
              mdapi_supported_apis="OGL OCL IO"
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
-             >
-        <condition equation="$SubsliceMask 0x1 AND" />
-    </counter>
+             />
     <counter name="VS AVG Active per Thread"
              description="The average number of cycles per hardware thread run in which vertex shaders were processed actively on the EUs."
              data_type="uint64"
