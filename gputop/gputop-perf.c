@@ -565,6 +565,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    }
 	}
 	gputop_devinfo.subslice_mask = subslice_mask;
+	gputop_devinfo.n_eu_sub_slices = __builtin_popcount(subslice_mask);
     }
 
     gputop_devinfo.eu_threads_count =
