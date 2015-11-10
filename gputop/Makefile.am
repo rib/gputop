@@ -54,6 +54,7 @@ libgputop_la_SOURCES = \
     gputop-ui.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
+    $(PROTOBUF_DEP_CFLAGS) \
     $(NCURSES_DEP_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
