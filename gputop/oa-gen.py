@@ -248,11 +248,7 @@ def output_counter_max(set, counter, counter_vars):
 
     c("\n")
     c("/* " + set.get('name') + " :: " + counter.get('name') + " */")
-    ret_type = counter.get('data_type')
-    if ret_type == "uint64":
-        ret_type = "uint64_t"
-
-    c("static " + ret_type)
+    c("static uint64_t")
     max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__max"
     c(max_sym + "(struct gputop_devinfo *devinfo,\n")
     c_indent(len(max_sym) + 1)
