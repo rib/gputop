@@ -121,11 +121,11 @@ def emit_usub(tmp_id, args):
     return tmp_id + 1
 
 def emit_umin(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" =  MIN(" + args[1] + ", " + args[0] + ");")
+    c("uint64_t tmp" + str(tmp_id) +" = MIN(" + args[1] + ", " + args[0] + ");")
     return tmp_id + 1
 
 ops = {}
-#             (n operands, type, emitter)
+#             (n operands, emitter)
 ops["FADD"] = (2, emit_fadd)
 ops["FDIV"] = (2, emit_fdiv)
 ops["FMAX"] = (2, emit_fmax)
@@ -162,6 +162,7 @@ exp_ops["AND"]  = (2, splice_bitwise_and)
 exp_ops["UGTE"] = (2, splice_ugte)
 exp_ops["ULT"]  = (2, splice_ult)
 exp_ops["&&"]   = (2, splice_logical_and)
+
 
 hw_vars = {}
 hw_vars["$EuCoresTotalCount"] = "devinfo->n_eus"
@@ -210,6 +211,36 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
 
     value = stack.pop()
     c("\nreturn " + value + ";")
+
+def splice_rpn_expression(set, counter, expression):
+    tokens = expression.split()
+    stack = []
+
+    for token in tokens:
+        stack.append(token)
+        while stack and stack[-1] in exp_ops:
+            op = stack.pop()
+            argc, callback = exp_ops[op]
+            args = []
+            for i in range(0, argc):
+                operand = stack.pop()
+                if operand[0] == "$":
+                    if operand in hw_vars:
+                        operand = hw_vars[operand]
+                    else:
+                        raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.get('name') + " :: " + counter.get('name'));
+                args.append(operand)
+
+            subexp = callback(args)
+
+            stack.append(subexp)
+
+    if len(stack) != 1:
+        raise Exception("Spurious empty rpn expression for " + set.get('name') + " :: " +
+                counter.get('name') + ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
+                expression + "\"")
+
+    return stack.pop()
 
 def output_counter_read(set, counter, counter_vars):
     c("\n")
@@ -286,24 +317,23 @@ def output_counter_report(set, counter):
 
     semantic_type_uc = semantic_type.upper()
 
-    c("\n");
+    c("\n")
 
-    conditions = counter.findall("./condition")
-    if len(conditions):
-        if len(conditions) > 1:
-            sys.exit("FIXME: multiple conditions per counter not handled");
-
-        cond = conditions[0].get('equation')
-        tokens = cond.split()
-        if len(tokens) != 3 or tokens[2] != "AND" or tokens[0][0] != '$':
-            sys.exit("FIXME: couldn't handle counter condition" + cond);
-
-        if tokens[0] not in hw_vars:
-            sys.exit("FIXME: failed to look up variable in counter condition: " + cond)
-
-        c("if (" + hw_vars[tokens[0]] + " & " + tokens[1] + ") {\n");
+    availability = counter.get('availability')
+    if availability:
+        expression = splice_rpn_expression(set, counter, availability)
+        lines = expression.split(' && ')
+        n_lines = len(lines)
+        if n_lines == 1:
+            c("if (" + lines[0] + ") {")
+        else:
+            c("if (" + lines[0] + " &&")
+            c_indent(4)
+            for i in range(1, (n_lines - 1)):
+                c(lines[i] + " &&")
+            c(lines[(n_lines - 1)] + ") {")
+            c_outdent(4)
         c_indent(4)
-
 
     c("counter = &query->counters[query->n_counters++];\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
@@ -313,7 +343,7 @@ def output_counter_report(set, counter):
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
     c("counter->max = " + max_funcs[counter.get('symbol_name')] + "\n")
 
-    if len(conditions):
+    if availability:
         c_outdent(4)
         c("}\n")
 
@@ -410,7 +440,8 @@ for set in tree.findall(".//set"):
     read_funcs = {}
     counter_vars = {}
     counters = set.findall("counter")
-    chipset = set.get('chipset').lower()
+
+    assert set.get('chipset').lower() == chipset
 
     for counter in counters:
         empty_vars = {}
