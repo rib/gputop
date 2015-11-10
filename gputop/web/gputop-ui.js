@@ -760,7 +760,13 @@ var ww = new Worker("gputop-web-worker.js")
 
 ww.onmessage = function(e) {
     //console.log(e.data);
-    var rpc = JSON.parse(e.data);
+    try {
+	var rpc = JSON.parse(e.data);
+    } catch (err) {
+	console.warn("Failed to parse message from worker: " + e.data + "\n> because: " + err.message);
+	return;
+    }
+
     var args = rpc.params;
 
     if (rpc.method)
