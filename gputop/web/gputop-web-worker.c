@@ -47,6 +47,8 @@
 #include "oa-chv.h"
 #include "oa-skl.h"
 
+struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
+
 struct gputop_worker_query {
     int id;
     uint64_t aggregation_period;
