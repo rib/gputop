@@ -35,7 +35,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include <stropts.h>
 
 #include <limits.h>
 #include <errno.h>
