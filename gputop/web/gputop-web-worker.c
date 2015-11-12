@@ -25,8 +25,11 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <string.h>
+#include <sys/types.h>
+
 #include <uuid/uuid.h>
 
 #include <emscripten.h>
