@@ -20,6 +20,7 @@ addons:
             - clang-3.6
             - autopoint
             - python-lxml
+            - libgl1-mesa-dev
 
 cache:
     directories:
@@ -28,6 +29,8 @@ cache:
         - protobuf
 
 env:
+    - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
+    - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
     - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
     - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
     - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
