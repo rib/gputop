@@ -75,9 +75,10 @@ int gputop_list_empty(gputop_list_t *list);
 
 void gputop_list_insert_list(gputop_list_t *list, gputop_list_t *other);
 
+/* Note these cast via (void *) to subvert -Wcast-align warnings */
 #ifdef __GNUC__
 #define gputop_container_of(ptr, sample, member)                                \
-    (__typeof__(sample))((char *)(ptr) -					\
+    (__typeof__(sample))(void *)((char *)(ptr) -				\
                          ((char *)&(sample)->member - (char *)(sample)))
 #else
 #define gputop_container_of(ptr, sample, member)                                \
