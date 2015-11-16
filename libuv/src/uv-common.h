@@ -42,8 +42,9 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
+/* Note this casts via (void *) to subvert -Wcast-align warnings */
 #define container_of(ptr, type, member) \
-  ((type *) ((char *) (ptr) - offsetof(type, member)))
+  ((type *) (void *)((char *) (ptr) - offsetof(type, member)))
 
 #ifndef _WIN32
 enum {
