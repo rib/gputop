@@ -44,6 +44,8 @@ all-local:
 #	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) check
 clean-local:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) clean
+distclean-local:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) distclean
 #install-data-local:
 #	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-data
 #install-exec-local:
