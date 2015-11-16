@@ -609,14 +609,14 @@ gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
     GLXContext glx_ctx;
     struct winsys_context *wctx;
 
+    pthread_once(&init_once, gputop_gl_init);
+
     /* We'd rather be able to use glXCreateContextAttribsARB() so that
      * we can optionally create a debug context, but sometimes it's
      * not possible to map a visual to an fbconfig. */
     glx_ctx = try_create_new_context(dpy, vis, shareList, direct);
     if (glx_ctx)
 	return glx_ctx;
-
-    pthread_once(&init_once, gputop_gl_init);
 
     glx_ctx = real_glXCreateContext(dpy, vis, shareList, direct);
     if (!glx_ctx)
