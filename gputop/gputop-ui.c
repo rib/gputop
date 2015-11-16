@@ -27,12 +27,15 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <unistd.h>
-#include <stdatomic.h>
 
 #include <locale.h>
 #include <ncurses.h>
 
 #include <uv.h>
+
+/* NB: We use a portable stdatomic.h, so we don't depend on a recent compiler...
+ */
+#include "stdatomic.h"
 
 #include "gputop-perf.h"
 #include "gputop-ui.h"

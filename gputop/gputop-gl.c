@@ -31,7 +31,10 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdatomic.h>
+
+/* NB: We use a portable stdatomic.h, so we don't depend on a recent compiler...
+ */
+#include "stdatomic.h"
 
 #include <uv.h>
 
@@ -143,11 +146,11 @@ struct array *gputop_gl_surfaces;
 
 bool gputop_gl_force_debug_ctx_enabled = false;
 
-_Atomic int gputop_gl_n_countext = 0;
+atomic_int gputop_gl_n_countext;
 
-_Atomic bool gputop_gl_monitoring_enabled = false;
-_Atomic bool gputop_gl_khr_debug_enabled = true;
-_Atomic int gputop_gl_n_monitors;
+atomic_bool gputop_gl_monitoring_enabled;
+atomic_bool gputop_gl_khr_debug_enabled;
+atomic_int gputop_gl_n_monitors;
 
 
 void *
@@ -479,7 +482,8 @@ winsys_context_create(GLXContext glx_ctx)
 
     wctx->glx_ctx = glx_ctx;
     wctx->gl_initialised = false;
-    wctx->ref = 1;
+
+    atomic_store(&wctx->ref, 1);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
     array_append(gputop_gl_contexts, &wctx);
@@ -840,10 +844,12 @@ static void
 winsys_surface_start_frame(struct winsys_surface *wsurface)
 {
     struct winsys_context *wctx = wsurface->wctx;
-    int current_frame_idx = wsurface->started_frames % MAX_FRAME_QUERIES;
+    int started_frames = atomic_load(&wsurface->started_frames);
+    int finished_frames = atomic_load(&wsurface->finished_frames);
+    int current_frame_idx = started_frames % MAX_FRAME_QUERIES;
     struct frame_query *frame = &wsurface->frames[current_frame_idx];
 
-    if ((wsurface->started_frames - wsurface->finished_frames) >= MAX_FRAME_QUERIES)
+    if ((started_frames - finished_frames) >= MAX_FRAME_QUERIES)
 	gputop_abort("Performance counter queries couldn't keep up with frame-rate");
 
     /* Although this probably doesn't matter too much on a per-frame
@@ -891,13 +897,14 @@ winsys_surface_start_frame(struct winsys_surface *wsurface)
 static void
 winsys_surface_end_frame(struct winsys_surface *wsurface)
 {
+    int started_frames = atomic_load(&wsurface->started_frames);
     int prev_frame_idx;
     struct frame_query *frame;
 
-    if (!wsurface->started_frames)
+    if (!started_frames)
 	return;
 
-    prev_frame_idx = (wsurface->started_frames - 1) % MAX_FRAME_QUERIES;
+    prev_frame_idx = (started_frames - 1) % MAX_FRAME_QUERIES;
 
     frame = &wsurface->frames[prev_frame_idx];
     if (frame->oa_query)
@@ -907,15 +914,17 @@ winsys_surface_end_frame(struct winsys_surface *wsurface)
 static void
 winsys_surface_check_for_finished_frames(struct winsys_surface *wsurface)
 {
+    int started_frames = atomic_load(&wsurface->started_frames);
+    int finished_frames = atomic_load(&wsurface->finished_frames);
     struct winsys_context *wctx = wsurface->wctx;
     int next_finish_candidate;
     int last_finish_candidate;
     int i;
 
-    if (!wsurface->started_frames)
+    if (!started_frames)
 	return;
 
-    next_finish_candidate = wsurface->finished_frames % MAX_FRAME_QUERIES;
+    next_finish_candidate = finished_frames % MAX_FRAME_QUERIES;
     last_finish_candidate =
 	(next_finish_candidate + (MAX_FRAME_QUERIES - 1)) % MAX_FRAME_QUERIES;
 
@@ -973,6 +982,7 @@ winsys_surface_check_for_finished_frames(struct winsys_surface *wsurface)
 static void
 winsys_surface_destroy_monitors(struct winsys_surface *wsurface)
 {
+    int started_frames = atomic_load(&wsurface->started_frames);
     int i;
 
     if (!wsurface->has_monitors)
@@ -993,7 +1003,7 @@ winsys_surface_destroy_monitors(struct winsys_surface *wsurface)
 	pthread_rwlock_unlock(&frame->lock);
     }
 
-    atomic_store(&wsurface->finished_frames, wsurface->started_frames);
+    atomic_store(&wsurface->finished_frames, started_frames);
     wsurface->has_monitors = false;
 }
 

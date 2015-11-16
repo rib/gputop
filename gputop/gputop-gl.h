@@ -28,6 +28,10 @@
 #include <GL/glx.h>
 #include <GL/glxext.h>
 
+/* NB: We use a portable stdatomic.h, so we don't depend on a recent compiler...
+ */
+#include "stdatomic.h"
+
 #include "gputop-list.h"
 
 struct intel_counter
@@ -82,7 +86,7 @@ struct frame_query
 
 struct winsys_context
 {
-    _Atomic int ref;
+    atomic_int ref;
 
     GLXContext glx_ctx;
     /* TODO: Add EGL support */
@@ -109,8 +113,8 @@ struct winsys_surface
     /* TODO: Add EGL support */
 
     struct frame_query frames[MAX_FRAME_QUERIES];
-    _Atomic int started_frames;
-    _Atomic int finished_frames;
+    atomic_int started_frames;
+    atomic_int finished_frames;
 
     /* One or more frames have associated monitors that
      * will need to be deleted monitoring is disabled...
@@ -127,8 +131,8 @@ extern struct array *gputop_gl_surfaces;
 
 extern bool gputop_gl_force_debug_ctx_enabled;
 
-extern _Atomic bool gputop_gl_monitoring_enabled;
-extern _Atomic bool gputop_gl_khr_debug_enabled;
+extern atomic_bool gputop_gl_monitoring_enabled;
+extern atomic_bool gputop_gl_khr_debug_enabled;
 
 /* The number of monitors to delete if monitoring is disabled...
  *
@@ -147,7 +151,7 @@ extern _Atomic bool gputop_gl_khr_debug_enabled;
  * to the user that we're still busy waiting for GL before system
  * wide monitoring can be enabled.
  */
-extern _Atomic int gputop_gl_n_monitors;
+extern atomic_int gputop_gl_n_monitors;
 
 
 #endif /* _GPUTOP_GL_H_ */
