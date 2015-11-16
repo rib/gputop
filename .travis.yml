@@ -28,10 +28,16 @@ cache:
         - protobuf
 
 env:
-    - CONFIG_OPTS="--enable-debug"
-    - CONFIG_OPTS="--disable-debug"
+    - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
+    - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
+    - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
+    - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
 
 before_install:
+    # We don't want to depend on a special version of gcc/clang for building gputop but building
+    # llvm-fastcomp depends on a more recent toolchain :-/
+    - export CC_SAVED=$CC
+    - export CXX_SAVED=$CXX
     - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     - if test "$CC" = "clang"; then export CC=clang-3.6; export CXX=clang++-3.6; fi
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
@@ -53,6 +59,12 @@ before_install:
            make install;
        fi)
     - export LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin"
+    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
+    - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
+    - emcc -v
+    # Try not to depend on a special version of gcc/clang for anything else...
+    - export CC=$CC_SAVED
+    - export CXX=$CXX_SAVED
     - (if test -d protobuf/lib; then echo OK; else
             git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
             cd protobuf-src &&
@@ -62,12 +74,9 @@ before_install:
             make install;
        fi)
     - export PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig"
-    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
-    - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
-    - emcc -v
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
-    - ./configure --disable-gl $CONFIG_OPTS && make
+    - ./configure $CONFIG_OPTS && make
