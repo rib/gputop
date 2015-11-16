@@ -61,6 +61,7 @@ libgputop_la_LIBADD = \
     $(NCURSES_DEP_LIBS) \
     $(PTHREAD_LIBS) \
     $(top_builddir)/libuv/libuv.la \
+    -ldl \
     -lm \
     -lrt
 
@@ -84,7 +85,13 @@ libgputop_la_SOURCES += \
     gputop-gl.h \
     gputop-gl.c
 
-libgputop_la_LIBADD += $(GLX_DEP_LIBS)
+# XXX: it's awkward to link libgputop.so with the systen libGL without
+# libtool getting confused (it will think we want to link with our
+# wrapper libGL.so but doing that introduces a cyclical dependency)
+# gputop-gl.c is instead careful to lookup GLX symbols via
+# dlopen/dlsym so we don't need to be linked to the system GL library.
+#libgputop_la_LIBADD += $(GLX_DEP_LIBS)
+libgputop_la_LIBADD += -lX11
 libgputop_la_CFLAGS += $(GLX_DEP_CFLAGS)
 
 wrapperdir = $(libdir)/wrappers

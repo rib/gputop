@@ -77,6 +77,14 @@ static Bool (*real_glXMakeCurrent)(Display *dpy, GLXDrawable drawable,
 				   GLXContext ctx);
 static Bool (*real_glXMakeContextCurrent)(Display *dpy, GLXDrawable draw,
 					  GLXDrawable read, GLXContext ctx);
+static GLXFBConfig *(*real_glXChooseFBConfig)(Display *dpy,
+					      int screen,
+					      const int *attrib_list,
+					      int *nelements);
+static int (*real_glXGetConfig)(Display *dpy,
+				XVisualInfo *vis,
+				int attrib,
+				int *value);
 static GLXContext (*real_glXCreateContext)(Display *dpy, XVisualInfo *vis,
 					   GLXContext shareList, Bool direct);
 static GLXContext (*real_glXCreateNewContext)(Display *dpy, GLXFBConfig config,
@@ -95,6 +103,8 @@ static void (*real_glXSwapBuffers)(Display *dpy, GLXDrawable drawable);
 static pthread_once_t initialise_gl_once = PTHREAD_ONCE_INIT;
 
 static const GLubyte *(*pfn_glGetStringi)(GLenum name, GLuint index);
+static const GLubyte *(*pfn_glGetString)(GLenum name);
+static void (*pfn_glGetIntegerv)(GLenum pname, GLint *params);
 static GLenum (*pfn_glGetError)(void);
 static void (*pfn_glEnable)(GLenum cap);
 static void (*pfn_glDisable)(GLenum cap);
@@ -209,6 +219,8 @@ glx_winsys_init(void)
     real_glXGetProcAddress = gputop_passthrough_gl_resolve("glXGetProcAddress");
     real_glXMakeCurrent = gputop_passthrough_gl_resolve("glXMakeCurrent");
     real_glXMakeContextCurrent = gputop_passthrough_gl_resolve("glXMakeContextCurrent");
+    real_glXChooseFBConfig = gputop_passthrough_gl_resolve("glXChooseFBConfig");
+    real_glXGetConfig = gputop_passthrough_gl_resolve("glXGetConfig");
     real_glXCreateContext = gputop_passthrough_gl_resolve("glXCreateContext");
     real_glXCreateNewContext = gputop_passthrough_gl_resolve("glXCreateNewContext");
     real_glXCreateContextAttribsARB = real_glXGetProcAddress((GLubyte *)"glXCreateContextAttribsARB");
@@ -275,7 +287,7 @@ gputop_glXGetProcAddressARB(const GLubyte *procName)
 static bool
 have_extension(const char *name)
 {
-    const char *gl_extensions = (const char *)glGetString(GL_EXTENSIONS);
+    const char *gl_extensions = (const char *)pfn_glGetString(GL_EXTENSIONS);
     int n_extensions = 0;
     int i;
 
@@ -284,12 +296,12 @@ have_extension(const char *name)
     if (gl_extensions)
 	return strstr(gl_extensions, name);
 
-    if (glGetError() != GL_INVALID_ENUM || pfn_glGetStringi == NULL)
+    if (pfn_glGetError() != GL_INVALID_ENUM || pfn_glGetStringi == NULL)
 	gputop_abort("Spurious NULL from glGetString(GL_EXTENSIONS)");
 
     /* If we got GL_INVALID_ENUM lets just assume we have a core
      * profile context so we need to use glGetStringi() */
-    glGetIntegerv(GL_NUM_EXTENSIONS, &n_extensions);
+    pfn_glGetIntegerv(GL_NUM_EXTENSIONS, &n_extensions);
     if (!n_extensions)
 	gputop_abort("glGetIntegerv(GL_NUM_EXTENSIONS) returned zero");
 
@@ -307,6 +319,10 @@ initialise_gl(void)
 	const char *name;
 	void **ptr;
     } symbols[] = {
+	SYM(glGetString),
+	SYM(glGetStringi),
+	SYM(glGetIntegerv),
+
 	SYM(glGetError),
 
 	SYM(glEnable),
@@ -331,16 +347,13 @@ initialise_gl(void)
 #undef SYM
     int i;
 
-    /* Special case since we may need this to check the extensions... */
-    pfn_glGetStringi = (void *)glXGetProcAddress((GLubyte *)"glGetStringi");
+    for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++)
+	*(symbols[i].ptr) = real_glXGetProcAddress((GLubyte *)symbols[i].name);
 
     gputop_has_intel_performance_query_ext =
 	have_extension("GL_INTEL_performance_query");
 
     gputop_has_khr_debug_ext = have_extension("GL_KHR_debug");
-
-    for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++)
-	*(symbols[i].ptr) = glXGetProcAddress((GLubyte *)symbols[i].name);
 }
 
 static void
@@ -573,11 +586,11 @@ try_create_new_context(Display *dpy, XVisualInfo *vis,
     GLXFBConfig *configs;
     GLXContext glx_ctx = NULL;
 
-    glXGetConfig(dpy, vis, GLX_FBCONFIG_ID, &fb_config_id);
+    real_glXGetConfig(dpy, vis, GLX_FBCONFIG_ID, &fb_config_id);
     attrib_list[1] = fb_config_id;
 
-    configs = glXChooseFBConfig(dpy, vis->screen,
-				attrib_list, &n_configs);
+    configs = real_glXChooseFBConfig(dpy, vis->screen,
+				     attrib_list, &n_configs);
 
     if (n_configs == 1) {
 	glx_ctx = gputop_glXCreateNewContext(dpy, configs[0], GLX_RGBA,
