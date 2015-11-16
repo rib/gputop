@@ -6,18 +6,15 @@ os:
     - linux
 
 compiler:
-    - clang
     - gcc
 
 addons:
     apt:
         sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.6
         packages:
             - gcc-4.9
             - g++-4.9
-            - clang-3.6
             - autopoint
             - python-lxml
             - libgl1-mesa-dev
@@ -37,12 +34,9 @@ env:
     - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
 
 before_install:
-    # We don't want to depend on a special version of gcc/clang for building gputop but building
+    # We don't want to depend on a special version of gcc for building gputop but building
     # llvm-fastcomp depends on a more recent toolchain :-/
-    - export CC_SAVED=$CC
-    - export CXX_SAVED=$CXX
-    - if test "$CC" = "gcc"; then export CC=gcc-4.9; export CXX=g++-4.9; fi
-    - if test "$CC" = "clang"; then export CC=clang-3.6; export CXX=clang++-3.6; fi
+    - export CC=gcc-4.9 CXX=g++-4.9
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
     - (if test -f cmake-2.8.12.2/bin/cmake; then echo OK; else
            git clone --branch v2.8.12.2 --single-branch --depth 1 git://cmake.org/cmake.git cmake-2.8.12.2-src &&
@@ -66,8 +60,7 @@ before_install:
     - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
     - emcc -v
     # Try not to depend on a special version of gcc/clang for anything else...
-    - export CC=$CC_SAVED
-    - export CXX=$CXX_SAVED
+    - export CC=gcc CXX=g++
     - (if test -d protobuf/lib; then echo OK; else
             git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
             cd protobuf-src &&
