@@ -1344,6 +1344,7 @@ gputop_i915_perf_oa_trace_close(void)
 
     gputop_perf_stream_unref(gputop_current_perf_stream);
 
+    free(gputop_perf_trace_buffer);
     gputop_current_perf_query = NULL;
     gputop_current_perf_stream = NULL;
 }
