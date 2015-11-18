@@ -638,7 +638,7 @@ function setup_overview_for_oa_query(idx)
 	//$.plot($(graph), [ graph_data ], { series: { lines: { show: true, fill: true }, shadowSize: 0 },
 //					   xaxis: { min: x_min, max: x_max },
 //					   yaxis: { max: 100 }
-    var axis = $("<div/>", { style: "height:2em; width:200px;"});
+    var axis = $("<div/>", { style: "height:2em; width:200px; position:relative"});
     var div = $("<div/>", { style: "display:flex; flex-direction:row;" } )
 		.append($("<div/>", { style: "width:20em; flex: 0 1 auto;" }))
 		    .append(axis);
