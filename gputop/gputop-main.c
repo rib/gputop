@@ -48,7 +48,9 @@ usage(void)
 	   "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
 	   "                                   library to intercept\n"
 	   "     --debug-context               Create a debug context and report\n"
-	   "                                   KHR_debug perf issues\n");
+	   "                                   KHR_debug perf issues\n"
+	   "     --dry-run                     Print the environment variables\n"
+	   "                                   without executing the program\n");
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n");
@@ -122,17 +124,20 @@ int
 main (int argc, char **argv)
 {
     int opt;
+    bool dry_run = false;
 
 #define LIB_GL_OPT	(CHAR_MAX + 1)
 #define LIB_EGL_OPT	(CHAR_MAX + 2)
 #define DEBUG_CTX_OPT	(CHAR_MAX + 3)
 #define REMOTE_OPT	(CHAR_MAX + 4)
+#define DRY_RUN_OPT 	(CHAR_MAX + 5)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
     const char *short_options="+h";
     const struct option long_options[] = {
 	{"help",	    no_argument,	0, 'h'},
+	{"dry-run",         no_argument,        0, DRY_RUN_OPT},
 #ifdef SUPPORT_GL
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
@@ -173,6 +178,9 @@ main (int argc, char **argv)
 	    case REMOTE_OPT:
 		setenv("GPUTOP_MODE", "remote", true);
 		break;
+	    case DRY_RUN_OPT:
+		dry_run = true;
+		break;
 	    default:
 		fprintf (stderr, "Internal error: "
 			 "unexpected getopt value: %d\n", opt);
@@ -196,20 +204,39 @@ main (int argc, char **argv)
 
     prev_ld_library_path = getenv("LD_LIBRARY_PATH");
     if (!prev_ld_library_path)
-	prev_ld_library_path = "";
+        prev_ld_library_path = "";
 
     asprintf(&ld_library_path, "%s:%s", GPUTOP_WRAPPER_DIR, prev_ld_library_path);
+
+    fprintf(stderr, "LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH \\\n", GPUTOP_WRAPPER_DIR);
+    if (getenv("GPUTOP_GL_LIBRARY"))
+        fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
+
+    if (getenv("GPUTOP_EGL_LIBRARY"))
+            fprintf(stderr, "GPUTOP_EGL_LIBRARY=%s \\\n", getenv("GPUTOP_EGL_LIBRARY"));
+
+    if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
+            fprintf(stderr, "GPUTOP_FORCE_DEBUG_CONTEXT=%s \\\n", getenv("GPUTOP_FORCE_DEBUG_CONTEXT"));
+
+    if (getenv("GPUTOP_MODE"))
+        fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
+
+    fprintf(stderr, "%s\n", args[optind]);
+
     setenv("LD_LIBRARY_PATH", ld_library_path, true);
     free(ld_library_path);
 
-    execvp(args[optind], &args[optind]);
-    err = errno;
+    if (!dry_run)
+    {
+        execvp(args[optind], &args[optind]);
+        err = errno;
 
-    fprintf(stderr, "gputop: Failed to run GL application: \n\n"
-	    "  ");
-    for (i = optind; i < argc; i++)
-	fprintf(stderr, "%s ", args[i]);
-    fprintf(stderr, "\n\n%s\n", strerror(err));
+        fprintf(stderr, "gputop: Failed to run GL application: \n\n"
+	       "  ");
+        for (i = optind; i < argc; i++)
+	       fprintf(stderr, "%s ", args[i]);
+        fprintf(stderr, "\n\n%s\n", strerror(err));
+    }
 
     return 0;
 }
