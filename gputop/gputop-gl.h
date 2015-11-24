@@ -48,7 +48,7 @@ struct intel_counter
     char name[64];
     char description[256];
 };
-#define MAX_QUERY_COUNTERS 100
+#define MAX_QUERY_COUNTERS 1000
 
 struct intel_query_info
 {
