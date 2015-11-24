@@ -61,13 +61,15 @@ struct tab
 {
     gputop_list_t link;
 
-    const char *nick;
-    const char *name;
+    char *nick;
+    char *name;
 
     void (*enter)(void);    /* when user switches to tab */
     void (*leave)(void);    /* when user switches away from tab */
     void (*input)(int key);
     void (*redraw)(WINDOW *win);
+
+    unsigned int gl_query_id;
 };
 
 #define TAB_TITLE_WIDTH 15
@@ -793,31 +795,6 @@ static struct tab tab_3d_trace =
 
 #ifdef SUPPORT_GL
 static void
-gl_basic_tab_enter(void)
-{
-    uv_timer_init(gputop_ui_loop, &timer);
-    uv_timer_start(&timer, timer_cb, 1000, 1000);
-
-    if (gputop_has_intel_performance_query_ext)
-	atomic_store(&gputop_gl_monitoring_enabled, 1);
-}
-
-static void
-gl_basic_tab_leave(void)
-{
-    if (gputop_has_intel_performance_query_ext)
-	atomic_store(&gputop_gl_monitoring_enabled, 0);
-
-    uv_timer_stop(&timer);
-}
-
-static void
-gl_basic_tab_input(int key)
-{
-
-}
-
-static void
 print_percentage_gl_pq_counter(WINDOW *win, int y, int x,
 			       struct intel_counter *counter, uint8_t *data)
 {
@@ -874,6 +851,11 @@ static void
 gl_perf_query_tab_redraw(WINDOW *win)
 {
     struct winsys_surface **surfaces;
+    struct winsys_surface *wsurface;
+    struct winsys_context *wctx;
+    struct intel_query_info *query_info;
+    struct gl_perf_query *obj;
+    gputop_list_t finished;
     //int win_width;
     //int win_height __attribute__ ((unused));
     int i;
@@ -884,157 +866,191 @@ gl_perf_query_tab_redraw(WINDOW *win)
     mvwprintw(win, y++, 0, "%40s  0%%                         100%%\n", "");
     mvwprintw(win, y++, 0, "%40s  ┌─────────────────────────────┐\n", "");
 
+
     pthread_rwlock_rdlock(&gputop_gl_lock);
 
-    surfaces = gputop_gl_surfaces->data;
-    for (i = 0; i < gputop_gl_surfaces->len; i++) {
-	struct winsys_surface *wsurface = surfaces[i];
-	struct winsys_context *wctx = wsurface->wctx;
-	int finished_frames;
-	int last_finished;
-	struct frame_query *frame;
-	int j;
-
-	finished_frames = atomic_load(&wsurface->finished_frames);
-	if (!finished_frames)
-	    continue;
-
-	last_finished = finished_frames % MAX_FRAME_QUERIES;
-
-	frame = &wsurface->frames[last_finished];
-
-	pthread_rwlock_rdlock(&frame->lock);
-
-	for (j = 0; j < wctx->oa_query_info.n_counters; j++) {
-	    struct intel_counter *counter = &wctx->oa_query_info.counters[j];
-
-	    wattrset(win, A_NORMAL);
-
-	    switch (counter->type) {
-	    case GL_PERFQUERY_COUNTER_EVENT_INTEL:
-		mvwprintw(win, y, 0, "%40s: ", counter->name);
-		print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		break;
-	    case GL_PERFQUERY_COUNTER_DURATION_NORM_INTEL:
-		mvwprintw(win, y, 0, "%40s: ", counter->name);
-		print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		break;
-	    case GL_PERFQUERY_COUNTER_DURATION_RAW_INTEL:
-		mvwprintw(win, y, 0, "%40s: ", counter->name);
-		if (counter->max_raw_value == 100)
-		    print_percentage_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		else
-		    print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		break;
-	    case GL_PERFQUERY_COUNTER_THROUGHPUT_INTEL:
-		if (wmove(win, y, 0) == ERR)
-		    break;
-		wprintw(win, "%40s: ", counter->name);
-		print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		wprintw(win, " bytes/s");
-		break;
-	    case GL_PERFQUERY_COUNTER_RAW_INTEL:
-		mvwprintw(win, y, 0, "%40s: ", counter->name);
-		if (counter->max_raw_value == 100)
-		    print_percentage_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		else
-		    print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		break;
-	    case GL_PERFQUERY_COUNTER_TIMESTAMP_INTEL:
-		mvwprintw(win, y, 0, "%40s: ", counter->name);
-		print_raw_gl_pq_counter(win, y, 41, counter, frame->oa_data);
-		break;
-	    }
-
-	    y++;
-	}
-#if 0
-    uint64_t max_raw_value;
-
-    unsigned id;
-    unsigned type;
-
-    unsigned data_offset;
-    unsigned data_size;
-    unsigned data_type;
-
-    char name[64];
-    char description[256];
-#endif
-
-	pthread_rwlock_unlock(&frame->lock);
+    if (!gputop_gl_surfaces->len) {
+	pthread_rwlock_unlock(&gputop_gl_lock);
+	return;
     }
+
+    surfaces = gputop_gl_surfaces->data;
+
+    /* XXX: we can only visualize the metrics for a single surface
+     * currently, so we just pick the first one... */
+    wsurface = surfaces[0];
+
+    /* Steal the list of finished queries from the GL thread
+     *
+     * By stealing the list like this we can spend as long as we need
+     * visualizing the data without blocking the GL thread from
+     * finishing more queries and modifying the list.
+     */
+    pthread_rwlock_wrlock(&wsurface->finished_queries_lock);
+
+    gputop_list_init(&finished);
+    gputop_list_append_list(&finished, &wsurface->finished_queries);
+    gputop_list_init(&wsurface->finished_queries);
+
+    pthread_rwlock_unlock(&wsurface->finished_queries_lock);
+
+    wctx = wsurface->wctx;
+    query_info = wctx->current_query;
+
+    /* We currently assume that queries surround a whole frame, and
+     * for this overview we only care about the most recent query.
+     */
+    obj = gputop_list_last(&finished, struct gl_perf_query, link);
+    if (!obj) {
+	pthread_rwlock_unlock(&gputop_gl_lock);
+	return;
+    }
+
+    for (i = 0; i < query_info->n_counters; i++) {
+	struct intel_counter *counter = &query_info->counters[i];
+
+	wattrset(win, A_NORMAL);
+
+	switch (counter->type) {
+	case GL_PERFQUERY_COUNTER_EVENT_INTEL:
+	    mvwprintw(win, y, 0, "%40s: ", counter->name);
+	    print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    break;
+	case GL_PERFQUERY_COUNTER_DURATION_NORM_INTEL:
+	    mvwprintw(win, y, 0, "%40s: ", counter->name);
+	    print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    break;
+	case GL_PERFQUERY_COUNTER_DURATION_RAW_INTEL:
+	    mvwprintw(win, y, 0, "%40s: ", counter->name);
+	    if (counter->max_raw_value == 100)
+		print_percentage_gl_pq_counter(win, y, 41, counter, obj->data);
+	    else
+		print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    break;
+	case GL_PERFQUERY_COUNTER_THROUGHPUT_INTEL:
+	    if (wmove(win, y, 0) == ERR)
+		break;
+	    wprintw(win, "%40s: ", counter->name);
+	    print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    wprintw(win, " bytes/s");
+	    break;
+	case GL_PERFQUERY_COUNTER_RAW_INTEL:
+	    mvwprintw(win, y, 0, "%40s: ", counter->name);
+	    if (counter->max_raw_value == 100)
+		print_percentage_gl_pq_counter(win, y, 41, counter, obj->data);
+	    else
+		print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    break;
+	case GL_PERFQUERY_COUNTER_TIMESTAMP_INTEL:
+	    mvwprintw(win, y, 0, "%40s: ", counter->name);
+	    print_raw_gl_pq_counter(win, y, 41, counter, obj->data);
+	    break;
+	}
+
+	y++;
+    }
+
+    /* Give the finished query objects back to the GL thread */
+    pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
+    gputop_list_append_list(&wctx->query_obj_cache, &finished);
+    pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
+
 
     pthread_rwlock_unlock(&gputop_gl_lock);
 }
 
 static void
-gl_basic_tab_redraw(WINDOW *win)
+gl_perf_query_tab_enter(void)
 {
-    gl_perf_query_tab_redraw(win);
-}
+    struct winsys_context **contexts;
+    int i;
 
-static struct tab tab_gl_basic =
-{
-    .nick = "Basic GL",
-    .name = "Basic Counters (OpenGL context)",
-    .enter = gl_basic_tab_enter,
-    .leave = gl_basic_tab_leave,
-    .input = gl_basic_tab_input,
-    .redraw = gl_basic_tab_redraw,
-};
+    /* XXX: This should have been ensured when switching away from a
+     * GL tab, and if it's not the case the driver will block us
+     * from opening a conflicting query... */
+    assert(atomic_load(&gputop_gl_n_queries) == 0);
 
-static void
-gl_3d_tab_enter(void)
-{
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    if (gputop_has_intel_performance_query_ext)
-	atomic_store(&gputop_gl_monitoring_enabled, 1);
+    pthread_rwlock_wrlock(&gputop_gl_lock);
+
+    contexts = gputop_gl_contexts->data;
+    for (i = 0; i < gputop_gl_contexts->len; i++) {
+	struct winsys_context *wctx = contexts[i];
+	struct intel_query_info *q;
+
+	assert(wctx->current_query == NULL);
+
+	gputop_list_for_each(q, &wctx->queries, link) {
+	    if (q->id == current_tab->gl_query_id) {
+		wctx->current_query = q;
+		break;
+	    }
+	}
+    }
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
+
+    atomic_store(&gputop_gl_monitoring_enabled, true);
 }
 
 static void
-gl_3d_tab_leave(void)
+gl_perf_query_tab_leave(void)
 {
-    if (gputop_has_intel_performance_query_ext)
-	atomic_store(&gputop_gl_monitoring_enabled, 0);
+    struct winsys_context **contexts;
+    int i;
+
+    atomic_store(&gputop_gl_monitoring_enabled, false);
+
+    /* XXX: lazy, sycnchronous blocking here but we need to avoid
+     * trying to open any other query until we've deleted all current
+     * GL perf query objects. (OA queries require a mutually exclusive
+     * hardware configuration)
+     */
+    while (1) {
+	struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
+
+	if (atomic_load(&gputop_gl_n_queries) == 0)
+	    break;
+
+	nanosleep(&ts, NULL);
+    }
+
+    /* Not, strictly necessary, but just to be clear lets set
+     * all context current_query pointers to NULL while
+     * gputop_gl_monitoring_enabled is false ...
+     */
+    pthread_rwlock_wrlock(&gputop_gl_lock);
+
+    contexts = gputop_gl_contexts->data;
+    for (i = 0; i < gputop_gl_contexts->len; i++) {
+	struct winsys_context *wctx = contexts[i];
+
+	wctx->current_query = NULL;
+    }
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
 
     uv_timer_stop(&timer);
 }
 
 static void
-gl_3d_tab_input(int key)
+gl_perf_query_tab_input(int key)
 {
 
 }
-
-static void
-gl_3d_tab_redraw(WINDOW *win)
-{
-    gl_perf_query_tab_redraw(win);
-}
-
-static struct tab tab_gl_3d =
-{
-    .nick = "3D GL",
-    .name = "3D Counters (OpenGL context)",
-    .enter = gl_3d_tab_enter,
-    .leave = gl_3d_tab_leave,
-    .input = gl_3d_tab_input,
-    .redraw = gl_3d_tab_redraw,
-};
 
 static void
 gl_debug_log_tab_enter(void)
 {
-    atomic_store(&gputop_gl_khr_debug_enabled, 1);
+
 }
 
 static void
 gl_debug_log_tab_leave(void)
 {
-    atomic_store(&gputop_gl_khr_debug_enabled, 0);
+
 }
 
 static void
@@ -1182,16 +1198,55 @@ redraw_ui(void)
     int i;
 
 #ifdef SUPPORT_GL
-    if (gputop_has_intel_performance_query_ext && !added_gl_tabs) {
-	gputop_list_insert(tabs.prev, &tab_gl_basic.link);
-	gputop_list_insert(tabs.prev, &tab_gl_3d.link);
-	gputop_list_insert(tabs.prev, &tab_gl_knobs.link);
+    if (gputop_gl_has_intel_performance_query_ext && !added_gl_tabs) {
+	struct tab *switch_to_tab = NULL;
 
-	current_tab->leave();
-	current_tab = &tab_gl_basic;
-	current_tab->enter();
+	pthread_rwlock_rdlock(&gputop_gl_lock);
 
-	added_gl_tabs = true;
+	/* XXX: the ncurses ui can only really cope with a single GL
+	 * context + surface, so we assume if there are multiple
+	 * contexts in use, they have the same queries, with the
+	 * same IDs available...
+	 */
+	if (gputop_gl_contexts->len) {
+	    struct winsys_context **contexts = gputop_gl_contexts->data;
+	    struct winsys_context *first_wctx = contexts[0];
+	    struct intel_query_info *q;
+
+	    gputop_list_for_each(q, &first_wctx->queries, link) {
+		struct tab *gl_tab = xmalloc0(sizeof(*gl_tab));
+
+		if (strlen(q->name) > TAB_TITLE_WIDTH) {
+		    asprintf(&gl_tab->nick, "%.*s...", TAB_TITLE_WIDTH - 5, q->name);
+		} else
+		    gl_tab->nick = strdup(q->name);
+
+		gl_tab->name = q->name;
+		gl_tab->enter = gl_perf_query_tab_enter;
+		gl_tab->leave = gl_perf_query_tab_leave;
+		gl_tab->input = gl_perf_query_tab_input;
+		gl_tab->redraw = gl_perf_query_tab_redraw;
+
+		gl_tab->gl_query_id = q->id;
+
+		gputop_list_insert(tabs.prev, &gl_tab->link);
+
+		if (strstr(q->name, "Render Metrics Basic"))
+		    switch_to_tab = gl_tab;
+	    }
+
+	    gputop_list_insert(tabs.prev, &tab_gl_knobs.link);
+
+	    added_gl_tabs = true;
+	}
+
+	pthread_rwlock_unlock(&gputop_gl_lock);
+
+	if (switch_to_tab) {
+	    current_tab->leave();
+	    current_tab = switch_to_tab;
+	    current_tab->enter();
+	}
     }
 #endif
 

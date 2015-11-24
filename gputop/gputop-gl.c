@@ -147,21 +147,39 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 				  Bool direct,
 				  const int *attrib_list);
 
-bool gputop_has_intel_performance_query_ext;
-bool gputop_has_khr_debug_ext;
+static bool gputop_gl_has_khr_debug_ext;
+static bool gputop_gl_use_khr_debug;
 
+bool gputop_gl_has_intel_performance_query_ext;
+
+/*
+ * gputop_gl_lock is the lock generally used by the server thread to
+ * safely access GL state.
+ *
+ * It protects the top level arrays of contexts and surfaces and the
+ * modification of all their internal state with a few exceptions:
+ *
+ * - gputop_gl_lock does not stop the GL thread from appending to
+ *   wsurface->finished_queries lists. Instead see
+ *   wsurface->finished_queries_lock
+ *
+ * - gputop_gl_lock does not stop the UI thread from appending to the
+ *   wctx->query_obj_cache list. Instead see
+ *   wctx->query_obj_cache_lock.
+ *
+ * These special cases cover the GL state that's expected to change
+ * most frequently so that the server thread taking gputop_gl_lock
+ * while redrawing won't typically block anything in the GL thread.
+ */
 pthread_rwlock_t gputop_gl_lock = PTHREAD_RWLOCK_INITIALIZER;
+
 struct array *gputop_gl_contexts;
 struct array *gputop_gl_surfaces;
 
 bool gputop_gl_force_debug_ctx_enabled = false;
 
-atomic_int gputop_gl_n_countext;
-
 atomic_bool gputop_gl_monitoring_enabled;
-atomic_bool gputop_gl_khr_debug_enabled;
-atomic_int gputop_gl_n_monitors;
-
+atomic_int gputop_gl_n_queries;
 
 void *
 gputop_passthrough_gl_resolve(const char *name)
@@ -350,15 +368,16 @@ initialise_gl(void)
     for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++)
 	*(symbols[i].ptr) = real_glXGetProcAddress((GLubyte *)symbols[i].name);
 
-    gputop_has_intel_performance_query_ext =
+    gputop_gl_has_intel_performance_query_ext =
 	have_extension("GL_INTEL_performance_query");
 
-    gputop_has_khr_debug_ext = have_extension("GL_KHR_debug");
+    gputop_gl_has_khr_debug_ext = have_extension("GL_KHR_debug");
 }
 
-static void
-get_query_info(unsigned id, struct intel_query_info *query_info)
+static struct intel_query_info *
+get_query_info(unsigned id)
 {
+    struct intel_query_info *query_info = xmalloc0(sizeof(*query_info));
     int i;
 
     query_info->id = id;
@@ -393,6 +412,44 @@ get_query_info(unsigned id, struct intel_query_info *query_info)
 	    &counter->data_type,
 	    &counter->max_raw_value);
     }
+
+    return query_info;
+}
+
+static struct gl_perf_query *
+query_obj_cache_pop(struct winsys_context *wctx)
+{
+    struct gl_perf_query *first;
+
+    pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
+
+    first = gputop_list_first(&wctx->query_obj_cache, struct gl_perf_query, link);
+
+    if (first)
+	gputop_list_remove(&first->link);
+
+    pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
+
+    return first;
+}
+
+static void
+query_obj_destroy(struct gl_perf_query *obj)
+{
+    GE(pfn_glDeletePerfQueryINTEL(obj->handle));
+    atomic_fetch_sub(&gputop_gl_n_queries, 1);
+    free(obj);
+}
+
+static void
+query_obj_cache_destroy(struct winsys_context *wctx)
+{
+    struct gl_perf_query *obj, *tmp;
+
+    gputop_list_for_each_safe(obj, tmp, &wctx->query_obj_cache, link) {
+	gputop_list_remove(&obj->link);
+	query_obj_destroy(obj);
+    }
 }
 
 static void
@@ -424,68 +481,53 @@ gputop_khr_debug_callback(GLenum source,
     gputop_log(level, message, length);
 }
 
-static bool
-lookup_query(const char **names, unsigned int *query_id)
-{
-    int i;
-
-    for (i = 0; names[i]; i++) {
-	bool ok = true;
-	pfn_glGetPerfQueryIdByNameINTEL((GLchar *)names[i], query_id);
-
-	/* NB: we need to be paranoid about leaking GL errors to the application */
-	while (pfn_glGetError() != GL_NO_ERROR)
-	    ok = false;
-
-	if (ok)
-	    return true;
-    }
-
-    return false;
-}
-
 static void
 winsys_context_gl_initialise(struct winsys_context *wctx)
 {
-    const char *render_basic_names[] = {
-	"Gen7 3D Observability Architecture Counters",
-	"Render Metrics Basic Gen7.5",
-	"Render Metrics Basic Gen8",
-	NULL
-    };
-    const char *stats_names[] = {
-	"Gen7 Pipeline Statistics Registers",
-	NULL
-    };
-    unsigned int query_id;
+    unsigned query_id = 0;
 
     pthread_once(&initialise_gl_once, initialise_gl);
 
-    if (lookup_query(render_basic_names, &query_id))
-	get_query_info(query_id, &wctx->oa_query_info);
+    pfn_glGetFirstPerfQueryIdINTEL(&query_id);
 
-    if (lookup_query(stats_names, &query_id))
-	get_query_info(query_id, &wctx->pipeline_stats_query_info);
+    /* NB: we need to be paranoid about leaking GL errors to the application */
+    while (pfn_glGetError() != GL_NO_ERROR)
+	;
 
-    pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
-			      GL_DONT_CARE, /* type */
-			      GL_DONT_CARE, /* severity */
-			      0,
-			      NULL,
-			      false);
+    while (query_id) {
+	struct intel_query_info *query_info = get_query_info(query_id);
 
-    pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
-			      GL_DEBUG_TYPE_PERFORMANCE,
-			      GL_DONT_CARE, /* severity */
-			      0,
-			      NULL,
-			      true);
+	gputop_list_insert(wctx->queries.prev, &query_info->link);
 
-    pfn_glDisable(GL_DEBUG_OUTPUT);
-    wctx->khr_debug_enabled = false;
+	pfn_glGetNextPerfQueryIdINTEL(query_id, &query_id);
 
-    pfn_glDebugMessageCallback((GLDEBUGPROC)gputop_khr_debug_callback, wctx);
+	while (pfn_glGetError() != GL_NO_ERROR)
+	    ;
+    }
 
+    gputop_gl_use_khr_debug = gputop_gl_has_khr_debug_ext &&
+			      getenv("GPUTOP_USE_KHR_DEBUG") ? true : false;
+
+    if (gputop_gl_use_khr_debug) {
+	pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+				  GL_DONT_CARE, /* type */
+				  GL_DONT_CARE, /* severity */
+				  0,
+				  NULL,
+				  false);
+
+	pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+				  GL_DEBUG_TYPE_PERFORMANCE,
+				  GL_DONT_CARE, /* severity */
+				  0,
+				  NULL,
+				  true);
+
+	pfn_glDisable(GL_DEBUG_OUTPUT);
+	wctx->khr_debug_enabled = false;
+
+	pfn_glDebugMessageCallback((GLDEBUGPROC)gputop_khr_debug_callback, wctx);
+    }
 }
 
 static struct winsys_context *
@@ -496,7 +538,12 @@ winsys_context_create(GLXContext glx_ctx)
     wctx->glx_ctx = glx_ctx;
     wctx->gl_initialised = false;
 
-    atomic_store(&wctx->ref, 1);
+    wctx->ref++;
+
+    gputop_list_init(&wctx->queries);
+
+    gputop_list_init(&wctx->query_obj_cache);
+    pthread_rwlock_init(&wctx->query_obj_cache_lock, NULL);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
     array_append(gputop_gl_contexts, &wctx);
@@ -531,7 +578,8 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 	memcpy(attribs_copy, attrib_list, sizeof(int) * (n_attribs + 1));
 
 	for (flags_index = 0;
-	     flags_index < n_attribs && attrib_list[flags_index] != GLX_CONTEXT_FLAGS_ARB;
+	     (flags_index < n_attribs &&
+	      attrib_list[flags_index] != GLX_CONTEXT_FLAGS_ARB);
 	     flags_index += 2)
 	    ;
 
@@ -650,10 +698,20 @@ static void
 winsys_context_destroy(struct winsys_context *wctx)
 {
     int idx;
+    struct intel_query_info *q, *tmp;
+
+    pthread_rwlock_wrlock(&gputop_gl_lock);
 
     winsys_context_lookup(wctx->glx_ctx, &idx);
 
-    array_remove(gputop_gl_contexts, idx);
+    array_remove_fast(gputop_gl_contexts, idx);
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
+
+    gputop_list_for_each_safe(q, tmp, &wctx->queries, link) {
+	gputop_list_remove(&q->link);
+	free(q);
+    }
 
     if (wctx->draw_wsurface)
 	wctx->draw_wsurface->wctx = NULL;
@@ -673,7 +731,7 @@ gputop_glXDestroyContext(Display *dpy, GLXContext glx_ctx)
 
     wctx = winsys_context_lookup(glx_ctx, &context_idx);
     if (wctx) {
-	if (atomic_fetch_sub(&wctx->ref, 1) == 1)
+	if (--wctx->ref == 0)
 	    winsys_context_destroy(wctx);
     } else
 	dbg("Spurious glXDestroyContext for unknown glx context");
@@ -699,7 +757,6 @@ static struct winsys_surface *
 winsys_surface_create(struct winsys_context *wctx, GLXWindow glx_window)
 {
     struct winsys_surface *wsurface = xmalloc(sizeof(struct winsys_surface));
-    int i;
 
     memset(wsurface, 0, sizeof(struct winsys_surface));
 
@@ -711,18 +768,9 @@ winsys_surface_create(struct winsys_context *wctx, GLXWindow glx_window)
 
     wsurface->glx_window = glx_window;
 
-    for (i = 0; i < MAX_FRAME_QUERIES; i++) {
-	struct frame_query *frame = &wsurface->frames[i];
-
-	pthread_rwlock_init(&frame->lock, NULL);
-
-	if (wctx->oa_query_info.id)
-	    frame->oa_data = xmalloc(wctx->oa_query_info.max_counter_data_len);
-
-	if (wctx->pipeline_stats_query_info.id)
-	    frame->pipeline_stats_data =
-		xmalloc(wctx->pipeline_stats_query_info.max_counter_data_len);
-    }
+    gputop_list_init(&wsurface->pending_queries);
+    gputop_list_init(&wsurface->finished_queries);
+    pthread_rwlock_init(&wsurface->finished_queries_lock, NULL);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
     array_append(gputop_gl_surfaces, &wsurface);
@@ -735,11 +783,10 @@ static struct winsys_surface *
 get_wsurface(struct winsys_context *wctx, GLXWindow glx_window)
 {
     struct winsys_surface **surfaces = gputop_gl_surfaces->data;
-    struct winsys_surface *wsurface;
     int i;
 
     for (i = 0; i < gputop_gl_surfaces->len; i++) {
-	wsurface = surfaces[i];
+	struct winsys_surface *wsurface = surfaces[i];
 
 	if (wsurface->glx_window == glx_window) {
 
@@ -796,9 +843,9 @@ make_context_current(Display *dpy,
      * they are no longer current in any thread. */
 
     if (wctx)
-	atomic_fetch_add(&wctx->ref, 1);
+	wctx->ref++;
 
-    if (prev_wctx && atomic_fetch_sub(&prev_wctx->ref, 1) == 1) {
+    if (prev_wctx && --prev_wctx->ref == 0) {
 	winsys_context_destroy(prev_wctx);
 	prev_wctx = NULL;
     }
@@ -840,6 +887,7 @@ make_context_current(Display *dpy,
     return ret;
 
 }
+
 Bool
 gputop_glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext glx_ctx)
 {
@@ -857,31 +905,21 @@ static void
 winsys_surface_start_frame(struct winsys_surface *wsurface)
 {
     struct winsys_context *wctx = wsurface->wctx;
-    int started_frames = atomic_load(&wsurface->started_frames);
-    int finished_frames = atomic_load(&wsurface->finished_frames);
-    int current_frame_idx = started_frames % MAX_FRAME_QUERIES;
-    struct frame_query *frame = &wsurface->frames[current_frame_idx];
+    struct gl_perf_query *obj;
 
-    if ((started_frames - finished_frames) >= MAX_FRAME_QUERIES)
-	gputop_abort("Performance counter queries couldn't keep up with frame-rate");
+    if (!wctx->current_query)
+	return;
 
-    /* Although this probably doesn't matter too much on a per-frame
-     * basis; it's not particularly cheap to create a query instance
-     * so we aim to re-use the instances repeatedly... */
-    if (wctx->oa_query_info.id && !frame->oa_query) {
-	GE(pfn_glCreatePerfQueryINTEL(wctx->oa_query_info.id, &frame->oa_query));
-	wsurface->has_monitors = true;
-	atomic_fetch_add(&gputop_gl_n_monitors, 1);
+    obj = query_obj_cache_pop(wctx);
+    if (!obj) {
+	struct intel_query_info *info = wctx->current_query;
+
+	obj = xmalloc0(sizeof(struct gl_perf_query) +
+		       info->max_counter_data_len);
+
+	GE(pfn_glCreatePerfQueryINTEL(info->id, &obj->handle));
+	atomic_fetch_add(&gputop_gl_n_queries, 1);
     }
-
-    /* XXX: pipeline statistic queries are apparently not working
-     * a.t.m so just ignore for now */
-#if 0
-    if (wctx->pipeline_stats_query_info.id && !frame->pipeline_stats_query)
-	GE(pfn_glCreatePerfQueryINTEL(wctx->pipeline_stats_query_info.id,
-				      &frame->pipeline_stats_query));
-#endif
-
 
     /* XXX: We're assuming that a BeginPerfQuery doesn't implicitly
      * flush anything to the hardware since we don't want to start
@@ -891,133 +929,74 @@ winsys_surface_start_frame(struct winsys_surface *wsurface)
      * maintain this behaviour in Mesa even though it doesn't seem to
      * be explicitly guaranteed by the spec.
      */
+    GE(pfn_glBeginPerfQueryINTEL(obj->handle));
 
-    if (frame->oa_query) {
-	frame->oa_data_len = 0;
-	GE(pfn_glBeginPerfQueryINTEL(frame->oa_query));
-    }
-
-#if 0
-    if (frame->pipeline_stats_query) {
-	frame->pipeline_stats_data_len = 0;
-	GE(pfn_glBeginPerfQueryINTEL(frame->pipeline_stats_query));
-    }
-#endif
-
-    atomic_fetch_add(&wsurface->started_frames, 1);
+    /* not pending until glEndPerfQueryINTEL is called... */
+    wsurface->open_query_obj = obj;
 }
 
 static void
 winsys_surface_end_frame(struct winsys_surface *wsurface)
 {
-    int started_frames = atomic_load(&wsurface->started_frames);
-    int prev_frame_idx;
-    struct frame_query *frame;
-
-    if (!started_frames)
-	return;
-
-    prev_frame_idx = (started_frames - 1) % MAX_FRAME_QUERIES;
-
-    frame = &wsurface->frames[prev_frame_idx];
-    if (frame->oa_query)
-	pfn_glEndPerfQueryINTEL(frame->oa_query);
+    if (wsurface->open_query_obj) {
+	pfn_glEndPerfQueryINTEL(wsurface->open_query_obj->handle);
+	gputop_list_insert(wsurface->pending_queries.prev, &wsurface->open_query_obj->link);
+	wsurface->open_query_obj = NULL;
+    }
 }
 
 static void
-winsys_surface_check_for_finished_frames(struct winsys_surface *wsurface)
+winsys_surface_check_for_finished_queries(struct winsys_surface *wsurface)
 {
-    int started_frames = atomic_load(&wsurface->started_frames);
-    int finished_frames = atomic_load(&wsurface->finished_frames);
     struct winsys_context *wctx = wsurface->wctx;
-    int next_finish_candidate;
-    int last_finish_candidate;
-    int i;
+    struct gl_perf_query *obj, *tmp;
+    gputop_list_t finished;
 
-    if (!started_frames)
-	return;
+    gputop_list_init(&finished);
 
-    next_finish_candidate = finished_frames % MAX_FRAME_QUERIES;
-    last_finish_candidate =
-	(next_finish_candidate + (MAX_FRAME_QUERIES - 1)) % MAX_FRAME_QUERIES;
+    gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
+	unsigned data_len = 0;
 
-    for (i = next_finish_candidate;
-	 i != last_finish_candidate;
-	 i = (i + 1) % MAX_FRAME_QUERIES)
-    {
-	struct frame_query *frame = &wsurface->frames[i];
-	bool finished = true;
+	GE(pfn_glGetPerfQueryDataINTEL(
+		obj->handle,
+		GL_PERFQUERY_DONOT_FLUSH_INTEL,
+		wctx->current_query->max_counter_data_len,
+		obj->data,
+		&data_len));
 
-	pthread_rwlock_wrlock(&frame->lock);
-
-	if (frame->oa_query && frame->oa_data_len == 0) {
-	    GE(pfn_glGetPerfQueryDataINTEL(
-		    frame->oa_query,
-		    GL_PERFQUERY_DONOT_FLUSH_INTEL,
-		    wctx->oa_query_info.max_counter_data_len,
-		    frame->oa_data,
-		    &frame->oa_data_len));
-
-	    if (!frame->oa_data_len)
-		finished = false;
-	}
-
-	if (frame->pipeline_stats_query &&
-	    frame->pipeline_stats_data_len == 0)
-	{
-	    GE(pfn_glGetPerfQueryDataINTEL(
-		    frame->pipeline_stats_query,
-		    GL_PERFQUERY_DONOT_FLUSH_INTEL,
-		    wctx->pipeline_stats_query_info.max_counter_data_len,
-		    frame->pipeline_stats_data,
-		    &frame->pipeline_stats_data_len));
-
-	    if (!frame->pipeline_stats_data_len)
-		finished = false;
-	}
-
-	pthread_rwlock_unlock(&frame->lock);
-
-	if (finished) {
-	    /* Should we explicitly issue a write memory barrier here
-	     * to ensure the counter data has landed before
-	     * advertising the frame to the redraw_cb() thread?
-	     *
-	     * TODO: double check memory sync semantics of _fetch_add()
-	     */
-	    atomic_fetch_add(&wsurface->finished_frames, 1);
+	if (data_len) {
+	    gputop_list_remove(&obj->link);
+	    gputop_list_insert(finished.prev, &obj->link);
 	} else
 	    break;
     }
 
+    /* FIXME: we should throttle here if we're somehow producing too
+     * much data for the UI to process? */
+    pthread_rwlock_wrlock(&wsurface->finished_queries_lock);
+    gputop_list_append_list(&wsurface->finished_queries, &finished);
+    pthread_rwlock_unlock(&wsurface->finished_queries_lock);
 }
 
 static void
-winsys_surface_destroy_monitors(struct winsys_surface *wsurface)
+winsys_surface_delete_surface_queries(struct winsys_surface *wsurface)
 {
-    int started_frames = atomic_load(&wsurface->started_frames);
-    int i;
+    struct gl_perf_query *obj, *tmp;
 
-    if (!wsurface->has_monitors)
-	return;
-
-    for (i = 0; i < MAX_FRAME_QUERIES; i++) {
-	struct frame_query *frame = &wsurface->frames[i];
-
-	pthread_rwlock_wrlock(&frame->lock);
-
-	if (frame->oa_query) {
-	    GE(pfn_glDeletePerfQueryINTEL(frame->oa_query));
-	    frame->oa_query = 0;
-
-	    atomic_fetch_sub(&gputop_gl_n_monitors, 1);
-	}
-
-	pthread_rwlock_unlock(&frame->lock);
+    if (wsurface->open_query_obj) {
+	query_obj_destroy(wsurface->open_query_obj);
+	wsurface->open_query_obj = NULL;
     }
 
-    atomic_store(&wsurface->finished_frames, started_frames);
-    wsurface->has_monitors = false;
+    gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
+	gputop_list_remove(&obj->link);
+	query_obj_destroy(obj);
+    }
+
+    gputop_list_for_each_safe(obj, tmp, &wsurface->finished_queries, link) {
+	gputop_list_remove(&obj->link);
+	query_obj_destroy(obj);
+    }
 }
 
 /* XXX: The GLX api allows multiple threads to render to the same
@@ -1045,7 +1024,6 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
     bool monitoring_enabled;
-    bool khr_debug_enabled;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -1058,26 +1036,33 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     if (wsurface->wctx != wctx)
 	gputop_abort("gputop can't support applications calling glXSwapBuffers with a drawable not bound to calling thread's current context");
 
-    /* XXX: is checking wsurface->wctx->draw_surface == wsurface
-     * redundant? */
-
-    khr_debug_enabled = atomic_load(&gputop_gl_khr_debug_enabled);
-
-    if (khr_debug_enabled != wctx->khr_debug_enabled) {
-	if (khr_debug_enabled)
+    if (gputop_gl_use_khr_debug != wctx->khr_debug_enabled) {
+	if (wctx->khr_debug_enabled)
 	    pfn_glEnable(GL_DEBUG_OUTPUT);
 	else
 	    pfn_glDisable(GL_DEBUG_OUTPUT);
-	wctx->khr_debug_enabled = khr_debug_enabled;
     }
 
     monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
 
-    /* XXX: check the semantics of atomic_load() will it ensure
-     * the compiler won't perform multiple loads? */
+    if (!monitoring_enabled) {
+	struct winsys_surface **surfaces;
+	int i;
 
-    if (!monitoring_enabled)
-	winsys_surface_destroy_monitors(wsurface);
+	pthread_rwlock_wrlock(&gputop_gl_lock);
+
+	surfaces = gputop_gl_surfaces->data;
+
+	for (i = 0; i < gputop_gl_surfaces->len; i++) {
+	    winsys_surface_delete_surface_queries(surfaces[i]);
+	}
+
+	pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
+	query_obj_cache_destroy(wctx);
+	pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
+
+	pthread_rwlock_unlock(&gputop_gl_lock);
+    }
 
     if (monitoring_enabled)
 	winsys_surface_end_frame(wsurface);
@@ -1085,7 +1070,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     real_glXSwapBuffers(dpy, drawable);
 
     if (monitoring_enabled) {
-	winsys_surface_check_for_finished_frames(wsurface);
+	winsys_surface_check_for_finished_queries(wsurface);
 	winsys_surface_start_frame(wsurface);
     }
 }
@@ -1093,7 +1078,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 void
 gputop_glEnable(GLenum cap)
 {
-    if (cap == GL_DEBUG_OUTPUT) {
+    if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
 	dbg("Ignoring application's conflicting use of KHR_debug extension");
 	return;
     }
@@ -1104,6 +1089,11 @@ gputop_glEnable(GLenum cap)
 void
 gputop_glDisable(GLenum cap)
 {
+    if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
+	dbg("Ignoring application's conflicting use of KHR_debug extension");
+	return;
+    }
+
     pfn_glDisable(cap);
 }
 
@@ -1124,4 +1114,3 @@ gputop_glDebugMessageCallback(GLDEBUGPROC callback,
 {
     dbg("Ignoring application's conflicting use of KHR_debug extension");
 }
-

@@ -88,6 +88,13 @@ array_new(size_t elem_size, int alloc_len)
 }
 
 static inline void
+array_free(struct array *array)
+{
+    free(array->data);
+    free(array);
+}
+
+static inline void
 array_set_len(struct array *array, int len)
 {
     size_t needed = len * array->elem_size;
@@ -102,7 +109,7 @@ array_set_len(struct array *array, int len)
 }
 
 static inline void
-array_remove(struct array *array, int idx)
+array_remove_fast(struct array *array, int idx)
 {
     uint8_t *elem;
     uint8_t *last;
@@ -126,5 +133,7 @@ array_append(struct array *array, void *data)
     dst = array->bytes + array->elem_size * (array->len - 1);
     memcpy(dst, data, array->elem_size);
 }
+
+#define array_value_at(ARRAY, TYPE, IDX) *(((TYPE *)(ARRAY)->data) + IDX)
 
 #endif /* _GPUTOP_UTIL_H_ */

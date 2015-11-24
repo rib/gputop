@@ -881,7 +881,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     features.devinfo = &devinfo;
 #ifdef SUPPORT_GL
-    features.has_gl_performance_query = gputop_has_intel_performance_query_ext;
+    features.has_gl_performance_query = gputop_gl_has_intel_performance_query_ext;
 #else
     features.has_gl_performance_query = false;
 #endif

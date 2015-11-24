@@ -52,6 +52,8 @@ struct intel_counter
 
 struct intel_query_info
 {
+    gputop_list_t link;
+
     unsigned id;
     unsigned n_counters;
     unsigned max_queries;
@@ -64,29 +66,17 @@ struct intel_query_info
     char name[128];
 };
 
-struct frame_query
+struct gl_perf_query
 {
-    pthread_rwlock_t lock;
-
-    unsigned oa_query;
-    uint8_t *oa_data;
-    unsigned oa_data_len;
-
-    unsigned pipeline_stats_query;
-    uint8_t *pipeline_stats_data;
-    unsigned pipeline_stats_data_len;
+    gputop_list_t link;
+    struct intel_query_info *info;
+    unsigned handle;
+    uint8_t data[]; /* len == query_info->max_counter_data_len */
 };
-/* We pipeline up to three per-frame queries so we don't
- * need to block waiting for one frame to finish before
- * we can start a query for the next frame and we can
- * lock a frame while we read the counters for display
- * without blocking the GL thread.
- */
-#define MAX_FRAME_QUERIES 3
 
 struct winsys_context
 {
-    atomic_int ref;
+    int ref;
 
     GLXContext glx_ctx;
     /* TODO: Add EGL support */
@@ -96,8 +86,11 @@ struct winsys_context
 
     bool gl_initialised;
 
-    struct intel_query_info pipeline_stats_query_info;
-    struct intel_query_info oa_query_info;
+    gputop_list_t queries;
+    struct intel_query_info *current_query;
+
+    pthread_rwlock_t query_obj_cache_lock;
+    gputop_list_t query_obj_cache;
 
     bool try_create_new_context_failed;
     bool is_debug_context;
@@ -112,18 +105,17 @@ struct winsys_surface
     GLXWindow glx_window;
     /* TODO: Add EGL support */
 
-    struct frame_query frames[MAX_FRAME_QUERIES];
-    atomic_int started_frames;
-    atomic_int finished_frames;
+    /* not pending until glEndPerfQueryINTEL is called... */
+    struct gl_perf_query *open_query_obj;
 
-    /* One or more frames have associated monitors that
-     * will need to be deleted monitoring is disabled...
-     */
-    bool has_monitors;
+    gputop_list_t pending_queries;
+
+    /* Finished queries, waiting to be picked up by the server thread */
+    pthread_rwlock_t finished_queries_lock;
+    gputop_list_t finished_queries;
 };
 
-extern bool gputop_has_intel_performance_query_ext;
-extern bool gputop_has_khr_debug_ext;
+extern bool gputop_gl_has_intel_performance_query_ext;
 
 extern pthread_rwlock_t gputop_gl_lock;
 extern struct array *gputop_gl_contexts;
@@ -134,24 +126,20 @@ extern bool gputop_gl_force_debug_ctx_enabled;
 extern atomic_bool gputop_gl_monitoring_enabled;
 extern atomic_bool gputop_gl_khr_debug_enabled;
 
-/* The number of monitors to delete if monitoring is disabled...
+/* The number of query objects to delete if GL monitoring is disabled...
  *
- * We aim to delete all monitors when monitoring is disable in the
- * hope that OpenGL will relinquish exclusive access to the kernel
- * perf interface used to collect counter metrics so that gputop
- * can switch from per-gl-context profiling to system wide
- * profiling.
+ * We aim to delete all query objects when switching between GL
+ * performance queries as a way to tell OpenGL will relinquish any
+ * exclusive state associated with the previous query that might block
+ * us from opening a new query or starting to collect system wide
+ * metrics.
  *
- * When monitoring is disabled then the monitors associated with
- * each surface are only destroyed on the next swap-buffers
- * request for each surface so we don't have much control over
- * when exactly that will be.
- *
- * The UI thread can check this atomic counter as a way to report
- * to the user that we're still busy waiting for GL before system
- * wide monitoring can be enabled.
+ * The deletion of query objects is handled with swap-buffers which
+ * which depends on being called by the application. The server
+ * thread can check this atomic counter as a way to report
+ * to the user that we're still busy waiting for GL.
  */
-extern atomic_int gputop_gl_n_monitors;
+extern atomic_int gputop_gl_n_queries;
 
 
 #endif /* _GPUTOP_GL_H_ */
