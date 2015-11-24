@@ -1278,9 +1278,9 @@ common_input(int key)
     switch (key) {
     case 9: /* Urgh, ncurses is not making things better :-/ */
 	if (current_tab->link.next != &tabs)
-	    next = gputop_container_of(current_tab->link.next, next, link);
+	    next = gputop_container_of(current_tab->link.next, struct tab, link);
 	else
-	    next = gputop_container_of(current_tab->link.next->next, next, link);
+	    next = gputop_container_of(current_tab->link.next->next, struct tab, link);
 
 	current_tab->leave();
 	current_tab = next;

@@ -79,8 +79,9 @@ gputop_list_empty(gputop_list_t *list)
     return list->next == list;
 }
 
+
 void
-gputop_list_insert_list(gputop_list_t *list, gputop_list_t *other)
+gputop_list_prepend_list(gputop_list_t *list, gputop_list_t *other)
 {
     if (gputop_list_empty(other))
         return;
@@ -89,4 +90,16 @@ gputop_list_insert_list(gputop_list_t *list, gputop_list_t *other)
     other->prev->next = list->next;
     list->next->prev = other->prev;
     list->next = other->next;
+}
+
+void
+gputop_list_append_list(gputop_list_t *list, gputop_list_t *other)
+{
+    if (gputop_list_empty(other))
+        return;
+
+    list->prev->next = other->next;
+    other->prev->next = list;
+    other->next->prev = list->prev;
+    list->prev = other->prev;
 }

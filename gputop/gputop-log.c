@@ -59,7 +59,8 @@ gputop_log(int level, const char *message, int len)
     pthread_rwlock_wrlock(&gputop_log_lock);
 
     if (gputop_log_len > 10000) {
-	entry = gputop_container_of(gputop_log_entries.prev, entry, link);
+	entry = gputop_container_of(gputop_log_entries.prev,
+                                    struct gputop_log_entry, link);
 	gputop_list_remove(&entry->link);
 	free(entry->msg);
 	gputop_log_len--;
