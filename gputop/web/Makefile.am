@@ -27,7 +27,8 @@ nobase_dist_web_DATA = \
 	index.html \
 	gputop-ui.js \
 	gputop-web-worker.js \
-	haswell.svg
+	haswell.svg \
+	gputop-web-worker.js.map
 
 BUILT_SOURCE = gputop-web-worker.js
 
