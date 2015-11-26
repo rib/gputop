@@ -45,6 +45,7 @@ void gputop_ui_quit_idle_cb(uv_idle_t *idle);
     char *message; \
     asprintf(&message, format, ##__VA_ARGS__); \
     gputop_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
+    free(message); \
 } while(0)
 
 #else
