@@ -1020,28 +1020,6 @@ static void on_connect(uv_stream_t *server, int status)
         h2o_http1_accept(&ctx, ctx.globalconf->hosts, sock);
 }
 
-static int setup_ssl(const char *cert_file, const char *key_file)
-{
-    SSL_load_error_strings();
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
-
-    ssl_ctx = SSL_CTX_new(SSLv23_server_method());
-    SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
-
-    /* load certificate and private key */
-    if (SSL_CTX_use_certificate_file(ssl_ctx, cert_file, SSL_FILETYPE_PEM) != 1) {
-        dbg("an error occurred while trying to load server certificate file:%s\n", cert_file);
-        return -1;
-    }
-    if (SSL_CTX_use_PrivateKey_file(ssl_ctx, key_file, SSL_FILETYPE_PEM) != 1) {
-        dbg("an error occurred while trying to load private key file:%s\n", key_file);
-        return -1;
-    }
-
-    return 0;
-}
-
 static h2o_iovec_t cache_control;
 static h2o_headers_command_t uncache_cmd[2];
 

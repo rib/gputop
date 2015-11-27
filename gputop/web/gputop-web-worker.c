@@ -837,7 +837,7 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     oa_query.metric_set = perf_metric_set;
     oa_query.period_exponent = period_exponent;
 
-    req.uuid = req_uuid;
+    req.uuid = (char*)req_uuid;
     req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
     req.open_query = &open;
 
@@ -901,10 +901,10 @@ gputop_webworker_on_open_tracepoint(uint32_t id,
 
     trace.pid = pid;
     trace.cpu = cpu;
-    trace.system = system;
-    trace.event = event;
+    trace.system = (char*)system;
+    trace.event = (char*)event;
 
-    req.uuid = req_uuid;
+    req.uuid = (char*)req_uuid;
     req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
     req.open_query = &open;
 
@@ -947,7 +947,7 @@ gputop_webworker_on_open_generic(uint32_t id,
     generic.type = type;
     generic.config = config;
 
-    req.uuid = req_uuid;
+    req.uuid = (char*)req_uuid;
     req.req_case = GPUTOP__REQUEST__REQ_OPEN_QUERY;
     req.open_query = &open;
 
