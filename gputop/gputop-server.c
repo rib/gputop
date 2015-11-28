@@ -878,6 +878,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
     devinfo.n_eus = gputop_devinfo.n_eus;
     devinfo.n_eu_slices = gputop_devinfo.n_eu_slices;
     devinfo.n_eu_sub_slices = gputop_devinfo.n_eu_sub_slices;
+    devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
+    devinfo.subslice_mask = gputop_devinfo.subslice_mask;
+    devinfo.slice_mask = gputop_devinfo.slice_mask;
 
     features.devinfo = &devinfo;
 #ifdef SUPPORT_GL
@@ -903,10 +906,12 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     dbg("GPU:\n");
     dbg("  Device ID = 0x%x\n", devinfo.devid);
-    dbg("  EU Count = %u\n", devinfo.n_eus);
-    dbg("  EU Slice Count = %u\n", devinfo.n_eu_slices);
-    dbg("  EU Sub Slice Count = %u\n", devinfo.n_eu_sub_slices);
+    dbg("  EU Count = %"PRIu64"\n", devinfo.n_eus);
+    dbg("  EU Slice Count = %"PRIu64"\n", devinfo.n_eu_slices);
+    dbg("  EU Sub Slice Count = %"PRIu64"\n", devinfo.n_eu_sub_slices);
+    dbg("  EU Threads Count = %"PRIu64"\n", devinfo.eu_threads_count);
     dbg("  Sub Slice Mask = 0x%"PRIx64"\n", devinfo.subslice_mask);
+    dbg("  Slice Mask = 0x%"PRIx64"\n", devinfo.slice_mask);
     dbg("  OA Metrics Available = %s\n", features.has_i915_oa ? "true" : "false");
     dbg("  OpenGL Metrics Available = %s\n", features.has_gl_performance_query ? "true" : "false");
     dbg("\n");

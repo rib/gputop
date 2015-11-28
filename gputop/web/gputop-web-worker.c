@@ -620,8 +620,10 @@ update_features(Gputop__Features *features)
     devinfo.devid = features->devinfo->devid;
     devinfo.n_eus = features->devinfo->n_eus;
     devinfo.n_eu_slices = features->devinfo->n_eu_slices;
+    devinfo.eu_threads_count = features->devinfo->eu_threads_count;
     devinfo.n_eu_sub_slices = features->devinfo->n_eu_sub_slices;
     devinfo.subslice_mask = features->devinfo->subslice_mask;
+    devinfo.slice_mask = features->devinfo->slice_mask;
 
     str = gputop_string_new("{ \"method\": \"features_notify\", \"params\": [ { \"oa_queries\": [\n");
 
