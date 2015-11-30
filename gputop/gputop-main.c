@@ -50,7 +50,9 @@ usage(void)
 	   "     --debug-context               Create a debug context and report\n"
 	   "                                   KHR_debug perf issues\n"
 	   "     --dry-run                     Print the environment variables\n"
-	   "                                   without executing the program\n");
+	   "                                   without executing the program\n"
+	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
+	   "                                   DRM_CONTEXT ioctl's\n");
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n");
@@ -125,12 +127,14 @@ main (int argc, char **argv)
 {
     int opt;
     bool dry_run = false;
+    bool disable_ioctl = false;
 
-#define LIB_GL_OPT	(CHAR_MAX + 1)
-#define LIB_EGL_OPT	(CHAR_MAX + 2)
-#define DEBUG_CTX_OPT	(CHAR_MAX + 3)
-#define REMOTE_OPT	(CHAR_MAX + 4)
-#define DRY_RUN_OPT 	(CHAR_MAX + 5)
+#define LIB_GL_OPT		(CHAR_MAX + 1)
+#define LIB_EGL_OPT		(CHAR_MAX + 2)
+#define DEBUG_CTX_OPT		(CHAR_MAX + 3)
+#define REMOTE_OPT		(CHAR_MAX + 4)
+#define DRY_RUN_OPT		(CHAR_MAX + 5)
+#define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -141,6 +145,7 @@ main (int argc, char **argv)
 #ifdef SUPPORT_GL
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
+	{"disable-ioctl-intercept",   optional_argument,	0, DISABLE_IOCTL_OPT},
 	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
 #endif
 #ifdef SUPPORT_WEBUI
@@ -150,6 +155,8 @@ main (int argc, char **argv)
     };
     const char *prev_ld_library_path;
     char *ld_library_path;
+    char *ld_preload_path;
+    char *prev_ld_preload_path;
     char *gputop_system_args[] = {
 	"gputop-system",
 	NULL
@@ -180,6 +187,9 @@ main (int argc, char **argv)
 		break;
 	    case DRY_RUN_OPT:
 		dry_run = true;
+                break;
+	    case DISABLE_IOCTL_OPT:
+                disable_ioctl = true;
 		break;
 	    default:
 		fprintf (stderr, "Internal error: "
@@ -196,7 +206,18 @@ main (int argc, char **argv)
 	optind = 0;
     }
 
-    if (!getenv("GPUTOP_GL_LIBRARY"))
+    if (!disable_ioctl) {
+        prev_ld_library_path = getenv("LD_PRELOAD");
+	if (!prev_ld_library_path)
+	  prev_ld_library_path = "";
+
+        asprintf(&ld_preload_path, "%s:%s", "libgputop.so",
+                 prev_ld_library_path);
+        setenv("LD_PRELOAD", ld_preload_path, true);
+        free(ld_preload_path);
+    }
+
+   if (!getenv("GPUTOP_GL_LIBRARY"))
         resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
 
     if (!getenv("GPUTOP_EGL_LIBRARY"))
