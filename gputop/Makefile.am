@@ -47,7 +47,9 @@ libgputop_la_SOURCES = \
     gputop-log.h \
     gputop-log.c \
     gputop-ui.h \
-    gputop-ui.c
+    gputop-ui.c \
+    gputop-oa-counters.h \
+    gputop-oa-counters.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(NCURSES_DEP_CFLAGS) \
