@@ -125,6 +125,11 @@ struct gputop_perf_stream *gputop_current_perf_stream;
 
 static int drm_fd = -1;
 
+static gputop_list_t ctx_handles_list = {
+    .prev = &ctx_handles_list,
+    .next= &ctx_handles_list
+};
+
 /******************************************************************************/
 
 static uint64_t
@@ -143,6 +148,44 @@ read_file_uint64 (const char *file)
 
     buf[n] = '\0';
     return strtoull(buf, 0, 0);
+}
+
+bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
+{
+    struct ctx_handle *handle = xmalloc0(sizeof(*handle));
+    if (!handle) {
+        return false;
+    }
+    handle->id = ctx_id;
+    handle->fd = ctx_fd;
+
+    gputop_list_insert(&ctx_handles_list, &handle->link);
+
+    return true;
+}
+
+bool gputop_remove_ctx_handle(uint32_t ctx_id)
+{
+    struct ctx_handle *ctx;
+    gputop_list_for_each(ctx, &ctx_handles_list, link) {
+        if (ctx->id == ctx_id) {
+            gputop_list_remove(&ctx->link);
+            free(ctx);
+            return true;
+        }
+    }
+    return false;
+}
+
+struct ctx_handle *lookup_ctx_handle(uint32_t ctx_id)
+{
+    struct ctx_handle *ctx = NULL;
+    gputop_list_for_each(ctx, &ctx_handles_list, link) {
+        if (ctx->id == ctx_id) {
+            break;
+        }
+    }
+    return ctx;
 }
 
 /* Handle restarting ioctl if interrupted... */

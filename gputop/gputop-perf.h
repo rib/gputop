@@ -108,6 +108,12 @@ struct gputop_perf_query
     gputop_list_t link;
 };
 
+struct ctx_handle {
+    gputop_list_t link;
+
+    uint32_t id;
+    int fd;
+};
 
 #ifndef EMSCRIPTEN
 /*
@@ -246,6 +252,9 @@ struct gputop_perf_stream
     } user;
 };
 #endif
+
+bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
+bool gputop_remove_ctx_handle(uint32_t ctx_id);
 
 extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
