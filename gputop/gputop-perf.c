@@ -281,6 +281,7 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
+			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
 			       bool overwrite,
@@ -289,6 +290,8 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     struct gputop_perf_stream *stream;
     struct i915_perf_open_param param;
     uint64_t properties[] = {
+	DRM_I915_PERF_CTX_HANDLE_PROP, 0,
+
 	DRM_I915_PERF_SAMPLE_OA_PROP, true,
 
 	DRM_I915_PERF_OA_METRICS_SET_PROP, query->perf_oa_metrics_set,
@@ -303,10 +306,18 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
     param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
-    param.properties = (uint64_t)properties;
-    param.n_properties = sizeof(properties) / 16;
+    if (ctx) {
+        properties[1] = ctx->id;
+        param.properties = (uint64_t)properties;
+        param.n_properties = sizeof(properties) / 16;
 
-    ret = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+        ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
+    } else {
+        param.properties = (uint64_t)(properties + 2);
+        param.n_properties = sizeof(properties) / 16 - 1;
+
+        ret = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+    }
 
     if (ret == -1) {
 	asprintf(error, "Error opening i915 perf OA event: %m\n");
@@ -1157,10 +1168,11 @@ static struct perf_oa_user overview_user = {
 };
 
 bool
-gputop_i915_perf_oa_overview_open(int metric_set)
+gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 {
     int period_exponent;
     char *error = NULL;
+    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1168,6 +1180,18 @@ gputop_i915_perf_oa_overview_open(int metric_set)
 	return false;
 
     current_user = &overview_user;
+
+    // TODO: (matt-auld)
+    // Currently we don't support selectable contexts, so we just use the first one which
+    // is avaivable to us. Though this would only really make sense if we could make the
+    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
+    // the context handle...
+    if (enable_per_ctx) {
+      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+      if (!ctx) {
+	  return false;
+      }
+    }
 
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
 
@@ -1188,6 +1212,7 @@ gputop_i915_perf_oa_overview_open(int metric_set)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
+				       ctx,
 				       32 * page_size,
 				       perf_ready_cb,
 				       false,
@@ -1254,13 +1279,14 @@ static struct perf_oa_user trace_user = {
 };
 
 bool
-gputop_i915_perf_oa_trace_open(int metric_set)
+gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
 {
     int period_exponent;
     double duration = 5.0; /* seconds */
     uint64_t period_ns;
     uint64_t n_samples;
     char *error = NULL;
+    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1268,6 +1294,18 @@ gputop_i915_perf_oa_trace_open(int metric_set)
 	return false;
 
     current_user = &trace_user;
+
+    // TODO: (matt-auld)
+    // Currently we don't support selectable contexts, so we just use the first one which
+    // is avaivable to us. Though this would only really make sense if we could make the
+    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
+    // the context handle...
+    if (enable_per_ctx) {
+      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+      if (!ctx) {
+	  return false;
+      }
+    }
 
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
 
@@ -1283,6 +1321,7 @@ gputop_i915_perf_oa_trace_open(int metric_set)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
+				       ctx,
 				       32 * page_size,
 				       perf_ready_cb,
 				       false,

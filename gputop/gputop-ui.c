@@ -524,7 +524,7 @@ perf_3d_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D, false);
 }
 
 static void
@@ -563,7 +563,7 @@ perf_compute_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE, false);
 }
 
 static void
@@ -602,7 +602,7 @@ perf_compute_extended_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE_EXTENDED);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE_EXTENDED, false);
 }
 
 static void
@@ -641,7 +641,7 @@ perf_memory_reads_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_READS);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_READS, false);
 }
 
 static void
@@ -680,7 +680,7 @@ perf_memory_writes_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_WRITES);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_WRITES, false);
 }
 
 static void
@@ -719,7 +719,7 @@ perf_sampler_balance_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_SAMPLER_BALANCE);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_SAMPLER_BALANCE, false);
 }
 
 static void
@@ -761,7 +761,7 @@ perf_3d_trace_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
-    gputop_i915_perf_oa_trace_open(I915_OA_METRICS_SET_3D);
+    gputop_i915_perf_oa_trace_open(I915_OA_METRICS_SET_3D, false);
 }
 
 static void
