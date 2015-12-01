@@ -558,6 +558,45 @@ static struct tab tab_3d =
 };
 
 static void
+perf_per_ctx_3d_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D, true);
+}
+
+static void
+perf_per_ctx_3d_tab_leave(void)
+{
+    gputop_i915_perf_oa_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_per_ctx_3d_tab_input(int key)
+{
+
+}
+
+static void
+perf_per_ctx_3d_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_per_ctx_3d =
+{
+    .nick = "3D (per-context)",
+    .name = "3D Counters (per-context)",
+    .enter = perf_per_ctx_3d_tab_enter,
+    .leave = perf_per_ctx_3d_tab_leave,
+    .input = perf_per_ctx_3d_tab_input,
+    .redraw = perf_per_ctx_3d_tab_redraw,
+};
+
+static void
 perf_compute_tab_enter(void)
 {
     uv_timer_init(gputop_ui_loop, &timer);
@@ -1550,6 +1589,7 @@ gputop_ui_init(void)
     gputop_list_init(&tabs);
 
     gputop_list_insert(tabs.prev, &tab_3d.link);
+    gputop_list_insert(tabs.prev, &tab_per_ctx_3d.link);
     gputop_list_insert(tabs.prev, &tab_compute.link);
     gputop_list_insert(tabs.prev, &tab_compute_extended.link);
     gputop_list_insert(tabs.prev, &tab_memory_reads.link);
