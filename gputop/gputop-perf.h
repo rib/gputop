@@ -305,13 +305,6 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 
 #ifndef EMSCRIPTEN
 struct gputop_perf_stream *
-gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
-			       int period_exponent,
-			       size_t perf_buffer_size,
-			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite,
-			       char **error);
-struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       struct ctx_handle *ctx,
