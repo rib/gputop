@@ -42,6 +42,7 @@
 #include "gputop-util.h"
 #include "gputop-server.h"
 #include "gputop-log.h"
+#include "gputop-oa-counters.h"
 
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
@@ -509,7 +510,7 @@ perf_oa_trace_redraw(WINDOW *win)
 		break;
 	    }
 
-	    gputop_perf_accumulate(gputop_current_perf_stream, report0, report1);
+	    gputop_oa_accumulate_reports(gputop_current_perf_stream->query, report0, report1);
 
 	    report0 = report1;
 	    report1 = get_next_trace_sample(query, report0);
