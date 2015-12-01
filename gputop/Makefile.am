@@ -49,7 +49,8 @@ libgputop_la_SOURCES = \
     gputop-ui.h \
     gputop-ui.c \
     gputop-oa-counters.h \
-    gputop-oa-counters.c
+    gputop-oa-counters.c \
+    gputop-ioctl.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(NCURSES_DEP_CFLAGS) \

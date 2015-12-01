@@ -524,7 +524,7 @@ perf_3d_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D, false);
 }
 
 static void
@@ -558,12 +558,51 @@ static struct tab tab_3d =
 };
 
 static void
+perf_per_ctx_3d_tab_enter(void)
+{
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
+
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_3D, true);
+}
+
+static void
+perf_per_ctx_3d_tab_leave(void)
+{
+    gputop_i915_perf_oa_overview_close();
+
+    uv_timer_stop(&timer);
+}
+
+static void
+perf_per_ctx_3d_tab_input(int key)
+{
+
+}
+
+static void
+perf_per_ctx_3d_tab_redraw(WINDOW *win)
+{
+    perf_counters_redraw(win);
+}
+
+static struct tab tab_per_ctx_3d =
+{
+    .nick = "3D (per-context)",
+    .name = "3D Counters (per-context)",
+    .enter = perf_per_ctx_3d_tab_enter,
+    .leave = perf_per_ctx_3d_tab_leave,
+    .input = perf_per_ctx_3d_tab_input,
+    .redraw = perf_per_ctx_3d_tab_redraw,
+};
+
+static void
 perf_compute_tab_enter(void)
 {
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE, false);
 }
 
 static void
@@ -602,7 +641,7 @@ perf_compute_extended_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE_EXTENDED);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_COMPUTE_EXTENDED, false);
 }
 
 static void
@@ -641,7 +680,7 @@ perf_memory_reads_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_READS);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_READS, false);
 }
 
 static void
@@ -680,7 +719,7 @@ perf_memory_writes_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_WRITES);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_MEMORY_WRITES, false);
 }
 
 static void
@@ -719,7 +758,7 @@ perf_sampler_balance_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_SAMPLER_BALANCE);
+    gputop_i915_perf_oa_overview_open(I915_OA_METRICS_SET_SAMPLER_BALANCE, false);
 }
 
 static void
@@ -761,7 +800,7 @@ perf_3d_trace_tab_enter(void)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
-    gputop_i915_perf_oa_trace_open(I915_OA_METRICS_SET_3D);
+    gputop_i915_perf_oa_trace_open(I915_OA_METRICS_SET_3D, false);
 }
 
 static void
@@ -1550,6 +1589,7 @@ gputop_ui_init(void)
     gputop_list_init(&tabs);
 
     gputop_list_insert(tabs.prev, &tab_3d.link);
+    gputop_list_insert(tabs.prev, &tab_per_ctx_3d.link);
     gputop_list_insert(tabs.prev, &tab_compute.link);
     gputop_list_insert(tabs.prev, &tab_compute_extended.link);
     gputop_list_insert(tabs.prev, &tab_memory_reads.link);

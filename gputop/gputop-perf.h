@@ -108,6 +108,12 @@ struct gputop_perf_query
     gputop_list_t link;
 };
 
+struct ctx_handle {
+    gputop_list_t link;
+
+    uint32_t id;
+    int fd;
+};
 
 #ifndef EMSCRIPTEN
 /*
@@ -247,13 +253,16 @@ struct gputop_perf_stream
 };
 #endif
 
+bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
+bool gputop_remove_ctx_handle(uint32_t ctx_id);
+
 extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
 extern struct gputop_perf_stream *gputop_current_perf_stream;
 
 bool gputop_perf_initialize(void);
 
-bool gputop_i915_perf_oa_overview_open(int metric_set);
+bool gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx);
 void gputop_i915_perf_oa_overview_close(void);
 
 void gputop_perf_accumulator_clear(struct gputop_perf_stream *stream);
@@ -266,7 +275,7 @@ void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
 				    uint8_t *buf,
 				    int len);
 
-bool gputop_i915_perf_oa_trace_open(int metric_set);
+bool gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx);
 void gputop_i915_perf_oa_trace_close(void);
 
 extern struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
@@ -296,15 +305,9 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 
 #ifndef EMSCRIPTEN
 struct gputop_perf_stream *
-gputop_perf_open_i915_oa_query(struct gputop_perf_query *query,
-			       int period_exponent,
-			       size_t perf_buffer_size,
-			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-			       bool overwrite,
-			       char **error);
-struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
+			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
 			       bool overwrite,

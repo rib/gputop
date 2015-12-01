@@ -198,8 +198,21 @@ enum i915_perf_record_type {
 	DRM_I915_PERF_RECORD_MAX /* non-ABI */
 };
 
+struct drm_i915_gem_context_create {
+        /*  output: id of new context*/
+        uint32_t ctx_id;
+        uint32_t pad;
+};
+
+struct drm_i915_gem_context_destroy {
+        uint32_t ctx_id;
+        uint32_t pad;
+};
 
 #ifndef EMSCRIPTEN
+#define I915_IOCTL_GEM_CONTEXT_CREATE   _IOWR('d', 0x6d, struct drm_i915_gem_context_create)
+#define I915_IOCTL_GEM_CONTEXT_DESTROY  _IOWR('d', 0x6e, struct drm_i915_gem_context_destroy)
+
 #define I915_IOCTL_GETPARAM         _IOWR('d', 0x46, i915_getparam_t)
 #define I915_IOCTL_PERF_OPEN        _IOWR('d', 0x76, struct i915_perf_open_param)
 
