@@ -572,6 +572,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
     stream = gputop_open_i915_perf_oa_query(perf_query,
 					    oa_query_info->period_exponent,
+					    false,
 					    buffer_size,
 					    perf_ready_cb,
 					    open_query->overwrite,
