@@ -54,19 +54,20 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
 
 	/* 4x 32bit A counters... */
 	for (i = 0; i < 4; i++)
-	    gputop_oa_accumulate_uint32(start + 36 + i, end + 36 + i, 
+	    gputop_oa_accumulate_uint32(start + 36 + i, end + 36 + i,
             accumulator + idx++);
 
 	/* 8x 32bit B counters + 8x 32bit C counters... */
 	for (i = 0; i < 16; i++)
-	    gputop_oa_accumulate_uint32(start + 48 + i, end + 48 + i, 
+	    gputop_oa_accumulate_uint32(start + 48 + i, end + 48 + i,
             accumulator + idx++);
+	break;
 
     case I915_OA_FORMAT_A45_B8_C8:
 	gputop_oa_accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
 
 	for (i = 0; i < 61; i++)
-	    gputop_oa_accumulate_uint32(start + 3 + i, end + 3 + i, 
+	    gputop_oa_accumulate_uint32(start + 3 + i, end + 3 + i,
             accumulator + 1 + i);
 	break;
     default:
