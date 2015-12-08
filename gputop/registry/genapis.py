@@ -341,6 +341,7 @@ glxapiHooks = {
 
     'glEnable',
     'glDisable',
+    'glScissor',
 
     'glDebugMessageControl',
     'glDebugMessageCallback',

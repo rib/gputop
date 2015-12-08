@@ -52,7 +52,9 @@ usage(void)
 	   "     --dry-run                     Print the environment variables\n"
 	   "                                   without executing the program\n"
 	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
-	   "                                   DRM_CONTEXT ioctl's\n");
+	   "                                   DRM_CONTEXT ioctl's\n"
+	   "     --enable-scissor-test         Enable 1x1 scissor test\n"
+	   "                                   glScissor(0, 0, 1, 1);\n");
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n");
@@ -135,6 +137,8 @@ main (int argc, char **argv)
 #define REMOTE_OPT		(CHAR_MAX + 4)
 #define DRY_RUN_OPT		(CHAR_MAX + 5)
 #define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
+#define GPUTOP_SCISSOR_TEST	(CHAR_MAX + 7)
+#define GPUTOP_TEXTURE_TEST	(CHAR_MAX + 8)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -146,6 +150,7 @@ main (int argc, char **argv)
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
 	{"disable-ioctl-intercept",   optional_argument,	0, DISABLE_IOCTL_OPT},
+	{"enable-scissor-test", optional_argument, 0, GPUTOP_SCISSOR_TEST},
 	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
 #endif
 #ifdef SUPPORT_WEBUI
@@ -190,6 +195,9 @@ main (int argc, char **argv)
                 break;
 	    case DISABLE_IOCTL_OPT:
                 disable_ioctl = true;
+		break;
+	    case GPUTOP_SCISSOR_TEST:
+	        setenv("GPUTOP_SCISSOR_TEST", "1", true);
 		break;
 	    default:
 		fprintf (stderr, "Internal error: "

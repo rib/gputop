@@ -108,6 +108,7 @@ static void (*pfn_glGetIntegerv)(GLenum pname, GLint *params);
 static GLenum (*pfn_glGetError)(void);
 static void (*pfn_glEnable)(GLenum cap);
 static void (*pfn_glDisable)(GLenum cap);
+static void (*pfn_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 
 static void (*pfn_glDebugMessageControl)(GLenum source,
 					 GLenum type,
@@ -178,8 +179,13 @@ struct array *gputop_gl_surfaces;
 
 bool gputop_gl_force_debug_ctx_enabled = false;
 
+atomic_bool gputop_gl_scissor_test_enabled;
+atomic_bool gputop_gl_texture_test_enabled;
+
 atomic_bool gputop_gl_monitoring_enabled;
 atomic_int gputop_gl_n_queries;
+
+
 
 void *
 gputop_passthrough_gl_resolve(const char *name)
@@ -258,6 +264,10 @@ gputop_gl_init(void)
 
     if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
 	gputop_gl_force_debug_ctx_enabled = true;
+    if (getenv("GPUTOP_SCISSOR_TEST"))
+        atomic_store(&gputop_gl_scissor_test_enabled, true);
+    else
+        atomic_store(&gputop_gl_scissor_test_enabled, false);
 }
 
 static void
@@ -345,6 +355,7 @@ initialise_gl(void)
 
 	SYM(glEnable),
 	SYM(glDisable),
+	SYM(glScissor),
 
 	/* KHR_debug */
 	SYM(glDebugMessageControl),
@@ -1024,6 +1035,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
     bool monitoring_enabled;
+    bool scissor_test;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -1042,6 +1054,20 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	else
 	    pfn_glDisable(GL_DEBUG_OUTPUT);
     }
+
+    //Scissor test code
+    scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
+    if (scissor_test)
+    {
+	glClear(GL_COLOR_BUFFER_BIT); // change to pfn_glClear?
+	pfn_glScissor(0, 0, 1, 1);
+	if (!glIsEnabled(GL_SCISSOR_TEST))
+		pfn_glEnable(GL_SCISSOR_TEST);
+    } else
+	{
+	    if (glIsEnabled(GL_SCISSOR_TEST))
+	        pfn_glDisable(GL_SCISSOR_TEST);
+	}
 
     monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
 
@@ -1095,6 +1121,22 @@ gputop_glDisable(GLenum cap)
     }
 
     pfn_glDisable(cap);
+}
+
+void
+gputop_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+    struct winsys_context *wctx;
+    pthread_once(&init_once, gputop_gl_init);
+    wctx = pthread_getspecific(winsys_context_key);
+    if (wctx) {
+	wctx->scissor_x = x;
+	wctx->scissor_y = y;
+	wctx->scissor_width = width;
+	wctx->scissor_height = height;
+    }
+    if (!atomic_load(&gputop_gl_scissor_test_enabled))
+    	pfn_glScissor(x, y, width, height);
 }
 
 void
