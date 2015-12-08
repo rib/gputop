@@ -178,11 +178,14 @@ struct array *gputop_gl_contexts;
 struct array *gputop_gl_surfaces;
 
 bool gputop_gl_force_debug_ctx_enabled = false;
-bool gputop_gl_scissor_test_enabled = false;
 
+atomic_bool gputop_gl_scissor_test_enabled;
+atomic_bool gputop_gl_texture_test_enabled;
 
 atomic_bool gputop_gl_monitoring_enabled;
 atomic_int gputop_gl_n_queries;
+
+
 
 void *
 gputop_passthrough_gl_resolve(const char *name)
@@ -262,7 +265,9 @@ gputop_gl_init(void)
     if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
 	gputop_gl_force_debug_ctx_enabled = true;
     if (getenv("GPUTOP_SCISSOR_TEST"))
-	gputop_gl_scissor_test_enabled = true;
+        atomic_store(&gputop_gl_scissor_test_enabled, true);
+    else
+        atomic_store(&gputop_gl_scissor_test_enabled, false);
 }
 
 static void
@@ -1030,6 +1035,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
     bool monitoring_enabled;
+    bool scissor_test;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -1050,13 +1056,18 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     }
 
     //Scissor test code
-    if (gputop_gl_scissor_test_enabled)
+    scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
+    if (scissor_test)
     {
+	glClear(GL_COLOR_BUFFER_BIT); // change to pfn_glClear?
 	pfn_glScissor(0, 0, 1, 1);
 	if (!glIsEnabled(GL_SCISSOR_TEST))
 		pfn_glEnable(GL_SCISSOR_TEST);
-	glClear(GL_COLOR_BUFFER_BIT); // change to pfn_glClear?
-    }
+    } else
+	{
+	    if (glIsEnabled(GL_SCISSOR_TEST))
+	        pfn_glDisable(GL_SCISSOR_TEST);
+	}
 
     monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
 
@@ -1124,7 +1135,7 @@ gputop_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 	wctx->scissor_width = width;
 	wctx->scissor_height = height;
     }
-    if (!gputop_gl_scissor_test_enabled)
+    if (!atomic_load(&gputop_gl_scissor_test_enabled))
     	pfn_glScissor(x, y, width, height);
 }
 

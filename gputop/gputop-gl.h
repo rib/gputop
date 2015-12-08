@@ -132,6 +132,9 @@ extern bool gputop_gl_force_debug_ctx_enabled;
 extern atomic_bool gputop_gl_monitoring_enabled;
 extern atomic_bool gputop_gl_khr_debug_enabled;
 
+extern atomic_bool gputop_gl_scissor_test_enabled;
+extern atomic_bool gputop_gl_texture_test_enabled;
+
 /* The number of query objects to delete if GL monitoring is disabled...
  *
  * We aim to delete all query objects when switching between GL

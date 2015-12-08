@@ -138,6 +138,7 @@ main (int argc, char **argv)
 #define DRY_RUN_OPT		(CHAR_MAX + 5)
 #define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
 #define GPUTOP_SCISSOR_TEST	(CHAR_MAX + 7)
+#define GPUTOP_TEXTURE_TEST	(CHAR_MAX + 8)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
