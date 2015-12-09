@@ -98,6 +98,10 @@ struct oa_sample {
 #define PERF_FLAG_FD_CLOEXEC   (1UL << 3) /* O_CLOEXEC */
 #endif
 
+#define OAREPORT_REASON_MASK           0x3f
+#define OAREPORT_REASON_SHIFT          19
+#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
+
 /* attr.config */
 
 struct intel_device {
@@ -915,6 +919,28 @@ read_perf_samples(struct gputop_perf_stream *stream)
     dbg("FIXME: read core perf samples");
 }
 
+static int intel_gen(uint32_t devid)
+{
+	if (IS_GEN2(devid))
+		return 2;
+	if (IS_GEN3(devid))
+		return 3;
+	if (IS_GEN4(devid))
+		return 4;
+	if (IS_GEN5(devid))
+		return 5;
+	if (IS_GEN6(devid))
+		return 6;
+	if (IS_GEN7(devid))
+		return 7;
+	if (IS_GEN8(devid))
+		return 8;
+	if (IS_GEN9(devid))
+		return 9;
+
+	return -1;
+}
+
 static void
 read_i915_perf_samples(struct gputop_perf_stream *stream)
 {
@@ -973,6 +999,25 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 	    case DRM_I915_PERF_RECORD_SAMPLE: {
 		struct oa_sample *sample = (struct oa_sample *)header;
 		uint8_t *report = sample->oa_report;
+
+		/*
+		 * On Broadwell+ the hardware generates a special report
+		 * 'marker' when a context-switch occurs for per-context
+		 * monitoring. When calculating deltas we must discard
+		 * this report.
+		 *
+		 * TODO:(matt-auld)
+		 * This can be simplified once our kernel rebases with Sourab'
+		 * patches, in particular his work which exposes to user-space
+		 * a sample-source-field for OA reports.
+		 */
+		if (intel_gen(gputop_devinfo.devid) >= 8) {
+			uint32_t reason = (report[0] >> OAREPORT_REASON_SHIFT) &
+				OAREPORT_REASON_MASK;
+
+			if (reason & OAREPORT_REASON_CTX_SWITCH)
+				break;
+		}
 
 		if (stream->oa.last)
 		    current_user->sample(stream, stream->oa.last, report);
