@@ -510,6 +510,12 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
 }
 
 static void
+perf_fake_ready_cb(uv_timer_t *poll)
+{
+
+}
+
+static void
 stream_close_cb(struct gputop_perf_stream *stream)
 {
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
@@ -575,6 +581,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 					    false,
 					    buffer_size,
 					    perf_ready_cb,
+                                            perf_fake_ready_cb,
 					    open_query->overwrite,
 					    &error);
     if (stream) {
