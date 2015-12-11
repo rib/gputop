@@ -60,6 +60,8 @@ static uv_tcp_t listener;
 
 static uv_timer_t timer;
 
+bool gputop_fake_mode;
+
 enum {
     WS_MESSAGE_PERF = 1,
     WS_MESSAGE_PROTOBUF,
@@ -336,15 +338,17 @@ fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
 	closure->header_written = true;
     }
 
-    while ((read_len = read(stream->fd, data, len)) < 0 && errno == EINTR)
-	;
-
-    if (read_len >= 0) {
+    if (gputop_fake_mode)
+        read_len = fake_read(stream, data, len);
+    else
+        while ((read_len = read(stream->fd, data, len)) < 0 && errno == EINTR)
+	    ;
+    if (read_len > 0) {
 	total += read_len;
 	closure->total_len += total;
     } else {
 	*eof = 1;
-	if (errno != EAGAIN)
+	if (!gputop_fake_mode && errno != EAGAIN)
 	    dbg("Error reading i915 perf stream %m");
     }
 
@@ -389,7 +393,6 @@ flush_stream_samples(struct gputop_perf_stream *stream)
 	fprintf(stderr, "Throttling websocket forwarding");
 	return;
     }
-
     if (!gputop_stream_data_pending(stream))
 	return;
 
@@ -510,6 +513,12 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
 }
 
 static void
+perf_fake_ready_cb(uv_timer_t *poll)
+{
+
+}
+
+static void
 stream_close_cb(struct gputop_perf_stream *stream)
 {
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
@@ -574,7 +583,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 					    oa_query_info->period_exponent,
 					    false,
 					    buffer_size,
-					    perf_ready_cb,
+					    NULL,
 					    open_query->overwrite,
 					    &error);
     if (stream) {
@@ -882,6 +891,11 @@ handle_get_features(h2o_websocket_conn_t *conn,
     devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
     devinfo.subslice_mask = gputop_devinfo.subslice_mask;
     devinfo.slice_mask = gputop_devinfo.slice_mask;
+
+    if (gputop_fake_mode)
+        features.fake_mode = true;
+    else
+        features.fake_mode = false;
 
     features.devinfo = &devinfo;
 #ifdef SUPPORT_GL
