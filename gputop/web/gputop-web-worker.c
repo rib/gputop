@@ -316,7 +316,6 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
 	last = query->continuation_report;
 	end_timestamp = query->end_timestamp;
     }
-
     for (header = (void *)data;
 	 (uint8_t *)header < (data + len);
 	 header = (void *)(((uint8_t *)header) + header->size))
@@ -434,7 +433,6 @@ static void
 handle_i915_perf_message(int id, uint8_t *data, int len)
 {
     struct gputop_worker_query *query;
-
     gputop_list_for_each(query, &open_queries, link) {
 
 	if (query->id == id) {
@@ -560,7 +558,9 @@ update_features(Gputop__Features *features)
 
     str = gputop_string_new("{ \"method\": \"features_notify\", \"params\": [ { \"oa_queries\": [\n");
 
-    if (IS_HASWELL(devinfo.devid)) {
+    if (features->fake_mode)
+        gputop_oa_add_queries_bdw(&devinfo);
+    else if (IS_HASWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Haswell queries\n");
 	gputop_oa_add_queries_hsw(&devinfo);
     } else if (IS_BROADWELL(devinfo.devid)) {
@@ -898,12 +898,10 @@ static void
 gputop_websocket_onmessage(int socket, uint8_t *data, int len, void *user_data)
 {
     //gputop_web_console_log("onmessage len=%d\n", len);
-
     /* FIXME: don't use hardcoded enum values here! */
     switch (data[0]) {
     case 1: { /* WS_MESSAGE_PERF */
 	uint32_t id = *((uint32_t *)(data + 4));
-
 	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
 	handle_perf_message(id, data + 8, len - 8);
         break;
