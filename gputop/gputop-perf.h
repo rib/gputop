@@ -241,6 +241,14 @@ struct gputop_perf_stream
 
     int fd;
     uv_poll_t fd_poll;
+    uv_timer_t fd_timer;
+
+// fields used for fake data:
+    uint64_t start_time;  // stream opening time
+    uint32_t gen_so_far; // amount of reports generated since stream opening
+    uint32_t prev_clocks; // the previous value of clock ticks
+    uint32_t period; // the period in nanoseconds calculated from exponent
+    uint32_t prev_timestamp; // the previous timestamp value
 
     /* XXX: reserved for whoever opens the stream */
     struct {
@@ -285,6 +293,7 @@ extern bool gputop_perf_trace_empty;
 extern bool gputop_perf_trace_full;
 extern uint8_t *gputop_perf_trace_head;
 extern int gputop_perf_n_samples;
+extern bool gputop_fake_mode;
 
 uint64_t read_report_timestamp(const uint32_t *report);
 uint64_t read_uint64_oa_counter(const struct gputop_perf_query *query,
@@ -310,6 +319,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                               void (*ready_cb_fake)(uv_timer_t *poll),
 			       bool overwrite,
 			       char **error);
 struct gputop_perf_stream *
