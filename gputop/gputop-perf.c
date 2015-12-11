@@ -47,6 +47,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <poll.h>
+#include <time.h>
 
 #include <uv.h>
 
@@ -117,6 +118,8 @@ struct perf_oa_user {
     void (*sample)(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end);
 };
 
+bool gputop_fake_mode = false;
+
 static struct perf_oa_user *current_user;
 
 static struct intel_device intel_dev;
@@ -128,6 +131,7 @@ struct gputop_perf_query *gputop_current_perf_query;
 struct gputop_perf_stream *gputop_current_perf_stream;
 
 static int drm_fd = -1;
+
 
 static gputop_list_t ctx_handles_list = {
     .prev = &ctx_handles_list,
@@ -222,6 +226,14 @@ perf_ready_cb(uv_poll_t *poll, int status, int events)
     gputop_perf_read_samples(stream);
 }
 
+static void
+perf_fake_ready_cb(uv_timer_t *poll)
+{
+    struct gputop_perf_stream *stream = poll->data;
+
+    gputop_perf_read_samples(stream);
+}
+
 void
 gputop_perf_stream_ref(struct gputop_perf_stream *stream)
 {
@@ -258,6 +270,15 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 
 	    break;
 	case GPUTOP_STREAM_I915_PERF:
+            if (stream->fd == -1) {
+                uv_timer_stop(&stream->fd_timer);
+
+                if (stream->oa.bufs[0])
+		    free(stream->oa.bufs[0]);
+		if (stream->oa.bufs[1])
+		    free(stream->oa.bufs[1]);
+                fprintf(stderr, "closed i915 fake perf stream\n");
+            }
 	    if (stream->fd > 0) {
 		uv_poll_stop(&stream->fd_poll);
 
@@ -282,12 +303,23 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
     }
 }
 
+
+static uint64_t
+get_time()
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
+}
+
+
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
 			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                               void (*ready_cb_fake)(uv_timer_t *poll),
 			       bool overwrite,
 			       char **error)
 {
@@ -310,22 +342,23 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
     param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
-    if (ctx) {
-        properties[1] = ctx->id;
-        param.properties = (uint64_t)properties;
-        param.n_properties = sizeof(properties) / 16;
+    if (!gputop_fake_mode) {
+        if (ctx) {
+            properties[1] = ctx->id;
+            param.properties = (uint64_t)properties;
+            param.n_properties = sizeof(properties) / 16;
 
-        ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
-    } else {
-        param.properties = (uint64_t)(properties + 2);
-        param.n_properties = sizeof(properties) / 16 - 1;
+            ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
+        } else {
+            param.properties = (uint64_t)(properties + 2);
+            param.n_properties = sizeof(properties) / 16 - 1;
 
-        ret = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
-    }
-
-    if (ret == -1) {
-	asprintf(error, "Error opening i915 perf OA event: %m\n");
-	return NULL;
+            ret = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+        }
+        if (ret == -1) {
+	    asprintf(error, "Error opening i915 perf OA event: %m\n");
+	    return NULL;
+        }
     }
 
     stream = xmalloc0(sizeof(*stream));
@@ -333,7 +366,15 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->ref_count = 1;
     stream->query = query;
 
-    stream->fd = param.fd;
+    if (gputop_fake_mode) {
+        stream->fd = -1;
+        stream->start_time = get_time();
+        stream->prev_clocks = (uint32_t)get_time();
+        stream->period = 80 * (2 << period_exponent);
+        stream->prev_timestamp = (uint32_t)get_time();
+    }
+    else
+        stream->fd = param.fd;
 
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
@@ -349,8 +390,19 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     }
 
     stream->fd_poll.data = stream;
-    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
-    uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
+    stream->fd_timer.data = stream;
+
+    if (gputop_fake_mode)
+    {
+	uv_timer_init(gputop_ui_loop, &stream->fd_timer);
+        uv_timer_start(&stream->fd_timer, ready_cb_fake, 1000, 1000);
+    }
+    else
+    {
+	uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+	uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
+    }
+
 
     return stream;
 }
@@ -550,6 +602,7 @@ init_dev_info(int drm_fd, uint32_t devid)
     int threads_per_eu = 7;
 
     gputop_devinfo.devid = devid;
+    printf("Devid:%d\n", devid);
 
     if (IS_HASWELL(devid)) {
 	if (IS_HSW_GT1(devid)) {
@@ -913,11 +966,13 @@ gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
     }
 }
 
+
 static void
 read_perf_samples(struct gputop_perf_stream *stream)
 {
     dbg("FIXME: read core perf samples");
 }
+
 
 static int intel_gen(uint32_t devid)
 {
@@ -941,6 +996,85 @@ static int intel_gen(uint32_t devid)
 	return -1;
 }
 
+
+// Function that generates fake Broadwell report metrics
+static int
+fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length)
+{
+    struct i915_perf_record_header header;
+    uint32_t report_id, timestamp, elapsed_clocks;
+    int i;
+    uint64_t counter;
+    uint64_t elapsed_time = get_time() - stream->start_time;
+    uint32_t records_to_gen;
+
+    header.type = DRM_I915_PERF_RECORD_SAMPLE;
+    header.pad = 0;
+    header.size = 256 + sizeof(header);
+
+    // Calculate the minimum between records required (in relation to the time elapsed)
+    // and the maximum number of records that can bit in the buffer.
+    if (elapsed_time / stream->period - stream->gen_so_far < buf_length / header.size)
+        records_to_gen = elapsed_time / stream->period - stream->gen_so_far;
+    else
+        records_to_gen = buf_length / header.size;
+
+    for (i = 0; i < records_to_gen; i++) {
+        int j;
+        uint32_t least_sign_32;
+        uint8_t most_sign_8;
+        uint64_t mask_64;
+
+        // Header
+        memcpy(buf, &header, sizeof(header));
+        buf += sizeof(header);
+
+        // Reason / Report ID
+        report_id = 1 << 19;
+        memcpy(buf, &report_id, 4);
+        buf += 4;
+
+        // Timestamp
+        timestamp = stream->period / 80 + stream->prev_timestamp;
+        stream->prev_timestamp = timestamp;
+        memcpy(buf, &timestamp, sizeof(timestamp));
+        buf += 8; // skip over the Context ID
+
+        // GPU Clock Ticks
+        elapsed_clocks = stream->period / 2 + stream->prev_clocks;
+        stream->prev_clocks = elapsed_clocks;
+        memcpy(buf, &elapsed_clocks, sizeof(elapsed_clocks));
+        buf += 4;
+
+        // fake counter data_1
+        counter = elapsed_clocks * gputop_devinfo.n_eus;
+
+        // Populate the 32 LSB of the first 32 aggregate counters
+        least_sign_32 = (uint32_t)counter;
+        for (j = 0; j < 32; j++, buf += 4)
+            memcpy(buf, &least_sign_32, sizeof(least_sign_32));
+
+        // Populate the next 4 Counters
+        for (j = 0; j < 4; j++, buf += 4)
+            memcpy(buf, &least_sign_32, sizeof(least_sign_32));
+
+        // Populate the 8 MSB of the first 32 aggregate counters
+        mask_64 = (uint64_t)0xFF << 32;
+        most_sign_8 = (counter & mask_64) >> 32;
+        for (j = 0; j < 32; j++, buf += 1)
+            memcpy(buf, &most_sign_8, sizeof(most_sign_8));
+
+        // Populate the final 16 boolean & custom counters
+        counter = elapsed_clocks * 2;
+        for (j = 0; j < 16; j++, buf += 4)
+            memcpy(buf, &least_sign_32, sizeof(least_sign_32));
+
+        stream->gen_so_far++;
+    }
+
+    return header.size * records_to_gen;
+}
+
 static void
 read_i915_perf_samples(struct gputop_perf_stream *stream)
 {
@@ -959,7 +1093,10 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 	}
 
 	buf = stream->oa.bufs[stream->oa.buf_idx];
-	count = read(stream->fd, buf, stream->oa.buf_sizes);
+        if (gputop_fake_mode)
+            count = fake_read(stream, buf, stream->oa.buf_sizes);
+        else
+	    count = read(stream->fd, buf, stream->oa.buf_sizes);
 
 	if (count < 0) {
 	    if (errno == EINTR)
@@ -1163,6 +1300,23 @@ gputop_perf_initialize(void)
 {
     if (intel_dev.device)
 	return true;
+    if (getenv("GPUTOP_FAKE_MODE"))
+        gputop_fake_mode = true;
+
+    if (gputop_fake_mode) { // set parameters for broadwell
+	page_size = sysconf(_SC_PAGE_SIZE);
+        gputop_devinfo.devid = 0x0412;
+	gputop_devinfo.n_eus = 10;
+	gputop_devinfo.n_eu_slices = 1;
+	gputop_devinfo.n_eu_sub_slices = 1;
+	gputop_devinfo.slice_mask = 0x1;
+	gputop_devinfo.subslice_mask = 0x1;
+        gputop_devinfo.eu_threads_count = gputop_devinfo.n_eus * 7;
+	// TODO: Continue/fix parameters
+
+	gputop_oa_add_queries_bdw(&gputop_devinfo);
+	return true;
+    }
 
     drm_fd = open_render_node(&intel_dev);
     if (drm_fd < 0) {
@@ -1260,6 +1414,7 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 				       ctx,
 				       32 * page_size,
 				       perf_ready_cb,
+                                       perf_fake_ready_cb,
 				       false,
 				       &error);
 
@@ -1369,6 +1524,7 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
 				       ctx,
 				       32 * page_size,
 				       perf_ready_cb,
+                                       perf_fake_ready_cb,
 				       false,
 				       &error);
     if (!gputop_current_perf_stream) {
