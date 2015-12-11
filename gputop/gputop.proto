@@ -62,6 +62,7 @@ message Features
     required string cpu_model = 6;
     required string kernel_release = 7;
     required string kernel_build = 8;
+    required bool fake_mode = 9;
 }
 
 message LogEntry
