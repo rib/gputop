@@ -44,20 +44,22 @@ usage(void)
 	   "\n");
 #ifdef SUPPORT_GL
     printf("     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
-	   "                                   library to intercept\n"
+	   "                                   library to intercept\n\n"
 	   "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
-	   "                                   library to intercept\n"
+	   "                                   library to intercept\n\n"
 	   "     --debug-context               Create a debug context and report\n"
-	   "                                   KHR_debug perf issues\n"
+	   "                                   KHR_debug perf issues\n\n"
 	   "     --dry-run                     Print the environment variables\n"
-	   "                                   without executing the program\n"
+	   "                                   without executing the program\n\n"
 	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
-	   "                                   DRM_CONTEXT ioctl's\n");
+	   "                                   DRM_CONTEXT ioctl's\n\n"
+	   "                                   without executing the program\n\n"
+	   "     --fake                        Run gputop using fake metrics\n\n");
 #endif
 #ifdef SUPPORT_WEBUI
-    printf("     --remote                      Enable remote web-based interface\n");
+    printf("     --remote                      Enable remote web-based interface\n\n");
 #endif
-    printf(" -h, --help                        Display this help\n"
+    printf(" -h, --help                        Display this help\n\n"
 	   "\n"
 	   " Note: gputop is only a wrapper for setting environment variables\n"
 	   " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
@@ -67,12 +69,12 @@ usage(void)
 	   " Environment:\n"
 	   "\n"
 	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so\n"
-	   "                                   The gputop libGL.so interposer\n"
+	   "                                   The gputop libGL.so interposer\n\n"
 	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
-	   "                                   up to from interposer\n"
+	   "                                   up to from interposer\n\n"
 #ifdef SUPPORT_WEBUI
 	   "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
-	   "                                   (defaults to ncurses)\n"
+	   "                                   (defaults to ncurses)\n\n"
 #endif
 #ifdef SUPPORT_GL
 	   "     GPUTOP_FORCE_DEBUG_CONTEXT=1  Force GL contexts to be debug\n"
@@ -135,6 +137,7 @@ main (int argc, char **argv)
 #define REMOTE_OPT		(CHAR_MAX + 4)
 #define DRY_RUN_OPT		(CHAR_MAX + 5)
 #define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
+#define FAKE_OPT	        (CHAR_MAX + 7)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -142,6 +145,7 @@ main (int argc, char **argv)
     const struct option long_options[] = {
 	{"help",	    no_argument,	0, 'h'},
 	{"dry-run",         no_argument,        0, DRY_RUN_OPT},
+	{"fake",            no_argument,        0, FAKE_OPT},
 #ifdef SUPPORT_GL
 	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
@@ -192,6 +196,9 @@ main (int argc, char **argv)
 	    case DISABLE_IOCTL_OPT:
                 disable_ioctl = true;
 		break;
+	    case FAKE_OPT:
+		setenv("GPUTOP_FAKE_MODE", "1", true);
+		break;
 	    default:
 		fprintf (stderr, "Internal error: "
 			 "unexpected getopt value: %d\n", opt);
@@ -229,6 +236,9 @@ main (int argc, char **argv)
 
     if (getenv("GPUTOP_MODE"))
         fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
+
+    if (getenv("GPUTOP_FAKE_MODE"))
+        fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
 
     fprintf(stderr, "%s\n", args[optind]);
 
