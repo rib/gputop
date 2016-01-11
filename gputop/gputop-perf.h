@@ -90,6 +90,7 @@ struct gputop_perf_query_counter
 struct gputop_perf_query
 {
     const char *name;
+    const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
 
