@@ -23,6 +23,22 @@ po/POTFILES
 po/remove-potcdate.sed
 gputop/registry/*api.c
 gputop/gputop
+gputop/gputop-system
+gputop/oa-bdw.h
+gputop/oa-bdw.c
+gputop/oa-chv.h
+gputop/oa-chv.c
+gputop/oa-hsw.h
+gputop/oa-hsw.c
+gputop/oa-skl.h
+gputop/oa-skl.c
+gputop/gputop.pb-c.h
+gputop/gputop.pb-c.c
+gputop/registry/diag.txt
+gputop/web/gputop-web-worker.js
+gputop/web/gputop-web-worker.js.map
+gputop/web/gputop-web.bc
+protoc-c/protoc-c
 Makefile
 Makefile.in
 .deps
@@ -32,3 +48,4 @@ Makefile.in
 *.lo
 *.la
 *.pyc
+*.dirstamp
