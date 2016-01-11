@@ -461,6 +461,7 @@ for set in tree.findall(".//set"):
 
     c("query = &i915_perf_oa_queries[" + perf_id + "];\n")
     c("query->name = \"" + set.get('name') + "\";\n")
+    c("query->guid = \"" + set.get('guid') + "\";\n")
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")
     c("query->perf_oa_metrics_set = " + perf_id + ";\n")
@@ -505,4 +506,3 @@ for set in tree.findall(".//set"):
 
 c_outdent(4)
 c("}")
-
