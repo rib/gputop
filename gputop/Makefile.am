@@ -30,6 +30,8 @@ gputop_CPPFLAGS = \
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
+    gputop-hash-table.h \
+    gputop-hash-table.c \
     intel_chipset.h \
     oa-hsw.h \
     oa-hsw.c \
