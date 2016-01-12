@@ -98,15 +98,14 @@ libgputop_la_LIBADD += -lX11
 libgputop_la_CFLAGS += $(GLX_DEP_CFLAGS)
 
 wrapperdir = $(libdir)/wrappers
-wrapper_LTLIBRARIES = libGL.la #libEGL.la
+wrapper_LTLIBRARIES = libfakeGL.la #libEGL.la
 
-libGL_la_SOURCES = \
-    registry/glxapi.c \
-    registry/glapi.c
-libGL_la_CFLAGS = \
+libfakeGL_la_SOURCES = \
+    registry/glxapi.c
+libfakeGL_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
-libGL_la_LIBADD = libgputop.la
-libGL_la_LDFLAGS = -shared -version-info 1
+libfakeGL_la_LIBADD = libgputop.la
+libfakeGL_la_LDFLAGS = -shared -version-info 1
 endif
 
 #libEGL_la_SOURCES = \

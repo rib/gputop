@@ -66,7 +66,7 @@ usage(void)
 	   "\n"
 	   " Environment:\n"
 	   "\n"
-	   "     LD_LIBRARY_PATH=<prefix>/lib/wrappers\n"
+	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so\n"
 	   "                                   The gputop libGL.so interposer\n"
 	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
 	   "                                   up to from interposer\n"
@@ -156,6 +156,7 @@ main (int argc, char **argv)
     const char *prev_ld_library_path;
     char *ld_library_path;
     char *ld_preload_path;
+    char *ld_preload_path_ioctl = "";
     char *prev_ld_preload_path;
     char *gputop_system_args[] = {
 	"gputop-system",
@@ -206,30 +207,17 @@ main (int argc, char **argv)
 	optind = 0;
     }
 
-    if (!disable_ioctl) {
-        prev_ld_library_path = getenv("LD_PRELOAD");
-	if (!prev_ld_library_path)
-	  prev_ld_library_path = "";
+    prev_ld_preload_path = getenv("LD_PRELOAD");
+    if (!prev_ld_preload_path)
+      prev_ld_preload_path= "";
 
-        asprintf(&ld_preload_path, "%s:%s", "libgputop.so",
-                 prev_ld_library_path);
-        setenv("LD_PRELOAD", ld_preload_path, true);
-        free(ld_preload_path);
-    }
+    if (!disable_ioctl)
+        asprintf(&ld_preload_path_ioctl, "%s", "libgputop.so");
 
-   if (!getenv("GPUTOP_GL_LIBRARY"))
-        resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
+    asprintf(&ld_preload_path, "%s/libfakeGL.so:%s:%s", GPUTOP_WRAPPER_DIR,
+	     ld_preload_path_ioctl, prev_ld_preload_path);
 
-    if (!getenv("GPUTOP_EGL_LIBRARY"))
-        resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
-
-    prev_ld_library_path = getenv("LD_LIBRARY_PATH");
-    if (!prev_ld_library_path)
-        prev_ld_library_path = "";
-
-    asprintf(&ld_library_path, "%s:%s", GPUTOP_WRAPPER_DIR, prev_ld_library_path);
-
-    fprintf(stderr, "LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH \\\n", GPUTOP_WRAPPER_DIR);
+    fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
     if (getenv("GPUTOP_GL_LIBRARY"))
         fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
 
@@ -244,8 +232,8 @@ main (int argc, char **argv)
 
     fprintf(stderr, "%s\n", args[optind]);
 
-    setenv("LD_LIBRARY_PATH", ld_library_path, true);
-    free(ld_library_path);
+    setenv("LD_PRELOAD", ld_library_path, true);
+    free(ld_preload_path);
 
     if (!dry_run)
     {

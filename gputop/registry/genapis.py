@@ -147,13 +147,6 @@ class ShimOutputGenerator(COutputGenerator):
 
         if (name in self.genOpts.hooks):
             shim += self.makeHook(cmd)
-        else:
-            shim += "static void *\n"
-            shim += name + "_resolver(void)\n"
-            shim += "{\n"
-            shim += "    return passthrough_resolve(\"" + name + "\");\n"
-            shim += "}\n"
-            shim += self.makeProto(cmd) + " __attribute__((ifunc(\"" + name + "_resolver\")));\n"
 
         return shim
     #
@@ -351,27 +344,6 @@ glxapiHeaders = [
     ''
 ]
 
-glapiHeaders = [
-    '#include <GL/gl.h>',
-    ''
-]
-
-eglapiHeaders = [
-    '#include <EGL/egl.h>',
-    ''
-]
-
-passthroughGLResolver = ['''
-
-void *gputop_passthrough_gl_resolve(const char *name);
-
-static void *
-passthrough_resolve(const char *name)
-{
-    return gputop_passthrough_gl_resolve(name);
-}
-''']
-
 passthroughGLXResolver = ['''
 
 void *gputop_passthrough_glx_resolve(const char *name);
@@ -383,30 +355,8 @@ passthrough_resolve(const char *name)
 }
 ''']
 
-passthroughEGLResolver = ['''
-
-void *gputop_passthrough_egl_resolve(const char *name);
-
-static void *
-passthrough_resolve(const char *name)
-{
-    return gputop_passthrough_egl_resolve(name);
-}
-''']
-
 buildList = [
     # GL API 1.2+ + extensions
-    ShimGeneratorOptions(
-        xmlfile           = 'gl.xml',
-        filename          = 'glapi.c',
-        apiname           = 'gl',
-        profile           = 'compatibility',
-        versions          = allVersions,
-        emitversions      = allVersions,
-        defaultExtensions = 'gl',
-        addExtensions     = None,
-        removeExtensions  = None,
-        prefixText        = prefixStrings + glextVersionStrings + glapiHeaders + passthroughGLResolver),
     # GLX 1.* API
     ShimGeneratorOptions(
         xmlfile           = 'glx.xml',
@@ -421,19 +371,6 @@ buildList = [
         removeExtensions  = None,
         # add glXPlatformStrings?
         prefixText        = prefixStrings + genDateCommentString + glxapiHeaders + passthroughGLXResolver),
-    # EGL API
-    ShimGeneratorOptions(
-        xmlfile           = 'egl.xml',
-        filename          = 'eglapi.c',
-        apiname           = 'egl',
-        profile           = None,
-        versions          = allVersions,
-        emitversions      = allVersions,
-        defaultExtensions = 'egl',
-        addExtensions     = None,
-        removeExtensions  = None,
-        prefixText        = prefixStrings + eglPlatformStrings + genDateCommentString + eglapiHeaders + passthroughEGLResolver),
-
     # End of list
     None
 ]
