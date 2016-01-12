@@ -54,6 +54,7 @@ typedef enum {
 
 struct gputop_devinfo {
     uint32_t devid;
+    uint32_t gen;
     uint64_t n_eus;
     uint64_t n_eu_slices;
     uint64_t n_eu_sub_slices;
@@ -217,6 +218,7 @@ struct gputop_perf_stream
 
     struct gputop_perf_query *query;
     bool overwrite;
+    bool per_ctx_mode;
 
     enum gputop_perf_stream_type type;
 

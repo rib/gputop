@@ -98,6 +98,10 @@ struct oa_sample {
 #define PERF_FLAG_FD_CLOEXEC   (1UL << 3) /* O_CLOEXEC */
 #endif
 
+#define OAREPORT_REASON_MASK           0x3f
+#define OAREPORT_REASON_SHIFT          19
+#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
+
 /* attr.config */
 
 struct intel_device {
@@ -328,6 +332,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->type = GPUTOP_STREAM_I915_PERF;
     stream->ref_count = 1;
     stream->query = query;
+    stream->per_ctx_mode = ctx;
 
     stream->fd = param.fd;
 
@@ -540,12 +545,36 @@ gputop_perf_open_generic_counter(int pid,
     return stream;
 }
 
+static uint32_t intel_gen(uint32_t devid)
+{
+    if (IS_GEN2(devid))
+        return 2;
+    if (IS_GEN3(devid))
+        return 3;
+    if (IS_GEN4(devid))
+        return 4;
+    if (IS_GEN5(devid))
+        return 5;
+    if (IS_GEN6(devid))
+        return 6;
+    if (IS_GEN7(devid))
+        return 7;
+    if (IS_GEN8(devid))
+        return 8;
+    if (IS_GEN9(devid))
+        return 9;
+
+    return 0;
+}
+
 static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
     int threads_per_eu = 7;
 
     gputop_devinfo.devid = devid;
+    gputop_devinfo.gen = intel_gen(devid);
+    assert(gputop_devinfo.gen > 0);
 
     if (IS_HASWELL(devid)) {
 	if (IS_HSW_GT1(devid)) {
@@ -974,8 +1003,27 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 		struct oa_sample *sample = (struct oa_sample *)header;
 		uint8_t *report = sample->oa_report;
 
-		if (stream->oa.last)
-		    current_user->sample(stream, stream->oa.last, report);
+		if (stream->oa.last) {
+		    /* On GEN8+ when a context switch occurs, the hardware
+		     * generates a report to indicate that such an event
+		     * occurred. We therefore skip over the accumulation for
+		     * this report, and instead use it as the base for
+		     * subsequent accumulation calculations.
+		     *
+		     * TODO:(matt-auld)
+		     * This can be simplified once our kernel rebases with Sourab'
+		     * patches, in particular his work which exposes to user-space
+		     * a sample-source-field for OA reports. */
+		    if (stream->per_ctx_mode && gputop_devinfo.gen >= 8) {
+			uint32_t reason = (report[0] >> OAREPORT_REASON_SHIFT) &
+			    OAREPORT_REASON_MASK;
+
+			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
+			    current_user->sample(stream, stream->oa.last, report);
+		    } else {
+			current_user->sample(stream, stream->oa.last, report);
+		    }
+		}
 
 		stream->oa.last = report;
 
