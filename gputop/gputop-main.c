@@ -153,8 +153,6 @@ main (int argc, char **argv)
 #endif
 	{0, 0, 0, 0}
     };
-    const char *prev_ld_library_path;
-    char *ld_library_path;
     char *ld_preload_path;
     char *ld_preload_path_ioctl = "";
     char *prev_ld_preload_path;
@@ -232,7 +230,7 @@ main (int argc, char **argv)
 
     fprintf(stderr, "%s\n", args[optind]);
 
-    setenv("LD_PRELOAD", ld_library_path, true);
+    setenv("LD_PRELOAD", ld_preload_path, true);
     free(ld_preload_path);
 
     if (!dry_run)
