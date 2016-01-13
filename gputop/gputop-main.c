@@ -215,6 +215,12 @@ main (int argc, char **argv)
     asprintf(&ld_preload_path, "%s/libfakeGL.so:%s:%s", GPUTOP_WRAPPER_DIR,
 	     ld_preload_path_ioctl, prev_ld_preload_path);
 
+    if (!getenv("GPUTOP_GL_LIBRARY"))
+	resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
+
+    if (!getenv("GPUTOP_EGL_LIBRARY"))
+	resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
+
     fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
     if (getenv("GPUTOP_GL_LIBRARY"))
         fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
