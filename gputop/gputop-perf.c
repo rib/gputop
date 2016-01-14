@@ -98,6 +98,10 @@ struct oa_sample {
 #define PERF_FLAG_FD_CLOEXEC   (1UL << 3) /* O_CLOEXEC */
 #endif
 
+#define OAREPORT_REASON_MASK           0x3f
+#define OAREPORT_REASON_SHIFT          19
+#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
+
 /* attr.config */
 
 struct intel_device {
@@ -328,6 +332,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->type = GPUTOP_STREAM_I915_PERF;
     stream->ref_count = 1;
     stream->query = query;
+    stream->per_ctx_mode = ctx;
 
     stream->fd = param.fd;
 
@@ -567,6 +572,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.slice_mask = 0x3;
 	    gputop_devinfo.subslice_mask = 0xf;
 	}
+	gputop_devinfo.gen = 7;
     } else {
 	i915_getparam_t gp;
 	int ret;
@@ -581,12 +587,15 @@ init_dev_info(int drm_fd, uint32_t devid)
 	if (IS_BROADWELL(devid)) {
 	    s_max = 2;
 	    ss_max = 3;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_CHERRYVIEW(devid)) {
 	    s_max = 1;
 	    ss_max = 2;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_SKYLAKE(devid)) {
 	    s_max = 3;
 	    ss_max = 4;
+	    gputop_devinfo.gen = 9;
 	}
 
 	gp.param = I915_PARAM_EU_TOTAL;
@@ -974,8 +983,27 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 		struct oa_sample *sample = (struct oa_sample *)header;
 		uint8_t *report = sample->oa_report;
 
-		if (stream->oa.last)
-		    current_user->sample(stream, stream->oa.last, report);
+		if (stream->oa.last) {
+		    /* On GEN8+ when a context switch occurs, the hardware
+		     * generates a report to indicate that such an event
+		     * occurred. We therefore skip over the accumulation for
+		     * this report, and instead use it as the base for
+		     * subsequent accumulation calculations.
+		     *
+		     * TODO:(matt-auld)
+		     * This can be simplified once our kernel rebases with Sourab'
+		     * patches, in particular his work which exposes to user-space
+		     * a sample-source-field for OA reports. */
+		    if (stream->per_ctx_mode && gputop_devinfo.gen >= 8) {
+			uint32_t reason = (report[0] >> OAREPORT_REASON_SHIFT) &
+			    OAREPORT_REASON_MASK;
+
+			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
+			    current_user->sample(stream, stream->oa.last, report);
+		    } else {
+			current_user->sample(stream, stream->oa.last, report);
+		    }
+		}
 
 		stream->oa.last = report;
 
