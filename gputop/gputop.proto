@@ -13,6 +13,7 @@ message DevInfo
     required uint64 eu_threads_count = 5;
     required uint64 subslice_mask = 6;
     required uint64 slice_mask = 7;
+    required uint32 gen = 8;
 }
 
 enum GLCounterType

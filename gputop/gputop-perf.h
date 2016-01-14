@@ -61,6 +61,7 @@ typedef enum {
 
 struct gputop_devinfo {
     uint32_t devid;
+    uint32_t gen;
     uint64_t n_eus;
     uint64_t n_eu_slices;
     uint64_t n_eu_sub_slices;

@@ -637,6 +637,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.slice_mask = 0x3;
 	    gputop_devinfo.subslice_mask = 0xf;
 	}
+	gputop_devinfo.gen = 7;
     } else {
 	i915_getparam_t gp;
 	int ret;
@@ -651,12 +652,15 @@ init_dev_info(int drm_fd, uint32_t devid)
 	if (IS_BROADWELL(devid)) {
 	    s_max = 2;
 	    ss_max = 3;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_CHERRYVIEW(devid)) {
 	    s_max = 1;
 	    ss_max = 2;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_SKYLAKE(devid)) {
 	    s_max = 3;
 	    ss_max = 4;
+	    gputop_devinfo.gen = 9;
 	}
 
 	gp.param = I915_PARAM_EU_TOTAL;
