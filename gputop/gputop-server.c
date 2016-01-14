@@ -556,6 +556,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     dbg("handle_open_i915_oa_query\n");
 
     perf_query = &i915_perf_oa_queries[oa_query_info->metric_set];
+    // TODO(matt-auld): Add support for per-ctx OA metrics for the web-ui
+    perf_query->per_ctx_mode = false;
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
@@ -566,7 +568,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
     stream = gputop_open_i915_perf_oa_query(perf_query,
 					    oa_query_info->period_exponent,
-					    false,
 					    buffer_size,
 					    NULL,
 					    open_query->overwrite,

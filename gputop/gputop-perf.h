@@ -94,6 +94,7 @@ struct gputop_perf_query
     const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
+    bool per_ctx_mode;
 
     int perf_oa_metrics_set;
     int perf_oa_format;
@@ -324,7 +325,6 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
-			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(struct gputop_perf_stream *),
 			       bool overwrite,

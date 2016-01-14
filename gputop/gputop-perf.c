@@ -312,7 +312,6 @@ get_time(void)
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
-			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(struct gputop_perf_stream *),
 			       bool overwrite,
@@ -329,6 +328,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 	DRM_I915_PERF_OA_FORMAT_PROP, query->perf_oa_format,
 	DRM_I915_PERF_OA_EXPONENT_PROP, period_exponent,
     };
+    struct ctx_handle *ctx;
     int ret;
 
     memset(&param, 0, sizeof(param));
@@ -338,13 +338,26 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
     if (!gputop_fake_mode) {
-        if (ctx) {
-            properties[1] = ctx->id;
-            param.properties = (uint64_t)properties;
+	if (query->per_ctx_mode) {
+	    // TODO: (matt-auld)
+	    // Currently we don't support selectable contexts, so we just use the
+	    // first one which is avaivable to us. Though this would only really
+	    // make sense if we could make the list of contexts visible to the user.
+	    // Maybe later the per_ctx_mode could become the context handle...
+	    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+	    if (!ctx)
+	      return NULL;
+
+	    properties[1] = ctx->id;
+	    param.properties = (uint64_t)properties;
             param.n_properties = sizeof(properties) / 16;
 
-            ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
-        } else {
+	    properties[1] = ctx->id;
+	    param.properties = (uint64_t)properties;
+	    param.n_properties = sizeof(properties) / 16;
+
+	    ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
+	} else {
             param.properties = (uint64_t)(properties + 2);
             param.n_properties = sizeof(properties) / 16 - 1;
 
@@ -1419,7 +1432,6 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 {
     int period_exponent;
     char *error = NULL;
-    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1428,19 +1440,8 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 
     current_user = &overview_user;
 
-    // TODO: (matt-auld)
-    // Currently we don't support selectable contexts, so we just use the first one which
-    // is avaivable to us. Though this would only really make sense if we could make the
-    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
-    // the context handle...
-    if (enable_per_ctx) {
-      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-      if (!ctx) {
-	  return false;
-      }
-    }
-
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1459,7 +1460,6 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
-				       ctx,
 				       32 * page_size,
 				       gputop_perf_read_samples,
 				       false,
@@ -1533,7 +1533,6 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
     uint64_t period_ns;
     uint64_t n_samples;
     char *error = NULL;
-    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1542,19 +1541,8 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
 
     current_user = &trace_user;
 
-    // TODO: (matt-auld)
-    // Currently we don't support selectable contexts, so we just use the first one which
-    // is avaivable to us. Though this would only really make sense if we could make the
-    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
-    // the context handle...
-    if (enable_per_ctx) {
-      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-      if (!ctx) {
-	  return false;
-      }
-    }
-
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1568,7 +1556,6 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
-				       ctx,
 				       32 * page_size,
 				       gputop_perf_read_samples,
 				       false,
