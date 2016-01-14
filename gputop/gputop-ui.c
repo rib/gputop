@@ -1368,20 +1368,22 @@ redraw_idle_cb(uv_idle_t *idle)
 static int
 common_input(int key)
 {
-    struct tab *next;
+    struct tab *next = NULL;
 
     switch (key) {
+    case KEY_RIGHT:
     case 9: /* Urgh, ncurses is not making things better :-/ */
 	if (current_tab->link.next != &tabs)
 	    next = gputop_container_of(current_tab->link.next, struct tab, link);
 	else
 	    next = gputop_container_of(current_tab->link.next->next, struct tab, link);
-
-	current_tab->leave();
-	current_tab = next;
-	current_tab->enter();
-
-	return INPUT_HANDLED;
+	break;
+    case KEY_LEFT:
+	if (current_tab->link.prev != &tabs)
+	    next = gputop_container_of(current_tab->link.prev, struct tab, link);
+	else
+	    next = gputop_container_of(current_tab->link.prev->prev, struct tab, link);
+	break;
     case KEY_UP:
 	if (y_pos > 0)
 	    y_pos--;
@@ -1395,6 +1397,14 @@ common_input(int key)
     case '+':
     case '=':
 	zoom *= 0.9;
+	return INPUT_HANDLED;
+    }
+
+    if (next) {
+	current_tab->leave();
+	current_tab = next;
+	current_tab->enter();
+
 	return INPUT_HANDLED;
     }
 
