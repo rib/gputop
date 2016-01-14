@@ -54,6 +54,11 @@ typedef enum {
     GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
 } gputop_counter_type_t;
 
+
+#define OAREPORT_REASON_MASK           0x3f
+#define OAREPORT_REASON_SHIFT          19
+#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
+
 struct gputop_devinfo {
     uint32_t devid;
     uint64_t n_eus;
