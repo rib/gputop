@@ -78,7 +78,7 @@ struct tab
 
 enum {
     INPUT_UNHANDLED = 1,
-    INPUT_HANDLED = 1
+    INPUT_HANDLED = 2
 };
 
 static int real_stdin;
