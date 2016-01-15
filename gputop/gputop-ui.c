@@ -1588,24 +1588,52 @@ gputop_ui_run(void *arg)
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
+    gputop_perf_free();
+
     return 0;
 }
 
 __attribute__((constructor)) void
 gputop_ui_init(void)
 {
+    int i;
     pthread_attr_t attrs;
 
+    gputop_perf_initialize();
     gputop_list_init(&tabs);
 
-    gputop_list_insert(tabs.prev, &tab_3d.link);
-    gputop_list_insert(tabs.prev, &tab_per_ctx_3d.link);
-    gputop_list_insert(tabs.prev, &tab_compute.link);
-    gputop_list_insert(tabs.prev, &tab_compute_extended.link);
-    gputop_list_insert(tabs.prev, &tab_memory_reads.link);
-    gputop_list_insert(tabs.prev, &tab_memory_writes.link);
-    gputop_list_insert(tabs.prev, &tab_sampler_balance.link);
-    gputop_list_insert(tabs.prev, &tab_3d_trace.link);
+    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    {
+        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
+            array_value_at(perf_oa_supported_query_guids, char*, i)))->data;
+
+        switch (query->perf_oa_metrics_set) {
+            case I915_OA_METRICS_SET_3D:
+                gputop_list_insert(tabs.prev, &tab_3d.link);
+                gputop_list_insert(tabs.prev, &tab_per_ctx_3d.link);
+                gputop_list_insert(tabs.prev, &tab_3d_trace.link);
+                break;
+            case I915_OA_METRICS_SET_COMPUTE:
+                gputop_list_insert(tabs.prev, &tab_compute.link);
+                break;
+            case I915_OA_METRICS_SET_COMPUTE_EXTENDED:
+                gputop_list_insert(tabs.prev, &tab_compute_extended.link);
+                break;
+            case I915_OA_METRICS_SET_MEMORY_READS:
+                gputop_list_insert(tabs.prev, &tab_memory_reads.link);
+                break;
+            case I915_OA_METRICS_SET_MEMORY_WRITES:
+                gputop_list_insert(tabs.prev, &tab_memory_writes.link);
+                break;
+            case I915_OA_METRICS_SET_SAMPLER_BALANCE:
+                gputop_list_insert(tabs.prev, &tab_sampler_balance.link);
+                break;
+            default:
+                dbg("Unrecognized query set!\n");
+                break;
+        }
+    }
+
 #ifdef SUPPORT_GL
     gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
 #endif

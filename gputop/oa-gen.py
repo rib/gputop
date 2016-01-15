@@ -397,6 +397,7 @@ h(copyright)
 h("""#pragma once
 
 #include "gputop-perf.h"
+#include "gputop-hash-table.h"
 
 """)
 
@@ -416,7 +417,6 @@ c(
 """
 #include "gputop-util.h"
 #include "gputop-perf.h"
-
 
 static uint64_t
 percentage_max_callback(struct gputop_devinfo *devinfo,
@@ -459,8 +459,10 @@ for set in tree.findall(".//set"):
     c("struct gputop_perf_query *query;\n")
     c("struct gputop_perf_query_counter *counter;\n\n")
 
-    c("query = &i915_perf_oa_queries[" + perf_id + "];\n")
+    c("query = xmalloc0(sizeof(struct gputop_perf_query));\n")
     c("query->name = \"" + set.get('name') + "\";\n")
+    c("query->guid = \"" + set.get('guid') + "\";\n")
+    c("gputop_hash_table_insert(queries, query->guid, query);\n")
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")
     c("query->perf_oa_metrics_set = " + perf_id + ";\n")
@@ -505,4 +507,3 @@ for set in tree.findall(".//set"):
 
 c_outdent(4)
 c("}")
-

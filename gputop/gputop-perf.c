@@ -49,6 +49,7 @@
 #include <poll.h>
 
 #include <uv.h>
+#include <dirent.h>
 
 #include "intel_chipset.h"
 
@@ -120,6 +121,8 @@ static struct intel_device intel_dev;
 static unsigned int page_size;
 
 struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
+struct gputop_hash_table *queries;
+struct array *perf_oa_supported_query_guids;
 struct gputop_perf_query *gputop_current_perf_query;
 struct gputop_perf_stream *gputop_current_perf_stream;
 
@@ -1114,6 +1117,90 @@ open_render_node(struct intel_device *dev)
 }
 
 bool
+gputop_enumerate_queries_via_sysfs (void)
+{
+    DIR *drm_dir, *metrics_dir;
+    struct dirent *entry1, *entry2, *entry3, *entry4;
+    struct stat sb;
+    int mjr, mnr;
+    char buffer[128];
+    int name_max;
+    int entry_size;
+
+    if (fstat(drm_fd, &sb)) {
+        gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
+        return false;
+    }
+
+    mjr = major(sb.st_rdev);
+    mnr = minor(sb.st_rdev);
+
+    snprintf(buffer, sizeof(buffer), "/sys/dev/char/%d:%d/device/drm", mjr,
+        mnr);
+
+    drm_dir = opendir(buffer);
+
+    if (drm_dir == NULL)
+        assert(0);
+
+    name_max = pathconf(buffer, _PC_NAME_MAX);
+
+    if (name_max == -1)
+        name_max = 255;
+
+    entry_size = offsetof(struct dirent, d_name) + name_max + 1;
+    entry1 = alloca(entry_size);
+    entry3 = alloca(entry_size);
+
+    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL) {
+        if (entry2->d_type == DT_DIR &&
+            strncmp(entry2->d_name, "card", 4) == 0)
+        {
+            snprintf(buffer, sizeof(buffer),
+                "/sys/dev/char/%d:%d/device/drm/%s/metrics", mjr,
+                mnr, entry2->d_name);
+
+            metrics_dir = opendir(buffer);
+
+            if (metrics_dir == NULL) {
+                closedir(drm_dir);
+                return false;
+            }
+
+            while ((readdir_r(metrics_dir, entry3, &entry4) == 0) &&
+                   entry4 != NULL)
+            {
+                struct gputop_perf_query *query;
+                struct gputop_hash_entry *queries_entry;
+
+                if (entry4->d_type != DT_DIR || entry4->d_name[0] == '.')
+                    continue;
+
+                queries_entry =
+                    gputop_hash_table_search(queries, entry4->d_name);
+
+                if (queries_entry == NULL)
+                    continue;
+
+                query = (struct gputop_perf_query*)queries_entry->data;
+
+                snprintf(buffer, sizeof(buffer),
+                    "/sys/dev/char/%d:%d/device/drm/%s/metrics/%s/id",
+                        mjr, mnr, entry2->d_name, entry4->d_name);
+
+                query->perf_oa_metrics_set = read_file_uint64(buffer);
+                array_append(perf_oa_supported_query_guids, &query->guid);
+            }
+            closedir (metrics_dir);
+        }
+    }
+
+    closedir(drm_dir);
+
+    return true;
+}
+
+bool
 gputop_perf_initialize(void)
 {
     if (intel_dev.device)
@@ -1129,6 +1216,10 @@ gputop_perf_initialize(void)
     init_dev_info(drm_fd, intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
 
+    queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
+                                       gputop_key_string_equal);
+    perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
+
     if (IS_HASWELL(intel_dev.device)) {
 	gputop_oa_add_queries_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
@@ -1140,7 +1231,22 @@ gputop_perf_initialize(void)
     } else
 	assert(0);
 
+    gputop_enumerate_queries_via_sysfs();
+
     return true;
+}
+
+static void
+free_perf_oa_queries(struct gputop_hash_entry *entry)
+{
+    free(entry->data);
+}
+
+void
+gputop_perf_free(void)
+{
+    gputop_hash_table_destroy(queries, free_perf_oa_queries);
+    array_free(perf_oa_supported_query_guids);
 }
 
 /**
@@ -1171,6 +1277,7 @@ bool
 gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 {
     int period_exponent;
+    int i;
     char *error = NULL;
     struct ctx_handle *ctx = NULL;
 
@@ -1193,7 +1300,20 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
       }
     }
 
-    gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query = NULL;
+    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    {
+        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
+            array_value_at(perf_oa_supported_query_guids, char*, i)))->data;
+
+        if (query->perf_oa_metrics_set == metric_set) {
+            gputop_current_perf_query = query;
+            break;
+        }
+    }
+
+    if (gputop_current_perf_query == NULL)
+        return false;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1287,6 +1407,7 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
     uint64_t n_samples;
     char *error = NULL;
     struct ctx_handle *ctx = NULL;
+    int i;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1307,7 +1428,20 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
       }
     }
 
-    gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query = NULL;
+    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    {
+        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
+            array_value_at(perf_oa_supported_query_guids, char*, i)))->data;
+
+        if (query->perf_oa_metrics_set == metric_set) {
+            gputop_current_perf_query = query;
+            break;
+        }
+    }
+
+    if (gputop_current_perf_query == NULL)
+        return false;
 
     /* The timestamp for HSW+ increments every 80ns
      *
