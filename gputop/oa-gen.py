@@ -459,7 +459,7 @@ for set in tree.findall(".//set"):
     c("struct gputop_perf_query *query;\n")
     c("struct gputop_perf_query_counter *counter;\n\n")
 
-    c("query = &i915_perf_oa_queries[" + perf_id + "];\n")
+    c("query = xmalloc0(sizeof(struct gputop_perf_query));\n")
     c("query->name = \"" + set.get('name') + "\";\n")
     c("query->guid = \"" + set.get('guid') + "\";\n")
     c("gputop_hash_table_insert(queries, query->guid, query);\n")
