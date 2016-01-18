@@ -1143,6 +1143,24 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 	    case DRM_I915_PERF_RECORD_SAMPLE: {
 		struct oa_sample *sample = (struct oa_sample *)header;
 		uint8_t *report = sample->oa_report;
+		uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
+			OAREPORT_REASON_MASK;
+
+		/* On GEN8+ the hardware is able to generate reports with a
+		 * reason field. So for example when capturing perdiodic counter
+		 * snapshots the reason field would be TIMER. This is _not_ the
+		 * case when capturing snapshots by inserting MI_RPC commands
+		 * into the CS, instead this field is overridden with the u32
+		 * id passed with the MI_RPC. But within GPUTOP we should
+		 * currently only expect either CTX_SWITCH or TIMER.
+		 */
+		if (gputop_devinfo.gen >= 8) {
+			if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
+					OAREPORT_REASON_TIMER))) {
+			    dbg("i915 perf: Unexpected OA sample reason value %"
+				PRIu32 "\n", reason);
+			}
+		}
 
 		if (stream->oa.last) {
 		    /* On GEN8+ when a context switch occurs, the hardware
@@ -1156,9 +1174,6 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 		     * patches, in particular his work which exposes to user-space
 		     * a sample-source-field for OA reports. */
 		    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
-			uint32_t reason = (report[0] >> OAREPORT_REASON_SHIFT) &
-			    OAREPORT_REASON_MASK;
-
 			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
 			    current_user->sample(stream, stream->oa.last, report);
 		    } else {
