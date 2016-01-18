@@ -560,7 +560,9 @@ update_features(Gputop__Features *features)
 
     str = gputop_string_new("{ \"method\": \"features_notify\", \"params\": [ { \"oa_queries\": [\n");
 
-    if (IS_HASWELL(devinfo.devid)) {
+    if (features->fake_mode)
+        gputop_oa_add_queries_bdw(&devinfo);
+    else if (IS_HASWELL(devinfo.devid)) {
 	_gputop_web_console_log("Adding Haswell queries\n");
 	gputop_oa_add_queries_hsw(&devinfo);
     } else if (IS_BROADWELL(devinfo.devid)) {
