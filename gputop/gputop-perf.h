@@ -35,6 +35,7 @@
 #include "i915_oa_drm.h"
 
 #include "gputop-list.h"
+#include "gputop-hash-table.h"
 
 typedef enum {
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
@@ -90,6 +91,7 @@ struct gputop_perf_query_counter
 struct gputop_perf_query
 {
     const char *name;
+    const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
 
@@ -270,6 +272,7 @@ extern struct gputop_devinfo gputop_devinfo;
 extern struct gputop_perf_query *gputop_current_perf_query;
 extern struct gputop_perf_stream *gputop_current_perf_stream;
 
+bool gputop_enumerate_queries_via_sysfs(void);
 bool gputop_perf_initialize(void);
 
 bool gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx);
@@ -291,6 +294,7 @@ bool gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx);
 void gputop_i915_perf_oa_trace_close(void);
 
 extern struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
+extern struct gputop_hash_table *queries;
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;
 extern bool gputop_perf_trace_empty;

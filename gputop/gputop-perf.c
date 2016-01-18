@@ -49,6 +49,7 @@
 #include <poll.h>
 
 #include <uv.h>
+#include <dirent.h>
 
 #include "intel_chipset.h"
 
@@ -122,6 +123,7 @@ static struct intel_device intel_dev;
 static unsigned int page_size;
 
 struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
+struct gputop_hash_table *queries;
 struct gputop_perf_query *gputop_current_perf_query;
 struct gputop_perf_stream *gputop_current_perf_stream;
 
@@ -1264,6 +1266,89 @@ open_render_node(struct intel_device *dev)
 }
 
 bool
+gputop_enumerate_queries_via_sysfs (void)
+{
+    DIR *drm_dir, *metrics_dir;
+    struct dirent *entry1, *entry2, *entry3, *entry4;
+    struct stat sb;
+    int mjr, mnr;
+    char buffer[128];
+    int name_max;
+    int entry_size;
+
+    if (fstat(drm_fd, &sb)) {
+        gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
+        return false;
+    }
+
+    mjr = major(sb.st_rdev);
+    mnr = minor(sb.st_rdev);
+
+    snprintf(buffer, sizeof(buffer), "/sys/dev/char/%d:%d/device/drm", mjr,
+        mnr);
+
+    drm_dir = opendir(buffer);
+
+    if (drm_dir == NULL)
+        assert(0);
+
+    name_max = pathconf(buffer, _PC_NAME_MAX);
+
+    if (name_max == -1)
+        name_max = 255;
+
+    entry_size = offsetof(struct dirent, d_name) + name_max + 1;
+    entry1 = alloca(entry_size);
+    entry3 = alloca(entry_size);
+
+    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL) {
+        if (entry2->d_type == DT_DIR &&
+            strncmp(entry2->d_name, "card", 4) == 0)
+        {
+            snprintf(buffer, sizeof(buffer),
+                "/sys/dev/char/%d:%d/device/drm/%s/metrics", mjr,
+                mnr, entry2->d_name);
+
+            metrics_dir = opendir(buffer);
+
+            if (metrics_dir == NULL) {
+                closedir(drm_dir);
+                return false;
+            }
+
+            while ((readdir_r(metrics_dir, entry3, &entry4) == 0) &&
+                   entry4 != NULL)
+            {
+                struct gputop_perf_query *query;
+                struct gputop_hash_entry *queries_entry;
+
+                if (entry4->d_type != DT_DIR || entry4->d_name[0] == '.')
+                    continue;
+
+                queries_entry =
+                    gputop_hash_table_search(queries, entry4->d_name);
+
+                if (queries_entry == NULL)
+                    continue;
+
+                query = (struct gputop_perf_query*)queries_entry->data;
+
+                snprintf(buffer, sizeof(buffer),
+                    "/sys/dev/char/%d:%d/device/drm/%s/metrics/%s/id",
+                        mjr, mnr, entry2->d_name, entry4->d_name);
+
+                query->perf_oa_metrics_set = read_file_uint64(buffer);
+            }
+            closedir (metrics_dir);
+        }
+    }
+
+    closedir(drm_dir);
+
+    return true;
+}
+
+bool
 gputop_perf_initialize(void)
 {
     if (gputop_devinfo.n_eus)
@@ -1283,6 +1368,10 @@ gputop_perf_initialize(void)
     /* NB: eu_count needs to be initialized before declaring counters */
     init_dev_info(drm_fd, intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
+
+    queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
+                                       gputop_key_string_equal);
+
     if (gputop_fake_mode) {
 	gputop_oa_add_queries_bdw(&gputop_devinfo);
     } else if (IS_HASWELL(intel_dev.device)) {
@@ -1295,6 +1384,8 @@ gputop_perf_initialize(void)
 	gputop_oa_add_queries_skl(&gputop_devinfo);
     } else
 	assert(0);
+
+    gputop_enumerate_queries_via_sysfs();
 
     return true;
 }

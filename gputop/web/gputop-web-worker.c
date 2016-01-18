@@ -50,6 +50,7 @@
 
 
 struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
+struct gputop_hash_table *queries;
 
 struct gputop_worker_query {
     int id;
@@ -559,6 +560,9 @@ update_features(Gputop__Features *features)
     devinfo.slice_mask = features->devinfo->slice_mask;
 
     str = gputop_string_new("{ \"method\": \"features_notify\", \"params\": [ { \"oa_queries\": [\n");
+
+    queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
+                                       gputop_key_string_equal);
 
     if (features->fake_mode)
         gputop_oa_add_queries_bdw(&devinfo);
