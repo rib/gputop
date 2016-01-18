@@ -54,8 +54,14 @@ typedef enum {
     GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
 } gputop_counter_type_t;
 
+
+#define OAREPORT_REASON_MASK           0x3f
+#define OAREPORT_REASON_SHIFT          19
+#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
+
 struct gputop_devinfo {
     uint32_t devid;
+    uint32_t gen;
     uint64_t n_eus;
     uint64_t n_eu_slices;
     uint64_t n_eu_sub_slices;
@@ -94,6 +100,7 @@ struct gputop_perf_query
     const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
+    bool per_ctx_mode;
 
     int perf_oa_metrics_set;
     int perf_oa_format;
@@ -324,7 +331,6 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
-			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(struct gputop_perf_stream *),
 			       bool overwrite,

@@ -312,7 +312,6 @@ get_time(void)
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
-			       struct ctx_handle *ctx,
 			       size_t perf_buffer_size,
 			       void (*ready_cb)(struct gputop_perf_stream *),
 			       bool overwrite,
@@ -329,6 +328,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 	DRM_I915_PERF_OA_FORMAT_PROP, query->perf_oa_format,
 	DRM_I915_PERF_OA_EXPONENT_PROP, period_exponent,
     };
+    struct ctx_handle *ctx;
     int ret;
 
     memset(&param, 0, sizeof(param));
@@ -338,13 +338,26 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
     if (!gputop_fake_mode) {
-        if (ctx) {
-            properties[1] = ctx->id;
-            param.properties = (uint64_t)properties;
+	if (query->per_ctx_mode) {
+	    // TODO: (matt-auld)
+	    // Currently we don't support selectable contexts, so we just use the
+	    // first one which is avaivable to us. Though this would only really
+	    // make sense if we could make the list of contexts visible to the user.
+	    // Maybe later the per_ctx_mode could become the context handle...
+	    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+	    if (!ctx)
+	      return NULL;
+
+	    properties[1] = ctx->id;
+	    param.properties = (uint64_t)properties;
             param.n_properties = sizeof(properties) / 16;
 
-            ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
-        } else {
+	    properties[1] = ctx->id;
+	    param.properties = (uint64_t)properties;
+	    param.n_properties = sizeof(properties) / 16;
+
+	    ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
+	} else {
             param.properties = (uint64_t)(properties + 2);
             param.n_properties = sizeof(properties) / 16 - 1;
 
@@ -624,6 +637,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.slice_mask = 0x3;
 	    gputop_devinfo.subslice_mask = 0xf;
 	}
+	gputop_devinfo.gen = 7;
     } else {
 	i915_getparam_t gp;
 	int ret;
@@ -638,12 +652,15 @@ init_dev_info(int drm_fd, uint32_t devid)
 	if (IS_BROADWELL(devid)) {
 	    s_max = 2;
 	    ss_max = 3;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_CHERRYVIEW(devid)) {
 	    s_max = 1;
 	    ss_max = 2;
+	    gputop_devinfo.gen = 8;
 	} else if (IS_SKYLAKE(devid)) {
 	    s_max = 3;
 	    ss_max = 4;
+	    gputop_devinfo.gen = 9;
 	}
 
 	gp.param = I915_PARAM_EU_TOTAL;
@@ -1126,8 +1143,27 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 		struct oa_sample *sample = (struct oa_sample *)header;
 		uint8_t *report = sample->oa_report;
 
-		if (stream->oa.last)
-		    current_user->sample(stream, stream->oa.last, report);
+		if (stream->oa.last) {
+		    /* On GEN8+ when a context switch occurs, the hardware
+		     * generates a report to indicate that such an event
+		     * occurred. We therefore skip over the accumulation for
+		     * this report, and instead use it as the base for
+		     * subsequent accumulation calculations.
+		     *
+		     * TODO:(matt-auld)
+		     * This can be simplified once our kernel rebases with Sourab'
+		     * patches, in particular his work which exposes to user-space
+		     * a sample-source-field for OA reports. */
+		    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+			uint32_t reason = (report[0] >> OAREPORT_REASON_SHIFT) &
+			    OAREPORT_REASON_MASK;
+
+			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
+			    current_user->sample(stream, stream->oa.last, report);
+		    } else {
+			current_user->sample(stream, stream->oa.last, report);
+		    }
+		}
 
 		stream->oa.last = report;
 
@@ -1419,7 +1455,6 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 {
     int period_exponent;
     char *error = NULL;
-    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1428,19 +1463,8 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 
     current_user = &overview_user;
 
-    // TODO: (matt-auld)
-    // Currently we don't support selectable contexts, so we just use the first one which
-    // is avaivable to us. Though this would only really make sense if we could make the
-    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
-    // the context handle...
-    if (enable_per_ctx) {
-      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-      if (!ctx) {
-	  return false;
-      }
-    }
-
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1459,7 +1483,6 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
-				       ctx,
 				       32 * page_size,
 				       gputop_perf_read_samples,
 				       false,
@@ -1533,7 +1556,6 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
     uint64_t period_ns;
     uint64_t n_samples;
     char *error = NULL;
-    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -1542,19 +1564,8 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
 
     current_user = &trace_user;
 
-    // TODO: (matt-auld)
-    // Currently we don't support selectable contexts, so we just use the first one which
-    // is avaivable to us. Though this would only really make sense if we could make the
-    // list of contexts visible to the user. Maybe later the enable_per_ctx flag could become
-    // the context handle...
-    if (enable_per_ctx) {
-      ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-      if (!ctx) {
-	  return false;
-      }
-    }
-
     gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -1568,7 +1579,6 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
     gputop_current_perf_stream =
 	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
 				       period_exponent,
-				       ctx,
 				       32 * page_size,
 				       gputop_perf_read_samples,
 				       false,
