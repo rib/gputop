@@ -540,11 +540,12 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
     Gputop__OAQueryInfo *oa_query_info = open_query->oa_query;
-    struct gputop_perf_query *perf_query;
+    struct gputop_perf_query *perf_query = NULL;
     struct gputop_perf_stream *stream;
     char *error = NULL;
     int buffer_size;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
+    int i;
 
     if (!gputop_perf_initialize()) {
 	message.reply_uuid = request->uuid;
@@ -555,7 +556,20 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     }
     dbg("handle_open_i915_oa_query\n");
 
-    perf_query = &i915_perf_oa_queries[oa_query_info->metric_set];
+    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    {
+        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
+            array_value_at(perf_oa_supported_query_guids, char*, i)))->data;
+
+        if (query->perf_oa_metrics_set == oa_query_info->metric_set) {
+            perf_query = query;
+            break;
+        }
+    }
+
+    if (perf_query == NULL)
+        return;
+
     // TODO(matt-auld): Add support for per-ctx OA metrics for the web-ui
     perf_query->per_ctx_mode = false;
 
@@ -932,6 +946,7 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
 
     if (arg == NULL) {
 	//dbg("socket closed\n");
+        gputop_perf_free();
 	close_all_streams();
         h2o_websocket_close(conn);
         return;

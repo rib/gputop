@@ -97,6 +97,7 @@ struct gputop_perf_query_counter
 struct gputop_perf_query
 {
     const char *name;
+    const char *symbol_name;
     const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
@@ -281,8 +282,10 @@ extern struct gputop_perf_stream *gputop_current_perf_stream;
 
 bool gputop_enumerate_queries_via_sysfs(void);
 bool gputop_perf_initialize(void);
+void gputop_perf_free(void);
 
-bool gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx);
+bool gputop_i915_perf_oa_overview_open(struct gputop_perf_query *query,
+                                       bool enable_per_ctx);
 void gputop_i915_perf_oa_overview_close(void);
 
 int fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length);
@@ -297,11 +300,12 @@ void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
 				    uint8_t *buf,
 				    int len);
 
-bool gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx);
+bool gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
+                                    bool enable_per_ctx);
 void gputop_i915_perf_oa_trace_close(void);
 
-extern struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 extern struct gputop_hash_table *queries;
+extern struct array *perf_oa_supported_query_guids;
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;
 extern bool gputop_perf_trace_empty;
