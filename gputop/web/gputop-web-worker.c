@@ -42,6 +42,7 @@
 #include <gputop-string.h>
 #include <gputop.pb-c.h>
 #include <gputop-oa-counters.h>
+#include <gputop-util.h>
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"
@@ -51,6 +52,7 @@
 
 struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 struct gputop_hash_table *queries;
+struct array *perf_oa_supported_query_guids;
 
 struct gputop_worker_query {
     int id;
@@ -548,8 +550,8 @@ static void
 update_features(Gputop__Features *features)
 {
     gputop_string_t *str;
-    int i;
     bool n_queries = 0;
+    struct gputop_hash_entry *entry;
 
     devinfo.devid = features->devinfo->devid;
     devinfo.n_eus = features->devinfo->n_eus;
@@ -563,6 +565,7 @@ update_features(Gputop__Features *features)
 
     queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
                                        gputop_key_string_equal);
+    perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
 
     if (features->fake_mode)
         gputop_oa_add_queries_bdw(&devinfo);
@@ -581,15 +584,18 @@ update_features(Gputop__Features *features)
     } else
 	assert_not_reached();
 
-    for (i = 0; i < I915_OA_METRICS_SET_MAX; i++) {
-	struct gputop_perf_query *query = &i915_perf_oa_queries[i];
+    for (entry = gputop_hash_table_next_entry(queries, NULL); entry != NULL;
+         entry = gputop_hash_table_next_entry(queries, entry))
+    {
+        struct gputop_perf_query *query = entry->data;
 
-	if (query->name) {
-	    if (n_queries)
-		gputop_string_append(str, ",\n");
-	    append_i915_oa_query(str, query);
-	    n_queries++;
-	}
+        if (query->name) {
+            if (n_queries)
+                gputop_string_append(str, ",\n");
+            append_i915_oa_query(str, query);
+            n_queries++;
+            array_append(perf_oa_supported_query_guids, &query->guid);
+        }
     }
 
     gputop_string_append(str, "],\n");
@@ -760,6 +766,7 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
     Gputop__OAQueryInfo oa_query = GPUTOP__OAQUERY_INFO__INIT;
     struct gputop_worker_query *query = malloc(sizeof(*query));
+    int i;
 
     memset(query, 0, sizeof(*query));
 
@@ -787,7 +794,23 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     memset(query, 0, sizeof(*query));
     query->id = id;
     query->aggregation_period = aggregation_period;
-    query->oa_query = &i915_perf_oa_queries[perf_metric_set];
+
+    query->oa_query = NULL;
+    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    {
+        struct gputop_perf_query *perf_query = (gputop_hash_table_search(
+            queries, array_value_at(perf_oa_supported_query_guids, char*,
+                i)))->data;
+
+        if (perf_query->perf_oa_metrics_set == perf_metric_set) {
+            query->oa_query = perf_query;
+            break;
+        }
+    }
+
+    if (query->oa_query == NULL)
+        return;
+
     gputop_list_insert(open_queries.prev, &query->link);
 }
 
