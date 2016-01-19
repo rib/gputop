@@ -64,6 +64,7 @@ message Features
     required string kernel_release = 7;
     required string kernel_build = 8;
     required bool fake_mode = 9;
+    repeated string supported_oa_query_guids = 10;
 }
 
 message LogEntry
