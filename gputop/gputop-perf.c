@@ -124,6 +124,7 @@ static unsigned int page_size;
 
 struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 struct gputop_hash_table *queries;
+struct array *perf_oa_supported_query_guids;
 struct gputop_perf_query *gputop_current_perf_query;
 struct gputop_perf_stream *gputop_current_perf_stream;
 
@@ -1374,6 +1375,7 @@ gputop_enumerate_queries_via_sysfs (void)
                         mjr, mnr, entry2->d_name, entry4->d_name);
 
                 query->perf_oa_metrics_set = read_file_uint64(buffer);
+                array_append(perf_oa_supported_query_guids, &query->guid);
             }
             closedir (metrics_dir);
         }
@@ -1407,6 +1409,7 @@ gputop_perf_initialize(void)
 
     queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
                                        gputop_key_string_equal);
+    perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
 
     if (gputop_fake_mode) {
 	gputop_oa_add_queries_bdw(&gputop_devinfo);
@@ -1424,6 +1427,19 @@ gputop_perf_initialize(void)
     gputop_enumerate_queries_via_sysfs();
 
     return true;
+}
+
+static void
+free_perf_oa_queries(struct gputop_hash_entry *entry)
+{
+    free(entry->data);
+}
+
+void
+gputop_perf_free(void)
+{
+    gputop_hash_table_destroy(queries, free_perf_oa_queries);
+    array_free(perf_oa_supported_query_guids);
 }
 
 /**
@@ -1451,7 +1467,8 @@ static struct perf_oa_user overview_user = {
 };
 
 bool
-gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
+gputop_i915_perf_oa_overview_open(struct gputop_perf_query *query,
+                                  bool enable_per_ctx)
 {
     int period_exponent;
     char *error = NULL;
@@ -1462,8 +1479,8 @@ gputop_i915_perf_oa_overview_open(int metric_set, bool enable_per_ctx)
 	return false;
 
     current_user = &overview_user;
+    gputop_current_perf_query = query;
 
-    gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
     gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
@@ -1549,7 +1566,8 @@ static struct perf_oa_user trace_user = {
 };
 
 bool
-gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
+gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
+                               bool enable_per_ctx)
 {
     int period_exponent;
     double duration = 5.0; /* seconds */
@@ -1563,8 +1581,8 @@ gputop_i915_perf_oa_trace_open(int metric_set, bool enable_per_ctx)
 	return false;
 
     current_user = &trace_user;
+    gputop_current_perf_query = query;
 
-    gputop_current_perf_query = &i915_perf_oa_queries[metric_set];
     gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
 
     /* The timestamp for HSW+ increments every 80ns
