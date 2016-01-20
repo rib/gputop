@@ -50,7 +50,6 @@
 #include "oa-skl.h"
 
 
-struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 struct gputop_hash_table *queries;
 struct array *perf_oa_supported_query_guids;
 
@@ -89,8 +88,6 @@ static struct gputop_devinfo devinfo;
 static int socket = 0;
 
 static int next_rpc_id = 1;
-
-struct gputop_perf_query i915_oa_perf_queries[I915_OA_METRICS_SET_MAX];
 
 static void __attribute__((noreturn))
 assert_not_reached(void)

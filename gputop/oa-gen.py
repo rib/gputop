@@ -428,13 +428,6 @@ percentage_max_callback(struct gputop_devinfo *devinfo,
 
 """)
 
-def metric_set_perf_name(set):
-    name = set.get('symbol_name')
-    if name in symbol_to_perf_map:
-        return "I915_OA_METRICS_SET_" + symbol_to_perf_map[name]
-    else:
-        return "I915_OA_METRICS_SET_" + set.get('underscore_name').upper()
-
 for set in tree.findall(".//set"):
     max_funcs = {}
     read_funcs = {}
@@ -454,8 +447,6 @@ for set in tree.findall(".//set"):
     c("{\n")
     c_indent(3)
 
-    perf_id = metric_set_perf_name(set)
-
     c("struct gputop_perf_query *query;\n")
     c("struct gputop_perf_query_counter *counter;\n\n")
 
@@ -466,7 +457,7 @@ for set in tree.findall(".//set"):
     c("gputop_hash_table_insert(queries, query->guid, query);\n")
     c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
     c("query->n_counters = 0;\n")
-    c("query->perf_oa_metrics_set = " + perf_id + ";\n")
+    c("query->perf_oa_metrics_set = 0; // determined at runtime\n")
 
     if chipset == "hsw":
         c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;

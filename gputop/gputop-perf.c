@@ -122,7 +122,6 @@ static struct intel_device intel_dev;
 
 static unsigned int page_size;
 
-struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 struct gputop_hash_table *queries;
 struct array *perf_oa_supported_query_guids;
 struct gputop_perf_query *gputop_current_perf_query;
@@ -320,26 +319,33 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 {
     struct gputop_perf_stream *stream;
     struct i915_perf_open_param param;
-    uint64_t properties[] = {
-	DRM_I915_PERF_CTX_HANDLE_PROP, 0,
-
-	DRM_I915_PERF_SAMPLE_OA_PROP, true,
-
-	DRM_I915_PERF_OA_METRICS_SET_PROP, query->perf_oa_metrics_set,
-	DRM_I915_PERF_OA_FORMAT_PROP, query->perf_oa_format,
-	DRM_I915_PERF_OA_EXPONENT_PROP, period_exponent,
-    };
-    struct ctx_handle *ctx;
-    int ret;
-
-    memset(&param, 0, sizeof(param));
-
-    param.flags = 0;
-    param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
-    param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
+    int stream_fd = -1;
 
     if (!gputop_fake_mode) {
+	uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
+	int p = 0;
+
+	memset(&param, 0, sizeof(param));
+
+	param.flags = 0;
+	param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
+	param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
+
+	properties[p++] = DRM_I915_PERF_SAMPLE_OA_PROP;
+	properties[p++] = true;
+
+	properties[p++] = DRM_I915_PERF_OA_METRICS_SET_PROP;
+	properties[p++] = query->perf_oa_metrics_set;
+
+	properties[p++] = DRM_I915_PERF_OA_FORMAT_PROP;
+	properties[p++] = query->perf_oa_format;
+
+	properties[p++] = DRM_I915_PERF_OA_EXPONENT_PROP;
+	properties[p++] = period_exponent;
+
 	if (query->per_ctx_mode) {
+	    struct ctx_handle *ctx;
+
 	    // TODO: (matt-auld)
 	    // Currently we don't support selectable contexts, so we just use the
 	    // first one which is avaivable to us. Though this would only really
@@ -349,18 +355,15 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 	    if (!ctx)
 	      return NULL;
 
-	    properties[1] = ctx->id;
-	    param.properties = (uint64_t)properties;
-	    param.n_properties = sizeof(properties) / 16;
+	    properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
+	    properties[p++] = ctx->id;
+	}
 
-	    ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
-	} else {
-            param.properties = (uint64_t)(properties + 2);
-            param.n_properties = sizeof(properties) / 16 - 1;
+	param.properties = (uint64_t)properties;
+	param.n_properties = p / 2;
 
-            ret = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
-        }
-        if (ret == -1) {
+	stream_fd = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+        if (stream_fd == -1) {
 	    asprintf(error, "Error opening i915 perf OA event: %m\n");
 	    return NULL;
         }
@@ -372,15 +375,14 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->query = query;
     stream->ready_cb = ready_cb;
 
+    stream->fd = stream_fd;
+
     if (gputop_fake_mode) {
-        stream->fd = -1;
         stream->start_time = get_time();
         stream->prev_clocks = (uint32_t)get_time();
         stream->period = 80 * (2 << period_exponent);
         stream->prev_timestamp = (uint32_t)get_time();
     }
-    else
-        stream->fd = param.fd;
 
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
@@ -656,7 +658,7 @@ init_dev_info(int drm_fd, uint32_t devid)
 	    gputop_devinfo.gen = 8;
 	} else if (IS_SKYLAKE(devid)) {
 	    s_max = 3;
-	    ss_max = 4;
+	    ss_max = 3;
 	    gputop_devinfo.gen = 9;
 	}
 

@@ -35,8 +35,8 @@
 
 #define I915_PARAM_SUBSLICE_TOTAL	33
 #define I915_PARAM_EU_TOTAL		34
-#define I915_PARAM_SLICE_MASK		37
-#define I915_PARAM_SUBSLICE_MASK	38
+#define I915_PARAM_SLICE_MASK		45
+#define I915_PARAM_SUBSLICE_MASK	46
 
 typedef struct i915_getparam {
 	int param;
@@ -46,54 +46,41 @@ typedef struct i915_getparam {
 
 
 enum i915_oa_format {
-	I915_OA_FORMAT_A13	    = 0, /* HSW only */
-	I915_OA_FORMAT_A29	    = 1, /* HSW only */
-	I915_OA_FORMAT_A13_B8_C8    = 2, /* HSW only */
-	I915_OA_FORMAT_B4_C8	    = 4, /* HSW only */
-	I915_OA_FORMAT_A45_B8_C8    = 5, /* HSW only */
-	I915_OA_FORMAT_B4_C8_A16    = 6, /* HSW only */
-	I915_OA_FORMAT_C4_B8	    = 7, /* HSW+ */
+	I915_OA_FORMAT_A13 = 1,	    /* HSW only */
+	I915_OA_FORMAT_A29,	    /* HSW only */
+	I915_OA_FORMAT_A13_B8_C8,   /* HSW only */
+	I915_OA_FORMAT_B4_C8,	    /* HSW only */
+	I915_OA_FORMAT_A45_B8_C8,   /* HSW only */
+	I915_OA_FORMAT_B4_C8_A16,   /* HSW only */
+	I915_OA_FORMAT_C4_B8,	    /* HSW+ */
 
 	/* Gen8+ */
-	I915_OA_FORMAT_A12		    = 8,
-	I915_OA_FORMAT_A12_B8_C8	    = 9,
-	I915_OA_FORMAT_A32u40_A4u32_B8_C8   = 10,
+	I915_OA_FORMAT_A12,
+	I915_OA_FORMAT_A12_B8_C8,
+	I915_OA_FORMAT_A32u40_A4u32_B8_C8,
 
 	I915_OA_FORMAT_MAX	    /* non-ABI */
-};
-
-enum i915_oa_set {
-	I915_OA_METRICS_SET_3D = 1,
-
-	I915_OA_METRICS_SET_COMPUTE,
-	I915_OA_METRICS_SET_COMPUTE_EXTENDED,
-	I915_OA_METRICS_SET_MEMORY_READS,
-	I915_OA_METRICS_SET_MEMORY_WRITES,
-	I915_OA_METRICS_SET_SAMPLER_BALANCE,
-
-	I915_OA_METRICS_SET_RENDER_PIPE_PROFILE,
-	I915_OA_METRICS_SET_COMPUTE_L3_CACHE,
-	I915_OA_METRICS_SET_DATA_PORT_READS_COALESCING,
-	I915_OA_METRICS_SET_DATA_PORT_WRITES_COALESCING,
-	I915_OA_METRICS_SET_L3_1,
-	I915_OA_METRICS_SET_L3_2,
-	I915_OA_METRICS_SET_L3_3,
-	I915_OA_METRICS_SET_L3_4,
-	I915_OA_METRICS_SET_RASTERIZER_AND_PIXEL_BACKEND,
-	I915_OA_METRICS_SET_SAMPLER_1,
-	I915_OA_METRICS_SET_SAMPLER_2,
-	I915_OA_METRICS_SET_TDL_1,
-	I915_OA_METRICS_SET_TDL_2,
-
-	I915_OA_METRICS_SET_HDC_AND_SF,
-	I915_OA_METRICS_SET_SAMPLER,
-
-	I915_OA_METRICS_SET_MAX                 /* non-ABI */
 };
 
 #define I915_PERF_FLAG_FD_CLOEXEC	(1<<0)
 #define I915_PERF_FLAG_FD_NONBLOCK	(1<<1)
 #define I915_PERF_FLAG_DISABLED		(1<<2)
+
+enum i915_perf_oa_event_source {
+	I915_PERF_OA_EVENT_SOURCE_UNDEFINED,
+	I915_PERF_OA_EVENT_SOURCE_PERIODIC,
+	I915_PERF_OA_EVENT_SOURCE_CONTEXT_SWITCH,
+	I915_PERF_OA_EVENT_SOURCE_RCS,
+
+	I915_PERF_OA_EVENT_SOURCE_MAX	/* non-ABI */
+};
+
+#define I915_PERF_MMIO_NUM_MAX	8
+struct i915_perf_mmio_list {
+	uint32_t num_mmio;
+	uint32_t mmio_list[I915_PERF_MMIO_NUM_MAX];
+};
+
 
 enum i915_perf_property_id {
 	/**
@@ -129,6 +116,51 @@ enum i915_perf_property_id {
 	 */
 	DRM_I915_PERF_OA_EXPONENT_PROP,
 
+	/**
+	 * The value of this property set to 1 requests inclusion of sample
+	 * source field to be given to userspace. The sample source field
+	 * specifies the origin of OA report.
+	 */
+	DRM_I915_PERF_SAMPLE_OA_SOURCE_PROP,
+
+	/**
+	 * The value of this property specifies the GPU engine (ring) for which
+	 * the samples need to be collected. Specifying this property also
+	 * implies the command stream based sample collection.
+	 */
+	DRM_I915_PERF_RING_PROP,
+
+	/**
+	 * The value of this property set to 1 requests inclusion of context ID
+	 * in the perf sample data.
+	 */
+	DRM_I915_PERF_SAMPLE_CTX_ID_PROP,
+
+	/**
+	 * The value of this property set to 1 requests inclusion of pid in the
+	 * perf sample data.
+	 */
+	DRM_I915_PERF_SAMPLE_PID_PROP,
+
+	/**
+	 * The value of this property set to 1 requests inclusion of tag in the
+	 * perf sample data.
+	 */
+	DRM_I915_PERF_SAMPLE_TAG_PROP,
+
+	/**
+	 * The value of this property set to 1 requests inclusion of timestamp
+	 * in the perf sample data.
+	 */
+	DRM_I915_PERF_SAMPLE_TS_PROP,
+
+	/**
+	 * This property requests inclusion of mmio register values in the perf
+	 * sample data. The value of this property specifies the address of user
+	 * struct having the register addresses.
+	 */
+	DRM_I915_PERF_SAMPLE_MMIO_PROP,
+
 	DRM_I915_PERF_PROP_MAX /* non-ABI */
 };
 
@@ -144,9 +176,6 @@ struct i915_perf_open_param {
 
 	/** The number of u64 (id, value) pairs */
 	uint32_t n_properties;
-
-	/* OUT */
-	uint32_t fd;
 };
 
 /**
@@ -170,13 +199,19 @@ enum i915_perf_record_type {
 	 * every sample.
 	 *
 	 * The order of these sample properties given by userspace has no
-	 * affect on the ordering of data within a sample. The order will be
+	 * affect on the ordering of data within a sample. The order is
 	 * documented here.
 	 *
 	 * struct {
 	 *     struct drm_i915_perf_record_header header;
 	 *
-	 *     TODO: itemize extensible sample data here
+	 *     { u32 source_info; } && DRM_I915_PERF_SAMPLE_OA_SOURCE_PROP
+	 *     { u32 ctx_id; } && DRM_I915_PERF_SAMPLE_CTX_ID_PROP
+	 *     { u32 pid; } && DRM_I915_PERF_SAMPLE_PID_PROP
+	 *     { u32 tag; } && DRM_I915_PERF_SAMPLE_TAG_PROP
+	 *     { u64 timestamp; } && DRM_I915_PERF_SAMPLE_TS_PROP
+	 *     { u32 mmio[]; } && DRM_I915_PERF_SAMPLE_MMIO_PROP
+	 *     { u32 oa_report[]; } && DRM_I915_PERF_SAMPLE_OA_PROP
 	 * };
 	 */
 	DRM_I915_PERF_RECORD_SAMPLE = 1,
