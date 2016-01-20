@@ -108,6 +108,7 @@ static void (*pfn_glGetIntegerv)(GLenum pname, GLint *params);
 static GLenum (*pfn_glGetError)(void);
 static void (*pfn_glEnable)(GLenum cap);
 static void (*pfn_glDisable)(GLenum cap);
+static void (*pfn_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 
 static void (*pfn_glDebugMessageControl)(GLenum source,
 					 GLenum type,
@@ -177,6 +178,8 @@ struct array *gputop_gl_contexts;
 struct array *gputop_gl_surfaces;
 
 bool gputop_gl_force_debug_ctx_enabled = false;
+
+atomic_bool gputop_gl_scissor_test_enabled;
 
 atomic_bool gputop_gl_monitoring_enabled;
 atomic_int gputop_gl_n_queries;
@@ -258,6 +261,11 @@ gputop_gl_init(void)
 
     if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
 	gputop_gl_force_debug_ctx_enabled = true;
+
+    if (getenv("GPUTOP_SCISSOR_TEST"))
+	atomic_store(&gputop_gl_scissor_test_enabled, true);
+    else
+	atomic_store(&gputop_gl_scissor_test_enabled, false);
 }
 
 static void
@@ -345,6 +353,7 @@ initialise_gl(void)
 
 	SYM(glEnable),
 	SYM(glDisable),
+	SYM(glScissor),
 
 	/* KHR_debug */
 	SYM(glDebugMessageControl),
@@ -1024,6 +1033,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     struct winsys_context *wctx;
     struct winsys_surface *wsurface;
     bool monitoring_enabled;
+    bool scissor_test;
 
     pthread_once(&init_once, gputop_gl_init);
 
@@ -1069,6 +1079,24 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 
     real_glXSwapBuffers(dpy, drawable);
 
+    scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
+    if (scissor_test)
+    {
+	pfn_glScissor(0, 0, 1, 1);
+	if (!glIsEnabled(GL_SCISSOR_TEST))
+	    pfn_glEnable(GL_SCISSOR_TEST);
+    }
+    else
+    {
+	pfn_glScissor(wctx->scissor_x, wctx->scissor_y,
+	wctx->scissor_width, wctx->scissor_height);
+
+	if (wctx->scissor_enabled)
+	    pfn_glEnable(GL_SCISSOR_TEST);
+	else
+	    pfn_glDisable(GL_SCISSOR_TEST);
+    }
+
     if (monitoring_enabled) {
 	winsys_surface_check_for_finished_queries(wsurface);
 	winsys_surface_start_frame(wsurface);
@@ -1078,9 +1106,15 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 void
 gputop_glEnable(GLenum cap)
 {
+    struct winsys_context *wctx = pthread_getspecific(winsys_context_key);
+
     if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
 	dbg("Ignoring application's conflicting use of KHR_debug extension");
 	return;
+    }
+
+    if (cap == GL_SCISSOR_TEST) {
+	wctx->scissor_enabled = true;
     }
 
     pfn_glEnable(cap);
@@ -1089,12 +1123,37 @@ gputop_glEnable(GLenum cap)
 void
 gputop_glDisable(GLenum cap)
 {
+    struct winsys_context *wctx;
+    bool scissor_test;
+
+    wctx = pthread_getspecific(winsys_context_key);
+    scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
+
     if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
 	dbg("Ignoring application's conflicting use of KHR_debug extension");
 	return;
     }
 
-    pfn_glDisable(cap);
+    if (cap == GL_SCISSOR_TEST) {
+	wctx->scissor_enabled = false;
+    }
+
+    if (!scissor_test || (cap != GL_SCISSOR_TEST)) {
+	pfn_glDisable(cap);
+    }
+}
+
+void
+gputop_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+    struct winsys_context *wctx = pthread_getspecific(winsys_context_key);
+
+    wctx->scissor_x = x;
+    wctx->scissor_y = y;
+    wctx->scissor_width = width;
+    wctx->scissor_height = height;
+    if (!atomic_load(&gputop_gl_scissor_test_enabled))
+	pfn_glScissor(x, y, width, height);
 }
 
 void
