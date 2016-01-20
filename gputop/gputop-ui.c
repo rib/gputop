@@ -100,6 +100,21 @@ static bool web_ui = false;
 static int y_pos;
 static double zoom = 1;
 
+static int selected_line;
+static int start_pos;
+
+struct key_func
+{
+    char* key;
+    int (*func)(bool change_state, int value);
+};
+
+int scissor_test(bool change_state, int value);
+
+static const struct key_func knobs[] = {
+    {"Scissor Test", scissor_test},
+};
+
 static bool added_gl_tabs;
 static gputop_list_t tabs;
 
@@ -915,25 +930,66 @@ static struct tab tab_gl_debug_log =
 static void
 gl_knobs_tab_enter(struct tab *owner_tab)
 {
-
+    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_start(&timer, timer_cb, 1000, 1000);
 }
 
 static void
 gl_knobs_tab_leave(void)
 {
-
+    uv_timer_stop(&timer);
 }
 
 static void
 gl_knobs_tab_input(int key)
 {
+    switch (key) {
+	case 13: //13 = KEY_ENTER.
+	    knobs[selected_line].func(true, !knobs[selected_line].func(false, 0));
+	    redraw_ui();
+	    break;
+    }
+}
 
+int scissor_test(bool change_state, int value)
+{
+    if (change_state)
+        atomic_store(&gputop_gl_scissor_test_enabled, (bool)value);
+    return atomic_load(&gputop_gl_scissor_test_enabled);
 }
 
 static void
 gl_knobs_tab_redraw(WINDOW *win)
 {
+    int win_width __attribute__ ((unused));
+    int win_height;
+    int i;
+    int caret_pos = 1;
+    const int knobs_length = sizeof(knobs) / sizeof(struct key_func);
 
+    if (y_pos >= knobs_length)
+	y_pos = knobs_length - 1;
+
+    selected_line = y_pos;
+    getmaxyx(win, win_height, win_width);
+
+    if (selected_line < start_pos)
+	start_pos = selected_line;
+    if (selected_line > (start_pos + (win_height - 3)))
+	start_pos = selected_line - (win_height - 3);
+
+    for (i = start_pos; i < knobs_length; i++)
+    {
+	if (i == selected_line)
+	    mvwprintw(win, caret_pos, 38 - strlen(knobs[i].key), "->");
+
+	mvwprintw(win, caret_pos, 40 - strlen(knobs[i].key), "%s:        %s",
+		knobs[i].key,  ((knobs[i].func(false, 0)) ? "[x]" : "[-]"));
+
+	caret_pos++;
+	if (caret_pos >= (win_height - 1))
+	    break;
+    }
 }
 
 static struct tab tab_gl_knobs =
