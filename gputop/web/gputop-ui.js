@@ -305,7 +305,7 @@ function open_oa_query_for_trace(idx)
     query_id = next_query_id++;
     rpc({ "method": "open_oa_query",
 	  "params": [ query_id,
-		      oa_query.metric_set,
+		      oa_query.guid,
 		      period_exponent,
 		      false, /* don't overwrite old samples */
 		      100000000, /* nanoseconds of aggregation
@@ -460,7 +460,7 @@ function forensic_ui_activate()
 
     rpc({ "method": "open_oa_query",
 	  "params": [ next_query_id,
-		      1, /* 3D metric set */
+		      oa_query.guid,
 		      period_exponent,
 		      true, /* overwrite old samples */
 		      100, /* milliseconds of aggregation
@@ -614,7 +614,7 @@ function open_oa_query_for_overview(idx)
     query_id = next_query_id++;
     rpc({ "method": "open_oa_query",
 	  "params": [ query_id,
-		      oa_query.metric_set,
+		      oa_query.guid,
 		      period_exponent,
 		      false, /* don't overwrite old samples */
 		      1000000000, /* nanoseconds of aggregation

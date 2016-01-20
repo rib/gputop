@@ -498,7 +498,7 @@ append_i915_oa_query(gputop_string_t *str, struct gputop_perf_query *query)
 
     gputop_string_append(str, "  {\n");
     gputop_string_append_printf(str, "    \"name\": \"%s\",\n", query->name);
-    gputop_string_append_printf(str, "    \"metric_set\": %d,\n", query->perf_oa_metrics_set);
+    gputop_string_append_printf(str, "    \"guid\": \"%s\",\n", query->guid);
     gputop_string_append_printf(str, "    \"counters\": [\n");
 
     for (i = 0; i < query->n_counters; i++) {
@@ -755,7 +755,7 @@ gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_oa_query(uint32_t id,
-				  int perf_metric_set,
+				  const char *guid,
 				  int period_exponent,
 				  unsigned overwrite,
 				  uint32_t aggregation_period,
@@ -766,12 +766,12 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
     Gputop__OAQueryInfo oa_query = GPUTOP__OAQUERY_INFO__INIT;
     struct gputop_worker_query *query = malloc(sizeof(*query));
-    int i;
+    struct gputop_hash_entry *entry = NULL;
 
     memset(query, 0, sizeof(*query));
 
-    gputop_web_console_log("on_open_oa_query set=%d, exponent=%d, overwrite=%d live=%s agg_period=%"PRIu32"\n",
-			   perf_metric_set, period_exponent, overwrite,
+    gputop_web_console_log("on_open_oa_query set=%s, exponent=%d, overwrite=%d live=%s agg_period=%"PRIu32"\n",
+			   guid, period_exponent, overwrite,
 			   live_updates ? "true" : "false",
 			   aggregation_period);
 
@@ -782,7 +782,7 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     open.live_updates = live_updates;
     open.overwrite = overwrite;
 
-    oa_query.metric_set = perf_metric_set;
+    oa_query.guid = (char*)guid;
     oa_query.period_exponent = period_exponent;
 
     req.uuid = (char*)req_uuid;
@@ -795,20 +795,10 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     query->id = id;
     query->aggregation_period = aggregation_period;
 
-    query->oa_query = NULL;
-    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
-    {
-        struct gputop_perf_query *perf_query = (gputop_hash_table_search(
-            queries, array_value_at(perf_oa_supported_query_guids, char*,
-                i)))->data;
-
-        if (perf_query->perf_oa_metrics_set == perf_metric_set) {
-            query->oa_query = perf_query;
-            break;
-        }
-    }
-
-    if (query->oa_query == NULL)
+    entry = gputop_hash_table_search(queries, guid);
+    if (entry != NULL)
+        query->oa_query = entry->data;
+    else
         return;
 
     gputop_list_insert(open_queries.prev, &query->link);
