@@ -551,7 +551,7 @@ update_features(Gputop__Features *features)
 {
     gputop_string_t *str;
     bool n_queries = 0;
-    struct gputop_hash_entry *entry;
+    int i;
 
     devinfo.devid = features->devinfo->devid;
     devinfo.n_eus = features->devinfo->n_eus;
@@ -584,10 +584,10 @@ update_features(Gputop__Features *features)
     } else
 	assert_not_reached();
 
-    for (entry = gputop_hash_table_next_entry(queries, NULL); entry != NULL;
-         entry = gputop_hash_table_next_entry(queries, entry))
+    for (i = 0; i < features->n_supported_oa_query_guids; i++)
     {
-        struct gputop_perf_query *query = entry->data;
+        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
+            features->supported_oa_query_guids[i]))->data;
 
         if (query->name) {
             if (n_queries)
