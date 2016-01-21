@@ -351,10 +351,6 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 
 	    properties[1] = ctx->id;
 	    param.properties = (uint64_t)properties;
-            param.n_properties = sizeof(properties) / 16;
-
-	    properties[1] = ctx->id;
-	    param.properties = (uint64_t)properties;
 	    param.n_properties = sizeof(properties) / 16;
 
 	    ret = perf_ioctl(ctx->fd, I915_IOCTL_PERF_OPEN, &param);
