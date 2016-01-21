@@ -1435,9 +1435,7 @@ gputop_perf_initialize(void)
     } else
 	assert(0);
 
-    gputop_enumerate_queries_via_sysfs();
-
-    return true;
+    return gputop_enumerate_queries_via_sysfs();
 }
 
 static void
