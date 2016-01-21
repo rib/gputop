@@ -2,6 +2,8 @@ all::
 
 E=$(if $(V),,@)
 
+CXX=em++
+
 CC=emcc
 top_srcdir=../..
 gputop_srcdir=$(top_srcdir)/gputop
@@ -19,24 +21,28 @@ W_FLAGS=-Wall -Wuninitialized -Wno-strict-aliasing -Wempty-body -Wformat -Wforma
 CFLAGS=-g -O0 $(W_FLAGS)
 OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
-JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 -s NO_BROWSER=1 -s INVOKE_RUN=0
+JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 
 
-_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) -I$(protobuf_c_srcdir)
-_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) -I$(protobuf_c_srcdir)
+_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
+_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
 _JSFLAGS=$(JSFLAGS)
 
 
-gputop_web_SOURCE=gputop-web.c gputop-string.c gputop-list.c gputop-hash-table.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web-worker.c protobuf-c.c gputop.pb-c.c gputop-oa-counters.c
+gputop_web_SOURCE=gputop-web.c gputop-string.c gputop-hash-table.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web-v2.c gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
 
-all:: gputop-web.bc gputop-web-worker.js
+all:: gputop-web-v2.bc gputop-web-v2.js
 
-gputop-web.bc: $(gputop_web_OBJECTS)
+gputop-web-v2.bc: $(gputop_web_OBJECTS)
 
-%.o: %.c Makefile.emscripten | dirs
+%.o: %.c Makefile.v2.emscripten | dirs
 	$(E)echo "(CC)     $(@)"
 	$(E)$(CC) $(filter %.c,$(^)) -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
 
+%.o: %.cc Makefile.v2.emscripten | dirs
+	$(E)echo "(CXX)     $(@)"
+	$(E)$(CXX) $(filter %.cc,$(^)) -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
+	
 %.bc: | dirs
 	$(E)echo "(BC)     $(@)"
 	$(E)$(CC) $(_BC_CFLAGS) $(filter %.o %.c,$(^)) -o $@
@@ -44,8 +50,8 @@ gputop-web.bc: $(gputop_web_OBJECTS)
 %.js: %.bc | dirs
 	$(CC) $(_JSFLAGS) -o $@ $^
 
-gputop-web-worker.js gputop-web-worker.js.map: gputop-web.bc gputop-web-worker-post.js gputop-web-lib.js | dirs
-	$(CC) $(_JSFLAGS) --post-js $(web_srcdir)/gputop-web-worker-post.js --js-library $(web_srcdir)/gputop-web-lib.js -s BUILD_AS_WORKER=1 -s INVOKE_RUN=0 -o $@ gputop-web.bc
+gputop-web-v2.js gputop-web-v2.js.map: gputop-web-v2.bc gputop-web-lib-v2.js | dirs
+	$(CC) $(_JSFLAGS) --post-js $(web_srcdir)/gputop-web-v2-post.js --js-library $(web_srcdir)/gputop-web-lib-v2.js -o $@ gputop-web-v2.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0
 
 -include .deps/*.rules
 
@@ -54,7 +60,7 @@ dirs:
 
 clean:
 	-rm -f *.o *.bc *.js.map
-	-rm -f gputop-web-worker.js
+	-rm -f gputop-web-v2.js
 
 distclean:
 	-rm -rf .deps
