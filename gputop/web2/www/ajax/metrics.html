@@ -1,0 +1,237 @@
+<!-- Pannel 2 -->
+<div class = row>
+    <div class = "col-sm-4">
+        <h1 id="page-header-metrics">Metrics panel loading</h1>
+    </div>
+    <div class = "col-sm-4 col-sm-offset-1">
+        <div class="btn-group" role="group" aria-label="...">
+            <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
+        </div>
+    </div>
+</div>
+
+<div class = "container-fluid">
+    <div class = "row">
+        <div class = "col-sm-8 tab-content" id = "counter_metrics">
+        </div>
+        <div class = "col-sm-3">
+            <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs">
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    function timeout() {
+        if (gputop.is_connected_ == true) {
+            i += k;
+            if (i <= 100)
+                setTimeout(timeout, 10);
+            else if (i > 100) {
+                i = 0;
+                setTimeout(timeout, 1000);
+            }
+        } else {
+            i = 0;
+            setTimeout(timeout, 1000);
+            console.log("Retry timeout");
+        }
+
+        $(".bar_adjust").css("width", i + "%");
+        $(".progress_text").text(i + "%");
+    } // timeout
+
+    function read_metrics_counter() {
+        var $counter = $(this);
+        var name = $counter.attr("name");
+        //gputop_ui.syslog("Counter name: " + name);
+
+        // display of counter bar metrics
+        counter_bars = '\
+            <div class="row"> \
+                <div class = "col-sm-1 live_trace_dropdown"><a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"><div class = "glyphicon glyphicon-collapse-down"></div></a></div> \
+                <div class = "col-sm-3 column_class"><p2 id = "counter">' + name + '</p2></div> \
+                <div class = "col-sm-6 overview_bars"> \
+                    <div class = "progress"> \
+                        <div class = "progress-bar progress-bar-striped active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%; transition: none;" data-toggle="tooltip" data-placement="left"></div> \
+                    </div> \
+                </div> \
+                <div class = "col-sm-1"><p class = "progress_text">' + 0 + '</p></div> \
+            </div> \
+            <div class = "row"> \
+                <div class = "col-sm-9"> \
+                    <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
+                        <div class="well" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
+                    </div> \
+                </div> \
+            </div>';
+
+        $("#tab_number_" + set_index).append(counter_bars);
+
+        counter_index ++;
+    } // read_metrics_counter
+
+
+    function read_metrics_set() {
+        var $set = $(this);
+        var title = $set.attr("name");
+        var counter_bars;
+
+        var active = "";
+        if (set_index == 0) {
+            active = " active";
+            $('#page-header-metrics').text(title);
+        }
+
+        // contents of the sidebar menu
+        $("#sidebar_right").append('<li class="' + active + '"><a id="set_' + set_index + '" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+
+        // display of metrics tab-pane
+        $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
+
+        $set.find("counter").each(read_metrics_counter);
+
+        $("#counter_metrics").append("</div");
+        set_index ++;
+
+    } // read_metrics_set
+
+
+    function read_from_xml(xml_name) {
+        $(xml_name).find("set").each(read_metrics_set);
+
+        $(".glyphicon").hide();
+
+        $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            e.target // newly activated tab
+            e.relatedTarget // previous active tab
+            $('#page-header-metrics').text(e.target.text);
+        });
+
+
+        $('.collapse').on('shown.bs.collapse', function(e) {
+            $('.progress').hide();
+            var id = $(e.target).find(".well");
+            graph_start("#" + id.attr("id"));
+        });
+
+    } // read_from_xml
+
+
+    function GetData() {
+        data.shift();
+
+        while (data.length < totalPoints) {
+            var y = Math.random() * 100;
+            var temp = [now += updateInterval, y];
+
+            data.push(temp);
+        }
+    }
+
+
+    function graph_start(id_plot) {
+        GetData();
+
+        dataset = [
+            { label: "CPU", data: data }
+        ];
+
+        $.plot($(id_plot), dataset, options);
+
+        function update() {
+            GetData();
+
+            $.plot($(id_plot), dataset, options)
+            setTimeout(update, updateInterval);
+        }
+
+        update();
+    };
+
+
+
+    // index of set + index of active counter forms an unique id for all counters
+    var set_index = 0;
+    var counter_index = 0;
+
+    var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
+    var i = 0;
+    var k = 1;
+
+    $("#switch_button").on("click", function(){
+        if (toggle_mode == 1) {
+            $("#switch_button").text("Switch to Overview");
+            $('.overview_bars, .progress_text').hide();
+            $(".glyphicon").show(); // graph dropdown button
+        }
+        else {
+            $("#switch_button").text("Switch to Live Tracing");
+            $('.overview_bars, .progress_text').show();
+            $(".glyphicon").hide();
+        }
+        toggle_mode *= -1;
+    });
+
+    // read counters from xml file and populate the website
+    read_from_xml(gputop.get_metrics_xml());
+
+    // graph settings
+    var data = [];
+    var dataset;
+    var totalPoints = 50;
+    var updateInterval = 500;
+    var now = new Date().getTime();
+
+    var options = {
+        series: {
+            lines: {
+                show: true,
+                lineWidth: 1.2,
+                fill: true
+            }
+        },
+        xaxis: {
+            mode: "time",
+            tickSize: [2, "second"],
+            tickFormatter: function (v, axis) {
+                var date = new Date(v);
+
+                if (date.getSeconds() % 20 == 0) {
+                    var hours = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
+                    var minutes = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+                    var seconds = date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
+
+                    return hours + ":" + minutes + ":" + seconds;
+                } else {
+                    return "";
+                }
+            },
+            axisLabel: "Time",
+            axisLabelUseCanvas: true,
+            axisLabelFontSizePixels: 12,
+            axisLabelFontFamily: 'Verdana, Arial',
+            axisLabelPadding: 10
+        },
+        yaxis: {
+            min: 0,
+            max: 100,
+            tickSize: 5,
+            tickFormatter: function (v, axis) {
+                if (v % 10 == 0) {
+                    return v + "%";
+                } else {
+                    return "";
+                }
+            },
+            axisLabel: "CPU loading",
+            axisLabelUseCanvas: true,
+            axisLabelFontSizePixels: 12,
+            axisLabelFontFamily: 'Verdana, Arial',
+            axisLabelPadding: 6
+        },
+        legend: {
+            labelBoxBorderColor: "#fff"
+        }
+    };
+
+</script>

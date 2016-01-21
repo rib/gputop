@@ -10,7 +10,7 @@ endif
 SUBDIRS += .
 
 if SUPPORT_WEBUI
-SUBDIRS += web nodejs
+SUBDIRS += web web2 nodejs
 endif
 
 bin_PROGRAMS = gputop gputop-system

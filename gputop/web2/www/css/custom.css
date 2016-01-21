@@ -1,0 +1,63 @@
+#gputop-panels {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    background: transparent;
+    display: block;
+}
+
+#gputop-debug {
+    background: yellowgreen;
+}
+
+#editor {
+    overflow:scroll; min-height:300px; max-height:500px
+}
+
+#log {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    background: lightskyblue
+    display: block;
+}
+
+html, body {
+    height: 100%;
+}
+
+.fill {
+    min-height: 100%;
+}
+
+.intel-sw-logo {
+    display: block;
+    vertical-align: center;
+    background: url(/assets/intel_software.png) 0 0 no-repeat;
+    background-size: 70px 60px;
+    padding: 10px;
+    height: 60px;
+    width: 80px;
+}
+
+.column_class {
+    min-height: 50px;
+}
+
+.live_trace_dropdown {
+    max-width: 1px;
+}
+
+.well {
+    width: 600px;
+    height: 200px;
+    text-align: center;
+    margin: 0 auto;
+}
+
+
+/*
+.navbar-fixed-top {
+    height: 80px;
+}
+*/

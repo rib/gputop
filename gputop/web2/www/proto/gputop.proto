@@ -1,0 +1,156 @@
+package gputop;
+
+/*
+ * To Browser
+ */
+
+message DevInfo
+{
+    required uint32 devid = 1;
+    required uint64 n_eus = 2;
+    required uint64 n_eu_slices = 3;
+    required uint64 n_eu_sub_slices = 4;
+    required uint64 eu_threads_count = 5;
+    required uint64 subslice_mask = 6;
+    required uint64 slice_mask = 7;
+    required uint32 gen = 8;
+}
+
+enum GLCounterType
+{
+    RAW = 1;
+    DURATION_RAW = 2;
+    DURATION_NORM = 3;
+    EVENT = 4;
+    THROUGHPUT = 5;
+    TIMESTAMP = 6;
+}
+
+enum GLCounterDataType
+{
+    UINT64 = 1;
+    UINT32 = 2;
+    DOUBLE = 3;
+    FLOAT = 4;
+    BOOL32 = 5;
+}
+
+message GLCounter
+{
+    required string name = 1;
+    required string description = 2;
+    required GLCounterType type = 3;
+    required GLCounterDataType data_type = 4;
+    required uint64 maximum = 5;
+}
+
+message GLQueryInfo
+{
+    required uint32 id = 1;
+    required string name = 2;
+    repeated GLCounter counters = 3;
+}
+
+message Features
+{
+    required DevInfo devinfo = 1;
+    required bool has_gl_performance_query = 2; /* implies single context view */
+    required bool has_i915_oa = 3;
+    repeated GLQueryInfo gl_queries = 4;
+    /* NB: Available OA queries are inferred from devinfo */
+
+    required uint32 n_cpus = 5;
+    required string cpu_model = 6;
+    required string kernel_release = 7;
+    required string kernel_build = 8;
+    required bool fake_mode = 9;
+    repeated string supported_oa_query_guids = 10;
+}
+
+message LogEntry
+{
+  required uint32 log_level = 1;
+  required string log_message = 2;
+  //optional uint64 timestamp = 3;
+}
+
+message Log
+{
+  repeated LogEntry entries = 1;
+}
+
+message CloseNotify
+{
+    required uint32 id=1;
+}
+
+message BufferFillNotify
+{
+    required uint32 query_id=1;
+    required uint32 fill_percentage=2;
+}
+
+message Message
+{
+    optional string reply_uuid = 1;
+
+    oneof cmd {
+	string error = 2;
+	bool ack = 3;
+	Features features = 4;
+	Log log = 5;
+	CloseNotify close_notify = 6;
+	BufferFillNotify fill_notify = 7;
+    }
+}
+
+/*
+ * From Browser
+ */
+message OAQueryInfo
+{
+    required string guid = 1;
+    //required uint32 format = 2;
+    required uint32 period_exponent = 3;
+}
+
+message TraceInfo
+{
+    required int32 pid = 1;
+    required int32 cpu = 2;
+    required string system = 3;
+    required string event = 4;
+}
+
+message GenericEventInfo
+{
+    required int32 pid = 1;
+    required int32 cpu = 2;
+    required uint64 type = 3; //E.g. _TYPE_SOFTWARE or _TYPE_HARDWARE
+    required uint64 config = 4; //E.g _COUNT_SW_CONTEXT_SWITCHES
+}
+
+message OpenQuery
+{
+    required uint32 id = 1;
+
+    oneof type {
+	uint32 gl_query = 2;
+	OAQueryInfo oa_query = 3;
+	TraceInfo trace = 4;
+	GenericEventInfo generic = 5;
+    }
+    required bool overwrite = 6;
+    required bool live_updates = 7;
+}
+
+message Request
+{
+    required string uuid = 1;
+
+    oneof req {
+	bool get_features = 2;
+	OpenQuery open_query = 3;
+	uint32 close_query = 4;
+    }
+}
