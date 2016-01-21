@@ -950,7 +950,6 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
 
     if (arg == NULL) {
 	//dbg("socket closed\n");
-        gputop_perf_free();
 	close_all_streams();
         h2o_websocket_close(conn);
         return;
