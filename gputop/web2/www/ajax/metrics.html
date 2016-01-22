@@ -1,7 +1,7 @@
 <!-- Pannel 2 -->
 <div class = row>
     <div class = "col-sm-4">
-        <h1 id="page-header-metrics"></h1>
+        <h1 id="page-header-metrics">Metrics panel loading</h1>
     </div>
     <div class = "col-sm-4 col-sm-offset-1">
         <div class="btn-group" role="group" aria-label="...">
@@ -20,10 +20,7 @@
         </div>
     </div>
 </div>
-
-
 <script>
-
     function timeout() {
         if (gputop.is_connected_ == true) {
             i += k;
@@ -43,11 +40,10 @@
         $(".progress_text").text(i + "%");
     } // timeout
 
-
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
-        console.log("Counter name: " + name);
+        gputop_ui.syslog("Counter name: " + name);
 
         // display of counter bar metrics
         counter_bars = '\
@@ -176,9 +172,7 @@
     });
 
     // read counters from xml file and populate the website
-    var xml_name = "xml/oa-"+ gputop.config_.architecture +".xml";
-    $.get(xml_name, read_from_xml);
-
+    read_from_xml(gputop.get_metrics_xml());
 
     // graph settings
     var data = [];
