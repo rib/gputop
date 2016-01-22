@@ -104,7 +104,7 @@
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
             e.relatedTarget // previous active tab
-            $('.page-header').text(e.target.text);
+            $('#page-header-metrics').text(e.target.text);
         });
 
 
@@ -172,6 +172,7 @@
     });
 
     // read counters from xml file and populate the website
+    
     read_from_xml(gputop.get_metrics_xml());
 
     // graph settings

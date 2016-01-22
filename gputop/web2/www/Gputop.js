@@ -1,5 +1,4 @@
 //@ sourceURL=Gputop.js
-
 // https://google.github.io/styleguide/javascriptguide.xml
 
 Object.size = function(obj) {
@@ -56,13 +55,10 @@ function Gputop () {
     // Initialize protobuffers
     this.builder_ = proto_builder.build("gputop");
 
-    // Queries
-    this.all_oa_queries_ = [];
-    this.current_oa_query = 0;
-    this.query_id_ = 0;
+    // Queries    
     this.query_id_next_ = 1;
-    this.query_id_current_oa_ = 0;
     this.query_handles_ = [];
+    this.active_metric_query_ = 0;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -76,7 +72,7 @@ Gputop.prototype.get_map_metric = function(guid){
     } else {
         metric = new Metric();
         metric.guid_ = guid;        
-        metric.metric_set_ = Object.keys(this.map_metrics_[guid]).length;
+        metric.metric_set_ = Object.keys(this.map_metrics_).length;
         this.map_metrics_[guid] = metric;
     }
     return metric;
@@ -100,7 +96,7 @@ function gputop_read_metrics_set() {
 } // read_metrics_set
 
 Gputop.prototype.load_xml_metrics = function(xml) {
-    this.metrics_xml_ = xml;
+    gputop.metrics_xml_ = xml;
     $(xml).find("set").each(gputop_read_metrics_set);
 
     gputop_ui.load_metrics_panel(function() {
@@ -134,11 +130,11 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");        
         return;
     }
-    
+        
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
     oa_query.metric_set = metric.metric_set_;    /* 3D test */    
-
+    
     /* The timestamp for HSW+ increments every 80ns
      *
      * The period_exponent gives a sampling period as follows:
@@ -152,7 +148,8 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
      * We currently sample ~ every 10 milliseconds...
      */
 
-    this.query_id_ = this.query_id_next_++;
+    metric.oa_query_ = oa_query;
+    metric.oa_query_id_ = this.query_id_next_++;
 
     var msg = new this.builder_.Request();
     msg.uuid = this.generate_uuid();
@@ -161,7 +158,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     oa_query.period_exponent = 16 ;
 
-    open.id = this.query_id_; // oa_query ID
+    open.id = metric.oa_query_id_; // oa_query ID
     open.overwrite = false;   /* don't overwrite old samples */
     open.live_updates = true; /* send live updates */
                          /* nanoseconds of aggregation
@@ -171,7 +168,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     open.oa_query = oa_query;
 
     _gputop_webworker_on_open_oa_query(
-        this.query_id_,
+        metric.oa_query_id_,
         oa_query.metric_set,
         oa_query.period_exponent,
         open.overwrite, /* don't overwrite old samples */
@@ -188,10 +185,8 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     gputop_ui.syslog("Sent: Request "+msg.uuid);
 
-    this.query_handles_.push(this.query_id);
-
-    this.current_oa_query = oa_query;
-    this.current_oa_query_id = this.query_id_;
+    this.query_handles_.push(metric.oa_query_id_);
+    this.active_metric_query_ = metric;    
 }
 
 Gputop.prototype.get_server_url = function() {
@@ -306,8 +301,8 @@ Gputop.prototype.get_socket = function(websocket_url) {
                 break;
             }
         } catch (err) {
-            log.value += "Error: "+err+"\n";
             console.log("Error: "+err);
+            log.value += "Error: "+err+"\n";            
         }
     };
 
