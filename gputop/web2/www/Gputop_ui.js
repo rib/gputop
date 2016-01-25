@@ -4,7 +4,7 @@ function Gputop_ui () {
 
 }
 
-Gputop_ui.prototype.metric_not_supported = function(metric) {    
+Gputop_ui.prototype.metric_not_supported = function(metric) {
     alert(" Metric not supported " + metric.title_)
 }
 
@@ -35,7 +35,7 @@ Gputop_ui.prototype.log = function(log_level, log_message){
         case 2: color = "yellow"; break;
         case 3: color = "blue"; break;
         case 4: color = "black"; break;
-    }    
+    }
     $('#editor').append("<font color='"+color+"'>"+log_message+"<br/></font>");
 }
 
@@ -53,7 +53,7 @@ Gputop_ui.prototype.init_interface = function(){
 Gputop_ui.prototype.load_metrics_panel = function(callback_success) {
     $( '#pane2' ).load( "ajax/metrics.html", function() {
         console.log('Metrics panel loaded');
-        callback_success();        
+        callback_success();
     });
 }
 
