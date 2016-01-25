@@ -1,14 +1,19 @@
 <!-- Pannel 2 -->
-<div class = row>
-    <div class = "col-sm-4">
+<div class = "row">
+    <div class = "col-sm-5">
         <h1 id="page-header-metrics">Metrics panel loading</h1>
     </div>
-    <div class = "col-sm-4 col-sm-offset-1">
+    <div class = "col-sm-6">
+        <br>
         <div class="btn-group" role="group" aria-label="...">
             <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
         </div>
     </div>
+
 </div>
+
+<br> <!-- Ugly, dirty and disgusting way of placing stuff in the right place, will be fixed later -->
+<br>
 
 <div class = "container-fluid">
     <div class = "row">
@@ -47,6 +52,9 @@
 
         // display of counter bar metrics
         counter_bars = '\
+    <li class = "panel panel-info"> \
+        <div class = "panel-heading"> Drag here </div> \
+        <div class = "panel-body"> \
             <div class="row"> \
                 <div class = "col-sm-1 live_trace_dropdown"><a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"><div class = "glyphicon glyphicon-collapse-down"></div></a></div> \
                 <div class = "col-sm-3 column_class"><p2 id = "counter">' + name + '</p2></div> \
@@ -63,7 +71,9 @@
                         <div class="well" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
                     </div> \
                 </div> \
-            </div>';
+            </div> \
+        </div> \
+    </li>';
 
         $("#tab_number_" + set_index).append(counter_bars);
 
@@ -174,6 +184,18 @@
 
     // read counters from xml file and populate the website
     read_from_xml(gputop.get_metrics_xml());
+
+    // function that makes each counter pane draggable.
+    $(function(){
+        for (j = 0; j < set_index; j++) {
+            $('#tab_number_' + j).sortable({
+                start: function(e, ui) {
+                    ui.placeholder.height(ui.item.height());
+                }
+            });
+        }
+
+    });
 
     // graph settings
     var data = [];
