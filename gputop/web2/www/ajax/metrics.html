@@ -20,7 +20,7 @@
         <div class = "col-sm-8 tab-content" id = "counter_metrics">
         </div>
         <div class = "col-sm-3">
-            <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs">
+            <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs" style="list-style-type:none">
             </ul>
         </div>
     </div>
@@ -52,11 +52,14 @@
 
         // display of counter bar metrics
         counter_bars = '\
-    <li class = "panel panel-info"> \
-        <div class = "panel-heading"> Drag here </div> \
-        <div class = "panel-body"> \
+    <li class = "panel panel-info" style="list-style-type:none"> \
             <div class="row"> \
-                <div class = "col-sm-1 live_trace_dropdown"><a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"><div class = "glyphicon glyphicon-collapse-down"></div></a></div> \
+                <div class = "col-sm-1"> \
+                    <div class = "row"> \
+                        <div class = "col-sm-2 handle glyphicon glyphicon-move"></div> \
+                        <div class = "col-sm-1 live_trace_dropdown"><a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"><div class = "glyphicon glyphicon-collapse-down"></div></a></div> \
+                    </div> \
+                </div> \
                 <div class = "col-sm-3 column_class"><p2 id = "counter">' + name + '</p2></div> \
                 <div class = "col-sm-6 overview_bars"> \
                     <div class = "progress"> \
@@ -72,7 +75,6 @@
                     </div> \
                 </div> \
             </div> \
-        </div> \
     </li>';
 
         $("#tab_number_" + set_index).append(counter_bars);
@@ -109,7 +111,7 @@
     function read_from_xml(xml_name) {
         $(xml_name).find("set").each(read_metrics_set);
 
-        $(".glyphicon").hide();
+        $(".glyphicon-collapse-down").hide();
 
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
@@ -121,7 +123,8 @@
         $('.collapse').on('shown.bs.collapse', function(e) {
             $('.progress').hide();
             var id = $(e.target).find(".well");
-            graph_start("#" + id.attr("id"));
+            //graph_start("#" + id.attr("id"));
+            graph_array.push(id.attr("id"));
         });
 
     } // read_from_xml
@@ -163,6 +166,7 @@
     // index of set + index of active counter forms an unique id for all counters
     var set_index = 0;
     var counter_index = 0;
+    var graph_array = [];
 
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
     var i = 0;
@@ -172,12 +176,12 @@
         if (toggle_mode == 1) {
             $("#switch_button").text("Switch to Overview");
             $('.overview_bars, .progress_text').hide();
-            $(".glyphicon").show(); // graph dropdown button
+            $(".glyphicon-collapse-down").show(); // graph dropdown button
         }
         else {
             $("#switch_button").text("Switch to Live Tracing");
             $('.overview_bars, .progress_text').show();
-            $(".glyphicon").hide();
+            $(".glyphicon-collapse-down").hide();
         }
         toggle_mode *= -1;
     });
@@ -189,6 +193,7 @@
     $(function(){
         for (j = 0; j < set_index; j++) {
             $('#tab_number_' + j).sortable({
+                handle: '.handle',
                 start: function(e, ui) {
                     ui.placeholder.height(ui.item.height());
                 }
@@ -198,62 +203,107 @@
     });
 
     // graph settings
-    var data = [];
-    var dataset;
-    var totalPoints = 50;
-    var updateInterval = 500;
-    var now = new Date().getTime();
+    var graph_time = 0;
+    $(function() {
 
-    var options = {
-        series: {
-            lines: {
-                show: true,
-                lineWidth: 1.2,
-                fill: true
-            }
-        },
-        xaxis: {
-            mode: "time",
-            tickSize: [2, "second"],
-            tickFormatter: function (v, axis) {
-                var date = new Date(v);
+	var container = $("#flotcontainer_0_0");
 
-                if (date.getSeconds() % 20 == 0) {
-                    var hours = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
-                    var minutes = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
-                    var seconds = date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
+	// Determine how many data points to keep based on the placeholder's initial size;
+	// this gives us a nice high-res plot while avoiding more than one point per pixel.
 
-                    return hours + ":" + minutes + ":" + seconds;
-                } else {
-                    return "";
-                }
-            },
-            axisLabel: "Time",
-            axisLabelUseCanvas: true,
-            axisLabelFontSizePixels: 12,
-            axisLabelFontFamily: 'Verdana, Arial',
-            axisLabelPadding: 10
-        },
-        yaxis: {
-            min: 0,
-            max: 100,
-            tickSize: 5,
-            tickFormatter: function (v, axis) {
-                if (v % 10 == 0) {
-                    return v + "%";
-                } else {
-                    return "";
-                }
-            },
-            axisLabel: "CPU loading",
-            axisLabelUseCanvas: true,
-            axisLabelFontSizePixels: 12,
-            axisLabelFontFamily: 'Verdana, Arial',
-            axisLabelPadding: 6
-        },
-        legend: {
-            labelBoxBorderColor: "#fff"
+	var maximum = container.outerWidth() / 2 || 300;
+
+	var data = [];
+    function getRandomData() {
+        //debugger;
+
+        if (data.length) {
+            data.shift();
         }
-    };
+
+        while (data.length < maximum) {
+            var previous = data.length ? data[data.length - 1] : 50;
+            var y = Math.random() * 100;
+            data.push([graph_time, y < 0 ? 0 : y > 100 ? 100 : y]);
+            graph_time++;
+        }
+    }
+
+
+	series = [{
+		data: getRandomData(),
+		lines: {
+			fill: true
+		},
+        color: "#6666ff"
+	}];
+
+        var options = {
+		grid: {
+			borderWidth: 1,
+			minBorderMargin: 20,
+			labelMargin: 10,
+			backgroundColor: {
+				colors: ["#fff", "#e4f4f4"]
+			},
+			margin: {
+				top: 8,
+				bottom: 20,
+				left: 20
+			},
+            // dont know what this is for?!
+			markings: function(axes) {
+				var markings = [];
+				var xaxis = axes.xaxis;
+				for (var x = Math.floor(xaxis.min); x < xaxis.max; x += xaxis.tickSize * 2) {
+					markings.push({ xaxis: { from: x, to: x + xaxis.tickSize }, color: "rgba(232, 232, 255, 0.2)" });
+				}
+				return markings;
+			}
+		},
+		xaxis: {
+            show: true,
+            ticks: 10
+            //min: 0,
+            //max: 1000
+		},
+		yaxis: {
+			min: 0,
+			max: 110
+		},
+		legend: {
+			show: true
+		}
+	};
+
+	// Create the demo X and Y axis labels
+
+	var yaxisLabel = $("<br><br><div class='axisLabel yaxisLabel'></div>")
+		.text("Response Time (ms)")
+		.appendTo(container);
+
+	// Since CSS transforms use the top-left corner of the label as the transform origin,
+	// we need to center the y-axis label by shifting it down by half its width.
+	// Subtract 20 to factor the chart's bottom margin into the centering.
+
+	yaxisLabel.css("margin-top", yaxisLabel.width() / 2 - 20);
+
+	// Update the random dataset at 25FPS for a smoothly-animating chart
+
+	setInterval(function updateRandom() {
+        getRandomData();
+        for (var i = 0; i < graph_array.length; ++i)
+        {
+            var container = "#" + graph_array[i];
+            //var plot = $.plot(container, series, options);
+    		series[0].data = data;
+    		//plot.setData(series);
+            //plot.setupGrid();
+            $.plot(container, series, options);
+    		//plot.draw();
+        }
+	}, 40);
+
+});
 
 </script>

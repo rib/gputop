@@ -49,14 +49,14 @@ html, body {
 }
 
 .well {
-    width: 600px;
-    height: 200px;
+    width: 800px;
+    height: 250px;
     text-align: center;
-    margin: 0 auto;
+    margin: 15px auto 30px auto;
 }
 
 /* show the move cursor as the user moves the mouse over the panel header.*/
-.panel-info .panel-heading {
+.glyphicon-move {
     cursor: move;
 }
 
