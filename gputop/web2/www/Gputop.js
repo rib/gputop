@@ -21,6 +21,9 @@ var proto_builder = ProtoBuf.loadProtoFile("./proto/gputop.proto");
 
 //----------------------------- COUNTER --------------------------------------
 function Counter () {
+    // Real index number counting with not available ones
+    this.idx_ = 0;
+
     // Index to query inside the C code.
     // -1 Means it is not available or supported
     this.emc_idx_ = -1;
@@ -31,21 +34,54 @@ function Counter () {
 
 //------------------------------ METRIC --------------------------------------
 function Metric () {
+    // Id for the interface to know on click
+    this.name_ = "not loaded";
+    this.set_id_ = 0;
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.counters_ = {};
-    this.counters_map_ = {};
+    this.emc_counters_ = {}; // Array containing only available counters
+    this.counters_ = {};     // Array containing all counters
+    this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
+
+    // Real counter number including not available ones
+    this.n_total_counters_ = 0;
 }
 
 Metric.prototype.print = function() {
     gputop_ui.syslog(this.guid_);
 }
 
+Metric.prototype.find_counter_by_name = function(symbol_name) {
+    return this.counters_map_[symbol_name];
+}
+
+Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
+    counter.idx_ = this.n_total_counters_++;
+    counter.symbol_name = symbol_name;
+
+    var emc_symbol_name = emc_str_copy(symbol_name);
+    var counter_idx = _get_counter_id(emc_guid, emc_symbol_name);
+    emc_str_free(emc_symbol_name);
+
+    counter.emc_idx_ = counter_idx;
+    if (counter_idx != -1) {
+        counter.supported_ = true;
+        gputop_ui.syslog('Counter ' + counter_idx + " " + symbol_name);
+        this.emc_counters_[counter_idx] = counter;
+    } else {
+        gputop_ui.syslog('Counter not available ' + symbol_name);
+    }
+
+    this.counters_map_[symbol_name] = counter;
+    this.counters_[counter.idx_] = counter;
+}
+
 //------------------------------ GPUTOP --------------------------------------
 function Gputop () {
-    this.map_metrics_ = {};
+    this.metrics_ = {};     // Map of metrics by INDEX for UI
+    this.map_metrics_ = {}; // Map of metrics by GUID
 
     this.is_connected_ = false;
     // Gputop generic configuration
@@ -70,7 +106,7 @@ Gputop.prototype.get_metrics_xml = function() {
 
 // Remember to free this tring
 function emc_str_copy(string_to_convert) {
-    var buf = Module._malloc(string_to_convert.length+1); // Zero terminated    
+    var buf = Module._malloc(string_to_convert.length+1); // Zero terminated
     stringToAscii(string_to_convert, buf);
     return buf;
 }
@@ -84,31 +120,26 @@ Gputop.prototype.read_counter_xml = function() {
     var metric = params[0];
     var emc_guid = params[1];
 
-    try { 
+    try {
         var $cnt = $(this);
         var symbol_name = $cnt.attr("symbol_name");
 
         var counter = new Counter();
         counter.xml_ = $cnt;
-        emc_symbol_name = emc_str_copy(symbol_name);
-        var counter_idx = _get_counter_id(emc_guid, emc_symbol_name);
-
-        counter.emc_idx_ = counter_idx;
-        if (counter_idx != -1) {
-            counter.supported_ = true;
-            //gputop_ui.syslog('Counter ' + counter_idx + " " + symbol_name);
-            counter.symbol_name = symbol_name;
-            metric.counters_[counter_idx] = counter;
-        } else {
-            gputop_ui.syslog('Counter not available ' + symbol_name);
-        }
-
-        emc_str_free(emc_symbol_name);
-
-        metric.counters_map_[symbol_name] = counter;
+        metric.add_new_counter(emc_guid, symbol_name, counter);
     } catch (e) {
         gputop_ui.syslog("Catch parsing counter " + e);
     }
+}
+
+Gputop.prototype.get_metric_by_id = function(idx){
+    return this.metrics_[idx];
+}
+
+Gputop.prototype.get_counter_by_absolute_id = function(metric_set, counter_idx){
+    console.log(" METRIC [" + this.metrics_[metric_set].name_ + "]");
+    var counter = this.metrics_[metric_set].counters_[counter_idx];
+    return counter;
 }
 
 Gputop.prototype.get_map_metric = function(guid){
@@ -118,29 +149,31 @@ Gputop.prototype.get_map_metric = function(guid){
     } else {
         metric = new Metric();
         metric.guid_ = guid;
-        metric.metric_set_ = Object.keys(this.map_metrics_).length;
         this.map_metrics_[guid] = metric;
     }
     return metric;
 }
 
 function gputop_read_metrics_set() {
-    try { 
+    try {
         var $set = $(this);
-        var title = $set.attr("name");
         var guid = $set.attr("guid");
 
         gputop_ui.syslog('---------------------------------------');
-        gputop_ui.syslog(guid + '\n Found metric ' + title);
 
         var metric = gputop.get_map_metric(guid);
         metric.xml_ = $set;
+        metric.name_ = $set.attr("name");
+
+        gputop_ui.syslog(guid + '\n Found metric ' + metric.name_);
+
+        // We populate our array with metrics in the same order as the XML
+        // The metric will already be defined when the features query finishes
+        metric.metric_set_ = Object.keys(gputop.metrics_).length;
+        gputop.metrics_[metric.metric_set_] = metric;
 
         params = [ metric, gputop.get_emc_guid(guid) ];
-
         $set.find("counter").each(gputop.read_counter_xml, params);
-
-        gputop.map_metrics_[guid] = metric;
     } catch (e) {
         gputop_ui.syslog("Catch parsing metric " + e);
     }
@@ -233,13 +266,13 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     this.active_metric_query_ = metric;
 }
 
-// Moves the guid into the emscripten HEAP and returns a ptr to it 
+// Moves the guid into the emscripten HEAP and returns a ptr to it
 Gputop.prototype.get_emc_guid = function(guid) {
-    // Allocate a temporal buffer for the IDs in gputop, we will reuse this buffer. 
+    // Allocate a temporal buffer for the IDs in gputop, we will reuse this buffer.
     // This string will be free on dispose.
     if (gputop.buffer_guid_ == undefined)
         gputop.buffer_guid_ = Module._malloc(guid.length+1); // Zero terminated
-    
+
     stringToAscii(guid,  gputop.buffer_guid_);
     return gputop.buffer_guid_;
 }
@@ -372,11 +405,11 @@ Gputop.prototype.connect = function() {
     this.socket_ = this.get_socket(websocket_url);
 }
 
-Gputop.prototype.dispose = function() {    
+Gputop.prototype.dispose = function() {
     if (gputop.buffer_guid_ != undefined) {
         Module.free(gputop.buffer_guid_);
         gputop.buffer_guid_ = undefined;
-    }    
+    }
 };
 
 var gputop = new Gputop();
