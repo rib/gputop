@@ -48,11 +48,26 @@
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
+        var symbol_name = $counter.attr("symbol_name");
         //gputop_ui.syslog("Counter name: " + name);
 
         // display of counter bar metrics
+        console.log(" Trying to load counter "+ set_index +" "+ counter_index);
+
+        var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
+        if (counter==undefined) {
+            debugger;
+            console.log(counter.symbol_name +"/"+symbol_name);
+            return;
+        }
+
+        var supported = "";
+        if (!counter.supported_) {
+            supported='background-color:#e6e6e6;'
+        }
+
         counter_bars = '\
-    <li class = "panel panel-info" style="list-style-type:none"> \
+    <li class = "panel panel-info" style="list-style-type:none;'+supported+'"> \
             <div class="row"> \
                 <div class = "col-sm-1"> \
                     <div class = "row"> \
@@ -78,7 +93,6 @@
     </li>';
 
         $("#tab_number_" + set_index).append(counter_bars);
-
         counter_index ++;
     } // read_metrics_counter
 
@@ -86,6 +100,7 @@
     function read_metrics_set() {
         var $set = $(this);
         var title = $set.attr("name");
+        console.log(" TITLE [" + title + "]");
         var counter_bars;
 
         var active = "";
@@ -93,6 +108,8 @@
             active = " active";
             $('#page-header-metrics').text(title);
         }
+
+        counter_index = 0;
 
         // contents of the sidebar menu
         $("#sidebar_right").append('<li class="' + active + '"><a id="set_' + set_index + '" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
