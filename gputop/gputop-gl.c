@@ -107,6 +107,7 @@ static const GLubyte *(*pfn_glGetString)(GLenum name);
 static void (*pfn_glGetIntegerv)(GLenum pname, GLint *params);
 static GLenum (*pfn_glGetError)(void);
 static void (*pfn_glEnable)(GLenum cap);
+static bool (*pfn_glIsEnabled)(GLenum cap);
 static void (*pfn_glDisable)(GLenum cap);
 static void (*pfn_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 
@@ -352,6 +353,7 @@ initialise_gl(void)
 	SYM(glGetError),
 
 	SYM(glEnable),
+	SYM(glIsEnabled),
 	SYM(glDisable),
 	SYM(glScissor),
 
@@ -1083,7 +1085,7 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
     if (scissor_test)
     {
 	pfn_glScissor(0, 0, 1, 1);
-	if (!glIsEnabled(GL_SCISSOR_TEST))
+	if (!pfn_glIsEnabled(GL_SCISSOR_TEST))
 	    pfn_glEnable(GL_SCISSOR_TEST);
     }
     else
