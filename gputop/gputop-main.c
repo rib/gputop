@@ -54,7 +54,9 @@ usage(void)
 	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
 	   "                                   DRM_CONTEXT ioctl's\n\n"
 	   "                                   without executing the program\n\n"
-	   "     --fake                        Run gputop using fake metrics\n\n");
+	   "     --fake                        Run gputop using fake metrics\n\n"
+	   "     --enable-scissor-test         Enable 1x1 scissor test\n"
+	   "                                   glScissor(0, 0, 1, 1);\n");
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n\n");
@@ -138,6 +140,7 @@ main (int argc, char **argv)
 #define DRY_RUN_OPT		(CHAR_MAX + 5)
 #define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
 #define FAKE_OPT	        (CHAR_MAX + 7)
+#define GPUTOP_SCISSOR_TEST	(CHAR_MAX + 8)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -151,6 +154,7 @@ main (int argc, char **argv)
 	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
 	{"disable-ioctl-intercept",   optional_argument,	0, DISABLE_IOCTL_OPT},
 	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
+	{"enable-scissor-test", optional_argument, 0, GPUTOP_SCISSOR_TEST},
 #endif
 #ifdef SUPPORT_WEBUI
 	{"remote",	    no_argument,	0, REMOTE_OPT},
@@ -196,6 +200,9 @@ main (int argc, char **argv)
 		break;
 	    case FAKE_OPT:
 		setenv("GPUTOP_FAKE_MODE", "1", true);
+		break;
+	    case GPUTOP_SCISSOR_TEST:
+		setenv("GPUTOP_SCISSOR_TEST", "1", true);
 		break;
 	    default:
 		fprintf (stderr, "Internal error: "
@@ -243,6 +250,9 @@ main (int argc, char **argv)
 
     if (getenv("GPUTOP_FAKE_MODE"))
         fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
+
+    if (getenv("GPUTOP_SCISSOR_TEST"))
+        fprintf(stderr, "GPUTOP_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_SCISSOR_TEST"));
 
     fprintf(stderr, "%s\n", args[optind]);
 

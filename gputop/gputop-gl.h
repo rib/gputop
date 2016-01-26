@@ -95,6 +95,13 @@ struct winsys_context
     bool try_create_new_context_failed;
     bool is_debug_context;
     bool khr_debug_enabled;
+
+    GLint scissor_x;
+    GLint scissor_y;
+    GLsizei scissor_width;
+    GLsizei scissor_height;
+    bool scissor_enabled;
+
 };
 
 struct winsys_surface
@@ -125,6 +132,8 @@ extern bool gputop_gl_force_debug_ctx_enabled;
 
 extern atomic_bool gputop_gl_monitoring_enabled;
 extern atomic_bool gputop_gl_khr_debug_enabled;
+
+extern atomic_bool gputop_gl_scissor_test_enabled;
 
 /* The number of query objects to delete if GL monitoring is disabled...
  *
