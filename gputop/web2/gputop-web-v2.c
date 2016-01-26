@@ -45,7 +45,6 @@
 #include "oa-chv.h"
 #include "oa-skl.h"
 
-struct gputop_perf_query i915_perf_oa_queries[I915_OA_METRICS_SET_MAX];
 struct gputop_hash_table *queries;
 
 struct gputop_worker_query {
@@ -82,8 +81,6 @@ struct oa_sample {
 static struct gputop_devinfo devinfo;
 
 static int next_rpc_id = 1;
-
-struct gputop_perf_query i915_oa_perf_queries[I915_OA_METRICS_SET_MAX];
 
 static void __attribute__((noreturn))
 assert_not_reached(void)
@@ -467,48 +464,6 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
     gputop_web_console_log("received perf data for unknown query id: %d", id);
 }
 
-/*
-static const char *
-counter_type_name(gputop_counter_type_t type)
-{
-    switch (type) {
-    case GPUTOP_PERFQUERY_COUNTER_RAW:
-	return "raw";
-    case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
-	return "raw_duration";
-    case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
-	return "normalized_duration";
-    case GPUTOP_PERFQUERY_COUNTER_EVENT:
-	return "event";
-    case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
-	return "throughput";
-    case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
-	return "timestamp";
-    }
-    assert_not_reached();
-    return "unknown";
-}
-
-static const char *
-data_counter_type_name(gputop_counter_data_type_t type)
-{
-
-    switch(type) {
-    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	return "uint64";
-    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	return "uint32";
-    case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	return "double";
-    case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	return "float";
-    case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	return "bool";
-    }
-    assert_not_reached();
-    return "unknown";
-}
-*/
 static void EMSCRIPTEN_KEEPALIVE
 update_features(uint32_t devid, uint64_t n_eus, uint64_t n_eu_slices,
         uint64_t n_eu_sub_slices, uint64_t eu_threads_count,
@@ -557,12 +512,15 @@ gputop_webworker_on_open_oa_query(uint32_t id,
 				  char *guid,
 				  uint32_t aggregation_period)
 {
-#warning i am working on here
+
     struct gputop_worker_query *query = malloc(sizeof(*query));
     memset(query, 0, sizeof(*query));
     query->id = id;
     query->aggregation_period = aggregation_period;
-    query->oa_query = gputop_hash_table_search(queries, guid);
+
+    struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);
+
+    query->oa_query = (struct gputop_perf_query*) entry->data;
 
     gputop_list_insert(open_queries.prev, &query->link);
 }
