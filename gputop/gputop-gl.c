@@ -291,6 +291,24 @@ gputop_abort(const char *error)
     exit(EXIT_FAILURE);
 }
 
+/* XXX: we implement this passthrough implementation of glXQueryExtension
+ * because some frameworks (namely SDL) that directly dlopen() libGL.so.1
+ * expect to use dlsym() to find glXGetProcAddress and glXQueryExtension. We
+ * have an LD_PRELOAD wrapper for dlopen() that forwards a handle to
+ * libfakeGL.so instead of the real libGL.so so we need to make sure SDL can
+ * resolve glXQueryExtension - part of the never ending Whack A Mole
+ * interposing OpenGL. */
+Bool
+gputop_glXQueryExtension(Display *dpy,  int *errorBase,  int *eventBase)
+{
+    static Bool (*pfn_glXQueryExtension)(Display *dpy,  int *errorBase,  int *eventBase);
+
+    if (!pfn_glXQueryExtension)
+	pfn_glXQueryExtension = gputop_passthrough_gl_resolve("glXQueryExtension");
+
+    return pfn_glXQueryExtension(dpy, errorBase, eventBase);
+}
+
 void *
 gputop_glXGetProcAddress(const GLubyte *procName)
 {

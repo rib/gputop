@@ -338,7 +338,8 @@ glxapiHooks = {
     'glXCreateContext',
     'glXCreateNewContext',
     'glXCreateContextAttribsARB',
-    'glXDestroyContext'
+    'glXDestroyContext',
+    'glXQueryExtension'
 }
 
 glxapiHeaders = [
