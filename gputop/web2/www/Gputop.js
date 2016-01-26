@@ -137,7 +137,7 @@ Gputop.prototype.get_metric_by_id = function(idx){
 }
 
 Gputop.prototype.get_counter_by_absolute_id = function(metric_set, counter_idx){
-    console.log(" METRIC [" + this.metrics_[metric_set].name_ + "]");
+    //console.log(" Counter from metric [" + this.metrics_[metric_set].name_ + "]");
     var counter = this.metrics_[metric_set].counters_[counter_idx];
     return counter;
 }

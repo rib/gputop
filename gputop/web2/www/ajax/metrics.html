@@ -51,23 +51,26 @@
         var symbol_name = $counter.attr("symbol_name");
         //gputop_ui.syslog("Counter name: " + name);
 
-        // display of counter bar metrics
-        console.log(" Trying to load counter "+ set_index +" "+ counter_index);
-
         var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
-        if (counter==undefined) {
-            debugger;
-            console.log(counter.symbol_name +"/"+symbol_name);
+        if (counter == undefined) {
+            console.log(" Failed to load counter "+ set_index +" "+ counter_index);
+            gputop_ui.show_alert("Counter missing, forgot to compile?","alert-danger");
             return;
         }
 
-        var supported = "";
-        if (!counter.supported_) {
-            supported='background-color:#e6e6e6;'
+        if (symbol_name.localeCompare(counter.symbol_name)) {
+            gputop_ui.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
+            return;
         }
 
+        var supported_color = "";
+        if (!counter.supported_) {
+            supported_color='background-color:#e6e6e6;'
+        }
+
+        // display of counter bar metrics
         counter_bars = '\
-    <li class = "panel panel-info" style="list-style-type:none;'+supported+'"> \
+    <li class = "panel panel-info" style="list-style-type:none;'+supported_color+'"> \
             <div class="row"> \
                 <div class = "col-sm-1"> \
                     <div class = "row"> \
@@ -100,7 +103,6 @@
     function read_metrics_set() {
         var $set = $(this);
         var title = $set.attr("name");
-        console.log(" TITLE [" + title + "]");
         var counter_bars;
 
         var active = "";
