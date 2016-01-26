@@ -19,20 +19,23 @@ var ProtoBuf = dcodeIO.ProtoBuf;
 
 var proto_builder = ProtoBuf.loadProtoFile("./proto/gputop.proto");
 
-//------------------------------ METRIC ---------------------------------------------------
+//----------------------------- COUNTER --------------------------------------
 function Counter () {
-    this.idx_ = -1;    
-    this.emscripten_idx_ = -1;
-    this.available_ = false;
+    // Index to query inside the C code.
+    // -1 Means it is not available or supported
+    this.emc_idx_ = -1;
+    this.symbol_name = '';
+    this.supported_ = false;
     this.xml_ = "<xml/>";
 }
 
-//------------------------------ METRIC ---------------------------------------------------
+//------------------------------ METRIC --------------------------------------
 function Metric () {
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
     this.counters_ = {};
+    this.counters_map_ = {};
     this.metric_set_ = 0;
 }
 
@@ -40,7 +43,7 @@ Metric.prototype.print = function() {
     gputop_ui.syslog(this.guid_);
 }
 
-//------------------------------ GPUTOP ---------------------------------------------------
+//------------------------------ GPUTOP --------------------------------------
 function Gputop () {
     this.map_metrics_ = {};
    
@@ -65,14 +68,44 @@ Gputop.prototype.get_metrics_xml = function() {
     return this.metrics_xml_;
 }
 
+// Remember to free this tring
+function emc_str_copy(string_to_convert) {
+    var buf = Module._malloc(string_to_convert.length+1); // Zero terminated    
+    stringToAscii(string_to_convert, buf);
+    return buf;
+}
+
+function emc_str_free(buf) {
+    Module._free(buf);
+}
+
+var params = [ ];
 Gputop.prototype.read_counter_xml = function() {
+    var metric = params[0];
+    var emc_guid = params[1];
+
     try { 
         var $cnt = $(this);
         var symbol_name = $cnt.attr("symbol_name");
-        
-        var counter = new Counter();             
-        gputop_ui.syslog('Found counter ' + symbol_name);
-                            
+
+        var counter = new Counter();
+        counter.xml_ = $cnt;
+        emc_symbol_name = emc_str_copy(symbol_name);
+        var counter_idx = _get_counter_id(emc_guid, emc_symbol_name);
+
+        counter.emc_idx_ = counter_idx;
+        if (counter_idx != -1) {
+            counter.supported_ = true;
+            //gputop_ui.syslog('Counter ' + counter_idx + " " + symbol_name);
+            counter.symbol_name = symbol_name;
+            metric.counters_[counter_idx] = counter;
+        } else {
+            gputop_ui.syslog('Counter not available ' + symbol_name);
+        }
+
+        emc_str_free(emc_symbol_name);
+
+        metric.counters_map_[symbol_name] = counter;
     } catch (e) {
         gputop_ui.syslog("Catch parsing counter " + e);
     }
@@ -84,7 +117,7 @@ Gputop.prototype.get_map_metric = function(guid){
         metric = this.map_metrics_[guid];
     } else {
         metric = new Metric();
-        metric.guid_ = guid;        
+        metric.guid_ = guid;
         metric.metric_set_ = Object.keys(this.map_metrics_).length;
         this.map_metrics_[guid] = metric;
     }
@@ -93,20 +126,21 @@ Gputop.prototype.get_map_metric = function(guid){
 
 function gputop_read_metrics_set() {
     try { 
+        
         var $set = $(this);
         var title = $set.attr("name");
         var guid = $set.attr("guid");
-            
-        gputop_ui.syslog('Found metric ' + title);
-    
+
+        gputop_ui.syslog('---------------------------------------');
+        gputop_ui.syslog(guid + '\n Found metric ' + title);
+
         var metric = gputop.get_map_metric(guid);
         metric.xml_ = $set;
-                        
-        var params = [ metric, this.get_emc_guid(guid) ];
-                
-        $(set).find("counter").each(gputop.read_counter_xml, params);
-        
-        metric.print();  
+
+        params = [ metric, gputop.get_emc_guid(guid) ];
+
+        $set.find("counter").each(gputop.read_counter_xml, params);
+
         gputop.map_metrics_[guid] = metric;
     } catch (e) {
         gputop_ui.syslog("Catch parsing metric " + e);
@@ -126,7 +160,7 @@ Gputop.prototype.load_xml_metrics = function(xml) {
     });
 }
 
-Gputop.prototype.load_oa_queries = function(architecture) {    
+Gputop.prototype.load_oa_queries = function(architecture) {
     console.log("Loading " + architecture);
     this.config_.architecture = architecture;
 
@@ -145,13 +179,13 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     var metric = this.get_map_metric(guid);
 
     if (metric.supported_ == false) {
-        gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");        
+        gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");
         return;
     }
 
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
-    oa_query.metric_set = metric.metric_set_;    /* 3D test */    
+    oa_query.metric_set = metric.metric_set_;    /* 3D test */
     
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -184,8 +218,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 				          * as values that have been aggregated
 				          * over this duration */
     open.oa_query = oa_query;
-    
-    gputop_ui.syslog("Open guid " + guid);
+
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
