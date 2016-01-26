@@ -311,6 +311,29 @@ gputop_glXGetProcAddressARB(const GLubyte *procName)
     return gputop_glXGetProcAddress(procName);
 }
 
+/* While we are relying on LD_PRELOAD to intercept certain GLX/GL functions we
+ * need to handle the possibility that some GL applications/frameworks will use
+ * dlopen() at runtime to load libGL.so and trick them into opening our
+ * libfakeGL.so instead.
+ */
+void *dlopen(const char *filename, int flag)
+{
+    static void *(*real_dlopen)(const char *filename, int flag);
+
+    if (filename && strncmp(filename, "libGL.so", 8) == 0) {
+	/*
+	 * We're assuming that libfakeGL.so was forcibly loaded via LD_PRELOAD
+	 * so lookups based on a dlopen(NULL) handle should find libfakeGL.so
+	 * symbols.
+	 */
+	return dlopen(NULL, flag);
+    } else {
+	if (!real_dlopen)
+	    real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+	return real_dlopen(filename, flag);
+    }
+}
+
 static bool
 have_extension(const char *name)
 {
