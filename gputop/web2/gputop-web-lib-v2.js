@@ -24,6 +24,15 @@ var LibraryGpuTopWeb = {
     _gputop_web_console_trace: function () {
         console.trace();
     },
+
+    _gputop_query_update_counter_ui: function (id, start_timestamp, end_timestamp, delta, max, ui64_value) {
+        console.log(" UPDATE COUNTER UI");
+    },
+
+    _gputop_query_update_counter_d: function (id, start_timestamp, end_timestamp, delta, max, d_value) {
+        console.log(" UPDATE COUNTER D");
+    },
+      
 };
 
 autoAddDeps(LibraryGpuTopWeb, '$GpuTopWeb');

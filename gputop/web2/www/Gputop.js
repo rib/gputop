@@ -47,7 +47,7 @@ function Gputop () {
     this.is_connected_ = false;
     // Gputop generic configuration
     this.config_ = {
-        url_path: 'localhost',
+        url_path: window.location.hostname,
         uri_port: 7890,
         architecture: 'ukn'
     }
@@ -167,17 +167,14 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 				          * over this duration */
     open.oa_query = oa_query;
 
+    var buf = Module._malloc(guid.length+1);    
+    stringToAscii(guid, buf);    
     _gputop_webworker_on_open_oa_query(
-        metric.oa_query_id_,
-        oa_query.metric_set,
-        oa_query.period_exponent,
-        open.overwrite, /* don't overwrite old samples */
-		      100000000, /* nanoseconds of aggregation
-				          * i.e. request updates from the worker
-				          * as values that have been aggregated
-				          * over this duration */
-        open.live_updates /* send live updates */);
-
+          metric.oa_query_id_,
+          buf,
+          100000000);
+             
+    Module._free(buf);
 
     msg.open_query = open;
     msg.encode();

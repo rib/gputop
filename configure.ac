@@ -184,6 +184,7 @@ protoc-c/Makefile
 gputop/Makefile
 gputop/registry/Makefile
 gputop/web/Makefile
+gputop/web2/Makefile
 po/Makefile.in
 )
 

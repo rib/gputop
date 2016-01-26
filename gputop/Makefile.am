@@ -11,6 +11,7 @@ SUBDIRS += .
 
 if SUPPORT_WEBUI
 SUBDIRS += web
+SUBDIRS += web2
 endif
 
 bin_PROGRAMS = gputop gputop-system

@@ -8,7 +8,7 @@ CC=emcc
 top_srcdir=../..
 gputop_srcdir=$(top_srcdir)/gputop
 gputop_builddir=$(top_builddir)/gputop
-web_srcdir=$(gputop_srcdir)/web
+web_srcdir=$(gputop_srcdir)/web2
 protobuf_c_srcdir=$(top_srcdir)/protobuf-c
 top_builddir=../..
 builddir=.
@@ -35,11 +35,11 @@ all:: gputop-web-v2.bc gputop-web-v2.js
 
 gputop-web-v2.bc: $(gputop_web_OBJECTS)
 
-%.o: %.c Makefile.v2.emscripten | dirs
+%.o: %.c Makefile.emscripten | dirs
 	$(E)echo "(CC)     $(@)"
 	$(E)$(CC) $(filter %.c,$(^)) -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
 
-%.o: %.cc Makefile.v2.emscripten | dirs
+%.o: %.cc Makefile.emscripten | dirs
 	$(E)echo "(CXX)     $(@)"
 	$(E)$(CXX) $(filter %.cc,$(^)) -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
 	
