@@ -1083,8 +1083,6 @@ fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length)
 static void
 read_i915_perf_samples(struct gputop_perf_stream *stream)
 {
-    bool flip = false;
-
     do {
 	int offset = 0;
 	uint8_t *buf;
@@ -1092,12 +1090,8 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 
 	/* We double buffer reads so we can safely keep a pointer to
 	 * our last sample for calculating deltas */
-	if (flip) {
-	    stream->oa.buf_idx = !stream->oa.buf_idx;
-	    flip = false;
-	}
-
 	buf = stream->oa.bufs[stream->oa.buf_idx];
+
         if (gputop_fake_mode)
             count = fake_read(stream, buf, stream->oa.buf_sizes);
         else
@@ -1181,9 +1175,9 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 
 		stream->oa.last = report;
 
-		/* Make sure the next read won't clobber stream->last by
-		 * switching buffers next time we read */
-		flip = true;
+		/* Make sure the next read won't clobber stream->oa.last by
+		 * switching read buffers... */
+                stream->oa.buf_idx = !stream->oa.buf_idx;
 		break;
 	    }
 
