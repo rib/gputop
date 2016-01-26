@@ -286,10 +286,38 @@ gputop_abort(const char *error)
     exit(EXIT_FAILURE);
 }
 
+
+
+
+static Bool (*pfn_glXQueryExtension)(Display * dpy,  int * errorBase,  int * eventBase);
+
+Bool
+gputop_glXQueryExtension(Display * dpy,  int * errorBase,  int * eventBase)
+{
+	if (!pfn_glXQueryExtension)
+		pfn_glXQueryExtension =
+			gputop_passthrough_gl_resolve("glXQueryExtension");
+	return pfn_glXQueryExtension(dpy, errorBase, eventBase);
+}
+
 void *
 gputop_glXGetProcAddressARB(const GLubyte *procName)
 {
     return gputop_glXGetProcAddress(procName);
+}
+
+static void *(*real_dlopen)(const char *filename, int flag);
+
+void *dlopen(const char *filename, int flag)
+{
+	if (strcmp(filename, "libGL.so.1") == 0)
+	{
+		return dlopen("libfakeGL.so", flag);
+	} else {
+		if (!real_dlopen)
+			real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+		return real_dlopen(filename, flag);
+	}
 }
 
 static bool
