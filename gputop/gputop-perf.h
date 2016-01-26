@@ -76,6 +76,7 @@ uint64_t get_time(void);
 struct gputop_perf_query_counter
 {
    const char *name;
+   const char *symbol_name;
    const char *desc;
    gputop_counter_type_t type;
    gputop_counter_data_type_t data_type;
