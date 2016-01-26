@@ -141,12 +141,8 @@ static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 					   GLsizei dataSize, GLvoid *data,
 					   GLuint *bytesWritten);
 
-GLXContext
-gputop_glXCreateContextAttribsARB(Display *dpy,
-				  GLXFBConfig config,
-				  GLXContext share_context,
-				  Bool direct,
-				  const int *attrib_list);
+void *
+gputop_glXGetProcAddress(const GLubyte *procName);
 
 static bool gputop_gl_has_khr_debug_ext;
 static bool gputop_gl_use_khr_debug;
@@ -288,20 +284,6 @@ gputop_abort(const char *error)
     fprintf(stderr, "%s", error);
     fflush(stderr);
     exit(EXIT_FAILURE);
-}
-
-void *
-gputop_glXGetProcAddress(const GLubyte *procName)
-{
-    pthread_once(&init_once, gputop_gl_init);
-
-    if (strcmp((char *)procName, "glXCreateContextAttribsARB") == 0)
-	return gputop_glXCreateContextAttribsARB;
-
-    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
-	return NULL;
-
-    return real_glXGetProcAddress(procName);
 }
 
 void *
@@ -1101,6 +1083,38 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	winsys_surface_check_for_finished_queries(wsurface);
 	winsys_surface_start_frame(wsurface);
     }
+}
+
+void *
+gputop_glXGetProcAddress(const GLubyte *procName)
+{
+    int I;
+#define SYM(X) { #X, (void **)&gputop_ ## X }
+    struct {
+	const char *name;
+	void **ptr;
+} static symbols[] = {
+	SYM(glXCreateContextAttribsARB),
+	SYM(glXCreateNewContext),
+	SYM(glXCreateContext),
+	SYM(glXDestroyContext),
+	SYM(glXMakeCurrent),
+	SYM(glXMakeContextCurrent),
+	SYM(glXSwapBuffers)
+    };
+#undef SYM
+
+    pthread_once(&init_once, gputop_gl_init);
+    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
+	return NULL;
+
+    for (I = 0; I < (sizeof(symbols) / sizeof(symbols[0])); I++)
+    {
+	if (strcmp((char *)procName, symbols[I].name) == 0)
+	    return (symbols[I].ptr);
+    }
+
+    return real_glXGetProcAddress(procName);
 }
 
 void
