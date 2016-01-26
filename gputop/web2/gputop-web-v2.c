@@ -174,61 +174,28 @@ read_report_raw_timestamp(const uint32_t *report)
 
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
 
-/*
-static void
-append_raw_oa_counter(gputop_string_t *str,
-		      struct gputop_perf_query *query,
-		      const struct gputop_perf_query_counter *counter)
+void
+_gputop_query_update_counter(int counter, int id,
+        double start_timestamp, double end_timestamp,
+        double delta, double max, double ui64_value);
+
+/* Returns the ID for a counter_name using the symbol_name */
+static int EMSCRIPTEN_KEEPALIVE
+get_counter_id(const char *guid, const char *counter_symbol_name)
 {
-    uint64_t u53_check;
+    struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);
+    if (entry == NULL)
+        return -1;
 
-    switch(counter->data_type) {
-    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	gputop_string_append_printf(str, "%" PRIu32,
-		  read_uint32_oa_counter(query,
-					 counter,
-					 query->accumulator));
-	break;
-    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	u53_check = read_uint64_oa_counter(query,
-					   counter,
-					   query->accumulator);
-	if (u53_check > JS_MAX_SAFE_INTEGER) {
-	    gputop_web_console_error("Clamping counter to large to represent in JavaScript");
-	    u53_check = JS_MAX_SAFE_INTEGER;
-	}
-	gputop_string_append_printf(str, "%" PRIu64, u53_check);
-	break;
-    case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	gputop_string_append_printf(str, "%f",
-		  read_float_oa_counter(query,
-					counter,
-					query->accumulator));
-	break;
-    case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	gputop_string_append_printf(str, "%f",
-		  read_double_oa_counter(query,
-					 counter,
-					 query->accumulator));
-	break;
-    case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	gputop_string_append_printf(str, "%s",
-		  read_bool_oa_counter(query,
-				       counter,
-				       query->accumulator) ? "TRUE" : "FALSE");
-	break;
+    struct gputop_perf_query *query = (struct gputop_perf_query *) entry->data;
+
+    for (int t=0; t<query->n_counters; t++) {
+        struct gputop_perf_query_counter *counter = &query->counters[t];
+        if (!strcmp(counter->symbol_name, counter_symbol_name))
+            return t;
     }
+    return -1;
 }
-*/
-void
-_gputop_query_update_counter_ui(int id,
-        uint64_t start_timestamp, uint64_t end_timestamp,
-        uint64_t delta, uint64_t max, uint64_t ui64_value);
-
-void
-_gputop_query_update_counter_d(int id,
-        uint64_t start_timestamp, uint64_t end_timestamp,
-        uint64_t delta, uint64_t max, double double_value);
 
 static void
 forward_query_update(struct gputop_worker_query *query)
@@ -242,11 +209,10 @@ forward_query_update(struct gputop_worker_query *query)
 
     delta = query->end_timestamp - query->start_timestamp;
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" delta = %"PRIu64" agg. period =%"PRIu64"\n",
-    //start_timestamp, end_timestamp, delta, query->aggregation_period);
+    //        query->start_timestamp, query->end_timestamp, delta, query->aggregation_period);
 
     for (i = 0; i < oa_query->n_counters; i++) {
         uint64_t u53_check;
-        uint64_t ui_value = 0;
         double   d_value = 0;
         uint64_t max = 0;
 
@@ -257,7 +223,7 @@ forward_query_update(struct gputop_worker_query *query)
 
         switch(counter->data_type) {
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-                ui_value = read_uint32_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_uint32_oa_counter(oa_query, counter, oa_query->accumulator);
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
                 u53_check = read_uint64_oa_counter(oa_query, counter, oa_query->accumulator);
@@ -265,7 +231,7 @@ forward_query_update(struct gputop_worker_query *query)
                     gputop_web_console_error("Clamping counter to large to represent in JavaScript");
                     u53_check = JS_MAX_SAFE_INTEGER;
                 }
-                ui_value = u53_check;
+                d_value = u53_check;
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
                 d_value = read_float_oa_counter(oa_query, counter, oa_query->accumulator);
@@ -274,16 +240,11 @@ forward_query_update(struct gputop_worker_query *query)
                 d_value = read_double_oa_counter(oa_query, counter, oa_query->accumulator);
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-                ui_value = read_bool_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_bool_oa_counter(oa_query, counter, oa_query->accumulator);
             break;
         }
 
-        if (ui_value == 0)
-            _gputop_query_update_counter_ui(query->id,
-                    query->start_timestamp, query->end_timestamp,
-                    delta, max, ui_value);
-            else
-            _gputop_query_update_counter_d(query->id,
+        _gputop_query_update_counter(i, query->id,
                     query->start_timestamp, query->end_timestamp,
                     delta, max, d_value);
     }
@@ -512,7 +473,6 @@ gputop_webworker_on_open_oa_query(uint32_t id,
 				  char *guid,
 				  uint32_t aggregation_period)
 {
-
     struct gputop_worker_query *query = malloc(sizeof(*query));
     memset(query, 0, sizeof(*query));
     query->id = id;

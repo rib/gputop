@@ -65,6 +65,19 @@ Gputop.prototype.get_metrics_xml = function() {
     return this.metrics_xml_;
 }
 
+Gputop.prototype.read_counter_xml = function() {
+    try { 
+        var $cnt = $(this);
+        var symbol_name = $cnt.attr("symbol_name");
+        
+        var counter = new Counter();             
+        gputop_ui.syslog('Found counter ' + symbol_name);
+                            
+    } catch (e) {
+        gputop_ui.syslog("Catch parsing counter " + e);
+    }
+}
+
 Gputop.prototype.get_map_metric = function(guid){
     var metric;    
     if (guid in this.map_metrics_) {
@@ -83,15 +96,20 @@ function gputop_read_metrics_set() {
         var $set = $(this);
         var title = $set.attr("name");
         var guid = $set.attr("guid");
-    
+            
         gputop_ui.syslog('Found metric ' + title);
     
-        var metric = gputop.get_map_metric(guid);    
+        var metric = gputop.get_map_metric(guid);
         metric.xml_ = $set;
+                        
+        var params = [ metric, this.get_emc_guid(guid) ];
+                
+        $(set).find("counter").each(gputop.read_counter_xml, params);
+        
         metric.print();  
         gputop.map_metrics_[guid] = metric;
     } catch (e) {
-        gputop_ui.syslog("Catch parsing " + e);
+        gputop_ui.syslog("Catch parsing metric " + e);
     }
 } // read_metrics_set
 
@@ -122,7 +140,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         gputop_ui.show_alert("GUID missing while trying to opening query","alert-danger");
         return;
     }
-    
+
     gputop_ui.syslog("Launch query GUID " + guid);
     var metric = this.get_map_metric(guid);
 
@@ -130,7 +148,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");        
         return;
     }
-        
+
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
     oa_query.metric_set = metric.metric_set_;    /* 3D test */    
@@ -166,15 +184,12 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 				          * as values that have been aggregated
 				          * over this duration */
     open.oa_query = oa_query;
-
-    var buf = Module._malloc(guid.length+1);    
-    stringToAscii(guid, buf);    
+    
+    gputop_ui.syslog("Open guid " + guid);
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
-          buf,
+          this.get_emc_guid(guid),
           100000000);
-             
-    Module._free(buf);
 
     msg.open_query = open;
     msg.encode();
@@ -184,6 +199,17 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     this.query_handles_.push(metric.oa_query_id_);
     this.active_metric_query_ = metric;    
+}
+
+// Moves the guid into the emscripten HEAP and returns a ptr to it 
+Gputop.prototype.get_emc_guid = function(guid) {
+    // Allocate a temporal buffer for the IDs in gputop, we will reuse this buffer. 
+    // This string will be free on dispose.
+    if (gputop.buffer_guid_ == undefined)
+        gputop.buffer_guid_ = Module._malloc(guid.length+1); // Zero terminated
+    
+    stringToAscii(guid,  gputop.buffer_guid_);
+    return gputop.buffer_guid_;
 }
 
 Gputop.prototype.get_server_url = function() {
@@ -314,7 +340,11 @@ Gputop.prototype.connect = function() {
     this.socket_ = this.get_socket(websocket_url);
 }
 
-Gputop.prototype.dispose = function() {
+Gputop.prototype.dispose = function() {    
+    if (gputop.buffer_guid_ != undefined) {
+        Module.free(gputop.buffer_guid_);
+        gputop.buffer_guid_ = undefined;
+    }    
 };
 
 var gputop = new Gputop();
