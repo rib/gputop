@@ -333,6 +333,24 @@ Gputop.prototype.process_features = function(features){
         di.slice_mask);
 }
 
+Gputop.prototype.load_emscripten = function() {
+    if (gputop.is_connected_)
+        return;
+
+    $.getScript( gputop.get_gputop_native_js() )
+        .done(function( script, textStatus ) {
+        console.log( "Loading emscripent js code " + textStatus );
+        gputop.request_features();
+        gputop.is_connected_ = true;
+
+    }).fail(function( jqxhr, settings, exception ) {
+        console.log( "Failed loading emscripten" );
+        setTimeout(function() {
+            gputop.connect();
+        }, 5000);
+    });
+}
+
 Gputop.prototype.get_socket = function(websocket_url) {
     var socket = new WebSocket( websocket_url);
     socket.binaryType = "arraybuffer"; // We are talking binary
@@ -340,8 +358,7 @@ Gputop.prototype.get_socket = function(websocket_url) {
     socket.onopen = function() {
         gputop_ui.syslog("Connected");
         gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-info");
-        gputop.request_features();
-        gputop.is_connected_ = true;
+        gputop.load_emscripten();
     };
 
     socket.onclose = function() {
