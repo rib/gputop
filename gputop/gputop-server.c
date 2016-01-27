@@ -904,15 +904,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     features.kernel_release = kernel_release;
     features.kernel_build = kernel_version;
-    features.supported_oa_query_guids = xmalloc0(sizeof(char*) *
-        perf_oa_supported_query_guids->len);
     features.n_supported_oa_query_guids = perf_oa_supported_query_guids->len;
-
-    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
-    {
-        features.supported_oa_query_guids[i] =
-            (char*)array_value_at(perf_oa_supported_query_guids, char*, i);
-    }
+    features.supported_oa_query_guids = perf_oa_supported_query_guids->data;
 
     message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;
@@ -938,8 +931,6 @@ handle_get_features(h2o_websocket_conn_t *conn,
     dbg("  Kernel Build = %s\n", features.kernel_build);
 
     send_pb_message(conn, &message.base);
-
-    free(features.supported_oa_query_guids);
 }
 
 static void on_ws_message(h2o_websocket_conn_t *conn,
