@@ -26,7 +26,10 @@ var LibraryGpuTopWeb = {
     },
 
     _gputop_query_update_counter: function (counter, id, start_timestamp, end_timestamp, delta, max, d_value) {
-        // console.log(counter + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value);
+        if (gputop != undefined)
+            gputop.query_update_counter(counter, id, start_timestamp, end_timestamp, delta, max, d_value);
+        else
+            console.log(" Missing GPUTOP to process " + counter + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value);
     },
 
 };

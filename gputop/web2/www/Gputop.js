@@ -9,7 +9,7 @@ Object.size = function(obj) {
     return size;
 };
 
-//------------------------------ Protobuffer Init ----------------------------------------
+//------------------------------ Protobuffer Init ----------------------------
 
 if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
     throw(new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
@@ -30,6 +30,20 @@ function Counter () {
     this.symbol_name = '';
     this.supported_ = false;
     this.xml_ = "<xml/>";
+
+    this.data_ = [];
+}
+
+Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
+    //console.log(" NSamples " + n_samples + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value + " Data " + this.symbol_name);
+
+    var n_samples = this.data_.length/3;
+    if (n_samples>10) {
+        return;
+    }
+    
+    console.log(" n_samples " + n_samples + " "+delta+" = "+ d_value + "/"+ max +" " + this.symbol_name);
+    this.data_.push(delta, d_value, max);
 }
 
 //------------------------------ METRIC --------------------------------------
@@ -94,10 +108,12 @@ function Gputop () {
     // Initialize protobuffers
     this.builder_ = proto_builder.build("gputop");
 
-    // Queries
+    // Next query ID
     this.query_id_next_ = 1;
-    this.query_handles_ = [];
-    this.active_metric_query_ = 0;
+
+    // Current active query sets
+    // Indexes by query_id_next_
+    this.query_metric_handles_ = [];
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -178,6 +194,25 @@ function gputop_read_metrics_set() {
         gputop_ui.syslog("Catch parsing metric " + e);
     }
 } // read_metrics_set
+
+Gputop.prototype.query_update_counter = function (counterId, id, start_timestamp, end_timestamp, delta, max, d_value) {
+
+    var metric = this.query_metric_handles_[id];
+    if (metric == undefined) {
+        //TODO Close this query which is not being captured
+        if (counterId == 0)
+            gputop_ui.show_alert("No query active for data from "+ id +" ","alert-danger");
+        return;
+    }
+
+    var counter = metric.emc_counters_[counterId];
+    if (counter == null) {
+        gputop_ui.show_alert("Counter missing in set "+ metric.name_ +" ","alert-danger");
+        return;
+    }
+
+    counter.append_counter_data(start_timestamp, end_timestamp, delta, d_value, max);
+}
 
 Gputop.prototype.load_xml_metrics = function(xml) {
     gputop.metrics_xml_ = xml;
@@ -260,8 +295,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     gputop_ui.syslog("Sent: Request "+msg.uuid);
 
-    this.query_handles_.push(metric.oa_query_id_);
-    this.active_metric_query_ = metric;
+    this.query_metric_handles_[metric.oa_query_id_] = metric;
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
