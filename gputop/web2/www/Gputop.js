@@ -193,9 +193,7 @@ Gputop.prototype.load_xml_metrics = function(xml) {
 }
 
 Gputop.prototype.load_oa_queries = function(architecture) {
-    console.log("Loading " + architecture);
     this.config_.architecture = architecture;
-
     // read counters from xml file and populate the website
     var xml_name = "xml/oa-"+ architecture +".xml";
     $.get(xml_name, this.load_xml_metrics);
@@ -339,10 +337,8 @@ Gputop.prototype.load_emscripten = function() {
 
     $.getScript( gputop.get_gputop_native_js() )
         .done(function( script, textStatus ) {
-        console.log( "Loading emscripent js code " + textStatus );
         gputop.request_features();
         gputop.is_connected_ = true;
-
     }).fail(function( jqxhr, settings, exception ) {
         console.log( "Failed loading emscripten" );
         setTimeout(function() {

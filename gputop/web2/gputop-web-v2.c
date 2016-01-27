@@ -507,7 +507,7 @@ void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_init(void)
 {
     gputop_list_init(&open_queries);
-    gputop_web_console_log("EMSCRIPTEN Init " __TIME__ );
+    gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
 }
 
 void EMSCRIPTEN_KEEPALIVE
