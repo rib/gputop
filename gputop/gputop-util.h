@@ -104,8 +104,8 @@ array_set_len(struct array *array, int len)
     if (array->size >= needed)
 	return;
 
-    array->data = xrealloc(array->data, array->size * 1.7);
-    array->size = needed;
+    array->size = MAX(needed, array->size * 1.7);
+    array->data = xrealloc(array->data, array->size);
 }
 
 static inline void
