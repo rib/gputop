@@ -142,12 +142,8 @@ static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 					   GLsizei dataSize, GLvoid *data,
 					   GLuint *bytesWritten);
 
-GLXContext
-gputop_glXCreateContextAttribsARB(Display *dpy,
-				  GLXFBConfig config,
-				  GLXContext share_context,
-				  Bool direct,
-				  const int *attrib_list);
+void *
+gputop_glXGetProcAddress(const GLubyte *procName);
 
 static bool gputop_gl_has_khr_debug_ext;
 static bool gputop_gl_use_khr_debug;
@@ -291,24 +287,38 @@ gputop_abort(const char *error)
     exit(EXIT_FAILURE);
 }
 
-void *
-gputop_glXGetProcAddress(const GLubyte *procName)
+
+
+
+static Bool (*pfn_glXQueryExtension)(Display * dpy,  int * errorBase,  int * eventBase);
+
+Bool
+gputop_glXQueryExtension(Display * dpy,  int * errorBase,  int * eventBase)
 {
-    pthread_once(&init_once, gputop_gl_init);
-
-    if (strcmp((char *)procName, "glXCreateContextAttribsARB") == 0)
-	return gputop_glXCreateContextAttribsARB;
-
-    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
-	return NULL;
-
-    return real_glXGetProcAddress(procName);
+	if (!pfn_glXQueryExtension)
+		pfn_glXQueryExtension =
+			gputop_passthrough_gl_resolve("glXQueryExtension");
+	return pfn_glXQueryExtension(dpy, errorBase, eventBase);
 }
 
 void *
 gputop_glXGetProcAddressARB(const GLubyte *procName)
 {
     return gputop_glXGetProcAddress(procName);
+}
+
+static void *(*real_dlopen)(const char *filename, int flag);
+
+void *dlopen(const char *filename, int flag)
+{
+	if (strcmp(filename, "libGL.so.1") == 0)
+	{
+		return dlopen("libfakeGL.so", flag);
+	} else {
+		if (!real_dlopen)
+			real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+		return real_dlopen(filename, flag);
+	}
 }
 
 static bool
@@ -1103,6 +1113,38 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	winsys_surface_check_for_finished_queries(wsurface);
 	winsys_surface_start_frame(wsurface);
     }
+}
+
+void *
+gputop_glXGetProcAddress(const GLubyte *procName)
+{
+    int I;
+#define SYM(X) { #X, (void **)&gputop_ ## X }
+    struct {
+	const char *name;
+	void **ptr;
+} static symbols[] = {
+	SYM(glXCreateContextAttribsARB),
+	SYM(glXCreateNewContext),
+	SYM(glXCreateContext),
+	SYM(glXDestroyContext),
+	SYM(glXMakeCurrent),
+	SYM(glXMakeContextCurrent),
+	SYM(glXSwapBuffers)
+    };
+#undef SYM
+
+    pthread_once(&init_once, gputop_gl_init);
+    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
+	return NULL;
+
+    for (I = 0; I < (sizeof(symbols) / sizeof(symbols[0])); I++)
+    {
+	if (strcmp((char *)procName, symbols[I].name) == 0)
+	    return (symbols[I].ptr);
+    }
+
+    return real_glXGetProcAddress(procName);
 }
 
 void

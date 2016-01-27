@@ -324,7 +324,6 @@ glapiHooks = {
     'glEnable',
     'glDisable',
     'glScissor',
-    'glBindTexture',
     'glDebugMessageControl',
     'glDebugMessageCallback'
 }
@@ -338,7 +337,8 @@ glxapiHooks = {
     'glXCreateContext',
     'glXCreateNewContext',
     'glXCreateContextAttribsARB',
-    'glXDestroyContext'
+    'glXDestroyContext',
+    'glXQueryExtension'
 }
 
 glxapiHeaders = [
