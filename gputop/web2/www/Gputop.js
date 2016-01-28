@@ -332,7 +332,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
         return;
     }
 
-    if (this.query_active_ == metric) {
+    if (this.query_active_ != undefined && this.query_active_ == metric) {
         this.query_active_ = undefined;
         console.log(" Stop render " + metric.name);
     }
@@ -492,6 +492,10 @@ Gputop.prototype.get_socket = function(websocket_url) {
                                 if (metric.on_close_callback_ != undefined) {
                                     metric.on_close_callback_();
                                 }
+
+                                // the query stopped being tracked
+                                metric.oa_query = undefined;
+                                metric.oa_query_id_ = undefined;
                             }
                         });
                     }
