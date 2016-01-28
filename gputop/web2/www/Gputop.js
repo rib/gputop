@@ -35,43 +35,15 @@ function Counter () {
     this.data_ = [];
 }
 
-Counter.prototype.display = function() {
-    if (this.invalidate_ == false)
-        return;
-
-    if (this.data_.length == 0)
-        return;
-
-    var delta = this.data_.shift();
-    var d_value = this.data_.shift();
-    var max = this.data_.shift();
-
-    if (this.div_ == undefined)
-        this.div_ = $('#'+this.div_bar_id_ );
-
-    if (this.div_txt_ == undefined)
-        this.div_txt_ = $('#'+this.div_txt_id_ );
-
-    if (max != 0) {
-        var value = 100 * d_value / max;
-        this.div_.css("width", value + "%");
-        this.div_txt_.text(value.toFixed(2) + " " +this.samples_);
-
-        //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + this.symbol_name);
-    } else {
-        this.div_txt_.text(d_value.toFixed(2) + " " +this.samples_);
-        this.div_.css("width", "0%");
-    }
-}
-
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
     this.samples_ ++;
     var n_samples = this.data_.length/3;
     if (n_samples>10)
         return;
 
-    //if (this.last_value_ == d_value)
-    //    return;
+    // Do not refresh the counter if there is not a change of data
+    if (this.last_value_ == d_value)
+        return;
 
     this.last_value_ = d_value;
     this.invalidate_ = true;
@@ -150,19 +122,6 @@ function Gputop () {
     // Current active query sets
     // Indexes by query_id_next_
     this.query_metric_handles_ = [];
-}
-
-Gputop.prototype.window_render_animation_bars = function(timestamp) {
-    window.requestAnimationFrame(gputop.window_render_animation_bars);
-
-    var metric = gputop.query_active_;
-    if (metric == undefined)
-        return;
-
-    for (var i = 0, l = metric.emc_counters_.length; i < l; i++) {
-        var counter = metric.emc_counters_[i];
-        counter.display();
-    }
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -245,7 +204,6 @@ function gputop_read_metrics_set() {
 } // read_metrics_set
 
 Gputop.prototype.query_update_counter = function (counterId, id, start_timestamp, end_timestamp, delta, max, d_value) {
-
     var metric = this.query_metric_handles_[id];
     if (metric == undefined) {
         //TODO Close this query which is not being captured
@@ -345,7 +303,38 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     this.query_active_ = metric;
 
     console.log(" Render animation bars ");
-    window.requestAnimationFrame(gputop.window_render_animation_bars);
+    gputop_ui.show_alert("Opening query "+ metric.name_, "alert-info");
+    gputop_ui.render_bars();
+}
+
+Gputop.prototype.close_oa_query = function(id, callback) {
+    var metric = this.query_metric_handles_[id];
+    if (metric == undefined) {
+        gputop_ui.show_alert("Cannot close query "+id+", which does not exist ","alert-danger");
+        return;
+    }
+
+    delete query_metric_handles_[id];
+
+    gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
+
+    var msg = new this.builder_.Request();
+    msg.uuid = this.generate_uuid();
+
+    _gputop_webworker_on_close_oa_query(metric.oa_query_id_);
+
+    msg.close_query = metric.oa_query_id_;
+    msg.encode();
+    this.socket_.send(msg.toArrayBuffer());
+
+    gputop_ui.syslog("Sent: Request close query "+msg.uuid);
+
+    if (this.query_active_ == metric) {
+        this.query_active_ = undefined;
+        console.log(" Stop render ");
+    }
+
+    this.on_close_callback_ = callback;
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
