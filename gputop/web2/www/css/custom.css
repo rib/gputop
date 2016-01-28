@@ -41,7 +41,7 @@ html, body {
 }
 
 .column_class {
-    min-height: 50px;
+    min-height: 20px;
 }
 
 .live_trace_dropdown {

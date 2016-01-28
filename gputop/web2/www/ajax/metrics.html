@@ -1,52 +1,22 @@
 <!-- Pannel 2 -->
-<div class = "row">
-    <div class = "col-sm-5">
+    <div style = "float: left; padding-right: 70px; width: 600px;">
         <h1 id="page-header-metrics">Metrics panel loading</h1>
     </div>
-    <div class = "col-sm-6">
-        <br>
-        <div class="btn-group" role="group" aria-label="...">
-            <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
-        </div>
+
+    <div class="btn-group" role="group" aria-label="..." style = "padding-top: 23px; float: none">
+        <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
     </div>
 
-</div>
 
-<br> <!-- Ugly, dirty and disgusting way of placing stuff in the right place, will be fixed later -->
-<br>
 
-<div class = "container-fluid">
-    <div class = "row">
-        <div class = "col-sm-8 tab-content" id = "counter_metrics">
-        </div>
-        <div class = "col-sm-3">
-            <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs" style="list-style-type:none">
-            </ul>
-        </div>
+    <div style = "width: 25%; float: right; margin-top: 120px;">
+        <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs" style="list-style-type:none">
+        </ul>
     </div>
-</div>
+    <div class = "tab-content" id = "counter_metrics" style = "float: none; width: 70%; margin-top: 70px">
+    </div>
+
 <script>
-    /*
-    function timeout() {
-        if (gputop.is_connected_ == true) {
-            i += k;
-            if (i <= 100)
-                setTimeout(timeout, 10);
-            else if (i > 100) {
-                i = 0;
-                setTimeout(timeout, 1000);
-            }
-        } else {
-            i = 0;
-            setTimeout(timeout, 1000);
-            console.log("Retry timeout");
-        }
-
-        $(".bar_adjust").css("width", i + "%");
-        $(".progress_text").text(i + "%");
-    } // timeout
-    */
-
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
@@ -66,46 +36,48 @@
         }
 
         var supported_color = "";
+        var stripped_bar = "";
+        var initial_progress = "0%";
         if (!counter.supported_) {
-            supported_color='background-color:#e6e6e6;'
+            //supported_color='background-color:#e6e6e6;'
+            stripped_bar = "-striped";
+            initial_progress = "100%";
         }
 
         var div_id = 'div_counter_'+set_index + '_' + counter_index;
         var counter_bar_id = 'div_bar_counter_'+set_index + '_' + counter_index;
         var counter_text_bar_id = 'div_txt_'+set_index + '_' + counter_index;
 
+        // add transition: none to progress bar css for no animation.
         // display of counter bar metrics
         counter_bars = '\
-    <li class = "panel panel-info" style="list-style-type:none;'+supported_color+'" id="'+div_id+' > \
-            <div class="row"> \
-                <div class = "col-sm-1"> \
-                    <div class = "row"> \
-                        <div class = "col-sm-2 handle glyphicon glyphicon-move"></div> \
-                        <div class = "col-sm-1 live_trace_dropdown"><a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"><div class = "glyphicon glyphicon-collapse-down"></div></a></div> \
+            <div style = "margin-top: 15px; ' + supported_color + '" id="'+div_id+'"> \
+                <div class = "column_class" style = "float: left; width: 200px">' + name + '</div> \
+                <div style = "min-width: 45%; float: left"> &nbsp \
+                    <div class="progress" style = "height: 20px; min-width: 96%; float: left; margin-bottom:0px"> \
+                        <div id = "'+ counter_bar_id +'" class = "progress-bar progress-bar' + stripped_bar + ' active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 30%;" data-toggle="tooltip" data-placement="left"></div> \
                     </div> \
                 </div> \
-                <div class = "col-sm-3 column_class"><p2 id = "counter">' + name + '</p2></div> \
-                <div class = "col-sm-6 overview_bars"> \
-                    <div class = "progress"> \
-                        <div id ="'+ counter_bar_id +'" class = "progress-bar progress-bar-striped active " role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width:10%; transition: none;" data-toggle="tooltip" data-placement="left"></div> \
-                    </div> \
+                <div class = "progress_text" id = "' + counter_text_bar_id +'" style = "float: left; width: 140px">' + 0 + '</div> \
+                <div class = "live_trace_dropdown" style = "float: left; min-width: 40px; max-width: none; padding-left: 13px">&nbsp\
+                    <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"> \
+                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon test123 glyphicon-collapse-down"></div> \
+                    </a> \
                 </div> \
-                <div class = "col-sm-1"><p class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</p></div> \
-            </div> \
-            <div class = "row"> \
-                <div class = "col-sm-9"> \
-                    <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
-                        <div class="well" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
-                    </div> \
+                <div class = "handle glyphicon glyphicon-move" style = "float: none;"></div> \
+                <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
+                    <div class="well" id="flotcontainer_' + set_index + '_' + counter_index + '" style = "margin-left: 20px"></div> \
                 </div> \
-            </div> \
-    </li>';
-        //counter.div_ = $(div_id);
+            </div>';
+    //counter.div_ = $(div_id);
 
         $("#tab_number_" + set_index).append(counter_bars);
 
         $('#'+counter_bar_id).css("width", "100%");
         $('#'+div_id).data(counter);
+
+        if (!counter.supported_)
+            $('#'+counter_bar_id).css("background-color", "#999999");
 
         counter.div_id_ = div_id;
         counter.div_bar_id_ = counter_bar_id;
@@ -130,7 +102,7 @@
         counter_index = 0;
 
         // contents of the sidebar menu
-        $("#sidebar_right").append('<li class="' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+        $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
         $('#'+guid).click(function (e) {
             console.log("click "+e.target.id);
             gputop.open_oa_query_for_trace(e.target.id);
@@ -163,7 +135,7 @@
     function read_from_xml(xml_name) {
         $(xml_name).find("set").each(read_metrics_set);
 
-        $(".glyphicon-collapse-down").hide();
+        //$(".glyphicon-collapse-down").hide();
 
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
@@ -171,48 +143,31 @@
             $('#page-header-metrics').text(e.target.text);
         });
 
-
         $('.collapse').on('shown.bs.collapse', function(e) {
-            $('.progress').hide();
+            var $glyphicon = $(e.target).parent().find(".test123");
+            var glyphicon_class = $glyphicon.attr("class").replace
+                ("glyphicon-collapse-down", "glyphicon-collapse-up");
+
+            $glyphicon.attr("class", glyphicon_class);
+
             var id = $(e.target).find(".well");
             //graph_start("#" + id.attr("id"));
             graph_array.push(id.attr("id"));
         });
 
+        $('.collapse').on('hidden.bs.collapse', function(e) {
+            var $glyphicon = $(e.target).parent().find(".test123");
+            var glyphicon_class = $glyphicon.attr("class").replace
+                ("glyphicon-collapse-up", "glyphicon-collapse-down");
+
+            $glyphicon.attr("class", glyphicon_class);
+
+            var id = $(e.target).find(".well");
+            var index = graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
+            graph_array.splice(index, 1); // remove element from the graph array
+        })
+
     } // read_from_xml
-
-
-    function GetData() {
-        data.shift();
-
-        while (data.length < totalPoints) {
-            var y = Math.random() * 100;
-            var temp = [now += updateInterval, y];
-
-            data.push(temp);
-        }
-    }
-
-
-    function graph_start(id_plot) {
-        GetData();
-
-        dataset = [
-            { label: "CPU", data: data }
-        ];
-
-        $.plot($(id_plot), dataset, options);
-
-        function update() {
-            GetData();
-
-            $.plot($(id_plot), dataset, options)
-            setTimeout(update, updateInterval);
-        }
-
-        update();
-    };
-
 
 
     // index of set + index of active counter forms an unique id for all counters
@@ -227,13 +182,13 @@
     $("#switch_button").on("click", function(){
         if (toggle_mode == 1) {
             $("#switch_button").text("Switch to Overview");
-            $('.overview_bars, .progress_text').hide();
-            $(".glyphicon-collapse-down").show(); // graph dropdown button
+            //$('.overview_bars, .progress_text').hide();
+            //$(".glyphicon-collapse-down").show(); // graph dropdown button
         }
         else {
             $("#switch_button").text("Switch to Live Tracing");
-            $('.overview_bars, .progress_text').show();
-            $(".glyphicon-collapse-down").hide();
+            //$('.overview_bars, .progress_text').show();
+            //$(".glyphicon-collapse-down").hide();
         }
         toggle_mode *= -1;
     });
@@ -257,104 +212,102 @@
     // graph settings
     var graph_time = 0;
     $(function() {
+        var container = $("#flotcontainer_0_0");
 
-	var container = $("#flotcontainer_0_0");
+        // Determine how many data points to keep based on the placeholder's initial size;
+        // this gives us a nice high-res plot while avoiding more than one point per pixel.
+        var maximum = container.outerWidth() / 2 || 300;
 
-	// Determine how many data points to keep based on the placeholder's initial size;
-	// this gives us a nice high-res plot while avoiding more than one point per pixel.
+        var data = [];
+        function getRandomData() {
+            //debugger;
 
-	var maximum = container.outerWidth() / 2 || 300;
+            if (data.length) {
+                data.shift();
+            }
 
-	var data = [];
-    function getRandomData() {
-        //debugger;
-
-        if (data.length) {
-            data.shift();
+            while (data.length < maximum) {
+                var previous = data.length ? data[data.length - 1] : 50;
+                var y = Math.random() * 100;
+                data.push([graph_time, y < 0 ? 0 : y > 100 ? 100 : y]);
+                graph_time++;
+            }
         }
 
-        while (data.length < maximum) {
-            var previous = data.length ? data[data.length - 1] : 50;
-            var y = Math.random() * 100;
-            data.push([graph_time, y < 0 ? 0 : y > 100 ? 100 : y]);
-            graph_time++;
-        }
-    }
 
-
-	series = [{
-		data: getRandomData(),
-		lines: {
-			fill: true
-		},
-        color: "#6666ff"
-	}];
+        series = [{
+            data: getRandomData(),
+            lines: {
+                fill: true
+               },
+            color: "#6666ff"
+    	}];
 
         var options = {
-		grid: {
-			borderWidth: 1,
-			minBorderMargin: 20,
-			labelMargin: 10,
-			backgroundColor: {
-				colors: ["#fff", "#e4f4f4"]
-			},
-			margin: {
-				top: 8,
-				bottom: 20,
-				left: 20
-			},
-            // dont know what this is for?!
-			markings: function(axes) {
-				var markings = [];
-				var xaxis = axes.xaxis;
-				for (var x = Math.floor(xaxis.min); x < xaxis.max; x += xaxis.tickSize * 2) {
-					markings.push({ xaxis: { from: x, to: x + xaxis.tickSize }, color: "rgba(232, 232, 255, 0.2)" });
-				}
-				return markings;
-			}
-		},
-		xaxis: {
-            show: true,
-            ticks: 10
-            //min: 0,
-            //max: 1000
-		},
-		yaxis: {
-			min: 0,
-			max: 110
-		},
-		legend: {
-			show: true
-		}
-	};
+        	grid: {
+                borderWidth: 1,
+                minBorderMargin: 20,
+                labelMargin: 10,
+                backgroundColor: {
+                    colors: ["#fff", "#e4f4f4"]
+                },
+                margin: {
+                    top: 8,
+                    bottom: 20,
+                    left: 20
+                },
+                // dont know what this is for?!
+                markings: function(axes) {
+                    var markings = [];
+                    var xaxis = axes.xaxis;
+                    for (var x = Math.floor(xaxis.min); x < xaxis.max; x += xaxis.tickSize * 2) {
+                        markings.push({ xaxis: { from: x, to: x + xaxis.tickSize }, color: "rgba(232, 232, 255, 0.2)" });
+                    }
+                    return markings;
+                }
+            },
+            xaxis: {
+                show: true,
+                ticks: 10
+                //min: 0,
+                //max: 1000
+            },
+            yaxis: {
+                min: 0,
+                max: 110
+            },
+            legend: {
+                show: true
+            }
+        };
 
-	// Create the demo X and Y axis labels
+        // Create the demo X and Y axis labels
 
-	var yaxisLabel = $("<br><br><div class='axisLabel yaxisLabel'></div>")
-		.text("Response Time (ms)")
-		.appendTo(container);
+        var yaxisLabel = $("<br><br><div class='axisLabel yaxisLabel'></div>")
+            .text("Response Time (ms)")
+            .appendTo(container);
 
-	// Since CSS transforms use the top-left corner of the label as the transform origin,
-	// we need to center the y-axis label by shifting it down by half its width.
-	// Subtract 20 to factor the chart's bottom margin into the centering.
+            // Since CSS transforms use the top-left corner of the label as the transform origin,
+            // we need to center the y-axis label by shifting it down by half its width.
+            // Subtract 20 to factor the chart's bottom margin into the centering.
 
-	yaxisLabel.css("margin-top", yaxisLabel.width() / 2 - 20);
+            yaxisLabel.css("margin-top", yaxisLabel.width() / 2 - 20);
 
-	// Update the random dataset at 25FPS for a smoothly-animating chart
+            // Update the random dataset at 25FPS for a smoothly-animating chart
 
-	setInterval(function updateRandom() {
-        getRandomData();
-        for (var i = 0; i < graph_array.length; ++i)
-        {
-            var container = "#" + graph_array[i];
-            //var plot = $.plot(container, series, options);
-    		series[0].data = data;
-    		//plot.setData(series);
-            //plot.setupGrid();
-            $.plot(container, series, options);
-    		//plot.draw();
-        }
-	}, 40);
+            setInterval(function updateRandom() {
+            getRandomData();
+            for (var i = 0; i < graph_array.length; ++i)
+            {
+                var container = "#" + graph_array[i];
+                //var plot = $.plot(container, series, options);
+                series[0].data = data;
+                //plot.setData(series);
+                //plot.setupGrid();
+                $.plot(container, series, options);
+                //plot.draw();
+            }
+        }, 200);
 
 });
 
