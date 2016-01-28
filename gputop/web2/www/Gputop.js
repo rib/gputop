@@ -55,11 +55,11 @@ Counter.prototype.display = function() {
     if (max != 0) {
         var value = 100 * d_value / max;
         this.div_.css("width", value + "%");
-        this.div_txt_.text(value.toFixed(2));
+        this.div_txt_.text(value.toFixed(2) + " " +this.samples_);
 
         //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + this.symbol_name);
     } else {
-        this.div_txt_.text(d_value.toFixed(2));
+        this.div_txt_.text(d_value.toFixed(2) + " " +this.samples_);
         this.div_.css("width", "0%");
     }
 }
@@ -70,8 +70,8 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     if (n_samples>10)
         return;
 
-    if (this.last_value_ == d_value)
-        return;
+    //if (this.last_value_ == d_value)
+    //    return;
 
     this.last_value_ = d_value;
     this.invalidate_ = true;
@@ -419,10 +419,16 @@ Gputop.prototype.load_emscripten = function() {
     if (gputop.is_connected_)
         return;
 
+    gputop.is_connected_ = true;
+    if (gputop.native_js_loaded_ == true) {
+        gputop.request_features();
+        return;
+    }
+
     $.getScript( gputop.get_gputop_native_js() )
         .done(function( script, textStatus ) {
         gputop.request_features();
-        gputop.is_connected_ = true;
+        gputop.native_js_loaded_ = true;
     }).fail(function( jqxhr, settings, exception ) {
         console.log( "Failed loading emscripten" );
         setTimeout(function() {
