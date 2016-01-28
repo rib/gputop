@@ -67,6 +67,8 @@ function Metric () {
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
 
+    this.oa_query_id_ = -1; // if there is an active query it will be >0
+
     // Real counter number including not available ones
     this.n_total_counters_ = 0;
 }
@@ -244,13 +246,29 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         return;
     }
 
-    gputop_ui.syslog("Launch query GUID " + guid);
     var metric = this.get_map_metric(guid);
+
+    // Check if the query is active to not try to open it again
+    if (metric.oa_query_id_ != undefined && metric.oa_query_id_ > 0) {
+        // Query is already open
+        gputop_ui.show_alert("Metric "+guid+" already active","alert-info");
+        return;
+    }
+
+    // Check if we have to close the old query before opening this one
+    if (this.query_active_ != undefined && this.query_active_ != metric) {
+        this.close_oa_query(this.query_active_.oa_query_id_, function() {
+            console.log("Success! Opening new query "+guid);
+            gputop.open_oa_query_for_trace(guid);
+        });
+        return;
+    }
 
     if (metric.supported_ == false) {
         gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");
         return;
     }
+    gputop_ui.syslog("Launch query GUID " + guid);
 
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
@@ -314,7 +332,11 @@ Gputop.prototype.close_oa_query = function(id, callback) {
         return;
     }
 
-    delete query_metric_handles_[id];
+    if (this.query_active_ == metric) {
+        this.query_active_ = undefined;
+        console.log(" Stop render " + metric.name);
+    }
+    metric.on_close_callback_ = callback;
 
     gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
 
@@ -328,13 +350,6 @@ Gputop.prototype.close_oa_query = function(id, callback) {
     this.socket_.send(msg.toArrayBuffer());
 
     gputop_ui.syslog("Sent: Request close query "+msg.uuid);
-
-    if (this.query_active_ == metric) {
-        this.query_active_ = undefined;
-        console.log(" Stop render ");
-    }
-
-    this.on_close_callback_ = callback;
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
@@ -462,11 +477,22 @@ Gputop.prototype.get_socket = function(websocket_url) {
                     if (msg.features != undefined) {
                         gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
                         gputop.process_features(msg.features);
-                    }
+                    } else
                     if (msg.log != undefined) {
                         var entries = msg.log.entries;
                         entries.forEach(function(entry) {
                             gputop_ui.log(entry.log_level, entry.log_message);
+                        });
+                    } else
+                    if (msg.close_notify != undefined) {
+                        var id = msg.close_notify.id;
+                        gputop.query_metric_handles_.forEach(function(metric) {
+                            if (metric.oa_query_id_ == id) {
+                                delete gputop.query_metric_handles_[id];
+                                if (metric.on_close_callback_ != undefined) {
+                                    metric.on_close_callback_();
+                                }
+                            }
                         });
                     }
 

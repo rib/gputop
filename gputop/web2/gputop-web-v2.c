@@ -486,7 +486,7 @@ gputop_webworker_on_open_oa_query(uint32_t id,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_close_oa_query(uint32_t id, char *req_uuid)
+gputop_webworker_on_close_oa_query(uint32_t id)
 {
     struct gputop_worker_query *query;
 

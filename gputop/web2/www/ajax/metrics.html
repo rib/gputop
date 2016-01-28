@@ -118,6 +118,7 @@
     function read_metrics_set() {
         var $set = $(this);
         var title = $set.attr("name");
+        var guid = $set.attr("guid");
         var counter_bars;
 
         var active = "";
@@ -129,7 +130,23 @@
         counter_index = 0;
 
         // contents of the sidebar menu
-        $("#sidebar_right").append('<li class="' + active + '"><a id="set_' + set_index + '" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+        $("#sidebar_right").append('<li class="' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+        $('#'+guid).click(function (e) {
+            console.log("click "+e.target.id);
+            gputop.open_oa_query_for_trace(e.target.id);
+        });
+
+/*
+    var active_query = gputop.query_active_;
+    if (active_query==undefined) {
+        gputop_ui.show_alert(" No Active Query","alert-info");
+        return;
+    }
+
+    gputop.close_oa_query(active_query.oa_query_id_, function() {
+       gputop_ui.show_alert(" Success closing query","alert-info");
+    });
+*/
 
         // display of metrics tab-pane
         $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
