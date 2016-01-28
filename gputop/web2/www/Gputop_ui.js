@@ -4,6 +4,52 @@ function Gputop_ui () {
 
 }
 
+Gputop_ui.prototype.display_counter = function(counter) {
+    if (counter.invalidate_ == false)
+        return;
+
+    if (counter.data_.length == 0)
+        return;
+
+    var delta = counter.data_.shift();
+    var d_value = counter.data_.shift();
+    var max = counter.data_.shift();
+
+    if (counter.div_ == undefined)
+        counter.div_ = $('#'+counter.div_bar_id_ );
+
+    if (counter.div_txt_ == undefined)
+        counter.div_txt_ = $('#'+counter.div_txt_id_ );
+
+    if (max != 0) {
+        var value = 100 * d_value / max;
+        counter.div_.css("width", value + "%");
+        counter.div_txt_.text(value.toFixed(2) + " " +counter.samples_);
+
+        //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + counter.symbol_name);
+    } else {
+        counter.div_txt_.text(d_value.toFixed(2) + " " +counter.samples_);
+        counter.div_.css("width", "0%");
+    }
+}
+
+Gputop_ui.prototype.render_bars = function() {
+    window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
+}
+
+Gputop_ui.prototype.window_render_animation_bars = function(timestamp) {
+    var metric = gputop.query_active_;
+    if (metric == undefined)
+        return;
+
+    window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
+
+    for (var i = 0, l = metric.emc_counters_.length; i < l; i++) {
+        var counter = metric.emc_counters_[i];
+        gputop_ui.display_counter(counter);
+    }
+}
+
 Gputop_ui.prototype.metric_not_supported = function(metric) {
     alert(" Metric not supported " + metric.title_)
 }
