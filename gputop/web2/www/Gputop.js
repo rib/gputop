@@ -31,18 +31,54 @@ function Counter () {
     this.supported_ = false;
     this.xml_ = "<xml/>";
 
+    this.samples_ = 0; // Number of samples processed
     this.data_ = [];
 }
 
-Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
-    //console.log(" NSamples " + n_samples + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value + " Data " + this.symbol_name);
-
-    var n_samples = this.data_.length/3;
-    if (n_samples>10) {
+Counter.prototype.display = function() {
+    if (this.invalidate_ == false)
         return;
+
+    if (this.data_.length == 0)
+        return;
+
+    var delta = this.data_.shift();
+    var d_value = this.data_.shift();
+    var max = this.data_.shift();
+
+    if (this.div_ == undefined)
+        this.div_ = $('#'+this.div_bar_id_ );
+
+    if (this.div_txt_ == undefined)
+        this.div_txt_ = $('#'+this.div_txt_id_ );
+
+    if (max != 0) {
+        var value = 100 * d_value / max;
+        this.div_.css("width", value + "%");
+        this.div_txt_.text(value.toFixed(2));
+
+        //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + this.symbol_name);
+    } else {
+        this.div_txt_.text(d_value.toFixed(2));
+        this.div_.css("width", "0%");
     }
-    
-    console.log(" n_samples " + n_samples + " "+delta+" = "+ d_value + "/"+ max +" " + this.symbol_name);
+}
+
+Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
+    this.samples_ ++;
+    var n_samples = this.data_.length/3;
+    if (n_samples>10)
+        return;
+
+    if (this.last_value_ == d_value)
+        return;
+
+    this.last_value_ = d_value;
+    this.invalidate_ = true;
+
+    //if (max != 0)
+    //    console.log(" NSamples " + n_samples + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value + "/" + max +" Data " + this.symbol_name);
+
     this.data_.push(delta, d_value, max);
 }
 
@@ -54,8 +90,8 @@ function Metric () {
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.emc_counters_ = {}; // Array containing only available counters
-    this.counters_ = {};     // Array containing all counters
+    this.emc_counters_ = []; // Array containing only available counters
+    this.counters_ = [];     // Array containing all counters
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
 
@@ -114,6 +150,19 @@ function Gputop () {
     // Current active query sets
     // Indexes by query_id_next_
     this.query_metric_handles_ = [];
+}
+
+Gputop.prototype.window_render_animation_bars = function(timestamp) {
+    window.requestAnimationFrame(gputop.window_render_animation_bars);
+
+    var metric = gputop.query_active_;
+    if (metric == undefined)
+        return;
+
+    for (var i = 0, l = metric.emc_counters_.length; i < l; i++) {
+        var counter = metric.emc_counters_[i];
+        counter.display();
+    }
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -219,11 +268,8 @@ Gputop.prototype.load_xml_metrics = function(xml) {
     $(xml).find("set").each(gputop_read_metrics_set);
 
     gputop_ui.load_metrics_panel(function() {
-        //TODO(@sergioamr) How do you get the first entry in JS?
-        for(var guid in gputop.map_metrics_) {
-            gputop.open_oa_query_for_trace(guid);
-            return;
-        }
+        var metric = gputop.get_metric_by_id(0);
+        gputop.open_oa_query_for_trace(metric.guid_);
     });
 }
 
@@ -273,7 +319,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     var open = new this.builder_.OpenQuery();
 
-    oa_query.period_exponent = 16 ;
+    oa_query.period_exponent = 14 ;
 
     open.id = metric.oa_query_id_; // oa_query ID
     open.overwrite = false;   /* don't overwrite old samples */
@@ -287,7 +333,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
-          100000000);
+          1000000); //100000000
 
     msg.open_query = open;
     msg.encode();
@@ -296,6 +342,10 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     gputop_ui.syslog("Sent: Request "+msg.uuid);
 
     this.query_metric_handles_[metric.oa_query_id_] = metric;
+    this.query_active_ = metric;
+
+    console.log(" Render animation bars ");
+    window.requestAnimationFrame(gputop.window_render_animation_bars);
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
