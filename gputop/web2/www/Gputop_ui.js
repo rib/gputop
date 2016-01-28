@@ -24,11 +24,11 @@ Gputop_ui.prototype.display_counter = function(counter) {
     if (max != 0) {
         var value = 100 * d_value / max;
         counter.div_.css("width", value + "%");
-        counter.div_txt_.text(value.toFixed(2) + " " +counter.samples_);
+        counter.div_txt_.text(value.toFixed(2));// + " " +counter.samples_);
 
         //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + counter.symbol_name);
     } else {
-        counter.div_txt_.text(d_value.toFixed(2) + " " +counter.samples_);
+        counter.div_txt_.text(d_value.toFixed(0));// + " " +counter.samples_);
         counter.div_.css("width", "0%");
     }
 }

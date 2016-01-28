@@ -309,7 +309,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
-          1000000); //100000000
+          1000000000); //100000000
 
     msg.open_query = open;
     msg.encode();
