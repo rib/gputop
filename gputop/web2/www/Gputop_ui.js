@@ -105,11 +105,26 @@ Gputop_ui.prototype.load_metrics_panel = function(callback_success) {
 
 var gputop_ui = new Gputop_ui();
 
+Gputop_ui.prototype.btn_close_current_query = function() {
+    var active_query = gputop.query_active_;
+    if (active_query==undefined) {
+        gputop_ui.show_alert(" No Active Query","alert-info");
+        return;
+    }
+
+    gputop.close_oa_query(active_query.oa_query_id_, function() {
+       gputop_ui.show_alert(" Success closing query","alert-info");
+    });
+}
+
 // jquery code
 $( document ).ready(function() {
     //log = $( "#log" );
     log = document.getElementById("log");
-    $( "#gputop-entries" ).append( '<li><a href="#">Test</a></li>' );
+
+    $( "#gputop-entries" ).append( '<li><a id="close_query" href="#" onClick>Close Query</a></li>' );
+    $('#close_query').click( gputop_ui.btn_close_current_query);
+
     gputop_ui.init_interface();
     $('#editor').wysiwyg();
 });
