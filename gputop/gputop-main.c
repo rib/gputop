@@ -146,6 +146,32 @@ env_append_path(const char *var, const char *path)
         setenv(var, path, true);
 }
 
+static void
+print_gputop_env_vars(void)
+{
+    if (getenv("GPUTOP_FAKE_MODE"))
+        fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
+
+#ifdef SUPPORT_GL
+    if (getenv("GPUTOP_GL_LIBRARY"))
+        fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
+
+    if (getenv("GPUTOP_EGL_LIBRARY"))
+            fprintf(stderr, "GPUTOP_EGL_LIBRARY=%s \\\n", getenv("GPUTOP_EGL_LIBRARY"));
+
+    if (getenv("GPUTOP_GL_DEBUG_CONTEXT"))
+            fprintf(stderr, "GPUTOP_GL_DEBUG_CONTEXT=%s \\\n", getenv("GPUTOP_GL_DEBUG_CONTEXT"));
+
+    if (getenv("GPUTOP_GL_SCISSOR_TEST"))
+        fprintf(stderr, "GPUTOP_GL_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_GL_SCISSOR_TEST"));
+#endif
+
+#ifdef SUPPORT_WEBUI
+    if (getenv("GPUTOP_MODE"))
+        fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
+#endif
+}
+
 int
 main (int argc, char **argv)
 {
@@ -268,29 +294,37 @@ main (int argc, char **argv)
     if (ld_preload_path)
         fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
 
-    if (getenv("GPUTOP_FAKE_MODE"))
-        fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
+    print_gputop_env_vars();
 
-#ifdef SUPPORT_GL
-    if (getenv("GPUTOP_GL_LIBRARY"))
-        fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
+    for (i = optind; i < argc; i++)
+        fprintf(stderr, "%s ", args[i]);
+    fprintf(stderr, "\n\n");
 
-    if (getenv("GPUTOP_EGL_LIBRARY"))
-            fprintf(stderr, "GPUTOP_EGL_LIBRARY=%s \\\n", getenv("GPUTOP_EGL_LIBRARY"));
+    fprintf(stderr, "The LD_PRELOAD makes running gdb awkward. Either attach with\n");
+    fprintf(stderr, "gdb --pid=`pidof %s` or run like:\n\n", args[optind]);
 
-    if (getenv("GPUTOP_GL_DEBUG_CONTEXT"))
-            fprintf(stderr, "GPUTOP_GL_DEBUG_CONTEXT=%s \\\n", getenv("GPUTOP_GL_DEBUG_CONTEXT"));
+    print_gputop_env_vars();
+    if (ld_preload_path)
+        fprintf(stderr, "gdb -ex \"set exec-wrapper env 'LD_PRELOAD=%s'\" --args \\\n", ld_preload_path);
+    else
+        fprintf(stderr, "gdb --args \\\n");
 
-    if (getenv("GPUTOP_GL_SCISSOR_TEST"))
-        fprintf(stderr, "GPUTOP_GL_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_GL_SCISSOR_TEST"));
-#endif
+    for (i = optind; i < argc; i++)
+        fprintf(stderr, "%s ", args[i]);
+    fprintf(stderr, "\n\n");
 
-#ifdef SUPPORT_WEBUI
-    if (getenv("GPUTOP_MODE"))
-        fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
-#endif
 
-    fprintf(stderr, "%s\n", args[optind]);
+    fprintf(stderr, "Valgrind can be run like:\n\n");
+
+    if (ld_preload_path)
+        fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
+    print_gputop_env_vars();
+    fprintf(stderr, "valgrind --log-file=valgrind-log.txt \\\n");
+
+    for (i = optind; i < argc; i++)
+        fprintf(stderr, "%s ", args[i]);
+    fprintf(stderr, "\n\n");
+
 
     if (!dry_run)
     {
