@@ -27,6 +27,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
 #define unlikely(x) __builtin_expect(x, 0)
@@ -135,5 +136,8 @@ array_append(struct array *array, void *data)
 }
 
 #define array_value_at(ARRAY, TYPE, IDX) *(((TYPE *)(ARRAY)->data) + IDX)
+
+bool
+gputop_get_bool_env(const char *var);
 
 #endif /* _GPUTOP_UTIL_H_ */

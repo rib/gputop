@@ -44,6 +44,7 @@ libgputop_la_SOURCES = \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
+    gputop-util.c \
     gputop-list.h \
     gputop-list.c \
     gputop-log.h \
