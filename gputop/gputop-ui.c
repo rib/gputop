@@ -601,6 +601,86 @@ static struct tab tab_3d_trace =
     .redraw = perf_3d_trace_tab_redraw,
 };
 
+static void
+debug_log_tab_enter(struct tab *owner_tab)
+{
+
+}
+
+static void
+debug_log_tab_leave(void)
+{
+
+}
+
+static void
+debug_log_tab_input(int key)
+{
+
+}
+
+static void
+debug_log_tab_redraw(WINDOW *win)
+{
+    int win_width __attribute__ ((unused));
+    int win_height;
+    struct gputop_log_entry *tmp;
+    int i = 0;
+
+    getmaxyx(win, win_height, win_width);
+
+    pthread_once(&gputop_log_init_once, gputop_log_init);
+
+    pthread_rwlock_rdlock(&gputop_log_lock);
+
+#ifdef SUPPORT_GL
+    if (gputop_gl_contexts && gputop_list_empty(&gputop_log_entries)) {
+	struct winsys_context **contexts = gputop_gl_contexts->data;
+	struct winsys_context *wctx = contexts[i];
+
+	mvwprintw(win, 1, 0, "No performance warnings have been reported from OpenGL so far...\n");
+
+	if (!wctx->is_debug_context) {
+	    mvwprintw(win, 3, 0,
+		      "Note: The application is not running with a debug context which\n"
+		      "might effectively disable the KHR_debug extension.");
+	    if (!gputop_gl_force_debug_ctx_enabled)
+		mvwprintw(win, 6, 0,
+			  "Note: GPU Top can force the creation of a debug context if\n"
+			  "you pass --debug-gl-context or set the GPUTOP_FORCE_DEBUG_CONTEXT\n"
+			  "environment variable.");
+	    else if (wctx->try_create_new_context_failed)
+		mvwprintw(win, 6, 0,
+			  "Note: GPU Top failed to force this app using the legacy \n"
+			  "glXCreateContext API to create a debug context\n");
+	}
+
+        win_height -= 10;
+    }
+#endif
+
+    gputop_list_for_each(tmp, &gputop_log_entries, link) {
+	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
+
+	if (i++ > win_height)
+	    break;
+    }
+
+    pthread_rwlock_unlock(&gputop_log_lock);
+}
+
+static struct tab tab_debug_log =
+{
+    .nick = "Log",
+    .name = "Debug log",
+    .enter = debug_log_tab_enter,
+    .leave = debug_log_tab_leave,
+    .input = debug_log_tab_input,
+    .redraw = debug_log_tab_redraw,
+};
+
+
+
 #ifdef SUPPORT_GL
 static void
 print_percentage_gl_pq_counter(WINDOW *win, int y, int x,
@@ -848,81 +928,6 @@ gl_perf_query_tab_input(int key)
 {
 
 }
-
-static void
-gl_debug_log_tab_enter(struct tab *owner_tab)
-{
-
-}
-
-static void
-gl_debug_log_tab_leave(void)
-{
-
-}
-
-static void
-gl_debug_log_tab_input(int key)
-{
-
-}
-
-static void
-gl_debug_log_tab_redraw(WINDOW *win)
-{
-    int win_width __attribute__ ((unused));
-    int win_height;
-    struct gputop_log_entry *tmp;
-    int i = 0;
-
-    getmaxyx(win, win_height, win_width);
-
-    pthread_once(&gputop_log_init_once, gputop_log_init);
-
-    pthread_rwlock_rdlock(&gputop_log_lock);
-
-    if (gputop_gl_contexts && gputop_list_empty(&gputop_log_entries)) {
-	struct winsys_context **contexts = gputop_gl_contexts->data;
-	struct winsys_context *wctx = contexts[i];
-
-	mvwprintw(win, 1, 0, "No performance warnings have been reported from OpenGL so far...\n");
-
-	if (!wctx->is_debug_context) {
-	    mvwprintw(win, 3, 0,
-		      "Note: The application is not running with a debug context which\n"
-		      "might effectively disable the KHR_debug extension.");
-	    if (!gputop_gl_force_debug_ctx_enabled)
-		mvwprintw(win, 6, 0,
-			  "Note: GPU Top can force the creation of a debug context if\n"
-			  "you pass --debug-context or set the GPUTOP_FORCE_DEBUG_CONTEXT\n"
-			  "environment variable.");
-	    else if (wctx->try_create_new_context_failed)
-		mvwprintw(win, 6, 0,
-			  "Note: GPU Top failed to force this app using the legacy \n"
-			  "glXCreateContext API to create a debug context\n");
-	}
-    }
-
-    gputop_list_for_each(tmp, &gputop_log_entries, link) {
-	mvwprintw(win, win_height - 1 - i, 0, tmp->msg);
-
-	if (i++ > win_height)
-	    break;
-    }
-
-    pthread_rwlock_unlock(&gputop_log_lock);
-}
-
-static struct tab tab_gl_debug_log =
-{
-    .nick = "Log",
-    .name = "OpenGL debug log",
-    .enter = gl_debug_log_tab_enter,
-    .leave = gl_debug_log_tab_leave,
-    .input = gl_debug_log_tab_input,
-    .redraw = gl_debug_log_tab_redraw,
-};
-
 
 static int
 scissor_test(bool change_state, int value)
@@ -1452,9 +1457,8 @@ gputop_ui_init(void)
         tab_3d_trace.query = trace_query;
         gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     }
-#ifdef SUPPORT_GL
-    gputop_list_insert(tabs.prev, &tab_gl_debug_log.link);
-#endif
+
+    gputop_list_insert(tabs.prev, &tab_debug_log.link);
 
     pthread_attr_init(&attrs);
     pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
