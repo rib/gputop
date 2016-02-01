@@ -260,10 +260,10 @@ gputop_gl_init(void)
     gputop_gl_contexts = array_new(sizeof(void *), 5);
     gputop_gl_surfaces = array_new(sizeof(void *), 5);
 
-    if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
+    if (gputop_get_bool_env("GPUTOP_GL_DEBUG_CONTEXT"))
 	gputop_gl_force_debug_ctx_enabled = true;
 
-    if (getenv("GPUTOP_SCISSOR_TEST"))
+    if (gputop_get_bool_env("GPUTOP_GL_SCISSOR_TEST"))
 	atomic_store(&gputop_gl_scissor_test_enabled, true);
     else
 	atomic_store(&gputop_gl_scissor_test_enabled, false);
@@ -558,7 +558,7 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
     }
 
     gputop_gl_use_khr_debug = gputop_gl_has_khr_debug_ext &&
-			      getenv("GPUTOP_USE_KHR_DEBUG") ? true : false;
+			      gputop_get_bool_env("GPUTOP_GL_DEBUG_CONTEXT");
 
     if (gputop_gl_use_khr_debug) {
 	pfn_glDebugMessageControl(GL_DONT_CARE, /* source */

@@ -26,7 +26,7 @@ gputop_CFLAGS = \
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
-    -DGPUTOP_WRAPPER_DIR=\"$(libdir)/wrappers\"
+    -DGPUTOP_LIB_DIR=\"$(libdir)\"
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \

@@ -41,21 +41,21 @@ static void
 usage(void)
 {
     printf("Usage: gputop [options] <program> [program args...]\n"
-	   "\n");
+	   "\n"
+	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
+	   "                                   DRM_CONTEXT ioctl's\n\n"
+	   "                                   without executing the program\n\n"
+	   "     --dry-run                     Print the environment variables\n"
+	   "                                   without executing the program\n\n"
+	   "     --fake                        Run gputop using fake metrics\n\n");
 #ifdef SUPPORT_GL
     printf("     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
 	   "                                   library to intercept\n\n"
 	   "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
 	   "                                   library to intercept\n\n"
-	   "     --debug-context               Create a debug context and report\n"
+	   "     --debug-gl-context            Create a debug context and report\n"
 	   "                                   KHR_debug perf issues\n\n"
-	   "     --dry-run                     Print the environment variables\n"
-	   "                                   without executing the program\n\n"
-	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
-	   "                                   DRM_CONTEXT ioctl's\n\n"
-	   "                                   without executing the program\n\n"
-	   "     --fake                        Run gputop using fake metrics\n\n"
-	   "     --enable-scissor-test         Enable 1x1 scissor test\n"
+	   "     --enable-gl-scissor-test      Enable 1x1 scissor test\n"
 	   "                                   glScissor(0, 0, 1, 1);\n");
 #endif
 #ifdef SUPPORT_WEBUI
@@ -70,18 +70,22 @@ usage(void)
 	   "\n"
 	   " Environment:\n"
 	   "\n"
-	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so\n"
-	   "                                   The gputop libGL.so interposer\n\n"
-	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
-	   "                                   up to from interposer\n\n"
 #ifdef SUPPORT_WEBUI
 	   "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
 	   "                                   (defaults to ncurses)\n\n"
 #endif
 #ifdef SUPPORT_GL
-	   "     GPUTOP_FORCE_DEBUG_CONTEXT=1  Force GL contexts to be debug\n"
+	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
+	   "                                   The gputop libGL.so and syscall\n"
+           "                                   interposer\n\n"
+	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
+	   "                                   up to from interposer\n\n"
+	   "     GPUTOP_GL_DEBUG_CONTEXT=1     Force GL contexts to be debug\n"
 	   "                                   contexts and report KHR_debug\n"
 	   "                                   perf issues\n"
+#else
+	   "     LD_PRELOAD=<prefix>/lib/libgputop.so\n"
+	   "                                   The gputop syscall interposer\n\n"
 #endif
 	   "\n"
 	   ""
@@ -90,6 +94,7 @@ usage(void)
     exit(1);
 }
 
+#ifdef SUPPORT_GL
 static void
 resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
 {
@@ -125,6 +130,21 @@ resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
         exit(1);
     }
 }
+#endif
+
+static void
+env_append_path(const char *var, const char *path)
+{
+    const char *cur = getenv(var);
+
+    if (cur) {
+        char *val;
+        asprintf(&val, "%s:%s", cur, path);
+        setenv(var, val, true);
+        free(val);
+    } else
+        setenv(var, path, true);
+}
 
 int
 main (int argc, char **argv)
@@ -149,12 +169,12 @@ main (int argc, char **argv)
 	{"help",	    no_argument,	0, 'h'},
 	{"dry-run",         no_argument,        0, DRY_RUN_OPT},
 	{"fake",            no_argument,        0, FAKE_OPT},
+	{"disable-ioctl-intercept", optional_argument,	0, DISABLE_IOCTL_OPT},
 #ifdef SUPPORT_GL
-	{"libgl",	    optional_argument,	0, LIB_GL_OPT},
-	{"libegl",	    optional_argument,	0, LIB_EGL_OPT},
-	{"disable-ioctl-intercept",   optional_argument,	0, DISABLE_IOCTL_OPT},
-	{"debug-context",   no_argument,	0, DEBUG_CTX_OPT},
-	{"enable-scissor-test", optional_argument, 0, GPUTOP_SCISSOR_TEST},
+	{"libgl",	            optional_argument,	0, LIB_GL_OPT},
+	{"libegl",	            optional_argument,	0, LIB_EGL_OPT},
+	{"debug-gl-context",        no_argument,	0, DEBUG_CTX_OPT},
+	{"enable-gl-scissor-test",  optional_argument,  0, GPUTOP_SCISSOR_TEST},
 #endif
 #ifdef SUPPORT_WEBUI
 	{"remote",	    no_argument,	0, REMOTE_OPT},
@@ -162,8 +182,6 @@ main (int argc, char **argv)
 	{0, 0, 0, 0}
     };
     char *ld_preload_path;
-    char *ld_preload_path_ioctl = "";
-    char *prev_ld_preload_path;
     char *gputop_system_args[] = {
 	"gputop-system",
 	NULL
@@ -180,6 +198,16 @@ main (int argc, char **argv)
 	    case 'h':
 		usage();
 		return 0;
+	    case DRY_RUN_OPT:
+		dry_run = true;
+                break;
+	    case FAKE_OPT:
+		setenv("GPUTOP_FAKE_MODE", "1", true);
+		break;
+	    case DISABLE_IOCTL_OPT:
+                disable_ioctl = true;
+		break;
+#ifdef SUPPORT_GL
 	    case LIB_GL_OPT:
 		setenv("GPUTOP_GL_LIBRARY", optarg, true);
 		break;
@@ -187,23 +215,17 @@ main (int argc, char **argv)
 		setenv("GPUTOP_EGL_LIBRARY", optarg, true);
 		break;
 	    case DEBUG_CTX_OPT:
-		setenv("GPUTOP_FORCE_DEBUG_CONTEXT", "1", true);
+		setenv("GPUTOP_GL_DEBUG_CONTEXT", "1", true);
 		break;
+	    case GPUTOP_SCISSOR_TEST:
+		setenv("GPUTOP_GL_SCISSOR_TEST", "1", true);
+		break;
+#endif
+#ifdef SUPPORT_WEBUI
 	    case REMOTE_OPT:
 		setenv("GPUTOP_MODE", "remote", true);
 		break;
-	    case DRY_RUN_OPT:
-		dry_run = true;
-                break;
-	    case DISABLE_IOCTL_OPT:
-                disable_ioctl = true;
-		break;
-	    case FAKE_OPT:
-		setenv("GPUTOP_FAKE_MODE", "1", true);
-		break;
-	    case GPUTOP_SCISSOR_TEST:
-		setenv("GPUTOP_SCISSOR_TEST", "1", true);
-		break;
+#endif
 	    default:
 		fprintf (stderr, "Internal error: "
 			 "unexpected getopt value: %d\n", opt);
@@ -219,45 +241,56 @@ main (int argc, char **argv)
 	optind = 0;
     }
 
-    prev_ld_preload_path = getenv("LD_PRELOAD");
-    if (!prev_ld_preload_path)
-      prev_ld_preload_path= "";
-
     if (!disable_ioctl)
-        asprintf(&ld_preload_path_ioctl, "%s", "libgputop.so");
+        env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/libgputop.so");
 
-    asprintf(&ld_preload_path, "%s/libfakeGL.so:%s:%s", GPUTOP_WRAPPER_DIR,
-	     ld_preload_path_ioctl, prev_ld_preload_path);
+#ifdef SUPPORT_GL
+    env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/wrappers/libfakeGL.so");
 
     if (!getenv("GPUTOP_GL_LIBRARY"))
 	resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
 
     if (!getenv("GPUTOP_EGL_LIBRARY"))
 	resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
+#endif
 
-    fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
+
+    /*
+     * Print out the environment that we are setting up...
+     */
+
+    if (dry_run)
+        fprintf(stderr, "Would run:\n\n");
+    else
+        fprintf(stderr, "Running:\n\n");
+
+    ld_preload_path = getenv("LD_PRELOAD");
+    if (ld_preload_path)
+        fprintf(stderr, "LD_PRELOAD=%s \\\n", ld_preload_path);
+
+    if (getenv("GPUTOP_FAKE_MODE"))
+        fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
+
+#ifdef SUPPORT_GL
     if (getenv("GPUTOP_GL_LIBRARY"))
         fprintf(stderr, "GPUTOP_GL_LIBRARY=%s \\\n", getenv("GPUTOP_GL_LIBRARY"));
 
     if (getenv("GPUTOP_EGL_LIBRARY"))
             fprintf(stderr, "GPUTOP_EGL_LIBRARY=%s \\\n", getenv("GPUTOP_EGL_LIBRARY"));
 
-    if (getenv("GPUTOP_FORCE_DEBUG_CONTEXT"))
-            fprintf(stderr, "GPUTOP_FORCE_DEBUG_CONTEXT=%s \\\n", getenv("GPUTOP_FORCE_DEBUG_CONTEXT"));
+    if (getenv("GPUTOP_GL_DEBUG_CONTEXT"))
+            fprintf(stderr, "GPUTOP_GL_DEBUG_CONTEXT=%s \\\n", getenv("GPUTOP_GL_DEBUG_CONTEXT"));
 
+    if (getenv("GPUTOP_GL_SCISSOR_TEST"))
+        fprintf(stderr, "GPUTOP_GL_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_GL_SCISSOR_TEST"));
+#endif
+
+#ifdef SUPPORT_WEBUI
     if (getenv("GPUTOP_MODE"))
         fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
-
-    if (getenv("GPUTOP_FAKE_MODE"))
-        fprintf(stderr, "GPUTOP_FAKE_MODE=%s \\\n", getenv("GPUTOP_FAKE_MODE"));
-
-    if (getenv("GPUTOP_SCISSOR_TEST"))
-        fprintf(stderr, "GPUTOP_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_SCISSOR_TEST"));
+#endif
 
     fprintf(stderr, "%s\n", args[optind]);
-
-    setenv("LD_PRELOAD", ld_preload_path, true);
-    free(ld_preload_path);
 
     if (!dry_run)
     {
