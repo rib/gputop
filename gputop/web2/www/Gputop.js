@@ -240,6 +240,11 @@ Gputop.prototype.load_oa_queries = function(architecture) {
     $.get(xml_name, this.load_xml_metrics);
 }
 
+Gputop.prototype.update_period = function(guid, ms) {
+    var metric = this.map_metrics_[guid];
+    _gputop_webworker_update_query_period(metric.oa_query_id_, ms);
+}
+
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
     if (guid == undefined) {
         gputop_ui.show_alert("GUID missing while trying to opening query","alert-danger");

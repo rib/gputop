@@ -486,6 +486,20 @@ gputop_webworker_on_open_oa_query(uint32_t id,
 }
 
 void EMSCRIPTEN_KEEPALIVE
+gputop_webworker_update_query_period(uint32_t id,
+                                     uint32_t aggregation_period)
+{
+    struct gputop_worker_query *query;
+    gputop_list_for_each(query, &open_queries, link) {
+        if (query->id == id) {
+            query->aggregation_period = aggregation_period;
+        }
+    }
+
+}
+
+
+void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_close_oa_query(uint32_t id)
 {
     struct gputop_worker_query *query;

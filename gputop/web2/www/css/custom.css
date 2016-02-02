@@ -48,7 +48,7 @@ html, body {
     max-width: 1px;
 }
 
-.well {
+.graph_container {
     width: 800px;
     height: 250px;
     text-align: center;
@@ -60,6 +60,16 @@ html, body {
     cursor: move;
 }
 
+#slider_style .slider-selection {
+  background: #8283FF;
+}
+#slider_style .slider-handle {
+  background: blue;
+}
+
+#slider_style .slider-track {
+    background: #cccccc;
+}
 /*
 .navbar-fixed-top {
     height: 80px;

@@ -7,16 +7,22 @@
         <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
     </div>
 
+<div class="well" style = "margin-top: 50px; margin-bottom: 50px;">
+    <div class = "checkbox" style = "float: left; margin-top: 0px; width:200px">
+        <label><input type = "checkbox" id = "hide_metrics"><b> Hide unsupported </b></label>
+    </div>
+    <b>Adjust Speed: &nbsp</b> <input type="text" class="span2" value="1000000000" data-slider-min="10000000" data-slider-max="1000000000" data-slider-step="10000000" data-slider-value="1000000000" data-slider-id="slider_style" id="speed_slider" data-slider-handle="round">
+</div>
 
 
-    <div style = "width: 25%; float: right; margin-top: 120px;">
+    <div style = "width: 25%; float: right;">
         <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs" style="list-style-type:none">
         </ul>
     </div>
-    <div class = "tab-content" id = "counter_metrics" style = "float: none; width: 70%; margin-top: 70px">
-    </div>
+    <div class = "tab-content" id = "counter_metrics" style = "float: none; width: 70%;"></div>
 
 <script>
+
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
@@ -34,14 +40,15 @@
             gputop_ui.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
             return;
         }
-
         var supported_color = "";
         var stripped_bar = "";
         var initial_progress = "0%";
+        var unsupported = "supported";
         if (!counter.supported_) {
             //supported_color='background-color:#e6e6e6;'
             stripped_bar = "-striped";
             initial_progress = "100%";
+            unsupported = "hide_unsupported";
         }
 
         var div_id = 'div_counter_'+set_index + '_' + counter_index;
@@ -51,7 +58,7 @@
         // add transition: none to progress bar css for no animation.
         // display of counter bar metrics
         counter_bars = '\
-            <div style = "margin-top: 15px; ' + supported_color + '" id="'+div_id+'"> \
+            <div class = ' + unsupported + ' style = "margin-top: 15px; ' + supported_color + '" id="'+div_id+'"> \
                 <div class = "column_class" style = "float: left; width: 200px">' + name + '</div> \
                 <div style = "min-width: 45%; float: left"> &nbsp \
                     <div class="progress" style = "height: 20px; min-width: 96%; float: left; margin-bottom:0px"> \
@@ -66,7 +73,7 @@
                 </div> \
                 <div class = "handle glyphicon glyphicon-move" style = "float: none;"></div> \
                 <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
-                    <div class="well" id="flotcontainer_' + set_index + '_' + counter_index + '" style = "margin-left: 20px"></div> \
+                    <div class="well graph_container" id="flotcontainer_' + set_index + '_' + counter_index + '" style = "margin-left: 20px"></div> \
                 </div> \
             </div>';
     //counter.div_ = $(div_id);
@@ -91,6 +98,8 @@
         var $set = $(this);
         var title = $set.attr("name");
         var guid = $set.attr("guid");
+        if (global_guid == "")
+            global_guid = guid;
         var counter_bars;
 
         var active = "";
@@ -104,6 +113,7 @@
         // contents of the sidebar menu
         $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
         $('#'+guid).click(function (e) {
+            global_guid = guid;
             console.log("click "+e.target.id);
             gputop.open_oa_query_for_trace(e.target.id);
         });
@@ -171,6 +181,7 @@
 
 
     // index of set + index of active counter forms an unique id for all counters
+    var global_guid = ""; // variable to keep track of the active metric set
     var set_index = 0;
     var counter_index = 0;
     var graph_array = [];
@@ -191,6 +202,24 @@
             //$(".glyphicon-collapse-down").hide();
         }
         toggle_mode *= -1;
+    });
+
+    $('#hide_metrics').click(function() {
+        var $this = $(this);
+        if ($this.is(':checked')) {
+            $(".hide_unsupported").hide();
+        } else {
+            $(".hide_unsupported").show();
+        }
+    });
+
+    $('#speed_slider').slider({
+      formater: function(value) {
+          gputop_ui.syslog("Speed: " + value);
+          if (global_guid != "")
+            gputop.update_period(global_guid, value);
+        return 'Current value: '+value;
+      }
     });
 
     // read counters from xml file and populate the website
