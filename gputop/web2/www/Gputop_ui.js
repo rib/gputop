@@ -123,8 +123,11 @@ $( document ).ready(function() {
     log = document.getElementById("log");
 
     $( "#gputop-entries" ).append( '<li><a id="close_query" href="#" onClick>Close Query</a></li>' );
-    $('#close_query').click( gputop_ui.btn_close_current_query);
+    $( '#close_query' ).click( gputop_ui.btn_close_current_query);
 
     gputop_ui.init_interface();
-    $('#editor').wysiwyg();
+    $( '#editor' ).wysiwyg();
+
+    // Display tooltips
+    $( '[data-toggle="tooltip"]' ).tooltip();
 });
