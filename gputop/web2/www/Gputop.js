@@ -33,9 +33,27 @@ function Counter () {
 
     this.samples_ = 0; // Number of samples processed
     this.data_ = [];
+    this.graph_data_ = [];
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
+     if (max != 0) {
+          //if (this.symbol_name == "SamplersBusy" && this.graph_data_.length > 195)
+              //debugger;
+        var current_delta = 0;
+        var value = 100 * d_value / max;
+
+        if (this.graph_data_.length != 0)
+            current_delta = this.graph_data_[this.graph_data_.length - 1][0]; // delta is the last element
+
+        current_delta += delta;
+
+        this.graph_data_.push([current_delta, value]);
+        if (this.graph_data_.length > 200) {
+            //debugger;
+            this.graph_data_.shift();
+        }
+    }
     this.samples_ ++;
     var n_samples = this.data_.length/3;
     if (n_samples>10)
@@ -52,6 +70,7 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     //    console.log(" NSamples " + n_samples + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value + "/" + max +" Data " + this.symbol_name);
 
     this.data_.push(delta, d_value, max);
+
 }
 
 //------------------------------ METRIC --------------------------------------
@@ -124,6 +143,7 @@ function Gputop () {
     // Current active query sets
     // Indexes by query_id_next_
     this.query_metric_handles_ = [];
+    this.query_active_ = undefined;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
