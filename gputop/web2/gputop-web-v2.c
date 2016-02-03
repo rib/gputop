@@ -213,7 +213,7 @@ forward_query_update(struct gputop_worker_query *query)
 
     for (i = 0; i < oa_query->n_counters; i++) {
         uint64_t u53_check;
-        double   d_value = 0;
+        double   d_value;
         uint64_t max = 0;
 
 	struct gputop_perf_query_counter *counter = &oa_query->counters[i];
@@ -426,9 +426,9 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
 }
 
 static void EMSCRIPTEN_KEEPALIVE
-update_features(uint32_t devid, uint64_t n_eus, uint64_t n_eu_slices,
-        uint64_t n_eu_sub_slices, uint64_t eu_threads_count,
-        uint64_t subslice_mask, uint64_t slice_mask) {
+update_features(uint32_t devid, uint32_t n_eus, uint32_t n_eu_slices,
+        uint32_t n_eu_sub_slices, uint32_t eu_threads_count,
+        uint32_t subslice_mask, uint32_t slice_mask) {
 
     devinfo.devid = devid;
     devinfo.n_eus = n_eus;

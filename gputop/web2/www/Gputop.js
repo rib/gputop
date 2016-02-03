@@ -439,9 +439,15 @@ Gputop.prototype.process_features = function(features){
     features.supported_oa_query_guids.forEach(this.metric_supported);
 
     var di = features.devinfo;
-    _update_features(di.devid, di.n_eus,  di.n_eu_slices,
-        di.n_eu_sub_slices, di.eu_threads_count, di.subslice_mask,
-        di.slice_mask);
+
+    /* We convert the 64 bits protobuffer entry into 32 bits
+     * to make it easier to call the emscripten native API.
+     * DevInfo values should not overflow the native type,
+     * but stay in 64b internally to help native processing in C.
+     */
+    _update_features(di.devid, di.n_eus.toInt(),  di.n_eu_slices.toInt(),
+        di.n_eu_sub_slices.toInt(), di.eu_threads_count.toInt(), di.subslice_mask.toInt(),
+        di.slice_mask.toInt());
 }
 
 Gputop.prototype.load_emscripten = function() {

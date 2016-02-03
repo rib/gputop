@@ -62,6 +62,10 @@ Gputop_ui.prototype.display_features = function(features) {
     $( "#gputop-n-cpus" ).append( features.get_n_cpus() );
     $( "#gputop-kernel-performance-query" ).append( features.get_has_gl_performance_query() );
     $( "#gputop-kernel-performance-i915-oa" ).append( features.get_has_i915_oa() );
+
+    $( "#gputop-n-eus" ).append( features.devinfo.get_n_eus().toInt() );
+    $( "#gputop-n-eus-slices" ).append( features.devinfo.get_n_eu_slices().toInt()  );
+    $( "#gputop-n-eu-threads-count" ).append( features.devinfo.get_eu_threads_count().toInt()  );
 }
 
 // types of alerts: alert-success alert-info alert-warning alert-danger
