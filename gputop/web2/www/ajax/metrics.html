@@ -50,6 +50,8 @@
         var stripped_bar = "";
         var initial_progress = "0%";
         var unsupported = "supported";
+        var flot_id = "flotcontainer_" + set_index + "_" + counter_index;
+
         if (!counter.supported_) {
             stripped_bar = "-striped";
             initial_progress = "100%";
@@ -88,7 +90,8 @@
 
         $('#'+counter_bar_id).css("width", "100%");
         $('#'+div_id).data(counter);
-        counter.div_ = $('#'+div_id);
+        //counter.div_ = $('#'+div_id);
+        $('#' + flot_id).data(counter);
 
         if (!counter.supported_)
             $('#'+counter_bar_id).css("background-color", "#999999");
@@ -238,7 +241,7 @@
 
         // Determine how many data points to keep based on the placeholder's initial size;
         // this gives us a nice high-res plot while avoiding more than one point per pixel.
-        var maximum = container.outerWidth() / 2 || 300;
+        var maximum = 200; //container.outerWidth() / 2 || 300;
 
         var data = [];
         function getRandomData() {
@@ -321,13 +324,12 @@
             getRandomData();
             for (var i = 0; i < graph_array.length; ++i)
             {
+                //debugger;
                 var container = "#" + graph_array[i];
-                //var plot = $.plot(container, series, options);
-                series[0].data = data;
-                //plot.setData(series);
-                //plot.setupGrid();
+                var counter = $(container).data();
+                series[0].data = counter.graph_data_;
+                //series[0].data = data;
                 $.plot(container, series, options);
-                //plot.draw();
             }
         }, 200);
 
