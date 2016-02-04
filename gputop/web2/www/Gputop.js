@@ -93,7 +93,7 @@ function Metric () {
 }
 
 Metric.prototype.print = function() {
-    gputop_ui.syslog(this.guid_);
+    gputop_ui.weblog(this.guid_);
 }
 
 Metric.prototype.find_counter_by_name = function(symbol_name) {
@@ -111,10 +111,10 @@ Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
     counter.emc_idx_ = counter_idx;
     if (counter_idx != -1) {
         counter.supported_ = true;
-        gputop_ui.syslog('Counter ' + counter_idx + " " + symbol_name);
+        gputop_ui.weblog('Counter ' + counter_idx + " " + symbol_name);
         this.emc_counters_[counter_idx] = counter;
     } else {
-        gputop_ui.syslog('Counter not available ' + symbol_name);
+        gputop_ui.weblog('Counter not available ' + symbol_name);
     }
 
     this.counters_map_[symbol_name] = counter;
@@ -205,13 +205,13 @@ function gputop_read_metrics_set() {
         var $set = $(this);
         var guid = $set.attr("guid");
 
-        gputop_ui.syslog('---------------------------------------');
+        gputop_ui.weblog('---------------------------------------');
 
         var metric = gputop.get_map_metric(guid);
         metric.xml_ = $set;
         metric.name_ = $set.attr("name");
 
-        gputop_ui.syslog(guid + '\n Found metric ' + metric.name_);
+        gputop_ui.weblog(guid + '\n Found metric ' + metric.name_);
 
         // We populate our array with metrics in the same order as the XML
         // The metric will already be defined when the features query finishes
@@ -363,7 +363,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
     }
     metric.on_close_callback_ = callback;
 
-    gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
+    //gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
 
     var msg = new this.builder_.Request();
     msg.uuid = this.generate_uuid();
@@ -472,19 +472,41 @@ Gputop.prototype.load_emscripten = function() {
     });
 }
 
+Gputop.prototype.dispose = function() {
+    gputop.metrics_ = {};     // Map of metrics by INDEX for UI
+    gputop.map_metrics_ = {}; // Map of metrics by GUID
+
+    gputop.is_connected_ = false;
+    gputop.query_id_next_ = 1;
+
+    gputop.query_metric_handles_.forEach(function(metric) {
+        // the query stopped being tracked
+        metric.oa_query = undefined;
+        metric.oa_query_id_ = undefined;
+    });
+
+    // Current active query sets
+    // Indexes by query_id_next_
+    gputop.query_metric_handles_ = [];
+    gputop.query_active_ = undefined;
+}
+
 Gputop.prototype.get_socket = function(websocket_url) {
     var socket = new WebSocket( websocket_url);
     socket.binaryType = "arraybuffer"; // We are talking binary
 
     socket.onopen = function() {
         gputop_ui.syslog("Connected");
-        gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-info");
+        gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-success");
         gputop.load_emscripten();
     };
 
     socket.onclose = function() {
+        // Resets the connection
+        gputop.dispose();
+
         gputop_ui.syslog("Disconnected");
-        gputop_ui.show_alert("Failed connecting to GPUTOP <p\>Retry in 5 seconds","alert-danger");
+        gputop_ui.show_alert("Failed connecting to GPUTOP <p\>Retry in 5 seconds","alert-warning");
         setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
             gputop.connect();
         }, 5000);
@@ -508,6 +530,13 @@ Gputop.prototype.get_socket = function(websocket_url) {
                     if (msg.features != undefined) {
                         gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
                         gputop.process_features(msg.features);
+                    } else
+                    if (msg.ack != undefined) {
+                        gputop_ui.log(0, "Ack");
+                    } else
+                    if (msg.error != undefined) {
+                        gputop_ui.log(4, msg.error);
+                        gputop_ui.show_alert(msg.error,"alert-danger");
                     } else
                     if (msg.log != undefined) {
                         var entries = msg.log.entries;
@@ -557,12 +586,5 @@ Gputop.prototype.connect = function() {
     //----------------- Data transactions ----------------------
     this.socket_ = this.get_socket(websocket_url);
 }
-
-Gputop.prototype.dispose = function() {
-    if (gputop.buffer_guid_ != undefined) {
-        Module.free(gputop.buffer_guid_);
-        gputop.buffer_guid_ = undefined;
-    }
-};
 
 var gputop = new Gputop();
