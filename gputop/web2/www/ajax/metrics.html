@@ -2,7 +2,6 @@
 <div id = "header-div">
     <h1 id="page-header-metrics">Metrics panel loading</h1>
 </div>
-
 <!--
 <div class="btn-group" role="group" aria-label="..." style = "padding-top: 23px; float: none">
     <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
@@ -10,24 +9,40 @@
 -->
 
 <!-- Options bar -->
-<div class="well" id = "options_bar">
-    <div class = "checkbox" id="unsupported_checkbox">
-        <label><input type = "checkbox" id = "hide_metrics"><b> Hide unsupported </b></label>
+<div class="well" id="options_bar" style="min-height:80px;">
+    <div style="padding-left: 23px; float: left">
+    <button type="button" id="button_stop" class="btn" onclick="buttonTogglePlay()" >
+        <div id="toggle-query" class="glyphicon glyphicon-pause"></div>
+    </button>
     </div>
+
+    <div style="padding-left: 23px; float: left">
     <b>Adjust Speed: &nbsp</b> <input type="text" class="span2" value="1000000000" data-slider-min="10000000" data-slider-max="1000000000" data-slider-step="10000000" data-slider-value="1000000000" data-slider-id="slider_style" id="speed_slider" data-slider-handle="round">
+    </div>
+    <div class="checkbox" id="unsupported_checkbox" style="padding-left: 23px; float: left">
+        <label><input type = "checkbox" id = "hide_metrics"><b>Hide unsupported</b></label>
+    </div>
+
 </div>
 
-
-<!-- Side bar panel with metric sets -->
-<div id = "panel_sidebar">
-    <ul class="tabs nav nav-pills nav-stacked" id = "sidebar_right" data-tabs="tabs" style="list-style-type:none">
-    </ul>
-</div>
 
 <!-- Main pannel with the counter metrics -->
 <div class = "tab-content" id = "counter_metrics"></div>
 
 <script>
+    function buttonTogglePlay(){
+        var iSelector = $("#toggle-query");
+        if(iSelector.hasClass('glyphicon-pause')) {
+            iSelector.removeClass('glyphicon-pause')
+            iSelector.addClass('glyphicon-play')
+            gputop_ui.btn_close_current_query();
+        } else {
+            iSelector.removeClass('glyphicon-play')
+            iSelector.addClass('glyphicon-pause')
+            gputop.open_oa_query_for_trace(global_guid);
+        }
+    }
+
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
@@ -121,8 +136,11 @@
         // contents of the sidebar menu
         $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
         $('#'+guid).click(function (e) {
+            $('#metrics-tab-a').trigger('click');
+
             global_guid = guid;
             console.log("click "+e.target.id);
+
             gputop.open_oa_query_for_trace(e.target.id);
         });
 
@@ -137,8 +155,9 @@
 
     } // read_metrics_set
 
-
     function read_from_xml(xml_name) {
+        $("#sidebar_right").html("");
+
         $(xml_name).find("set").each(read_metrics_set);
 
         //$(".glyphicon-collapse-down").hide();
@@ -146,6 +165,7 @@
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
             e.relatedTarget // previous active tab
+
             $('#page-header-metrics').text(e.target.text);
         });
 

@@ -38,7 +38,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <img class="navbar-brand" src="/assets/intel_software.png" alt="Intel" >
+          <img class="navbar-brand" src="/assets/gputop_logo_44.png" alt="Gputop Logo" >
           <a class="navbar-brand" href="#"> GPUTOP </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
@@ -57,7 +57,10 @@
         <div class="col-sm-2 sidebar" style="width:12%">
           <ul class="nav nav-sidebar">
             <li ><a href="#gputop-overview-panel" data-toggle="tab">Overview <span class="sr-only">(current)</span></a></li>
-            <li class="active"><a href="#pane2" data-toggle="tab">Metrics</a></li>
+            <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#pane2" data-toggle="tab">Metrics</a>
+              <ul class="nav nav-stacked nav-pills navbar-custom" id="sidebar_right" data-toggle="tabs" style="list-style-type:none; padding-top:10px; padding-bottom:10px;">
+              </ul>
+            </li>
             <li><a href="#log-panel" data-toggle="tab">App logs</a></li>
           </ul>
         </div>
@@ -67,7 +70,13 @@
               <p>Overview didn't load yet</p>
             </div>
             <div class="tab-pane active" id="pane2">
-              <p>Metrics panel didn't load yet</p>
+              <div class="gputop-connecting">
+                  <p><center>
+                  <button class="btn btn-lg btn-warning">
+                      <span class="glyphicon glyphicon-refresh spinning"></span> Loading metrics...
+                  </button>
+                  </center></p>
+              </div>
             </div>
             <div class="tab-pane" id="pane3">
               <p>Pane 3</p>

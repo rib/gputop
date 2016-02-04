@@ -594,7 +594,13 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 	dbg("Failed to open perf query set=%s period=%d: %s\n",
 	    oa_query_info->guid, oa_query_info->period_exponent,
 	    error);
-	free(error);
+
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = error;
+        send_pb_message(conn, &message.base);
+        free(error);
+        return;
     }
 
     message.reply_uuid = request->uuid;
