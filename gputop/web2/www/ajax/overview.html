@@ -27,20 +27,6 @@
       </tbody>
        </table>
 
-      <h3>GPU Info</h3>
-      <table class="table table-condensed">
-      <tbody>
-      <tr>
-        <th class="col-md-2">Model</th>
-        <td class="col-md-4" id="gputop-gpu"></td>
-      </tr>
-      <tr>
-        <th class="col-md-2">i915 oa <small>(observational architecture)</small></th>
-        <td class="col-md-4" id="gputop-kernel-performance-i915-oa"></td>
-      </tr>
-      </tbody>
-       </table>
-
       <h3>CPU Info</h3>
       <table class="table table-condensed">
       <tbody>
@@ -59,6 +45,14 @@
       <table class="table table-condensed">
       <tbody>
       <tr>
+        <th class="col-md-2">Model</th>
+        <td class="col-md-4" ><div id="gputop-gpu"></div><div id="gputop-gen"></div></td>
+      </tr>
+      <tr>
+        <th class="col-md-2">i915 oa <small>(observational architecture)</small></th>
+        <td class="col-md-4" id="gputop-kernel-performance-i915-oa"></td>
+      </tr>
+      <tr>
         <th class="col-md-2">Number of eus</th>
         <td class="col-md-4"><span class="badge" id="gputop-n-eus"></span></td>
       </tr>
@@ -69,6 +63,10 @@
       <tr>
         <th class="col-md-2">EU Threads count</th>
         <td class="col-md-4"><span class="badge" id="gputop-n-eu-threads-count"></span></td>
+      </tr>
+      <tr>
+        <th class="col-md-2">Raw XML</th>
+        <td class="col-md-4"><a href="#" onclick="window.open(gputop.xml_file_name_,'targetWindow'); return false;">Popup</a></td>
       </tr>
       </tbody>
        </table>

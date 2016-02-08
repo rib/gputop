@@ -66,6 +66,9 @@ Gputop_ui.prototype.display_features = function(features) {
     $( "#gputop-n-eus" ).html( features.devinfo.get_n_eus().toInt() );
     $( "#gputop-n-eus-slices" ).html( features.devinfo.get_n_eu_slices().toInt()  );
     $( "#gputop-n-eu-threads-count" ).html( features.devinfo.get_eu_threads_count().toInt()  );
+
+    if (features.get_fake_mode())
+        $( "#metrics-tab-a" ).html("Metrics (Fake Mode) ");
 }
 
 // types of alerts: alert-success alert-info alert-warning alert-danger

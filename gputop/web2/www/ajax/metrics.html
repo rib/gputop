@@ -157,6 +157,7 @@
 
     function read_from_xml(xml_name) {
         $("#sidebar_right").html("");
+        $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
 
         $(xml_name).find("set").each(read_metrics_set);
 
@@ -165,7 +166,6 @@
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
             e.relatedTarget // previous active tab
-
             $('#page-header-metrics').text(e.target.text);
         });
 
