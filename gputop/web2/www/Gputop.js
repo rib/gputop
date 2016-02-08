@@ -77,6 +77,8 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
 function Metric () {
     // Id for the interface to know on click
     this.name_ = "not loaded";
+    this.chipset_ = "not loaded";
+
     this.set_id_ = 0;
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
@@ -132,6 +134,16 @@ function Gputop () {
         url_path: window.location.hostname,
         uri_port: 7890,
         architecture: 'ukn'
+    }
+
+    this.get_arch_pretty_name = function() {
+        switch (this.config_.architecture) {
+            case 'hsw': return "Haswell";
+            case 'skl': return "Skylake";
+            case 'bdw': return "Broadwell";
+            case 'chv': return "Cherryview";
+        }
+        return this.config_.architecture;
     }
 
     // Initialize protobuffers
@@ -210,6 +222,7 @@ function gputop_read_metrics_set() {
         var metric = gputop.get_map_metric(guid);
         metric.xml_ = $set;
         metric.name_ = $set.attr("name");
+        metric.chipset_ = $set.attr("chipset");
 
         gputop_ui.weblog(guid + '\n Found metric ' + metric.name_);
 
@@ -256,8 +269,8 @@ Gputop.prototype.load_xml_metrics = function(xml) {
 Gputop.prototype.load_oa_queries = function(architecture) {
     this.config_.architecture = architecture;
     // read counters from xml file and populate the website
-    var xml_name = "xml/oa-"+ architecture +".xml";
-    $.get(xml_name, this.load_xml_metrics);
+    gputop.xml_file_name_ = "xml/oa-"+ architecture +".xml"; 
+    $.get(gputop.xml_file_name_, this.load_xml_metrics);
 }
 
 Gputop.prototype.update_period = function(guid, ms) {
@@ -297,7 +310,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
-    oa_query.metric_set = metric.metric_set_;    /* 3D test */
+    oa_query.metric_set = metric.metric_set_;
 
     /* The timestamp for HSW+ increments every 80ns
      *
