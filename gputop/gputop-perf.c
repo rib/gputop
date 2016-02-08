@@ -380,20 +380,20 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
         param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
         param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
-        properties[p++] = DRM_I915_PERF_SAMPLE_OA_PROP;
+        properties[p++] = DRM_I915_PERF_PROP_SAMPLE_OA;
         properties[p++] = true;
 
-        properties[p++] = DRM_I915_PERF_OA_METRICS_SET_PROP;
+        properties[p++] = DRM_I915_PERF_PROP_OA_METRICS_SET;
         properties[p++] = query->perf_oa_metrics_set;
 
-        properties[p++] = DRM_I915_PERF_OA_FORMAT_PROP;
+        properties[p++] = DRM_I915_PERF_PROP_OA_FORMAT;
         properties[p++] = query->perf_oa_format;
 
-        properties[p++] = DRM_I915_PERF_OA_EXPONENT_PROP;
+        properties[p++] = DRM_I915_PERF_PROP_OA_EXPONENT;
         properties[p++] = period_exponent;
 
         if (ctx) {
-            properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
+            properties[p++] = DRM_I915_PERF_PROP_CTX_HANDLE;
             properties[p++] = ctx->id;
 
             // N.B The file descriptor that was used to create the context,
@@ -406,8 +406,8 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
             oa_query_fd = ctx->fd;
         }
 
-        param.properties = (uint64_t)properties;
-        param.n_properties = p / 2;
+        param.properties_ptr = (uint64_t)properties;
+        param.num_properties = p / 2;
 
         stream_fd = perf_ioctl(oa_query_fd, I915_IOCTL_PERF_OPEN, &param);
         if (stream_fd == -1) {
