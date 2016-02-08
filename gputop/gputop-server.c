@@ -45,6 +45,7 @@
 #include "gputop-server.h"
 #include "gputop-perf.h"
 #include "gputop-util.h"
+#include "gputop-cpu.h"
 #include "gputop-ui.h"
 #include "gputop.pb-c.h"
 
@@ -791,72 +792,6 @@ handle_close_query(h2o_websocket_conn_t *conn,
     }
 }
 
-static bool
-read_file(const char *filename, void *buf, int max)
-{
-    int fd;
-    int n;
-
-    memset(buf, 0, max);
-
-    fd = open(filename, 0);
-    if (fd < 0)
-	return false;
-    n = read(fd, buf, max - 1);
-    close(fd);
-    if (n < 0)
-	return false;
-
-    return true;
-}
-
-static int
-query_n_cpus(void)
-{
-    char buf[32];
-    unsigned ignore = 0, max_cpu = 0;
-
-    if (!read_file("/sys/devices/system/cpu/present", buf, sizeof(buf)))
-	return 0;
-
-    if (sscanf(buf, "%u-%u", &ignore, &max_cpu) != 2)
-	return 0;
-
-    return max_cpu + 1;
-}
-
-static bool
-read_cpu_model(char *buf, int len)
-{
-    FILE *fp;
-    char *line = NULL;
-    size_t line_len = 0;
-    ssize_t read;
-    const char *key = "model name\t: ";
-    int key_len = strlen(key);
-
-    memset(buf, 0, len);
-
-    snprintf(buf, len, "Unknown");
-
-    fp = fopen("/proc/cpuinfo", "r");
-    if (!fp)
-	return false;
-
-    while ((read = getline(&line, &line_len, fp)) != -1) {
-	if (strncmp(key, line, key_len) == 0) {
-	    snprintf(buf, len, "%s", line + key_len);
-	    fclose(fp);
-	    free(line);
-	    return true;
-	}
-    }
-
-    fclose(fp);
-    free(line);
-    return false;
-}
-
 static void
 handle_get_features(h2o_websocket_conn_t *conn,
 		    Gputop__Request *request)
@@ -895,9 +830,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
 #endif
     features.has_i915_oa = true;
 
-    features.n_cpus = query_n_cpus();
+    features.n_cpus = gputop_cpu_count();
 
-    read_cpu_model(cpu_model, sizeof(cpu_model));
+    gputop_cpu_model(cpu_model, sizeof(cpu_model));
     features.cpu_model = cpu_model;
 
     gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
