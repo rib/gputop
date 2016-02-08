@@ -1,0 +1,59 @@
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h2 class="modal-title">Installation help</h2>
+</div>
+<div class="modal-body">
+
+We recomend to use the prefix <b>~/gfx/install</b> for your current development
+
+<h4>Code repositories</h4>
+# Current i915 driver under development
+<b>https://github.com/rib/drm</b>
+<br>
+# Current mesa under development
+<b>https://github.com/rib/mesa</b>
+<br>
+# Current Kernel under development
+<b>https://github.com/rib/linux </b>
+<br>
+
+# Gputop upstream
+<b>https://github.com/rib/gputop</b>
+
+<p>
+<h4>Example configuration for your gputop mesa version</h4>
+Mesa config: <br>
+<code>
+./configure --with-dri-drivers=i965 --prefix=~/gfx/install --with-dri-driverdir=~/gfx/install/lib/dri --enable-gles1 --enable-gles2 --with-egl-platforms=drm,x11 --with-gallium-drivers= --disable-debug CFLAGS="-g -O3" CXXFLAGS="-g -O3"
+</code>
+<br>
+
+<h4>GPUTOP configuration:</h4>
+<code>
+./autogen.sh --prefix=~/gfx/install
+</code>
+
+<h4>Compile and install the kernel</h4>
+Check if the the property for OA monitoring is available<br>
+<code>
+sudo sysctl -w dev.i915.perf_event_paranoid=0
+</code>
+
+
+<h4>How to run GPUTOP</h4>
+<p>Gputop is a wrapper which points your LD_LIBRARY_PATH to a different compilation of Mesa and DRM so we can capture metrics.
+Here is the regular command line usage using a text based UI. </p>
+<code>./gputop --libgl=/usr/lib/x86_64-linux-gnu/mesa/libGL.so.1 glxgears</code>
+</p>
+<p> Here are a few examples of how to run GPUTOP without the 'gputop' wrapper by setting up your environment variables. </p>
+<code>'GPUTOP_GL_LIBRARY=/usr/foo/bar/libGL.so LD_LIBRARY_PATH=~/gfx/install/lib/wrappers:$LD_LIBRARY_PATH gdb glxgears' </code><br>
+<code>'GPUTOP_GL_LIBRARY=/usr/lib/x86_64-linux-gnu/mesa/libGL.so.1 LD_LIBRARY_PATH=~/gfx/install/lib/wrappers:$LD_LIBRARY_PATH gdb glxgears' </code><br>
+<code>LD_LIBRARY_PATH=~/gfx/install/lib/wrappers/:$LD_LIBRARY_PATH GPUTOP_GL_LIBRARY=~/gfx/install/lib/libGL.so GPUTOP_MODE=remote glxgears </code><br>
+</code>
+
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+</div>
+
