@@ -768,6 +768,11 @@ gl_perf_query_tab_redraw(WINDOW *win)
      * currently, so we just pick the first one... */
     wsurface = surfaces[0];
 
+    if (!wsurface->wctx) {
+	pthread_rwlock_unlock(&gputop_gl_lock);
+	return;
+    }
+
     /* Steal the list of finished queries from the GL thread
      *
      * By stealing the list like this we can spend as long as we need
