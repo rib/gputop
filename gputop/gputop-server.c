@@ -802,7 +802,6 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__Features features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
-    int i;
 
     if (!gputop_perf_initialize()) {
 	message.reply_uuid = request->uuid;
