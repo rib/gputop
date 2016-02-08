@@ -141,3 +141,6 @@ gputop_get_bool_env(const char *var);
 
 uint64_t
 gputop_get_time(void);
+
+bool
+gputop_read_file(const char *filename, void *buf, int max);

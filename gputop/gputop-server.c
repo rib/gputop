@@ -900,8 +900,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     read_cpu_model(cpu_model, sizeof(cpu_model));
     features.cpu_model = cpu_model;
 
-    read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
-    read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
+    gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
+    gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     features.kernel_release = kernel_release;
     features.kernel_build = kernel_version;
     features.n_supported_oa_query_guids = perf_oa_supported_query_guids->len;

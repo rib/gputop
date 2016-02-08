@@ -30,6 +30,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 bool
 gputop_get_bool_env(const char *var)
@@ -60,5 +66,24 @@ gputop_get_time(void)
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
+}
+
+bool
+gputop_read_file(const char *filename, void *buf, int max)
+{
+    int fd;
+    int n;
+
+    memset(buf, 0, max);
+
+    fd = open(filename, 0);
+    if (fd < 0)
+	return false;
+    n = read(fd, buf, max - 1);
+    close(fd);
+    if (n < 0)
+	return false;
+
+    return true;
 }
 
