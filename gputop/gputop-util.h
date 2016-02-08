@@ -22,8 +22,7 @@
  * SOFTWARE.
  */
 
-#ifndef _GPUTOP_UTIL_H_
-#define _GPUTOP_UTIL_H_
+#pragma once
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -140,4 +139,5 @@ array_append(struct array *array, void *data)
 bool
 gputop_get_bool_env(const char *var);
 
-#endif /* _GPUTOP_UTIL_H_ */
+uint64_t
+gputop_get_time(void);

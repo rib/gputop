@@ -301,14 +301,6 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
     }
 }
 
-uint64_t
-get_time(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
-}
-
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 			       int period_exponent,
@@ -378,10 +370,10 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->fd = stream_fd;
 
     if (gputop_fake_mode) {
-        stream->start_time = get_time();
-        stream->prev_clocks = (uint32_t)get_time();
+        stream->start_time = gputop_get_time();
+        stream->prev_clocks = gputop_get_time();
         stream->period = 80 * (2 << period_exponent);
-        stream->prev_timestamp = (uint32_t)get_time();
+        stream->prev_timestamp = gputop_get_time();
     }
 
     /* We double buffer the samples we read from the kernel so
@@ -733,7 +725,7 @@ i915_perf_stream_data_pending(struct gputop_perf_stream *stream)
     struct pollfd pollfd = { stream->fd, POLLIN, 0 };
     int ret;
     if (gputop_fake_mode) {
-        uint64_t elapsed_time = get_time() - stream->start_time;
+        uint64_t elapsed_time = gputop_get_time() - stream->start_time;
         if (elapsed_time / stream->period - stream->gen_so_far > 0)
             return true;
         else
@@ -1019,7 +1011,7 @@ fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length)
     uint32_t timestamp, elapsed_clocks;
     int i;
     uint64_t counter;
-    uint64_t elapsed_time = get_time() - stream->start_time;
+    uint64_t elapsed_time = gputop_get_time() - stream->start_time;
     uint32_t records_to_gen;
 
     header.type = DRM_I915_PERF_RECORD_SAMPLE;

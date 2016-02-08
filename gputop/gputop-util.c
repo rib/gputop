@@ -25,9 +25,11 @@
 #include <config.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 bool
 gputop_get_bool_env(const char *var)
@@ -52,4 +54,11 @@ gputop_get_bool_env(const char *var)
     return false;
 }
 
+uint64_t
+gputop_get_time(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
+}
 
