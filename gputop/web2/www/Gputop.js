@@ -90,8 +90,14 @@ function Metric () {
 
     this.oa_query_id_ = -1; // if there is an active query it will be >0
 
+    this.per_ctx_mode_ = false;
+
     // Real counter number including not available ones
     this.n_total_counters_ = 0;
+}
+
+Metric.prototype.is_per_ctx_mode = function() {
+    return this.per_ctx_mode_;
 }
 
 Metric.prototype.print = function() {
@@ -156,6 +162,9 @@ function Gputop () {
     // Indexes by query_id_next_
     this.query_metric_handles_ = [];
     this.query_active_ = undefined;
+
+    // Current metric on display
+    this.metric_visible_ = undefined;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -269,7 +278,7 @@ Gputop.prototype.load_xml_metrics = function(xml) {
 Gputop.prototype.load_oa_queries = function(architecture) {
     this.config_.architecture = architecture;
     // read counters from xml file and populate the website
-    gputop.xml_file_name_ = "xml/oa-"+ architecture +".xml"; 
+    gputop.xml_file_name_ = "xml/oa-"+ architecture +".xml";
     $.get(gputop.xml_file_name_, this.load_xml_metrics);
 }
 
@@ -279,6 +288,10 @@ Gputop.prototype.update_period = function(guid, ms) {
 }
 
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
+    if (this.no_supported_metrics_ == true) {
+        return;
+    }
+    
     if (guid == undefined) {
         gputop_ui.show_alert("GUID missing while trying to opening query","alert-danger");
         return;
@@ -303,7 +316,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     }
 
     if (metric.supported_ == false) {
-        gputop_ui.show_alert("Metric "+guid+" not supported","alert-danger");
+        gputop_ui.show_alert(guid+" "+metric.name_ +" not supported on this kernel","alert-danger");
         return;
     }
     gputop_ui.syslog("Launch query GUID " + guid);
@@ -342,6 +355,8 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 				          * i.e. request updates from the worker
 				          * as values that have been aggregated
 				          * over this duration */
+
+    open.per_ctx_mode = metric.is_per_ctx_mode();
     open.oa_query = oa_query;
 
     _gputop_webworker_on_open_oa_query(
@@ -447,9 +462,12 @@ Gputop.prototype.metric_supported = function(element, index, array){
 }
 
 Gputop.prototype.process_features = function(features){
-    gputop_ui.display_features(features);
-
-    features.supported_oa_query_guids.forEach(this.metric_supported);
+    if (features.supported_oa_query_guids.length == 0) {
+        gputop.no_supported_metrics_ = true;
+        gputop_ui.show_alert("No OA metrics are supported on this Kernel "+features.get_kernel_release(),"alert-danger");
+    } else {
+        features.supported_oa_query_guids.forEach(this.metric_supported);
+    }
 
     var di = features.devinfo;
 
@@ -461,6 +479,8 @@ Gputop.prototype.process_features = function(features){
     _update_features(di.devid, di.n_eus.toInt(),  di.n_eu_slices.toInt(),
         di.n_eu_sub_slices.toInt(), di.eu_threads_count.toInt(), di.subslice_mask.toInt(),
         di.slice_mask.toInt());
+
+    gputop_ui.display_features(features);
 }
 
 Gputop.prototype.load_emscripten = function() {

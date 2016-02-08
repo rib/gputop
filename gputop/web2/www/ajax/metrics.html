@@ -9,17 +9,21 @@
 -->
 
 <!-- Options bar -->
-<div class="well" id="options_bar" style="min-height:80px;">
-    <div style="padding-left: 23px; float: left">
+<div class="well" id="options_bar" style="display: table">
+    <div style="display: table-cell; vertical-align: middle;">
+    <label><b>Stop query</b></label>
     <button type="button" id="button_stop" class="btn" onclick="buttonTogglePlay()" >
         <div id="toggle-query" class="glyphicon glyphicon-pause"></div>
     </button>
     </div>
 
-    <div style="padding-left: 23px; float: left">
+    <div style="display: table-cell; padding-left:25px; vertical-align: middle">
     <b>Adjust Speed: &nbsp</b> <input type="text" class="span2" value="1000000000" data-slider-min="10000000" data-slider-max="1000000000" data-slider-step="10000000" data-slider-value="1000000000" data-slider-id="slider_style" id="speed_slider" data-slider-handle="round">
     </div>
-    <div class="checkbox" id="unsupported_checkbox" style="padding-left: 23px; float: left">
+    <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
+        <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b></label>
+    </div>
+    <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
         <label><input type = "checkbox" id = "hide_metrics"><b>Hide unsupported</b></label>
     </div>
 
@@ -218,6 +222,23 @@
             //$(".glyphicon-collapse-down").hide();
         }
         toggle_mode *= -1;
+    });
+
+    $('#per_ctx_mode').click(function() {
+        var $this = $(this);
+
+        var metric = gputop.get_map_metric(global_guid);
+        if (metric == undefined)
+            return;
+
+        if ($this.is(':checked')) {
+            metric.per_ctx_mode = true;
+            console.log("Switching On "+metric.name_+" per context");
+        } else {
+            metric.per_ctx_mode = false;
+            console.log("Switching Off "+metric.name_+" per context");
+        }
+        gputop.open_oa_query_for_trace(global_guid);
     });
 
     $('#hide_metrics').click(function() {

@@ -596,6 +596,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     else
         buffer_size = 16 * 1024 * 1024;
 
+    perf_query->per_ctx_mode = open_query->per_ctx_mode;
+
     stream = gputop_open_i915_perf_oa_query(perf_query,
                                             oa_query_info->period_exponent,
                                             buffer_size,

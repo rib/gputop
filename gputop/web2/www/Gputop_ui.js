@@ -55,6 +55,12 @@ Gputop_ui.prototype.metric_not_supported = function(metric) {
 }
 
 Gputop_ui.prototype.display_features = function(features) {
+    if (features.devinfo.get_devid() == 0 ) {
+        gputop_ui.show_alert(" No device was detected, is it the functionality on kernel ? ","alert-danger");
+    }
+
+    $( "#gputop-gpu" ).html( gputop.get_arch_pretty_name() );
+
     $( ".gputop-connecting" ).hide();
     $( "#gputop-cpu" ).html( features.get_cpu_model() );
     $( "#gputop-kernel-build" ).html( features.get_kernel_build() );
