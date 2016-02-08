@@ -572,6 +572,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     else
 	buffer_size = 16 * 1024 * 1024;
 
+    perf_query->per_ctx_mode = open_query->per_ctx_mode;
+
     stream = gputop_open_i915_perf_oa_query(perf_query,
 					    oa_query_info->period_exponent,
 					    buffer_size,
@@ -873,7 +875,6 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__Features features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
-    int i;
 
     if (!gputop_perf_initialize()) {
 	message.reply_uuid = request->uuid;

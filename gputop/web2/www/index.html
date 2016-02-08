@@ -36,7 +36,6 @@ function gputop_wip_error() {
     alert("Not implemented yet!");
 }
 </script>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <div class="navbar-header ">
@@ -51,6 +50,9 @@ function gputop_wip_error() {
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul id="gputop-entries" class="nav navbar-nav navbar-right">
+            <li>
+              <a data-toggle="modal" data-target="#myModal" href="ajax/installation.html" >Installation</a>
+            </li>
             <li><a href="#" onclick="gputop_wip_error()">Load session</a></li>
             <li><a href="#" onclick="gputop_wip_error()">Settings</a></li>
             <li><a href="#" onclick="gputop_help()">Help</a></li>
@@ -59,11 +61,15 @@ function gputop_wip_error() {
       </div>
     </nav>
 
+    <!-- Modal -->
+    <div id="myModal" class="modal fade"><div class="modal-dialog"><div class="modal-content"></div></div></div>
+   <!-- /.modal -->
+
     <div class="container-fluid" >
       <div class="row" >
         <div class="col-sm-2 sidebar" style="width:12%">
           <ul class="nav nav-sidebar">
-            <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview <span class="sr-only">(current)</span></a></li>
+            <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview</a></li>
             <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#pane2" data-toggle="tab">Metrics</a>
               <ul class="nav nav-stacked nav-pills navbar-custom" id="sidebar_right" data-toggle="tabs" style="list-style-type:none; padding-top:10px; padding-bottom:10px;">
               </ul>
@@ -85,8 +91,8 @@ function gputop_wip_error() {
                   </center></p>
               </div>
             </div>
-            <div class="tab-pane" id="pane3">
-              <p>Pane 3</p>
+            <div class="tab-pane" id="instructions">
+              <p>Installation FAQ</p>
             </div>
             <div class="tab-pane" id="pane4">
               <p>Pane 4</p>
