@@ -33,6 +33,23 @@
 #include "gputop.pb-c.h"
 #endif
 
+
+#ifdef GPUTOP_ENABLE_DEBUG
+
+#define dbg(format, ...) do { \
+    char *message; \
+    asprintf(&message, format, ##__VA_ARGS__); \
+    gputop_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
+    free(message); \
+} while(0)
+
+#else
+
+#define dbg(format, ...) do { } while(0)
+
+#endif
+
+
 extern pthread_once_t gputop_log_init_once;
 extern pthread_rwlock_t gputop_log_lock;
 extern int gputop_log_len;

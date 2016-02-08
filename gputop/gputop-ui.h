@@ -39,19 +39,4 @@ void *gputop_ui_run(void *arg);
 
 void gputop_ui_quit_idle_cb(uv_idle_t *idle);
 
-#ifdef GPUTOP_ENABLE_DEBUG
-
-#define dbg(format, ...) do { \
-    char *message; \
-    asprintf(&message, format, ##__VA_ARGS__); \
-    gputop_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
-    free(message); \
-} while(0)
-
-#else
-
-#define dbg(format, ...) do { } while(0)
-
-#endif
-
 #endif /* _GPUTOP_UI_H_ */
