@@ -144,10 +144,12 @@ static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 
 GLXContext
 gputop_glXCreateContextAttribsARB(Display *dpy,
-				  GLXFBConfig config,
-				  GLXContext share_context,
-				  Bool direct,
-				  const int *attrib_list);
+				GLXFBConfig config,
+				GLXContext share_context,
+				Bool direct,
+				const int *attrib_list);
+void *
+gputop_glXGetProcAddress(const GLubyte *procName);
 
 static bool gputop_gl_has_khr_debug_ext;
 static bool gputop_gl_use_khr_debug;
@@ -307,20 +309,6 @@ gputop_glXQueryExtension(Display *dpy,  int *errorBase,  int *eventBase)
 	pfn_glXQueryExtension = gputop_passthrough_gl_resolve("glXQueryExtension");
 
     return pfn_glXQueryExtension(dpy, errorBase, eventBase);
-}
-
-void *
-gputop_glXGetProcAddress(const GLubyte *procName)
-{
-    pthread_once(&init_once, gputop_gl_init);
-
-    if (strcmp((char *)procName, "glXCreateContextAttribsARB") == 0)
-	return gputop_glXCreateContextAttribsARB;
-
-    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
-	return NULL;
-
-    return real_glXGetProcAddress(procName);
 }
 
 void *
@@ -1215,4 +1203,43 @@ gputop_glDebugMessageCallback(GLDEBUGPROC callback,
 			      const void *userParam)
 {
     dbg("Ignoring application's conflicting use of KHR_debug extension");
+}
+
+void *
+gputop_glXGetProcAddress(const GLubyte *procName)
+{
+    int i;
+#define SYM(X) { #X, (void **)&gputop_ ## X }
+    struct {
+	const char *name;
+	void **ptr;
+} static symbols[] = {
+	SYM(glXCreateContextAttribsARB),
+	SYM(glXCreateNewContext),
+	SYM(glXCreateContext),
+	SYM(glXDestroyContext),
+	SYM(glXMakeCurrent),
+	SYM(glXMakeContextCurrent),
+	SYM(glXSwapBuffers),
+
+	SYM(glEnable),
+	SYM(glDisable),
+	SYM(glScissor),
+	SYM(glDebugMessageControl),
+	SYM(glDebugMessageCallback)
+
+    };
+#undef SYM
+
+    pthread_once(&init_once, gputop_gl_init);
+    if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
+	return NULL;
+
+    for (i = 0; i < (sizeof(symbols) / sizeof(symbols[0])); i++)
+    {
+	if (strcmp((char *)procName, symbols[i].name) == 0)
+	    return (symbols[i].ptr);
+    }
+
+    return real_glXGetProcAddress(procName);
 }
