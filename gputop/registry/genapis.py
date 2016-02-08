@@ -324,7 +324,6 @@ glapiHooks = {
     'glEnable',
     'glDisable',
     'glScissor',
-    'glBindTexture',
     'glDebugMessageControl',
     'glDebugMessageCallback'
 }
