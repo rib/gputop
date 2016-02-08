@@ -142,12 +142,6 @@ static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
 					   GLsizei dataSize, GLvoid *data,
 					   GLuint *bytesWritten);
 
-GLXContext
-gputop_glXCreateContextAttribsARB(Display *dpy,
-				GLXFBConfig config,
-				GLXContext share_context,
-				Bool direct,
-				const int *attrib_list);
 void *
 gputop_glXGetProcAddress(const GLubyte *procName);
 
