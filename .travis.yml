@@ -78,3 +78,4 @@ before_script:
 
 script:
     - ./configure $CONFIG_OPTS && make
+    - ./gputop/gputop --fake
