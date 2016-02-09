@@ -352,8 +352,10 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 	    // make sense if we could make the list of contexts visible to the user.
 	    // Maybe later the per_ctx_mode could become the context handle...
 	    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-	    if (!ctx)
+	    if (!ctx) {
+	      asprintf(error, "Error unable to find a context\n");
 	      return NULL;
+	    }
 
 	    properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
 	    properties[p++] = ctx->id;
