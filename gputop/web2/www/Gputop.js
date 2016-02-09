@@ -303,11 +303,18 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     if (metric.oa_query_id_ != undefined && metric.oa_query_id_ > 0) {
         // Query is already open
         gputop_ui.show_alert("Metric "+guid+" already active","alert-info");
-        return;
     }
 
     // Check if we have to close the old query before opening this one
-    if (this.query_active_ != undefined && this.query_active_ != metric) {
+    var active_metric = this.query_active_;
+    if (active_metric != undefined) {
+        if (active_metric.on_close_callback_ != undefined) {
+            gputop_ui.show_alert("Closing in progress","alert-info");
+            active_metric.on_close_callback_ = function() {
+                gputop.open_oa_query_for_trace(guid);
+            }
+            return;
+        } else
         this.close_oa_query(this.query_active_.oa_query_id_, function() {
             console.log("Success! Opening new query "+guid);
             gputop.open_oa_query_for_trace(guid);
@@ -320,6 +327,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         return;
     }
     gputop_ui.syslog("Launch query GUID " + guid);
+    gputop_ui.update_slider_period(metric.period_);
 
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
@@ -369,30 +377,38 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     msg.encode();
     this.socket_.send(msg.toArrayBuffer());
 
-    gputop_ui.syslog("Sent: Request "+msg.uuid);
+    gputop_ui.syslog(msg.uuid + " sent: Open Query Request ");
 
     this.query_metric_handles_[metric.oa_query_id_] = metric;
     this.query_active_ = metric;
+    metric.waiting_ack_ = true;
 
     console.log(" Render animation bars ");
-    gputop_ui.show_alert("Opening query "+ metric.name_, "alert-info");
+
+    if (open.per_ctx_mode)
+        gputop_ui.show_alert("Opening per context query "+ metric.name_, "alert-info");
+    else
+        gputop_ui.show_alert("Opening query "+ metric.name_, "alert-info");
+
     gputop_ui.render_bars();
 }
 
 Gputop.prototype.close_oa_query = function(id, callback) {
     var metric = this.query_metric_handles_[id];
+
+    if ( metric.waiting_ack_ == true ) {
+        gputop_ui.show_alert("Waiting ACK","alert-danger");        
+        return;
+    }
+
     if (metric == undefined) {
         gputop_ui.show_alert("Cannot close query "+id+", which does not exist ","alert-danger");
         return;
     }
 
-    if (this.query_active_ != undefined && this.query_active_ == metric) {
-        this.query_active_ = undefined;
-        console.log(" Stop render " + metric.name);
-    }
     metric.on_close_callback_ = callback;
 
-    //gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
+    gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
 
     var msg = new this.builder_.Request();
     msg.uuid = this.generate_uuid();
@@ -403,7 +419,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
     msg.encode();
     this.socket_.send(msg.toArrayBuffer());
 
-    gputop_ui.syslog("Sent: Request close query "+msg.uuid);
+    gputop_ui.syslog(msg.uuid + " sent: Request close query ");
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
@@ -450,7 +466,7 @@ Gputop.prototype.request_features = function() {
 
         msg.encode();
         this.socket_.send(msg.toArrayBuffer());
-        gputop_ui.syslog("Sent: Request "+msg.uuid);
+        gputop_ui.syslog(msg.uuid + " sent: Request features");
     } else {
         gputop_ui.syslog("Not connected");
     }
@@ -564,31 +580,46 @@ Gputop.prototype.get_socket = function(websocket_url) {
                     if (msg.features != undefined) {
                         gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
                         gputop.process_features(msg.features);
-                    } else
+                    }
                     if (msg.ack != undefined) {
-                        gputop_ui.log(0, "Ack");
-                    } else
+                        //gputop_ui.log(0, "Ack");
+                        gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
+                        if (gputop.query_active_!=undefined) {
+                            gputop.query_active_.waiting_ack_ = false;
+                        }
+                    }
                     if (msg.error != undefined) {
-                        gputop_ui.log(4, msg.error);
                         gputop_ui.show_alert(msg.error,"alert-danger");
-                    } else
+                        gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
+                        gputop_ui.log(4, msg.error);
+                    }
                     if (msg.log != undefined) {
                         var entries = msg.log.entries;
                         entries.forEach(function(entry) {
                             gputop_ui.log(entry.log_level, entry.log_message);
                         });
-                    } else
+                    }
                     if (msg.close_notify != undefined) {
                         var id = msg.close_notify.id;
+                        gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
                         gputop.query_metric_handles_.forEach(function(metric) {
                             if (metric.oa_query_id_ == id) {
+                                if (gputop.query_active_ == metric) {
+                                    gputop.query_active_ = undefined;
+                                } else {
+                                    gputop_ui.syslog("* Query was NOT active "+id);
+                                }
+
                                 delete gputop.query_metric_handles_[id];
                                 // the query stopped being tracked
                                 metric.oa_query = undefined;
                                 metric.oa_query_id_ = undefined;
 
-                                if (metric.on_close_callback_ != undefined) {
-                                    metric.on_close_callback_();
+                                var callback = metric.on_close_callback_;
+                                if (callback != undefined) {
+                                    gputop_ui.syslog("* Callback! ");
+                                    metric.on_close_callback_ = undefined;
+                                    callback();
                                 }
 
                             }

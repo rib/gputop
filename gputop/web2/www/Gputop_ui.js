@@ -52,6 +52,10 @@ function Gputop_ui () {
 
 }
 
+Gputop_ui.prototype.update_slider_period = function(period_) {
+    $( '#speed_slider' ).slider('setValue', period_);
+}
+
 Gputop_ui.prototype.display_graph = function(timestamp) {
     for (var i = 0; i < this.graph_array.length; ++i) {
         var container = "#" + this.graph_array[i];
@@ -175,8 +179,8 @@ Gputop_ui.prototype.display_features = function(features) {
 Gputop_ui.prototype.show_alert = function(message,alerttype){
 
     var dimiss_time = 5000;
-    if (alerttype == "alert-success") dimiss_time = 1000; else
-    if (alerttype == "alert-info") dimiss_time = 2500; else
+    if (alerttype == "alert-success") dimiss_time = 2500; else
+    if (alerttype == "alert-info") dimiss_time = 3500; else
     if (alerttype == "alert-danger") dimiss_time = 30000;
 
     $('#alert_placeholder').append('<div id="alertdiv" class="alert ' +
