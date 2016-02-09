@@ -77,4 +77,6 @@ before_script:
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
-    - ./configure $CONFIG_OPTS && make
+    - ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make && make install
+    - cd $TRAVIS_BUILD_DIR/install/bin
+    - ./gputop --fake ./gputop-system

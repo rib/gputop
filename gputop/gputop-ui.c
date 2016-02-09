@@ -1058,7 +1058,7 @@ redraw_ui(void)
     int i;
 
 #ifdef SUPPORT_GL
-    if (gputop_gl_has_intel_performance_query_ext && !added_gl_tabs) {
+    if (gputop_gl_has_intel_performance_query_ext && !added_gl_tabs && !gputop_fake_mode) {
 	struct tab *switch_to_tab = NULL;
 
 	pthread_rwlock_rdlock(&gputop_gl_lock);
