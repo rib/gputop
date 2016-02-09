@@ -389,8 +389,10 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
             // make sense if we could make the list of contexts visible to the user.
             // Maybe later the per_ctx_mode could become the context handle...
             ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-            if (!ctx)
+            if (!ctx) {
+              asprintf(error, "Error unable to find a context\n");
               return NULL;
+            }
 
             properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
             properties[p++] = ctx->id;
@@ -851,9 +853,9 @@ gputop_stream_data_pending(struct gputop_perf_stream *stream)
  *        XXX: we can assert() that we don't overtake buf->head. That
  *        shouldn't be possible if we aren't enabling perf's
  *        overwriting/flight recorder mode.
- *	  XXX: Note: we do this after checking for new records so we
- *	  don't have to worry about the corner case of eating more
- *	  than we previously knew about.
+ *          XXX: Note: we do this after checking for new records so we
+ *          don't have to worry about the corner case of eating more
+ *          than we previously knew about.
  *
  * 4) Set perf's tail to perf's head (i.e. consume everything so that
  *    perf won't block when wrapping around and overwriting old
