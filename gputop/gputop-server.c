@@ -519,8 +519,6 @@ stream_close_cb(struct gputop_perf_stream *stream)
 
 	send_pb_message(h2o_conn, &message.base);
 
-	free(stream->user.data);
-	stream->user.data = NULL;
     }
 
     notify.id = stream->user.id;
@@ -531,6 +529,9 @@ stream_close_cb(struct gputop_perf_stream *stream)
     send_pb_message(h2o_conn, &message.base);
 
     gputop_list_remove(&stream->user.link);
+
+    free(stream->user.data);
+    stream->user.data = NULL;
 }
 
 static void
