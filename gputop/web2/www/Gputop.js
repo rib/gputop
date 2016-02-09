@@ -33,25 +33,19 @@ function Counter () {
 
     this.samples_ = 0; // Number of samples processed
     this.data_ = [];
-    this.graph_data_ = [];
+    this.updates = [];
+    this.graph_data = [];
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
      if (max != 0) {
-          //if (this.symbol_name == "SamplersBusy" && this.graph_data_.length > 195)
-              //debugger;
         var current_delta = 0;
         var value = 100 * d_value / max;
 
-        if (this.graph_data_.length != 0)
-            current_delta = this.graph_data_[this.graph_data_.length - 1][0]; // delta is the last element
+        this.updates.push([start_timestamp, end_timestamp, value]);
 
-        current_delta += delta;
-
-        this.graph_data_.push([current_delta, value]);
-        if (this.graph_data_.length > 200) {
-            //debugger;
-            this.graph_data_.shift();
+        if (this.updates.length > 1000) {
+            this.updates.shift();
         }
     }
     this.samples_ ++;
@@ -168,6 +162,7 @@ function Gputop () {
 
     // Current metric on display
     this.metric_visible_ = undefined;
+    this.period = 1000000000;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -289,6 +284,7 @@ Gputop.prototype.update_period = function(guid, ms) {
     var metric = this.map_metrics_[guid];
     metric.period_ = ms;
     _gputop_webworker_update_query_period(metric.oa_query_id_, ms);
+    this.period = ms;
 }
 
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
