@@ -231,6 +231,7 @@
         if (metric == undefined)
             return;
 
+            debugger;
         if ($this.is(':checked')) {
             metric.per_ctx_mode = true;
             console.log("Switching On "+metric.name_+" per context");
@@ -238,7 +239,15 @@
             metric.per_ctx_mode = false;
             console.log("Switching Off "+metric.name_+" per context");
         }
-        gputop.open_oa_query_for_trace(global_guid);
+
+        var active_query = gputop.query_active_;
+        if (active_query == undefined) {
+            gputop.open_oa_query_for_trace(global_guid);
+        } else
+        gputop.close_oa_query(active_query.oa_query_id_, function() {
+                gputop.open_oa_query_for_trace(global_guid);
+        });
+
     });
 
     $('#hide_metrics').click(function() {

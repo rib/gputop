@@ -94,6 +94,9 @@ function Metric () {
 
     // Real counter number including not available ones
     this.n_total_counters_ = 0;
+
+    // Update period
+    this.period_ = 1000000000;
 }
 
 Metric.prototype.is_per_ctx_mode = function() {
@@ -284,6 +287,7 @@ Gputop.prototype.load_oa_queries = function(architecture) {
 
 Gputop.prototype.update_period = function(guid, ms) {
     var metric = this.map_metrics_[guid];
+    metric.period_ = ms;
     _gputop_webworker_update_query_period(metric.oa_query_id_, ms);
 }
 
@@ -291,7 +295,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     if (this.no_supported_metrics_ == true) {
         return;
     }
-    
+
     if (guid == undefined) {
         gputop_ui.show_alert("GUID missing while trying to opening query","alert-danger");
         return;
@@ -362,7 +366,8 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
-          1000000000); //100000000
+          metric.period_
+          ); //100000000
 
     msg.open_query = open;
     msg.encode();
@@ -582,13 +587,14 @@ Gputop.prototype.get_socket = function(websocket_url) {
                         gputop.query_metric_handles_.forEach(function(metric) {
                             if (metric.oa_query_id_ == id) {
                                 delete gputop.query_metric_handles_[id];
+                                // the query stopped being tracked
+                                metric.oa_query = undefined;
+                                metric.oa_query_id_ = undefined;
+
                                 if (metric.on_close_callback_ != undefined) {
                                     metric.on_close_callback_();
                                 }
 
-                                // the query stopped being tracked
-                                metric.oa_query = undefined;
-                                metric.oa_query_id_ = undefined;
                             }
                         });
                     }
