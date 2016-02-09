@@ -182,7 +182,7 @@
 
             var id = $(e.target).find(".well");
             //graph_start("#" + id.attr("id"));
-            graph_array.push(id.attr("id"));
+            gputop_ui.graph_array.push(id.attr("id"));
         });
 
         $('.collapse').on('hidden.bs.collapse', function(e) {
@@ -193,12 +193,11 @@
             $glyphicon.attr("class", glyphicon_class);
 
             var id = $(e.target).find(".well");
-            var index = graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
-            graph_array.splice(index, 1); // remove element from the graph array
+            var index = gputop_ui.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
+            gputop_ui.graph_array.splice(index, 1); // remove element from the graph array
         })
 
     } // read_from_xml
-
 
     // index of set + index of active counter forms an unique id for all counters
     var global_guid = ""; // variable to keep track of the active metric set
@@ -283,106 +282,12 @@
         }
 
     });
-
-    // graph settings
+/*
     var graph_time = 0;
-    $(function() {
-        var container = $("#flotcontainer_0_0");
-
-        // Determine how many data points to keep based on the placeholder's initial size;
-        // this gives us a nice high-res plot while avoiding more than one point per pixel.
-        var maximum = 200; //container.outerWidth() / 2 || 300;
-
-        var data = [];
-        function getRandomData() {
-            //debugger;
-
-            if (data.length) {
-                data.shift();
-            }
-
-            while (data.length < maximum) {
-                var previous = data.length ? data[data.length - 1] : 50;
-                var y = Math.random() * 100;
-                data.push([graph_time, y < 0 ? 0 : y > 100 ? 100 : y]);
-                graph_time++;
-            }
-        }
-
-
-        series = [{
-            data: getRandomData(),
-            lines: {
-                fill: true
-               },
-            color: "#6666ff"
-    	}];
-
-        var options = {
-        	grid: {
-                borderWidth: 1,
-                minBorderMargin: 20,
-                labelMargin: 10,
-                backgroundColor: {
-                    colors: ["#fff", "#e4f4f4"]
-                },
-                margin: {
-                    top: 8,
-                    bottom: 20,
-                    left: 20
-                },
-                // dont know what this is for?!
-                markings: function(axes) {
-                    var markings = [];
-                    var xaxis = axes.xaxis;
-                    for (var x = Math.floor(xaxis.min); x < xaxis.max; x += xaxis.tickSize * 2) {
-                        markings.push({ xaxis: { from: x, to: x + xaxis.tickSize }, color: "rgba(232, 232, 255, 0.2)" });
-                    }
-                    return markings;
-                }
-            },
-            xaxis: {
-                show: true,
-                ticks: 10
-                //min: 0,
-                //max: 1000
-            },
-            yaxis: {
-                min: 0,
-                max: 110
-            },
-            legend: {
-                show: true
-            }
-        };
-
-        // Create the demo X and Y axis labels
-
-        var yaxisLabel = $("<br><br><div class='axisLabel yaxisLabel'></div>")
-            .text("Response Time (ms)")
-            .appendTo(container);
-
-            // Since CSS transforms use the top-left corner of the label as the transform origin,
-            // we need to center the y-axis label by shifting it down by half its width.
-            // Subtract 20 to factor the chart's bottom margin into the centering.
-
-            yaxisLabel.css("margin-top", yaxisLabel.width() / 2 - 20);
-
-            // Update the random dataset at 25FPS for a smoothly-animating chart
-
-            setInterval(function updateRandom() {
-            getRandomData();
-            for (var i = 0; i < graph_array.length; ++i)
-            {
-                //debugger;
-                var container = "#" + graph_array[i];
-                var counter = $(container).data();
-                series[0].data = counter.graph_data_;
-                //series[0].data = data;
-                $.plot(container, series, options);
-            }
-        }, 200);
-
-});
+    setInterval(function call_graph() {
+        graph_time += 200;
+        gputop_ui.display_graph(10000000 * graph_time)
+    }, 200);
+*/
 
 </script>

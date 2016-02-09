@@ -1,8 +1,100 @@
 //@ sourceURL=Gputop_ui.js
 
 function Gputop_ui () {
+    this.graph_array = [];
+    this.graph_options = {
+        grid: {
+            borderWidth: 1,
+            minBorderMargin: 20,
+            labelMargin: 10,
+            backgroundColor: {
+                colors: ["#fff", "#e4f4f4"]
+            },
+            margin: {
+                top: 8,
+                bottom: 20,
+                left: 20
+            },
+            // dont know what this is for?!
+            markings: function(axes) {
+                var markings = [];
+                var xaxis = axes.xaxis;
+                for (var x = Math.floor(xaxis.min); x < xaxis.max; x += xaxis.tickSize * 2) {
+                    markings.push({ xaxis: { from: x, to: x + xaxis.tickSize }, color: "rgba(232, 232, 255, 0.2)" });
+                }
+                return markings;
+            }
+        },
+        xaxis: {
+            show: true,
+            //ticks: 5,
+            min: 0,
+            max: 1000
+        },
+        yaxis: {
+            min: 0,
+            max: 110
+        },
+        legend: {
+            show: true
+        }
+    };// options
+
+    this.series = [{
+        lines: {
+            fill: true
+        },
+        color: "#6666ff"
+    }];
+
+    this.start_timestamp = null;
+    this.start_gpu_timestamp = null;
 
 }
+
+Gputop_ui.prototype.display_graph = function(timestamp) {
+    for (var i = 0; i < this.graph_array.length; ++i) {
+        var container = "#" + this.graph_array[i];
+        var counter = $(container).data();
+
+        var length = counter.updates.length;
+        var x_min = 0;
+        var x_max = 1;
+        if (!this.start_timestamp) {
+            this.start_timestamp = timestamp;
+            this.start_gpu_timestamp = counter.updates[length - 1][1]; // end_timestamp
+        }
+
+        var elapsed = timestamp - this.start_timestamp;
+        x_max = this.start_gpu_timestamp + elapsed * 1000000;
+        x_min = x_max - 10000000000; // 10 seconds time interval
+
+        // remove the older than 10 seconds samples from the graph data
+        for (var j = 0; j < counter.graph_data.length &&
+            counter.graph_data[j][0] < (x_min / 100000) - 10000; j++) {}
+        if (j > 0)
+            counter.graph_data = counter.graph_data.slice(j);
+
+        var save_index = 0;
+        for (var j = 0; j < length; j++) {
+            var start = counter.updates[j][0];
+            var end = counter.updates[j][1];
+            var val = counter.updates[j][2]; // value
+            counter.graph_data.push([start / 100000, val]);
+            save_index = j;
+        }
+
+        // adjust the min and max (start and end of the graph)
+        this.graph_options.xaxis.min = (x_min / 100000);
+        this.graph_options.xaxis.max = (x_max / 100000) - (gputop.period * 1.5 / 100000);
+        this.series[0].data = counter.graph_data;
+        $.plot(container, this.series, this.graph_options);
+
+        // remove all the samples from the updates array
+        counter.updates.splice(0, counter.updates.length);
+    }
+}
+
 
 Gputop_ui.prototype.display_counter = function(counter) {
     if (counter.invalidate_ == false)
@@ -26,7 +118,6 @@ Gputop_ui.prototype.display_counter = function(counter) {
         counter.div_.css("width", value + "%");
         counter.div_txt_.text(value.toFixed(2));// + " " +counter.samples_);
 
-        //console.log("  "+delta+" = "+ d_value + "/"+ max +" " + counter.symbol_name);
     } else {
         counter.div_txt_.text(d_value.toFixed(0));// + " " +counter.samples_);
         counter.div_.css("width", "0%");
@@ -35,12 +126,15 @@ Gputop_ui.prototype.display_counter = function(counter) {
 
 Gputop_ui.prototype.render_bars = function() {
     window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
+    // add support for render graphs as well
 }
 
 Gputop_ui.prototype.window_render_animation_bars = function(timestamp) {
     var metric = gputop.query_active_;
     if (metric == undefined)
         return;
+
+    gputop_ui.display_graph(timestamp);
 
     window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
 

@@ -144,7 +144,7 @@ function trace_ui_redraw(timestamp)
         if (!graph)
             continue;
 
-        var counter = update.counters[i];
+        //var counter = update.counters[i];
 
         var plot_data = graph.data("plot-data");
         var graph_data = plot_data.values;
@@ -157,6 +157,7 @@ function trace_ui_redraw(timestamp)
 
         for (var j = 0; j < n_updates; j++) {
             var update = trace_ui_updates[j];
+            var counter = update.counters[i];
             var start = update.gpu_start;
             var end = update.gpu_end;
 
@@ -636,8 +637,8 @@ function setup_overview_for_oa_query(idx)
     overview_elements = [];
 
         //$.plot($(graph), [ graph_data ], { series: { lines: { show: true, fill: true }, shadowSize: 0 },
-//					   xaxis: { min: x_min, max: x_max },
-//					   yaxis: { max: 100 }
+//                                           xaxis: { min: x_min, max: x_max },
+//                                           yaxis: { max: 100 }
     var axis = $("<div/>", { style: "height:2em; width:200px; position:relative"});
     var div = $("<div/>", { style: "display:flex; flex-direction:row;" } )
                 .append($("<div/>", { style: "width:20em; flex: 0 1 auto;" }))
