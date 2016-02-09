@@ -230,23 +230,15 @@
         if (metric == undefined)
             return;
 
-            debugger;
         if ($this.is(':checked')) {
-            metric.per_ctx_mode = true;
+            metric.per_ctx_mode_ = true;
             console.log("Switching On "+metric.name_+" per context");
         } else {
-            metric.per_ctx_mode = false;
+            metric.per_ctx_mode_ = false;
             console.log("Switching Off "+metric.name_+" per context");
         }
 
-        var active_query = gputop.query_active_;
-        if (active_query == undefined) {
-            gputop.open_oa_query_for_trace(global_guid);
-        } else
-        gputop.close_oa_query(active_query.oa_query_id_, function() {
-                gputop.open_oa_query_for_trace(global_guid);
-        });
-
+        gputop.open_oa_query_for_trace(global_guid);
     });
 
     $('#hide_metrics').click(function() {
@@ -264,8 +256,7 @@
           if (global_guid != "")
             gputop.update_period(global_guid, value);
         return 'Current value: '+value;
-      }
-    });
+      }    });
 
     // read counters from xml file and populate the website
     read_from_xml(gputop.get_metrics_xml());
