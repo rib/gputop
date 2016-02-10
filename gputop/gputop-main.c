@@ -60,6 +60,7 @@ usage(void)
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n\n");
+    printf("     --nodejs                      Enable remote nodejs-based interface\n\n");
 #endif
     printf(" -h, --help                        Display this help\n\n"
 	   "\n"
@@ -71,8 +72,8 @@ usage(void)
 	   " Environment:\n"
 	   "\n"
 #ifdef SUPPORT_WEBUI
-	   "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
-	   "                                   (defaults to ncurses)\n\n"
+	   "     GPUTOP_MODE={remote,ncurses,nodejs}  The mode of visualizing metrics\n"
+	   "                                          (defaults to ncurses)\n\n"
 #endif
 #ifdef SUPPORT_GL
 	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
@@ -187,6 +188,7 @@ main (int argc, char **argv)
 #define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
 #define FAKE_OPT	        (CHAR_MAX + 7)
 #define GPUTOP_SCISSOR_TEST	(CHAR_MAX + 8)
+#define NODEJS_OPT          (CHAR_MAX + 9)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -204,6 +206,7 @@ main (int argc, char **argv)
 #endif
 #ifdef SUPPORT_WEBUI
 	{"remote",	    no_argument,	0, REMOTE_OPT},
+	{"nodejs",	    no_argument,	0, NODEJS_OPT},
 #endif
 	{0, 0, 0, 0}
     };
@@ -251,6 +254,9 @@ main (int argc, char **argv)
 	    case REMOTE_OPT:
 		setenv("GPUTOP_MODE", "remote", true);
 		break;
+        case NODEJS_OPT:
+            setenv("GPUTOP_MODE", "nodejs", true);
+            break;
 #endif
 	    default:
 		fprintf (stderr, "Internal error: "

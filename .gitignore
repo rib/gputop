@@ -17,6 +17,7 @@ build/install-sh
 build/ltmain.sh
 build/missing
 build/autotools/*.m4
+node_modules
 po/Makefile.in.in
 po/Makevars.template
 po/POTFILES
