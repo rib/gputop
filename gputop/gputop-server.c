@@ -558,10 +558,15 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     dbg("handle_open_i915_oa_query\n");
 
     entry = gputop_hash_table_search(queries, oa_query_info->guid);
-    if (entry != NULL)
+    if (entry != NULL) {
         perf_query = entry->data;
-    else
+    } else {
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Guid is not available\n";
+        send_pb_message(conn, &message.base);
         return;
+    }
 
     // TODO(matt-auld): Add support for per-ctx OA metrics for the web-ui
     perf_query->per_ctx_mode = false;
