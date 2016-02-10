@@ -1393,6 +1393,52 @@ gputop_enumerate_queries_via_sysfs (void)
     return true;
 }
 
+void
+gputop_generate_fake_guids(char **fake_guids)
+{
+    asprintf(&fake_guids[0], "b541bd57-0e0f-4154-b4c0-5858010a2bf7");
+    asprintf(&fake_guids[1], "35fbc9b2-a891-40a6-a38d-022bb7057552");
+    asprintf(&fake_guids[2], "233d0544-fff7-4281-8291-e02f222aff72");
+    asprintf(&fake_guids[3], "2b255d48-2117-4fef-a8f7-f151e1d25a2c");
+    asprintf(&fake_guids[4], "f7fd3220-b466-4a4d-9f98-b0caf3f2394c");
+    asprintf(&fake_guids[5], "e99ccaca-821c-4df9-97a7-96bdb7204e43");
+    asprintf(&fake_guids[6], "27a364dc-8225-4ecb-b607-d6f1925598d9");
+    asprintf(&fake_guids[7], "857fc630-2f09-4804-85f1-084adfadd5ab");
+    asprintf(&fake_guids[8], "343ebc99-4a55-414c-8c17-d8e259cf5e20");
+    asprintf(&fake_guids[9], "2cf0c064-68df-4fac-9b3f-57f51ca8a069");
+    asprintf(&fake_guids[10], "78a87ff9-543a-49ce-95ea-26d86071ea93");
+    asprintf(&fake_guids[11], "9f2cece5-7bfe-4320-ad66-8c7cc526bec5");
+    asprintf(&fake_guids[12], "d890ef38-d309-47e4-b8b5-aa779bb19ab0");
+    asprintf(&fake_guids[13], "5fdff4a6-9dc8-45e1-bfda-ef54869fbdd4");
+    asprintf(&fake_guids[14], "2c0e45e1-7e2c-4a14-ae00-0b7ec868b8aa");
+    asprintf(&fake_guids[15], "71148d78-baf5-474f-878a-e23158d0265d");
+    asprintf(&fake_guids[16], "b996a2b7-c59c-492d-877a-8cd54fd6df84");
+    asprintf(&fake_guids[17], "eb2fecba-b431-42e7-8261-fe9429a6e67a");
+    asprintf(&fake_guids[18], "60749470-a648-4a4b-9f10-dbfe1e36e44d");
+}
+
+// function that hard-codes the guids specific for the broadwell configuration
+bool
+gputop_enumerate_queries_fake (void)
+{
+    char *fake_guids[19];
+
+    gputop_generate_fake_guids(fake_guids);
+
+    struct gputop_perf_query *query;
+    struct gputop_hash_entry *queries_entry;
+
+    int i;
+    for (i = 0; i < 19; i++){
+        queries_entry = gputop_hash_table_search(queries, fake_guids[i]);
+        query = (struct gputop_perf_query*)queries_entry->data;
+        query->perf_oa_metrics_set = i;
+        array_append(perf_oa_supported_query_guids, &query->guid);
+    }
+
+    return true;
+}
+
 bool
 gputop_perf_initialize(void)
 {
@@ -1431,7 +1477,10 @@ gputop_perf_initialize(void)
     } else
 	assert(0);
 
-    return gputop_enumerate_queries_via_sysfs();
+    if (gputop_fake_mode)
+        return gputop_enumerate_queries_fake();
+    else
+        return gputop_enumerate_queries_via_sysfs();
 }
 
 static void
