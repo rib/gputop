@@ -397,7 +397,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
     var metric = this.query_metric_handles_[id];
 
     if ( metric.waiting_ack_ == true ) {
-        gputop_ui.show_alert("Waiting ACK","alert-danger");        
+        gputop_ui.show_alert("Waiting ACK","alert-danger");
         return;
     }
 
@@ -632,7 +632,7 @@ Gputop.prototype.get_socket = function(websocket_url) {
                     var dataPtr = Module._malloc(data.length);
                     var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
                     dataHeap.set(data);
-                    _handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
+                    _handle_i915_perf_message(id[0], dataHeap.byteOffset, data.length);
                     Module._free(dataHeap.byteOffset);
                 break;
             }
