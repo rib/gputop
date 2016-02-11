@@ -95,7 +95,7 @@ usage(void)
 }
 
 #ifdef SUPPORT_GL
-static void
+static bool
 resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
 {
     void *lib_handle;
@@ -106,7 +106,7 @@ resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
     if (!lib_handle) {
         fprintf(stderr, "gputop: Failed to dlopen \"%s\" while trying to resolve a default library path: %s\n",
                 lib, dlerror());
-        exit(1);
+        return false;
     }
 
     sym = dlsym(lib_handle, sym_name);
@@ -129,6 +129,8 @@ resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
                 lib, dlerror());
         exit(1);
     }
+
+    return true;
 }
 #endif
 
@@ -273,8 +275,11 @@ main (int argc, char **argv)
 #ifdef SUPPORT_GL
     env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/wrappers/libfakeGL.so");
 
-    if (!getenv("GPUTOP_GL_LIBRARY"))
-	resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
+    if (!getenv("GPUTOP_GL_LIBRARY")) {
+	bool found = resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
+	    if (!found)
+		exit(0);
+    }
 
     if (!getenv("GPUTOP_EGL_LIBRARY"))
 	resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
