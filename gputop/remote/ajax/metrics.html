@@ -29,6 +29,9 @@
 
 </div>
 
+<div class="well" id="flags_bar" style="display: table">
+
+</div>
 
 <!-- Main pannel with the counter metrics -->
 <div class = "tab-content" id = "counter_metrics"></div>
@@ -47,11 +50,28 @@
         }
     }
 
+    var all_flags = [];  	// ["flag0", "flag1", "flag2", "flag3"]
+    var counter_flags_map = {};  // {counter : ["flag1", "flag2"]}
+    var current_set;		// "set_name"
+    var current_set_map = {};	// {"set_name" : "underscore_name"}
+    var checked_flags_map = {};	// {"set_name" : ["flag1", "flag2"]}
+
     function read_metrics_counter() {
         var $counter = $(this);
         var name = $counter.attr("name");
+
         var symbol_name = $counter.attr("symbol_name");
-        var description = $counter.attr("description");
+        var description = $counter.attr("description") + " (" + $counter.attr("mdapi_usage_flags") + ")";
+        var flags = $counter.attr("mdapi_usage_flags").split(" ");
+        counter_flags_map[symbol_name] = flags;
+
+        for (i = 0; i < flags.length; i++)
+        {
+            if (all_flags.indexOf(flags[i]) > -1)
+                continue;
+            all_flags.push(flags[i]);
+        }
+
         //gputop_ui.syslog("Counter name: " + name);
 
         var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
@@ -86,7 +106,7 @@
         // add transition: none to progress bar css for no animation.
         // display of counter bar metrics
         counter_bars = '\
-        <div> \
+        <div id = "' + current_set_map[current_set] + '_' + symbol_name + '"> \
             <div class = "metric_row ' + unsupported + '" id="' + div_id + '"> \
                 <div class = "counter_name">' + counter_name + '</div> \
                 <div class="progress"> \
@@ -120,12 +140,17 @@
         counter.div_txt_id_ = counter_text_bar_id;
 
         counter_index ++;
+
     } // read_metrics_counter
 
     function read_metrics_set() {
         var $set = $(this);
         var title = $set.attr("name");
         var guid = $set.attr("guid");
+        var set_name = $set.attr("underscore_name");
+        current_set_map[title] = set_name;
+        checked_flags_map[set_name] = [];
+        current_set = title;
         if (global_guid == "")
             global_guid = guid;
 
@@ -165,12 +190,41 @@
 
         $(xml_name).find("set").each(read_metrics_set);
 
+        for (i = 0; i < all_flags.length; i++)
+        {
+            flags_c = '<div class="checkbox"  id="flag_checkbox"> \
+                       <label><input type = "checkbox" id = "flags_' + all_flags[i] + '" class="checkbox_event"><b>' + all_flags[i] + '</b></label> \
+                       </div>';
+            var d1 = document.getElementById('flags_bar');
+            d1.insertAdjacentHTML('beforeend', flags_c);
+            $("#flags_" + all_flags[i]).prop('checked', true);
+        }
+
+        for (var k in checked_flags_map)
+        {
+            checked_flags_map[k] = all_flags.slice(0);
+        }
+
+        for (var k in current_set_map)  //set the current_set to the first index.
+        {
+            current_set = k;
+            break;
+	}
+
         //$(".glyphicon-collapse-down").hide();
 
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
             e.relatedTarget // previous active tab
             $('#page-header-metrics').text(e.target.text);
+            current_set = e.target.text;
+            underscore_name = current_set_map[current_set];
+
+            for (i = 0; i < all_flags.length; i++)
+                $("#flags_" + all_flags[i]).prop('checked', false);
+
+            for (i = 0; i < checked_flags_map[underscore_name].length; i++)
+                $("#flags_" + checked_flags_map[underscore_name][i]).prop('checked', true);
         });
 
         $('.collapse').on('shown.bs.collapse', function(e) {
@@ -277,6 +331,33 @@
             });
         }
 
+    });
+
+    $('.checkbox_event').click(function() {
+        underscore_name = current_set_map[current_set];
+        checked_flags_map[underscore_name].splice(0, checked_flags_map[underscore_name].length);
+        for (i = 0; i < all_flags.length; i++)
+        {
+            if (document.getElementById('flags_' + all_flags[i]).checked)
+                checked_flags_map[underscore_name].push(all_flags[i]);
+        }
+        for (var k in counter_flags_map)
+        {
+            var values = counter_flags_map[k];
+            display = false;
+            for (v = 0; v < values.length; v++)
+            {
+                if (checked_flags_map[underscore_name].indexOf(values[v]) > -1)
+                {
+                    display = true;
+                    break;
+                }
+            }
+            if (display)
+                $("#" + underscore_name + "_" + k).show();
+            else
+                $("#" + underscore_name + "_" + k).hide();
+        }
     });
 /*
     var graph_time = 0;
