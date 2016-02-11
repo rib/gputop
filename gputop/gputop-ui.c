@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <locale.h>
 #include <ncurses.h>
@@ -95,6 +96,7 @@ static bool debug_disable_ncurses = false;
 
 #ifdef SUPPORT_WEBUI
 static bool web_ui = false;
+static bool nodejs_ui = false;
 #endif
 
 static int y_pos;
@@ -1339,6 +1341,9 @@ gputop_ui_run(void *arg)
     if (mode && strcmp(mode, "remote") == 0) {
 	debug_disable_ncurses = true;
 	web_ui = true;
+    } else if (mode && strcmp(mode, "nodejs") == 0) {
+        debug_disable_ncurses = true;
+        nodejs_ui = true;
     }
 #endif
 
@@ -1403,6 +1408,27 @@ gputop_ui_run(void *arg)
     if (web_ui) {
 	gputop_server_run();
 
+    } else if (nodejs_ui) {
+        pid_t pid;
+
+        gputop_server_run();
+        pid = fork();
+
+        if (pid != 0) {
+            char *exec_args[] = { "node",
+                GPUTOP_NODEJS_ROOT "/gputop-nodejs-ui.js", NULL };
+            int i, err;
+
+            unsetenv("LD_PRELOAD");
+            execvp(exec_args[0], exec_args);
+            err = errno;
+
+            fprintf(stderr, "gputop: Failed to run Node.js application: \n\n"
+                "  ");
+            for (i = 0; i < 2; i++)
+                fprintf(stderr, "%s ", exec_args[i]);
+            fprintf(stderr, "\n\n%s\n", strerror(err));
+        }
     } else
 #endif
     {
@@ -1415,8 +1441,10 @@ gputop_ui_run(void *arg)
 
     gputop_perf_free();
 
-    gputop_list_for_each_safe(tab, tmp, &tabs, link) {
-        free (tab);
+    if (!debug_disable_ncurses) {
+        gputop_list_for_each_safe(tab, tmp, &tabs, link) {
+            free (tab);
+        }
     }
 
     return 0;

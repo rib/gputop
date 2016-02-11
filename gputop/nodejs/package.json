@@ -1,0 +1,17 @@
+{
+    "name": "gputop-nodejs-ui",
+    "description": "The nodejs-based console UI for GPUTop.",
+    "repository": "https://github.com/rib/gputop",
+    "version": "0.0.1",
+    "devDependencies": {
+        "protobufjs": "^5.0.1",
+        "uuid": "^2.0.1",
+        "ws": "^1.0.1",
+        "http": "^0.0.0",
+        "string_decoder": "^0.10.31",
+        "pkill": "^1.0.0"
+    },
+    "engines": {
+        "node": ">=0.8.0"
+    }
+}

@@ -10,7 +10,7 @@ endif
 SUBDIRS += .
 
 if SUPPORT_WEBUI
-SUBDIRS += web
+SUBDIRS += web nodejs
 endif
 
 bin_PROGRAMS = gputop gputop-system
@@ -61,7 +61,8 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
-    -DGPUTOP_WEB_ROOT=\"$(datadir)/web\"
+    -DGPUTOP_WEB_ROOT=\"$(datadir)/web\" \
+    -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\"
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \
@@ -84,6 +85,10 @@ libgputop_la_LIBADD += \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
     $(PROTOBUF_DEP_LIBS) \
     -lssl -lcrypto -lyaml
+
+protodir = $(datadir)/web
+nobase_dist_proto_DATA = \
+    gputop.proto
 endif
 
 if SUPPORT_GL
