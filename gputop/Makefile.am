@@ -104,7 +104,8 @@ wrapperdir = $(libdir)/wrappers
 wrapper_LTLIBRARIES = libfakeGL.la #libEGL.la
 
 libfakeGL_la_SOURCES = \
-    registry/glxapi.c
+    registry/glxapi.c \
+    registry/glapi.c
 libfakeGL_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS)
 libfakeGL_la_LIBADD = libgputop.la
