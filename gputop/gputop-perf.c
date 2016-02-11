@@ -72,7 +72,7 @@ struct oa_sample {
 };
 
 #define MAX_I915_PERF_OA_SAMPLE_SIZE (8 +   /* i915_perf_record_header */ \
-				      256)  /* raw OA counter snapshot */
+                                      256)  /* raw OA counter snapshot */
 
 
 #define TAKEN(HEAD, TAIL, POT_SIZE)    (((HEAD) - (TAIL)) & (POT_SIZE - 1))
@@ -138,11 +138,11 @@ read_file_uint64 (const char *file)
 
     fd = open(file, 0);
     if (fd < 0)
-	return 0;
+        return 0;
     n = read(fd, buf, sizeof (buf) - 1);
     close(fd);
     if (n < 0)
-	return 0;
+        return 0;
 
     buf[n] = '\0';
     return strtoull(buf, 0, 0);
@@ -193,7 +193,7 @@ perf_ioctl(int fd, unsigned long request, void *arg)
     int ret;
 
     do {
-	ret = ioctl(fd, request, arg);
+        ret = ioctl(fd, request, arg);
     } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
     return ret;
 }
@@ -338,71 +338,71 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
          * last reference is dropped... */
         assert(stream->closed);
 
-	if (stream->user.destroy_cb)
-	    stream->user.destroy_cb(stream);
+        if (stream->user.destroy_cb)
+            stream->user.destroy_cb(stream);
 
-	free(stream);
-	fprintf(stderr, "freed gputop-perf stream\n");
+        free(stream);
+        fprintf(stderr, "freed gputop-perf stream\n");
     }
 }
 
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
-			       int period_exponent,
-			       size_t perf_buffer_size,
-			       void (*ready_cb)(struct gputop_perf_stream *),
-			       bool overwrite,
-			       char **error)
+                               int period_exponent,
+                               size_t perf_buffer_size,
+                               void (*ready_cb)(struct gputop_perf_stream *),
+                               bool overwrite,
+                               char **error)
 {
     struct gputop_perf_stream *stream;
     struct i915_perf_open_param param;
     int stream_fd = -1;
 
     if (!gputop_fake_mode) {
-	uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
-	int p = 0;
+        uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
+        int p = 0;
 
-	memset(&param, 0, sizeof(param));
+        memset(&param, 0, sizeof(param));
 
-	param.flags = 0;
-	param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
-	param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
+        param.flags = 0;
+        param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
+        param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
 
-	properties[p++] = DRM_I915_PERF_SAMPLE_OA_PROP;
-	properties[p++] = true;
+        properties[p++] = DRM_I915_PERF_SAMPLE_OA_PROP;
+        properties[p++] = true;
 
-	properties[p++] = DRM_I915_PERF_OA_METRICS_SET_PROP;
-	properties[p++] = query->perf_oa_metrics_set;
+        properties[p++] = DRM_I915_PERF_OA_METRICS_SET_PROP;
+        properties[p++] = query->perf_oa_metrics_set;
 
-	properties[p++] = DRM_I915_PERF_OA_FORMAT_PROP;
-	properties[p++] = query->perf_oa_format;
+        properties[p++] = DRM_I915_PERF_OA_FORMAT_PROP;
+        properties[p++] = query->perf_oa_format;
 
-	properties[p++] = DRM_I915_PERF_OA_EXPONENT_PROP;
-	properties[p++] = period_exponent;
+        properties[p++] = DRM_I915_PERF_OA_EXPONENT_PROP;
+        properties[p++] = period_exponent;
 
-	if (query->per_ctx_mode) {
-	    struct ctx_handle *ctx;
+        if (query->per_ctx_mode) {
+            struct ctx_handle *ctx;
 
-	    // TODO: (matt-auld)
-	    // Currently we don't support selectable contexts, so we just use the
-	    // first one which is avaivable to us. Though this would only really
-	    // make sense if we could make the list of contexts visible to the user.
-	    // Maybe later the per_ctx_mode could become the context handle...
-	    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-	    if (!ctx)
-	      return NULL;
+            // TODO: (matt-auld)
+            // Currently we don't support selectable contexts, so we just use the
+            // first one which is avaivable to us. Though this would only really
+            // make sense if we could make the list of contexts visible to the user.
+            // Maybe later the per_ctx_mode could become the context handle...
+            ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+            if (!ctx)
+              return NULL;
 
-	    properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
-	    properties[p++] = ctx->id;
-	}
+            properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
+            properties[p++] = ctx->id;
+        }
 
-	param.properties = (uint64_t)properties;
-	param.n_properties = p / 2;
+        param.properties = (uint64_t)properties;
+        param.n_properties = p / 2;
 
-	stream_fd = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+        stream_fd = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
         if (stream_fd == -1) {
-	    asprintf(error, "Error opening i915 perf OA event: %m\n");
-	    return NULL;
+            asprintf(error, "Error opening i915 perf OA event: %m\n");
+            return NULL;
         }
     }
 
@@ -431,7 +431,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->overwrite = overwrite;
     if (overwrite) {
 #warning "TODO: support flight-recorder mode"
-	assert(0);
+        assert(0);
     }
 
     stream->fd_poll.data = stream;
@@ -439,13 +439,13 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 
     if (gputop_fake_mode)
     {
-	uv_timer_init(gputop_ui_loop, &stream->fd_timer);
+        uv_timer_init(gputop_ui_loop, &stream->fd_timer);
         uv_timer_start(&stream->fd_timer, perf_fake_ready_cb, 1000, 1000);
     }
     else
     {
-	uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
-	uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
+        uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+        uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
     }
 
 
@@ -454,14 +454,14 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 
 struct gputop_perf_stream *
 gputop_perf_open_trace(int pid,
-		       int cpu,
-		       const char *system,
-		       const char *event,
-		       size_t trace_struct_size,
-		       size_t perf_buffer_size,
-		       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-		       bool overwrite,
-		       char **error)
+                       int cpu,
+                       const char *system,
+                       const char *event,
+                       size_t trace_struct_size,
+                       size_t perf_buffer_size,
+                       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                       bool overwrite,
+                       char **error)
 {
     struct gputop_perf_stream *stream;
     struct perf_event_attr attr;
@@ -474,26 +474,26 @@ gputop_perf_open_trace(int pid,
 
     asprintf(&filename, "/sys/kernel/debug/tracing/events/%s/%s/id", system, event);
     if (filename) {
-	struct stat st;
+        struct stat st;
 
-	if (stat(filename, &st) < 0) {
-	    int err = errno;
+        if (stat(filename, &st) < 0) {
+            int err = errno;
 
-	    free(filename);
-	    filename = NULL;
+            free(filename);
+            filename = NULL;
 
-	    if (err == EPERM) {
-		asprintf(error, "Permission denied to open tracepoint %s:%s"
-			 " (Linux tracepoints require root privileges)",
-			 system, event);
-		return NULL;
-	    } else {
-		asprintf(error, "Failed to open tracepoint %s:%s: %s",
-			 system, event,
-			 strerror(err));
-		return NULL;
-	    }
-	}
+            if (err == EPERM) {
+                asprintf(error, "Permission denied to open tracepoint %s:%s"
+                         " (Linux tracepoints require root privileges)",
+                         system, event);
+                return NULL;
+            } else {
+                asprintf(error, "Failed to open tracepoint %s:%s: %s",
+                         system, event,
+                         strerror(err));
+                return NULL;
+            }
+        }
     }
 
     id = read_file_uint64(filename);
@@ -512,24 +512,24 @@ gputop_perf_open_trace(int pid,
     attr.wakeup_watermark = perf_buffer_size / 4;
 
     event_fd = perf_event_open(&attr,
-			       pid,
-			       cpu,
-			       -1, /* group fd */
-			       PERF_FLAG_FD_CLOEXEC); /* flags */
+                               pid,
+                               cpu,
+                               -1, /* group fd */
+                               PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-	asprintf(error, "Error opening perf tracepoint event: %m\n");
-	return NULL;
+        asprintf(error, "Error opening perf tracepoint event: %m\n");
+        return NULL;
     }
 
     /* NB: A read-write mapping ensures the kernel will stop writing data when
      * the buffer is full, and will report samples as lost. */
     mmap_base = mmap(NULL,
-		     perf_buffer_size + page_size,
-		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
+                     perf_buffer_size + page_size,
+                     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-	asprintf(error, "Error mapping circular buffer, %m\n");
-	close (event_fd);
-	return NULL;
+        asprintf(error, "Error mapping circular buffer, %m\n");
+        close (event_fd);
+        return NULL;
     }
 
     stream = xmalloc0(sizeof(*stream));
@@ -541,9 +541,9 @@ gputop_perf_open_trace(int pid,
     stream->perf.mmap_page = (void *)mmap_base;
 
     sample_size =
-	sizeof(struct perf_event_header) +
-	8 /* _TIME */ +
-	trace_struct_size; /* _RAW */
+        sizeof(struct perf_event_header) +
+        8 /* _TIME */ +
+        trace_struct_size; /* _RAW */
 
     expected_max_samples = (stream->perf.buffer_size / sample_size) * 1.2;
 
@@ -551,9 +551,9 @@ gputop_perf_open_trace(int pid,
 
     stream->overwrite = overwrite;
     if (overwrite) {
-	stream->perf.header_buf.len = expected_max_samples;
-	stream->perf.header_buf.offsets =
-	    xmalloc(sizeof(uint32_t) * expected_max_samples);
+        stream->perf.header_buf.len = expected_max_samples;
+        stream->perf.header_buf.offsets =
+            xmalloc(sizeof(uint32_t) * expected_max_samples);
     }
 
     stream->fd_poll.data = stream;
@@ -565,13 +565,13 @@ gputop_perf_open_trace(int pid,
 
 struct gputop_perf_stream *
 gputop_perf_open_generic_counter(int pid,
-				 int cpu,
-				 uint64_t type,
-				 uint64_t config,
-				 size_t perf_buffer_size,
-				 void (*ready_cb)(uv_poll_t *poll, int status, int events),
-				 bool overwrite,
-				 char **error)
+                                 int cpu,
+                                 uint64_t type,
+                                 uint64_t config,
+                                 size_t perf_buffer_size,
+                                 void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                                 bool overwrite,
+                                 char **error)
 {
     struct gputop_perf_stream *stream;
     struct perf_event_attr attr;
@@ -592,24 +592,24 @@ gputop_perf_open_generic_counter(int pid,
     attr.wakeup_watermark = perf_buffer_size / 4;
 
     event_fd = perf_event_open(&attr,
-			       pid,
-			       cpu,
-			       -1, /* group fd */
-			       PERF_FLAG_FD_CLOEXEC); /* flags */
+                               pid,
+                               cpu,
+                               -1, /* group fd */
+                               PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-	asprintf(error, "Error opening perf event: %m\n");
-	return NULL;
+        asprintf(error, "Error opening perf event: %m\n");
+        return NULL;
     }
 
     /* NB: A read-write mapping ensures the kernel will stop writing data when
      * the buffer is full, and will report samples as lost. */
     mmap_base = mmap(NULL,
-		     perf_buffer_size + page_size,
-		     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
+                     perf_buffer_size + page_size,
+                     PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-	asprintf(error, "Error mapping circular buffer, %m\n");
-	close (event_fd);
-	return NULL;
+        asprintf(error, "Error mapping circular buffer, %m\n");
+        close (event_fd);
+        return NULL;
     }
 
     stream = xmalloc0(sizeof(*stream));
@@ -621,17 +621,17 @@ gputop_perf_open_generic_counter(int pid,
     stream->perf.mmap_page = (void *)mmap_base;
 
     sample_size =
-	sizeof(struct perf_event_header) +
-	8; /* _TIME */
+        sizeof(struct perf_event_header) +
+        8; /* _TIME */
     expected_max_samples = (stream->perf.buffer_size / sample_size) * 1.2;
 
     memset(&stream->perf.header_buf, 0, sizeof(stream->perf.header_buf));
 
     stream->overwrite = overwrite;
     if (overwrite) {
-	stream->perf.header_buf.len = expected_max_samples;
-	stream->perf.header_buf.offsets =
-	    xmalloc(sizeof(uint32_t) * expected_max_samples);
+        stream->perf.header_buf.len = expected_max_samples;
+        stream->perf.header_buf.offsets =
+            xmalloc(sizeof(uint32_t) * expected_max_samples);
     }
 
     stream->fd_poll.data = stream;
@@ -648,92 +648,92 @@ init_dev_info(int drm_fd, uint32_t devid)
 
     gputop_devinfo.devid = devid;
     if (gputop_fake_mode) {
-	    gputop_devinfo.n_eus = 10;
-	    gputop_devinfo.n_eu_slices = 1;
-	    gputop_devinfo.n_eu_sub_slices = 1;
-	    gputop_devinfo.slice_mask = 0x1;
-	    gputop_devinfo.subslice_mask = 0x1;
+            gputop_devinfo.n_eus = 10;
+            gputop_devinfo.n_eu_slices = 1;
+            gputop_devinfo.n_eu_sub_slices = 1;
+            gputop_devinfo.slice_mask = 0x1;
+            gputop_devinfo.subslice_mask = 0x1;
     } else if (IS_HASWELL(devid)) {
-	if (IS_HSW_GT1(devid)) {
-	    gputop_devinfo.n_eus = 10;
-	    gputop_devinfo.n_eu_slices = 1;
-	    gputop_devinfo.n_eu_sub_slices = 1;
-	    gputop_devinfo.slice_mask = 0x1;
-	    gputop_devinfo.subslice_mask = 0x1;
-	} else if (IS_HSW_GT2(devid)) {
-	    gputop_devinfo.n_eus = 20;
-	    gputop_devinfo.n_eu_slices = 1;
-	    gputop_devinfo.n_eu_sub_slices = 2;
-	    gputop_devinfo.slice_mask = 0x1;
-	    gputop_devinfo.subslice_mask = 0x3;
-	} else if (IS_HSW_GT3(devid)) {
-	    gputop_devinfo.n_eus = 40;
-	    gputop_devinfo.n_eu_slices = 2;
-	    gputop_devinfo.n_eu_sub_slices = 4;
-	    gputop_devinfo.slice_mask = 0x3;
-	    gputop_devinfo.subslice_mask = 0xf;
-	}
-	gputop_devinfo.gen = 7;
+        if (IS_HSW_GT1(devid)) {
+            gputop_devinfo.n_eus = 10;
+            gputop_devinfo.n_eu_slices = 1;
+            gputop_devinfo.n_eu_sub_slices = 1;
+            gputop_devinfo.slice_mask = 0x1;
+            gputop_devinfo.subslice_mask = 0x1;
+        } else if (IS_HSW_GT2(devid)) {
+            gputop_devinfo.n_eus = 20;
+            gputop_devinfo.n_eu_slices = 1;
+            gputop_devinfo.n_eu_sub_slices = 2;
+            gputop_devinfo.slice_mask = 0x1;
+            gputop_devinfo.subslice_mask = 0x3;
+        } else if (IS_HSW_GT3(devid)) {
+            gputop_devinfo.n_eus = 40;
+            gputop_devinfo.n_eu_slices = 2;
+            gputop_devinfo.n_eu_sub_slices = 4;
+            gputop_devinfo.slice_mask = 0x3;
+            gputop_devinfo.subslice_mask = 0xf;
+        }
+        gputop_devinfo.gen = 7;
     } else {
-	i915_getparam_t gp;
-	int ret;
-	int n_eus = 0;
-	int slice_mask = 0;
-	int ss_mask = 0;
-	int s_max;
-	int ss_max;
-	uint64_t subslice_mask = 0;
-	int s;
+        i915_getparam_t gp;
+        int ret;
+        int n_eus = 0;
+        int slice_mask = 0;
+        int ss_mask = 0;
+        int s_max;
+        int ss_max;
+        uint64_t subslice_mask = 0;
+        int s;
 
-	if (IS_BROADWELL(devid)) {
-	    s_max = 2;
-	    ss_max = 3;
-	    gputop_devinfo.gen = 8;
-	} else if (IS_CHERRYVIEW(devid)) {
-	    s_max = 1;
-	    ss_max = 2;
-	    gputop_devinfo.gen = 8;
-	} else if (IS_SKYLAKE(devid)) {
-	    s_max = 3;
-	    ss_max = 3;
-	    gputop_devinfo.gen = 9;
-	}
+        if (IS_BROADWELL(devid)) {
+            s_max = 2;
+            ss_max = 3;
+            gputop_devinfo.gen = 8;
+        } else if (IS_CHERRYVIEW(devid)) {
+            s_max = 1;
+            ss_max = 2;
+            gputop_devinfo.gen = 8;
+        } else if (IS_SKYLAKE(devid)) {
+            s_max = 3;
+            ss_max = 3;
+            gputop_devinfo.gen = 9;
+        }
 
-	gp.param = I915_PARAM_EU_TOTAL;
-	gp.value = &n_eus;
-	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-	assert(ret == 0 && n_eus > 0);
+        gp.param = I915_PARAM_EU_TOTAL;
+        gp.value = &n_eus;
+        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+        assert(ret == 0 && n_eus > 0);
 
-	gp.param = I915_PARAM_SLICE_MASK;
-	gp.value = &slice_mask;
-	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-	assert(ret == 0 && slice_mask);
+        gp.param = I915_PARAM_SLICE_MASK;
+        gp.value = &slice_mask;
+        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+        assert(ret == 0 && slice_mask);
 
-	gp.param = I915_PARAM_SUBSLICE_MASK;
-	gp.value = &ss_mask;
-	ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-	assert(ret == 0 && ss_mask);
+        gp.param = I915_PARAM_SUBSLICE_MASK;
+        gp.value = &ss_mask;
+        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+        assert(ret == 0 && ss_mask);
 
-	gputop_devinfo.n_eus = n_eus;
-	gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
-	gputop_devinfo.slice_mask = slice_mask;
+        gputop_devinfo.n_eus = n_eus;
+        gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
+        gputop_devinfo.slice_mask = slice_mask;
 
-	/* Note: some of the metrics we have (as described in XML)
-	 * are conditional on a $SubsliceMask variable which is
-	 * expected to also reflect the slice mask by packing
-	 * together subslice masks for each slice in one value...
-	 */
-	for (s = 0; s < s_max; s++) {
-	    if (slice_mask & (1<<s)) {
-		subslice_mask |= ss_mask << (ss_max * s);
-	    }
-	}
-	gputop_devinfo.subslice_mask = subslice_mask;
-	gputop_devinfo.n_eu_sub_slices = __builtin_popcount(subslice_mask);
+        /* Note: some of the metrics we have (as described in XML)
+         * are conditional on a $SubsliceMask variable which is
+         * expected to also reflect the slice mask by packing
+         * together subslice masks for each slice in one value...
+         */
+        for (s = 0; s < s_max; s++) {
+            if (slice_mask & (1<<s)) {
+                subslice_mask |= ss_mask << (ss_max * s);
+            }
+        }
+        gputop_devinfo.subslice_mask = subslice_mask;
+        gputop_devinfo.n_eu_sub_slices = __builtin_popcount(subslice_mask);
     }
 
     gputop_devinfo.eu_threads_count =
-	gputop_devinfo.n_eus * threads_per_eu;
+        gputop_devinfo.n_eus * threads_per_eu;
 }
 
 static unsigned int
@@ -777,12 +777,12 @@ i915_perf_stream_data_pending(struct gputop_perf_stream *stream)
             return false;
     } else {
         while ((ret = poll(&pollfd, 1, 0)) < 0 && errno == EINTR)
-	    ;
+            ;
 
         if (ret == 1 && pollfd.revents & POLLIN)
-	    return true;
+            return true;
         else
-	    return false;
+            return false;
     }
 }
 
@@ -791,9 +791,9 @@ gputop_stream_data_pending(struct gputop_perf_stream *stream)
 {
     switch (stream->type) {
     case GPUTOP_STREAM_PERF:
-	return perf_stream_data_pending(stream);
+        return perf_stream_data_pending(stream);
     case GPUTOP_STREAM_I915_PERF:
-	return i915_perf_stream_data_pending(stream);
+        return i915_perf_stream_data_pending(stream);
     }
 
     assert(0);
@@ -874,19 +874,19 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
     perf_head = read_perf_head(stream->perf.mmap_page);
 
     //if (hdr_buf->head == hdr_buf->tail)
-	//perf_tail = hdr_buf->last_perf_head;
+        //perf_tail = hdr_buf->last_perf_head;
     //else
-	perf_tail = stream->perf.mmap_page->data_tail;
+        perf_tail = stream->perf.mmap_page->data_tail;
 
 #if 0
     if (perf_tail > perf_head) {
-	dbg("Unexpected perf tail > head condition\n");
-	return;
+        dbg("Unexpected perf tail > head condition\n");
+        return;
     }
 #endif
 
     if (perf_head == perf_tail)
-	return;
+        return;
 
     //hdr_buf->last_perf_head = perf_head;
 
@@ -905,61 +905,61 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 #endif
 
     while (TAKEN(perf_head, perf_tail, stream->perf.buffer_size)) {
-	uint64_t perf_offset = perf_tail & mask;
-	const struct perf_event_header *header =
-	    (const struct perf_event_header *)(data + perf_offset);
+        uint64_t perf_offset = perf_tail & mask;
+        const struct perf_event_header *header =
+            (const struct perf_event_header *)(data + perf_offset);
 
-	n_new++;
+        n_new++;
 
-	if (header->size == 0) {
-	    dbg("Spurious header size == 0\n");
-	    /* XXX: How should we handle this instead of exiting() */
-	    break;
-	    //exit(1);
-	}
+        if (header->size == 0) {
+            dbg("Spurious header size == 0\n");
+            /* XXX: How should we handle this instead of exiting() */
+            break;
+            //exit(1);
+        }
 
-	if (header->size > (perf_head - perf_tail)) {
-	    dbg("Spurious header size would overshoot head\n");
-	    /* XXX: How should we handle this instead of exiting() */
-	    break;
-	    //exit(1);
-	}
+        if (header->size > (perf_head - perf_tail)) {
+            dbg("Spurious header size would overshoot head\n");
+            /* XXX: How should we handle this instead of exiting() */
+            break;
+            //exit(1);
+        }
 
-	/* Once perf wraps, the buffer is full of data and perf starts
-	 * to eat its tail, overwriting old data. */
-	if ((const uint8_t *)header + header->size > data + stream->perf.buffer_size)
-	    hdr_buf->full = true;
+        /* Once perf wraps, the buffer is full of data and perf starts
+         * to eat its tail, overwriting old data. */
+        if ((const uint8_t *)header + header->size > data + stream->perf.buffer_size)
+            hdr_buf->full = true;
 
-	if ((buf_head - buf_tail) == hdr_buf->len)
-	    buf_tail++;
+        if ((buf_head - buf_tail) == hdr_buf->len)
+            buf_tail++;
 
-	/* Checking what tail records have been being overwritten by this
-	 * new record...
-	 *
-	 * NB: A record may be split at the end of the buffer
-	 * NB: A large record may trample multiple smaller records
-	 * NB: it's possible no records have been trampled
-	 */
-	if (hdr_buf->full) {
-	    while (1) {
-		uint32_t buf_tail_offset = hdr_buf->offsets[buf_tail % hdr_buf->len];
+        /* Checking what tail records have been being overwritten by this
+         * new record...
+         *
+         * NB: A record may be split at the end of the buffer
+         * NB: A large record may trample multiple smaller records
+         * NB: it's possible no records have been trampled
+         */
+        if (hdr_buf->full) {
+            while (1) {
+                uint32_t buf_tail_offset = hdr_buf->offsets[buf_tail % hdr_buf->len];
 
-		/* To simplify checking for an overlap, invariably ensure the
-		 * buf_tail_offset is ahead of perf, even if it means using a
-		 * fake offset beyond the bounds of the buffer... */
-		if (buf_tail_offset < perf_offset)
-		    buf_tail_offset += stream->perf.buffer_size;
+                /* To simplify checking for an overlap, invariably ensure the
+                 * buf_tail_offset is ahead of perf, even if it means using a
+                 * fake offset beyond the bounds of the buffer... */
+                if (buf_tail_offset < perf_offset)
+                    buf_tail_offset += stream->perf.buffer_size;
 
-		if ((perf_offset + header->size) < buf_tail_offset) /* nothing eaten */
-		    break;
+                if ((perf_offset + header->size) < buf_tail_offset) /* nothing eaten */
+                    break;
 
-		buf_tail++;
-	    }
-	}
+                buf_tail++;
+            }
+        }
 
-	hdr_buf->offsets[buf_head++ % hdr_buf->len] = perf_offset;
+        hdr_buf->offsets[buf_head++ % hdr_buf->len] = perf_offset;
 
-	perf_tail += header->size;
+        perf_tail += header->size;
     }
 
     /* Consume all perf records so perf wont be blocked from
@@ -979,10 +979,10 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
     printf("buf tail = %"PRIu32"\n", hdr_buf->tail);
 
     if (!hdr_buf->full) {
-	float percentage = (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] / (float)stream->perf.buffer_size) * 100.0f;
-	printf("> %d%% full\n", (int)percentage);
+        float percentage = (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] / (float)stream->perf.buffer_size) * 100.0f;
+        printf("> %d%% full\n", (int)percentage);
     } else
-	printf("> 100%% full\n");
+        printf("> 100%% full\n");
 
     printf("> n records = %u\n", (hdr_buf->head - hdr_buf->tail));
 #endif
@@ -990,8 +990,8 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
 
 void
 gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
-			       uint8_t *buf,
-			       int len)
+                               uint8_t *buf,
+                               int len)
 {
     const struct i915_perf_record_header *header;
     int offset = 0;
@@ -999,30 +999,30 @@ gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
     printf("records:\n");
 
     for (offset = 0; offset < len; offset += header->size) {
-	header = (const struct i915_perf_record_header *)(buf + offset);
+        header = (const struct i915_perf_record_header *)(buf + offset);
 
-	if (header->size == 0) {
-	    printf("Spurious header size == 0\n");
-	    return;
-	}
-	printf("- header size = %d\n", header->size);
+        if (header->size == 0) {
+            printf("Spurious header size == 0\n");
+            return;
+        }
+        printf("- header size = %d\n", header->size);
 
-	switch (header->type) {
+        switch (header->type) {
 
-	case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-	    printf("- OA buffer overflow\n");
-	    break;
-	case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-	    printf("- OA report lost\n");
-	    break;
-	case DRM_I915_PERF_RECORD_SAMPLE: {
-	    printf("- Sample\n");
-	    break;
-	}
+        case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
+            printf("- OA buffer overflow\n");
+            break;
+        case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+            printf("- OA report lost\n");
+            break;
+        case DRM_I915_PERF_RECORD_SAMPLE: {
+            printf("- Sample\n");
+            break;
+        }
 
-	default:
-	    printf("- Spurious header type = %d\n", header->type);
-	}
+        default:
+            printf("- Spurious header type = %d\n", header->type);
+        }
     }
 }
 
@@ -1122,107 +1122,107 @@ static void
 read_i915_perf_samples(struct gputop_perf_stream *stream)
 {
     do {
-	int offset = 0;
-	uint8_t *buf;
-	int count;
+        int offset = 0;
+        uint8_t *buf;
+        int count;
 
-	/* We double buffer reads so we can safely keep a pointer to
-	 * our last sample for calculating deltas */
-	buf = stream->oa.bufs[stream->oa.buf_idx];
+        /* We double buffer reads so we can safely keep a pointer to
+         * our last sample for calculating deltas */
+        buf = stream->oa.bufs[stream->oa.buf_idx];
 
         if (gputop_fake_mode)
             count = gputop_perf_fake_read(stream, buf, stream->oa.buf_sizes);
         else
-	    count = read(stream->fd, buf, stream->oa.buf_sizes);
+            count = read(stream->fd, buf, stream->oa.buf_sizes);
 
-	if (count < 0) {
-	    if (errno == EINTR)
-		continue;
-	    else if (errno == EAGAIN)
-		break;
-	    else {
-		dbg("Error reading i915 OA event stream %m");
-		break;
-	    }
-	}
+        if (count < 0) {
+            if (errno == EINTR)
+                continue;
+            else if (errno == EAGAIN)
+                break;
+            else {
+                dbg("Error reading i915 OA event stream %m");
+                break;
+            }
+        }
 
-	if (count == 0)
-	    break;
+        if (count == 0)
+            break;
 
-	while (offset < count) {
-	    const struct i915_perf_record_header *header =
-		(const struct i915_perf_record_header *)(buf + offset);
+        while (offset < count) {
+            const struct i915_perf_record_header *header =
+                (const struct i915_perf_record_header *)(buf + offset);
 
-	    if (header->size == 0) {
-		dbg("Spurious header size == 0\n");
-		/* XXX: How should we handle this instead of exiting() */
-		exit(1);
-	    }
+            if (header->size == 0) {
+                dbg("Spurious header size == 0\n");
+                /* XXX: How should we handle this instead of exiting() */
+                exit(1);
+            }
 
-	    offset += header->size;
+            offset += header->size;
 
-	    switch (header->type) {
+            switch (header->type) {
 
-	    case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-		dbg("i915 perf: OA buffer overflow\n");
-		break;
-	    case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-		dbg("i915 perf: OA report lost\n");
-		break;
+            case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
+                dbg("i915 perf: OA buffer overflow\n");
+                break;
+            case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+                dbg("i915 perf: OA report lost\n");
+                break;
 
-	    case DRM_I915_PERF_RECORD_SAMPLE: {
-		struct oa_sample *sample = (struct oa_sample *)header;
-		uint8_t *report = sample->oa_report;
-		uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
-			OAREPORT_REASON_MASK;
+            case DRM_I915_PERF_RECORD_SAMPLE: {
+                struct oa_sample *sample = (struct oa_sample *)header;
+                uint8_t *report = sample->oa_report;
+                uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
+                        OAREPORT_REASON_MASK;
 
-		/* On GEN8+ the hardware is able to generate reports with a
-		 * reason field. So for example when capturing perdiodic counter
-		 * snapshots the reason field would be TIMER. This is _not_ the
-		 * case when capturing snapshots by inserting MI_RPC commands
-		 * into the CS, instead this field is overridden with the u32
-		 * id passed with the MI_RPC. But within GPUTOP we should
-		 * currently only expect either CTX_SWITCH or TIMER.
-		 */
-		if (gputop_devinfo.gen >= 8) {
-			if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
-					OAREPORT_REASON_TIMER))) {
-			    dbg("i915 perf: Unexpected OA sample reason value %"
-				PRIu32 "\n", reason);
-			}
-		}
+                /* On GEN8+ the hardware is able to generate reports with a
+                 * reason field. So for example when capturing perdiodic counter
+                 * snapshots the reason field would be TIMER. This is _not_ the
+                 * case when capturing snapshots by inserting MI_RPC commands
+                 * into the CS, instead this field is overridden with the u32
+                 * id passed with the MI_RPC. But within GPUTOP we should
+                 * currently only expect either CTX_SWITCH or TIMER.
+                 */
+                if (gputop_devinfo.gen >= 8) {
+                        if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
+                                        OAREPORT_REASON_TIMER))) {
+                            dbg("i915 perf: Unexpected OA sample reason value %"
+                                PRIu32 "\n", reason);
+                        }
+                }
 
-		if (stream->oa.last) {
-		    /* On GEN8+ when a context switch occurs, the hardware
-		     * generates a report to indicate that such an event
-		     * occurred. We therefore skip over the accumulation for
-		     * this report, and instead use it as the base for
-		     * subsequent accumulation calculations.
-		     *
-		     * TODO:(matt-auld)
-		     * This can be simplified once our kernel rebases with Sourab'
-		     * patches, in particular his work which exposes to user-space
-		     * a sample-source-field for OA reports. */
-		    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
-			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
-			    gputop_perf_current_user->sample(stream, stream->oa.last, report);
-		    } else {
-			gputop_perf_current_user->sample(stream, stream->oa.last, report);
-		    }
-		}
+                if (stream->oa.last) {
+                    /* On GEN8+ when a context switch occurs, the hardware
+                     * generates a report to indicate that such an event
+                     * occurred. We therefore skip over the accumulation for
+                     * this report, and instead use it as the base for
+                     * subsequent accumulation calculations.
+                     *
+                     * TODO:(matt-auld)
+                     * This can be simplified once our kernel rebases with Sourab'
+                     * patches, in particular his work which exposes to user-space
+                     * a sample-source-field for OA reports. */
+                    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+                        if (!(reason & OAREPORT_REASON_CTX_SWITCH))
+                            gputop_perf_current_user->sample(stream, stream->oa.last, report);
+                    } else {
+                        gputop_perf_current_user->sample(stream, stream->oa.last, report);
+                    }
+                }
 
-		stream->oa.last = report;
+                stream->oa.last = report;
 
-		/* Make sure the next read won't clobber stream->oa.last by
-		 * switching read buffers... */
+                /* Make sure the next read won't clobber stream->oa.last by
+                 * switching read buffers... */
                 stream->oa.buf_idx = !stream->oa.buf_idx;
-		break;
-	    }
+                break;
+            }
 
-	    default:
-		dbg("i915 perf: Spurious header type = %d\n", header->type);
-	    }
-	}
+            default:
+                dbg("i915 perf: Spurious header type = %d\n", header->type);
+            }
+        }
     } while(1);
 }
 
@@ -1231,11 +1231,11 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
 {
     switch (stream->type) {
     case GPUTOP_STREAM_PERF:
-	read_perf_samples(stream);
-	return;
+        read_perf_samples(stream);
+        return;
     case GPUTOP_STREAM_I915_PERF:
-	read_i915_perf_samples(stream);
-	return;
+        read_i915_perf_samples(stream);
+        return;
     }
 
     assert(0);
@@ -1245,16 +1245,16 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
 
 uint64_t
 read_uint64_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     return counter->oa_counter_read_uint64(&gputop_devinfo, query, accumulator);
 }
 
 uint32_t
 read_uint32_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     assert(0);
     //return counter->oa_counter_read_uint32(&gputop_devinfo, query, accumulator);
@@ -1262,8 +1262,8 @@ read_uint32_oa_counter(const struct gputop_perf_query *query,
 
 bool
 read_bool_oa_counter(const struct gputop_perf_query *query,
-		     const struct gputop_perf_query_counter *counter,
-		     uint64_t *accumulator)
+                     const struct gputop_perf_query_counter *counter,
+                     uint64_t *accumulator)
 {
     assert(0);
     //return counter->oa_counter_read_bool(&gputop_devinfo, query, accumulator);
@@ -1271,8 +1271,8 @@ read_bool_oa_counter(const struct gputop_perf_query *query,
 
 double
 read_double_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     assert(0);
     //return counter->oa_counter_read_double(&gputop_devinfo, query, accumulator);
@@ -1280,8 +1280,8 @@ read_double_oa_counter(const struct gputop_perf_query *query,
 
 float
 read_float_oa_counter(const struct gputop_perf_query *query,
-		      const struct gputop_perf_query_counter *counter,
-		      uint64_t *accumulator)
+                      const struct gputop_perf_query_counter *counter,
+                      uint64_t *accumulator)
 {
     return counter->oa_counter_read_float(&gputop_devinfo, query, accumulator);
 }
@@ -1302,7 +1302,7 @@ read_device_param(int id, const char *param)
 {
     char *name;
     int ret = asprintf(&name, "/sys/class/drm/renderD%u/"
-		       "device/%s", id, param);
+                       "device/%s", id, param);
     uint32_t value;
 
     assert(ret != -1);
@@ -1320,28 +1320,28 @@ open_render_node(struct intel_device *dev)
     int i, fd;
 
     for (i = 128; i < (128 + 16); i++) {
-	int ret;
+        int ret;
 
-	ret = asprintf(&name, "/dev/dri/renderD%u", i);
-	assert(ret != -1);
+        ret = asprintf(&name, "/dev/dri/renderD%u", i);
+        assert(ret != -1);
 
-	fd = open(name, O_RDWR);
-	free(name);
+        fd = open(name, O_RDWR);
+        free(name);
 
-	if (fd == -1)
-	    continue;
+        if (fd == -1)
+            continue;
 
-	if (read_device_param(i, "vendor") != 0x8086) {
-	    close(fd);
-	    fd = -1;
-	    continue;
-	}
+        if (read_device_param(i, "vendor") != 0x8086) {
+            close(fd);
+            fd = -1;
+            continue;
+        }
 
-	dev->device = read_device_param(i, "device");
-	dev->subsystem_device = read_device_param(i, "subsystem_device");
-	dev->subsystem_vendor = read_device_param(i, "subsystem_vendor");
+        dev->device = read_device_param(i, "device");
+        dev->subsystem_device = read_device_param(i, "subsystem_device");
+        dev->subsystem_vendor = read_device_param(i, "subsystem_vendor");
 
-	return fd;
+        return fd;
     }
 
     return fd;
@@ -1477,17 +1477,17 @@ bool
 gputop_perf_initialize(void)
 {
     if (gputop_devinfo.n_eus)
-	return true;
+        return true;
     if (getenv("GPUTOP_FAKE_MODE") && strcmp(getenv("GPUTOP_FAKE_MODE"), "1") == 0) {
         gputop_fake_mode = true;
         intel_dev.device = 0;
     }
     else {
-	drm_fd = open_render_node(&intel_dev);
-	if (drm_fd < 0) {
-	    gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
-	    return false;
-	}
+        drm_fd = open_render_node(&intel_dev);
+        if (drm_fd < 0) {
+            gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
+            return false;
+        }
     }
 
     /* NB: eu_count needs to be initialized before declaring counters */
@@ -1499,17 +1499,17 @@ gputop_perf_initialize(void)
     perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
 
     if (gputop_fake_mode) {
-	gputop_oa_add_queries_bdw(&gputop_devinfo);
+        gputop_oa_add_queries_bdw(&gputop_devinfo);
     } else if (IS_HASWELL(intel_dev.device)) {
-	gputop_oa_add_queries_hsw(&gputop_devinfo);
+        gputop_oa_add_queries_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
-	gputop_oa_add_queries_bdw(&gputop_devinfo);
+        gputop_oa_add_queries_bdw(&gputop_devinfo);
     } else if (IS_CHERRYVIEW(intel_dev.device)) {
-	gputop_oa_add_queries_chv(&gputop_devinfo);
+        gputop_oa_add_queries_chv(&gputop_devinfo);
     } else if (IS_SKYLAKE(intel_dev.device)) {
-	gputop_oa_add_queries_skl(&gputop_devinfo);
+        gputop_oa_add_queries_skl(&gputop_devinfo);
     } else
-	assert(0);
+        assert(0);
 
     if (gputop_fake_mode)
         return gputop_enumerate_queries_fake();
@@ -1529,4 +1529,3 @@ gputop_perf_free(void)
     gputop_hash_table_destroy(queries, free_perf_oa_queries);
     array_free(perf_oa_supported_query_guids);
 }
-

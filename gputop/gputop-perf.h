@@ -80,8 +80,8 @@ struct gputop_perf_query_counter
    gputop_counter_type_t type;
    gputop_counter_data_type_t data_type;
    uint64_t (*max)(struct gputop_devinfo *devinfo,
-		   const struct gputop_perf_query *query,
-		   uint64_t *accumulator);
+                   const struct gputop_perf_query *query,
+                   uint64_t *accumulator);
 
    union {
       uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,
@@ -233,22 +233,22 @@ struct gputop_perf_stream
     enum gputop_perf_stream_type type;
 
     union {
-	/* i915 perf event */
-	struct {
-	    int buf_sizes;
-	    uint8_t *bufs[2];
-	    int buf_idx;
-	    uint8_t *last;
-	} oa;
-	/* linux perf event */
-	struct {
-	    /* The mmaped circular buffer for collecting samples from perf */
-	    struct perf_event_mmap_page *mmap_page;
-	    uint8_t *buffer;
-	    size_t buffer_size;
+        /* i915 perf event */
+        struct {
+            int buf_sizes;
+            uint8_t *bufs[2];
+            int buf_idx;
+            uint8_t *last;
+        } oa;
+        /* linux perf event */
+        struct {
+            /* The mmaped circular buffer for collecting samples from perf */
+            struct perf_event_mmap_page *mmap_page;
+            uint8_t *buffer;
+            size_t buffer_size;
 
-	    struct gputop_perf_header_buf header_buf;
-	} perf;
+            struct gputop_perf_header_buf header_buf;
+        } perf;
     };
 
     int fd;
@@ -270,11 +270,11 @@ struct gputop_perf_stream
 
     /* XXX: reserved for whoever opens the stream */
     struct {
-	uint32_t id;
-	gputop_list_t link;
-	void *data;
-	void (*destroy_cb)(struct gputop_perf_stream *stream);
-	bool flushing;
+        uint32_t id;
+        gputop_list_t link;
+        void *data;
+        void (*destroy_cb)(struct gputop_perf_stream *stream);
+        bool flushing;
     } user;
 };
 
@@ -310,49 +310,49 @@ extern bool gputop_fake_mode;
 
 uint64_t read_report_timestamp(const uint32_t *report);
 uint64_t read_uint64_oa_counter(const struct gputop_perf_query *query,
-				const struct gputop_perf_query_counter *counter,
-				uint64_t *accumulator);
+                                const struct gputop_perf_query_counter *counter,
+                                uint64_t *accumulator);
 uint32_t read_uint32_oa_counter(const struct gputop_perf_query *query,
-				const struct gputop_perf_query_counter *counter,
-				uint64_t *accumulator);
+                                const struct gputop_perf_query_counter *counter,
+                                uint64_t *accumulator);
 bool read_bool_oa_counter(const struct gputop_perf_query *query,
-			  const struct gputop_perf_query_counter *counter,
-			  uint64_t *accumulator);
+                          const struct gputop_perf_query_counter *counter,
+                          uint64_t *accumulator);
 double read_double_oa_counter(const struct gputop_perf_query *query,
-			      const struct gputop_perf_query_counter *counter,
-			      uint64_t *accumulator);
+                              const struct gputop_perf_query_counter *counter,
+                              uint64_t *accumulator);
 float read_float_oa_counter(const struct gputop_perf_query *query,
-			    const struct gputop_perf_query_counter *counter,
-			    uint64_t *accumulator);
+                            const struct gputop_perf_query_counter *counter,
+                            uint64_t *accumulator);
 
 #ifndef EMSCRIPTEN
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
-			       int period_exponent,
-			       size_t perf_buffer_size,
-			       void (*ready_cb)(struct gputop_perf_stream *),
-			       bool overwrite,
-			       char **error);
+                               int period_exponent,
+                               size_t perf_buffer_size,
+                               void (*ready_cb)(struct gputop_perf_stream *),
+                               bool overwrite,
+                               char **error);
 struct gputop_perf_stream *
 gputop_perf_open_trace(int pid,
-		       int cpu,
-		       const char *system,
-		       const char *event,
-		       size_t trace_struct_size,
-		       size_t perf_buffer_size,
-		       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-		       bool overwrite,
-		       char **error);
+                       int cpu,
+                       const char *system,
+                       const char *event,
+                       size_t trace_struct_size,
+                       size_t perf_buffer_size,
+                       void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                       bool overwrite,
+                       char **error);
 
 struct gputop_perf_stream *
 gputop_perf_open_generic_counter(int pid,
-				 int cpu,
-				 uint64_t type,
-				 uint64_t config,
-				 size_t perf_buffer_size,
-				 void (*ready_cb)(uv_poll_t *poll, int status, int events),
-				 bool overwrite,
-				 char **error);
+                                 int cpu,
+                                 uint64_t type,
+                                 uint64_t config,
+                                 size_t perf_buffer_size,
+                                 void (*ready_cb)(uv_poll_t *poll, int status, int events),
+                                 bool overwrite,
+                                 char **error);
 
 bool gputop_stream_data_pending(struct gputop_perf_stream *stream);
 
@@ -364,8 +364,8 @@ int gputop_perf_fake_read(struct gputop_perf_stream *stream,
 void gputop_perf_read_samples(struct gputop_perf_stream *stream);
 
 void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
-				    uint8_t *buf,
-				    int len);
+                                    uint8_t *buf,
+                                    int len);
 
 void gputop_perf_stream_close(struct gputop_perf_stream *stream,
                               void (*on_close_cb)(struct gputop_perf_stream *stream));

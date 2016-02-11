@@ -39,7 +39,7 @@ xmalloc(size_t size)
 {
     void *ret = malloc(size);
     if (!ret)
-	exit(1);
+        exit(1);
     return ret;
 }
 
@@ -48,7 +48,7 @@ xmalloc0(size_t size)
 {
     void *ret = malloc(size);
     if (!ret)
-	exit(1);
+        exit(1);
     memset(ret, 0, size);
     return ret;
 }
@@ -58,7 +58,7 @@ xrealloc(void *ptr, size_t size)
 {
     void *ret = realloc(ptr, size);
     if (!ret)
-	exit(1);
+        exit(1);
     return ret;
 }
 
@@ -69,8 +69,8 @@ struct array
 
     size_t size;
     union {
-	void *data;
-	uint8_t *bytes;
+        void *data;
+        uint8_t *bytes;
     };
 };
 
@@ -102,7 +102,7 @@ array_set_len(struct array *array, int len)
     array->len = len;
 
     if (array->size >= needed)
-	return;
+        return;
 
     array->size = MAX(needed, array->size * 1.7);
     array->data = xrealloc(array->data, array->size);
@@ -116,7 +116,7 @@ array_remove_fast(struct array *array, int idx)
 
     array->len--;
     if (idx == array->len)
-	return;
+        return;
 
     elem = array->bytes + idx * array->elem_size;
     last = array->bytes + array->len * array->elem_size;

@@ -80,10 +80,10 @@ struct protobuf_msg_closure {
 
 static ssize_t
 fragmented_protobuf_msg_read_cb(wslay_event_context_ptr ctx,
-				uint8_t *data, size_t len,
-				const union wslay_event_msg_source *source,
-				int *eof,
-				void *user_data)
+                                uint8_t *data, size_t len,
+                                const union wslay_event_msg_source *source,
+                                int *eof,
+                                void *user_data)
 {
     struct protobuf_msg_closure *closure =
         (struct protobuf_msg_closure *)source->data;
@@ -92,11 +92,11 @@ fragmented_protobuf_msg_read_cb(wslay_event_context_ptr ctx,
     int total = 0;
 
     if (closure->current_offset == 0) {
-	assert(len > 8);
-	data[0] = WS_MESSAGE_PROTOBUF;
-	total = 8;
-	data += 8;
-	len -= 8;
+        assert(len > 8);
+        data[0] = WS_MESSAGE_PROTOBUF;
+        total = 8;
+        data += 8;
+        len -= 8;
     }
 
     remaining = closure->len - closure->current_offset;
@@ -205,13 +205,13 @@ stream_closed_cb(struct gputop_perf_stream *stream)
      * ACK... */
     if (stream->user.data) {
 
-	message.reply_uuid = stream->user.data;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
-	message.ack = true;
+        message.reply_uuid = stream->user.data;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+        message.ack = true;
 
-	dbg("CMD_ACK: %s\n", (char *)stream->user.data);
+        dbg("CMD_ACK: %s\n", (char *)stream->user.data);
 
-	send_pb_message(h2o_conn, &message.base);
+        send_pb_message(h2o_conn, &message.base);
 
         free(stream->user.data);
         stream->user.data = NULL;
@@ -248,10 +248,10 @@ on_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
 
 static ssize_t
 fragmented_perf_read_cb(wslay_event_context_ptr ctx,
-			uint8_t *data, size_t len,
-			const union wslay_event_msg_source *source,
-			int *eof,
-			void *user_data)
+                        uint8_t *data, size_t len,
+                        const union wslay_event_msg_source *source,
+                        int *eof,
+                        void *user_data)
 {
     struct perf_flush_closure *closure =
         (struct perf_flush_closure *)source->data;
@@ -266,16 +266,16 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     uint8_t *p;
 
     if (!closure->header_written) {
-	assert(len > 8);
+        assert(len > 8);
 
-	memset(data, 0, 8);
-	data[0] = WS_MESSAGE_PERF;
-	*(uint32_t *)(data + 4) = closure->id;
+        memset(data, 0, 8);
+        data[0] = WS_MESSAGE_PERF;
+        *(uint32_t *)(data + 4) = closure->id;
 
-	total = 8;
-	data += 8;
-	len -= 8;
-	closure->header_written = true;
+        total = 8;
+        data += 8;
+        len -= 8;
+        closure->header_written = true;
     }
 
     head = closure->head;
@@ -284,19 +284,19 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     buffer = stream->perf.buffer;
 
     if ((head & mask) < (tail & mask)) {
-	int before;
+        int before;
 
-	p = buffer + (tail & mask);
-	before = stream->perf.buffer_size - (tail & mask);
-	read_len = MIN(before, len);
-	memcpy(data, p, read_len);
+        p = buffer + (tail & mask);
+        before = stream->perf.buffer_size - (tail & mask);
+        read_len = MIN(before, len);
+        memcpy(data, p, read_len);
 
-	len -= read_len;
-	tail += read_len;
-	data += read_len;
-	total += read_len;
+        len -= read_len;
+        tail += read_len;
+        data += read_len;
+        total += read_len;
 
-	closure->tail = tail;
+        closure->tail = tail;
     }
 
     p = buffer + (tail & mask);
@@ -312,8 +312,8 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     closure->total_len += total;
 
     if (TAKEN(head, tail, stream->perf.buffer_size) == 0) {
-	*eof = 1;
-	write_perf_tail(stream->perf.mmap_page, tail);
+        *eof = 1;
+        write_perf_tail(stream->perf.mmap_page, tail);
     }
 
     return total;
@@ -380,10 +380,10 @@ on_i915_perf_flush_done(const union wslay_event_msg_source *source, void *user_d
 
 static ssize_t
 fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
-			     uint8_t *data, size_t len,
-			     const union wslay_event_msg_source *source,
-			     int *eof,
-			     void *user_data)
+                             uint8_t *data, size_t len,
+                             const union wslay_event_msg_source *source,
+                             int *eof,
+                             void *user_data)
 {
     struct i915_perf_flush_closure *closure =
         (struct i915_perf_flush_closure *)source->data;
@@ -392,30 +392,30 @@ fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
     int read_len;
 
     if (!closure->header_written) {
-	assert(len > 8);
+        assert(len > 8);
 
-	memset(data, 0, 8);
-	data[0] = WS_MESSAGE_I915_PERF;
-	*(uint32_t *)(data + 4) = closure->id;
+        memset(data, 0, 8);
+        data[0] = WS_MESSAGE_I915_PERF;
+        *(uint32_t *)(data + 4) = closure->id;
 
-	total = 8;
-	data += 8;
-	len -= 8;
-	closure->header_written = true;
+        total = 8;
+        data += 8;
+        len -= 8;
+        closure->header_written = true;
     }
 
     if (gputop_fake_mode)
         read_len = gputop_perf_fake_read(stream, data, len);
     else
         while ((read_len = read(stream->fd, data, len)) < 0 && errno == EINTR)
-	    ;
+            ;
     if (read_len > 0) {
-	total += read_len;
-	closure->total_len += total;
+        total += read_len;
+        closure->total_len += total;
     } else {
-	*eof = 1;
-	if (!gputop_fake_mode && errno != EAGAIN)
-	    dbg("Error reading i915 perf stream %m");
+        *eof = 1;
+        if (!gputop_fake_mode && errno != EAGAIN)
+            dbg("Error reading i915 perf stream %m");
     }
 
     return total;
@@ -456,23 +456,23 @@ static void
 flush_stream_samples(struct gputop_perf_stream *stream)
 {
     if (stream->user.flushing) {
-	fprintf(stderr, "Throttling websocket forwarding");
-	return;
+        fprintf(stderr, "Throttling websocket forwarding");
+        return;
     }
 
     assert(!stream->pending_close);
     assert(!stream->closed);
 
     if (!gputop_stream_data_pending(stream))
-	return;
+        return;
 
     switch (stream->type) {
     case GPUTOP_STREAM_PERF:
-	flush_perf_stream_samples(stream);
-	break;
+        flush_perf_stream_samples(stream);
+        break;
     case GPUTOP_STREAM_I915_PERF:
-	flush_i915_perf_stream_samples(stream);
-	break;
+        flush_i915_perf_stream_samples(stream);
+        break;
     }
 }
 
@@ -482,7 +482,7 @@ flush_streams(void)
     struct gputop_perf_stream *stream;
 
     gputop_list_for_each(stream, &streams, user.link) {
-	flush_stream_samples(stream);
+        flush_stream_samples(stream);
     }
 }
 
@@ -492,16 +492,16 @@ forward_logs(void)
     Gputop__Log *log = gputop_get_pb_log();
 
     if (log) {
-	Gputop__Message msg = GPUTOP__MESSAGE__INIT;
+        Gputop__Message msg = GPUTOP__MESSAGE__INIT;
 
-	fprintf(stderr, "forwarding log to UI\n");
+        fprintf(stderr, "forwarding log to UI\n");
 
-	msg.cmd_case = GPUTOP__MESSAGE__CMD_LOG;
-	msg.log = log;
+        msg.cmd_case = GPUTOP__MESSAGE__CMD_LOG;
+        msg.log = log;
 
-	send_pb_message(h2o_conn, &msg.base);
+        send_pb_message(h2o_conn, &msg.base);
 
-	gputop_pb_log_free(log);
+        gputop_pb_log_free(log);
     }
 }
 
@@ -519,34 +519,34 @@ periodic_update_head_pointers(uv_timer_t *timer)
     struct gputop_perf_stream *stream;
 
     gputop_list_for_each(stream, &streams, user.link) {
-	struct gputop_perf_header_buf *hdr_buf;
+        struct gputop_perf_header_buf *hdr_buf;
 
-	if (stream->type != GPUTOP_STREAM_PERF)
-	    continue;
+        if (stream->type != GPUTOP_STREAM_PERF)
+            continue;
 
-	hdr_buf = &stream->perf.header_buf;
+        hdr_buf = &stream->perf.header_buf;
 
-	if (stream->query) {
-	    if (fsync(stream->fd) < 0)
-		dbg("Failed to flush i915_oa perf samples");
-	}
+        if (stream->query) {
+            if (fsync(stream->fd) < 0)
+                dbg("Failed to flush i915_oa perf samples");
+        }
 
-	gputop_perf_update_header_offsets(stream);
+        gputop_perf_update_header_offsets(stream);
 
-	if (!hdr_buf->full) {
-	    Gputop__Message message = GPUTOP__MESSAGE__INIT;
-	    Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
+        if (!hdr_buf->full) {
+            Gputop__Message message = GPUTOP__MESSAGE__INIT;
+            Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
 
-	    notify.query_id = stream->user.id;
-	    notify.fill_percentage =
-		(hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
-		 (float)stream->perf.buffer_size) * 100.0f;
-	    message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
-	    message.fill_notify = &notify;
+            notify.query_id = stream->user.id;
+            notify.fill_percentage =
+                (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
+                 (float)stream->perf.buffer_size) * 100.0f;
+            message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
+            message.fill_notify = &notify;
 
-	    send_pb_message(h2o_conn, &message.base);
-	    dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
-	}
+            send_pb_message(h2o_conn, &message.base);
+            dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
+        }
     }
 
     forward_logs();
@@ -554,7 +554,7 @@ periodic_update_head_pointers(uv_timer_t *timer)
 
 static void
 handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
-			       Gputop__Request *request)
+                               Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
@@ -567,11 +567,11 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
 
     if (!gputop_perf_initialize()) {
-	message.reply_uuid = request->uuid;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-	message.error = "Failed to initialize perf\n";
-	send_pb_message(conn, &message.base);
-	return;
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &message.base);
+        return;
     }
     dbg("handle_open_i915_oa_query\n");
 
@@ -587,31 +587,31 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
     if (open_query->live_updates)
-	buffer_size = 128 * 1024;
+        buffer_size = 128 * 1024;
     else
-	buffer_size = 16 * 1024 * 1024;
+        buffer_size = 16 * 1024 * 1024;
 
     stream = gputop_open_i915_perf_oa_query(perf_query,
-					    oa_query_info->period_exponent,
-					    buffer_size,
-					    NULL,
-					    open_query->overwrite,
-					    &error);
+                                            oa_query_info->period_exponent,
+                                            buffer_size,
+                                            NULL,
+                                            open_query->overwrite,
+                                            &error);
     if (stream) {
-	stream->user.id = id;
-	gputop_list_init(&stream->user.link);
-	gputop_list_insert(streams.prev, &stream->user.link);
+        stream->user.id = id;
+        gputop_list_init(&stream->user.link);
+        gputop_list_insert(streams.prev, &stream->user.link);
 
-	if (open_query->live_updates)
-	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+        if (open_query->live_updates)
+            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
 
-	if (open_query->overwrite)
-	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+        if (open_query->overwrite)
+            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
-	dbg("Failed to open perf query set=%s period=%d: %s\n",
-	    oa_query_info->guid, oa_query_info->period_exponent,
-	    error);
-	free(error);
+        dbg("Failed to open perf query set=%s period=%d: %s\n",
+            oa_query_info->guid, oa_query_info->period_exponent,
+            error);
+        free(error);
     }
 
     message.reply_uuid = request->uuid;
@@ -622,7 +622,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
 static void
 handle_open_trace_query(h2o_websocket_conn_t *conn,
-			Gputop__Request *request)
+                        Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
@@ -633,44 +633,44 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
 
     if (!gputop_perf_initialize()) {
-	message.reply_uuid = request->uuid;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-	message.error = "Failed to initialize perf\n";
-	send_pb_message(conn, &message.base);
-	return;
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &message.base);
+        return;
     }
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
     if (open_query->live_updates)
-	buffer_size = 128 * 1024;
+        buffer_size = 128 * 1024;
     else
-	buffer_size = 16 * 1024 * 1024;
+        buffer_size = 16 * 1024 * 1024;
 
     stream = gputop_perf_open_trace(trace_info->pid,
-				    trace_info->cpu,
-				    trace_info->system,
-				    trace_info->event,
-				    12, /* FIXME: guess trace struct size
-					 * used to estimate number of samples
-					 * that will fit in buffer */
-				    buffer_size,
-				    NULL,
-				    open_query->overwrite,
-				    &error);
+                                    trace_info->cpu,
+                                    trace_info->system,
+                                    trace_info->event,
+                                    12, /* FIXME: guess trace struct size
+                                         * used to estimate number of samples
+                                         * that will fit in buffer */
+                                    buffer_size,
+                                    NULL,
+                                    open_query->overwrite,
+                                    &error);
     if (stream) {
-	stream->user.id = id;
-	gputop_list_init(&stream->user.link);
-	gputop_list_insert(streams.prev, &stream->user.link);
+        stream->user.id = id;
+        gputop_list_init(&stream->user.link);
+        gputop_list_insert(streams.prev, &stream->user.link);
 
-	if (open_query->live_updates)
-	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-	else
-	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+        if (open_query->live_updates)
+            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+        else
+            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
-	dbg("Failed to open trace %s:%s: %s\n",
-	    trace_info->system, trace_info->event, error);
-	free(error);
+        dbg("Failed to open trace %s:%s: %s\n",
+            trace_info->system, trace_info->event, error);
+        free(error);
     }
 
     message.reply_uuid = request->uuid;
@@ -681,7 +681,7 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
 
 static void
 handle_open_generic_query(h2o_websocket_conn_t *conn,
-			  Gputop__Request *request)
+                          Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
@@ -692,40 +692,40 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
 
     if (!gputop_perf_initialize()) {
-	message.reply_uuid = request->uuid;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-	message.error = "Failed to initialize perf\n";
-	send_pb_message(conn, &message.base);
-	return;
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &message.base);
+        return;
     }
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
     if (open_query->live_updates)
-	buffer_size = 128 * 1024;
+        buffer_size = 128 * 1024;
     else
-	buffer_size = 16 * 1024 * 1024;
+        buffer_size = 16 * 1024 * 1024;
 
     stream = gputop_perf_open_generic_counter(generic_info->pid,
-					      generic_info->cpu,
-					      generic_info->type,
-					      generic_info->config,
-					      buffer_size,
-					      NULL,
-					      open_query->overwrite,
-					      &error);
+                                              generic_info->cpu,
+                                              generic_info->type,
+                                              generic_info->config,
+                                              buffer_size,
+                                              NULL,
+                                              open_query->overwrite,
+                                              &error);
     if (stream) {
-	stream->user.id = id;
-	gputop_list_init(&stream->user.link);
-	gputop_list_insert(streams.prev, &stream->user.link);
+        stream->user.id = id;
+        gputop_list_init(&stream->user.link);
+        gputop_list_insert(streams.prev, &stream->user.link);
 
-	if (open_query->live_updates)
-	    uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-	else
-	    uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+        if (open_query->live_updates)
+            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+        else
+            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
-	dbg("Failed to open perf event: %s\n", error);
-	free(error);
+        dbg("Failed to open perf event: %s\n", error);
+        free(error);
     }
 
     message.reply_uuid = request->uuid;
@@ -743,21 +743,21 @@ handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
 
     switch (open_query->type_case) {
     case GPUTOP__OPEN_QUERY__TYPE_OA_QUERY:
-	handle_open_i915_perf_oa_query(conn, request);
-	break;
+        handle_open_i915_perf_oa_query(conn, request);
+        break;
     case GPUTOP__OPEN_QUERY__TYPE_TRACE:
-	handle_open_trace_query(conn, request);
-	break;
+        handle_open_trace_query(conn, request);
+        break;
     case GPUTOP__OPEN_QUERY__TYPE_GENERIC:
-	handle_open_generic_query(conn, request);
-	break;
+        handle_open_generic_query(conn, request);
+        break;
     default:
-	message.reply_uuid = request->uuid;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-	message.error = "FIXME: implement support for opening GL queries\n";
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "FIXME: implement support for opening GL queries\n";
 
-	send_pb_message(conn, &message.base);
-	fprintf(stderr, "TODO: support opening GL queries");
+        send_pb_message(conn, &message.base);
+        fprintf(stderr, "TODO: support opening GL queries");
     }
 }
 
@@ -785,7 +785,7 @@ close_all_streams(void)
     struct gputop_perf_stream *stream, *tmp;
 
     gputop_list_for_each_safe(stream, tmp, &streams, user.link) {
-	close_stream(stream);
+        close_stream(stream);
     }
 }
 
@@ -799,19 +799,19 @@ handle_close_query(h2o_websocket_conn_t *conn,
     dbg("handle_close_query: uuid=%s\n", request->uuid);
 
     gputop_list_for_each(stream, &streams, user.link) {
-	if (stream->user.id == id) {
-	    assert(stream->user.data == NULL);
+        if (stream->user.id == id) {
+            assert(stream->user.data == NULL);
 
-	    stream->user.data = strdup(request->uuid);
-	    close_stream(stream);
-	    return;
-	}
+            stream->user.data = strdup(request->uuid);
+            close_stream(stream);
+            return;
+        }
     }
 }
 
 static void
 handle_get_features(h2o_websocket_conn_t *conn,
-		    Gputop__Request *request)
+                    Gputop__Request *request)
 {
     char kernel_release[128];
     char kernel_version[256];
@@ -821,11 +821,11 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
 
     if (!gputop_perf_initialize()) {
-	message.reply_uuid = request->uuid;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-	message.error = "Failed to initialize perf\n";
-	send_pb_message(conn, &message.base);
-	return;
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &message.base);
+        return;
     }
 
     devinfo.devid = gputop_devinfo.devid;
@@ -885,49 +885,49 @@ handle_get_features(h2o_websocket_conn_t *conn,
 }
 
 static void on_ws_message(h2o_websocket_conn_t *conn,
-			  const struct wslay_event_on_msg_recv_arg *arg)
+                          const struct wslay_event_on_msg_recv_arg *arg)
 {
     //fprintf(stderr, "on_ws_message\n");
     //dbg("on_ws_message\n");
 
     if (arg == NULL) {
-	//dbg("socket closed\n");
-	close_all_streams();
+        //dbg("socket closed\n");
+        close_all_streams();
         h2o_websocket_close(conn);
         return;
     }
 
     if (!wslay_is_ctrl_frame(arg->opcode)) {
-	Gputop__Request *request =
-	    (void *)protobuf_c_message_unpack(&gputop__request__descriptor,
-					      NULL, /* default allocator */
-					      arg->msg_length,
-					      arg->msg);
+        Gputop__Request *request =
+            (void *)protobuf_c_message_unpack(&gputop__request__descriptor,
+                                              NULL, /* default allocator */
+                                              arg->msg_length,
+                                              arg->msg);
 
-	if (!request) {
-	    fprintf(stderr, "Failed to unpack message\n");
-	    dbg("Failed to unpack message\n");
-	    return;
-	}
+        if (!request) {
+            fprintf(stderr, "Failed to unpack message\n");
+            dbg("Failed to unpack message\n");
+            return;
+        }
 
-	switch (request->req_case) {
-	case GPUTOP__REQUEST__REQ_GET_FEATURES:
-	    fprintf(stderr, "GetFeatures request received\n");
-	    handle_get_features(conn, request);
-	    break;
-	case GPUTOP__REQUEST__REQ_OPEN_QUERY:
-	    fprintf(stderr, "OpenQuery request received\n");
-	    handle_open_query(conn, request);
-	    break;
-	case GPUTOP__REQUEST__REQ_CLOSE_QUERY:
-	    fprintf(stderr, "CloseQuery request received\n");
-	    handle_close_query(conn, request);
-	    break;
-	case GPUTOP__REQUEST__REQ__NOT_SET:
-	    assert(0);
-	}
+        switch (request->req_case) {
+        case GPUTOP__REQUEST__REQ_GET_FEATURES:
+            fprintf(stderr, "GetFeatures request received\n");
+            handle_get_features(conn, request);
+            break;
+        case GPUTOP__REQUEST__REQ_OPEN_QUERY:
+            fprintf(stderr, "OpenQuery request received\n");
+            handle_open_query(conn, request);
+            break;
+        case GPUTOP__REQUEST__REQ_CLOSE_QUERY:
+            fprintf(stderr, "CloseQuery request received\n");
+            handle_close_query(conn, request);
+            break;
+        case GPUTOP__REQUEST__REQ__NOT_SET:
+            assert(0);
+        }
 
-	free(request);
+        free(request);
     }
 }
 

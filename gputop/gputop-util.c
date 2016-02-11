@@ -78,12 +78,11 @@ gputop_read_file(const char *filename, void *buf, int max)
 
     fd = open(filename, 0);
     if (fd < 0)
-	return false;
+        return false;
     n = read(fd, buf, max - 1);
     close(fd);
     if (n < 0)
-	return false;
+        return false;
 
     return true;
 }
-

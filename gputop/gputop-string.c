@@ -266,32 +266,32 @@ gputop_string_append_escaped(gputop_string_t *str, const char *_str)
     int i;
 
     for (i = 0; _str[i]; i++) {
-	char c = _str[i];
-	switch (c) {
-	case '"':
-	    gputop_string_append_len(str, "\"", 2);
-	    break;
-	case '\\':
-	    gputop_string_append_len(str, "\\\\", 2);
-	    break;
-	case '\b':
-	    gputop_string_append_len(str, "\\b", 2);
-	    break;
-	case '\f':
-	    gputop_string_append_len(str, "\\f", 2);
-	    break;
-	case '\n':
-	    gputop_string_append_len(str, "\\n", 2);
-	    break;
-	case '\r':
-	    gputop_string_append_len(str, "\\r", 2);
-	    break;
-	case '\t':
-	    gputop_string_append_len(str, "\\t", 2);
-	    break;
-	default:
-	    gputop_string_append_c(str, c);
-	}
+        char c = _str[i];
+        switch (c) {
+        case '"':
+            gputop_string_append_len(str, "\"", 2);
+            break;
+        case '\\':
+            gputop_string_append_len(str, "\\\\", 2);
+            break;
+        case '\b':
+            gputop_string_append_len(str, "\\b", 2);
+            break;
+        case '\f':
+            gputop_string_append_len(str, "\\f", 2);
+            break;
+        case '\n':
+            gputop_string_append_len(str, "\\n", 2);
+            break;
+        case '\r':
+            gputop_string_append_len(str, "\\r", 2);
+            break;
+        case '\t':
+            gputop_string_append_len(str, "\\t", 2);
+            break;
+        default:
+            gputop_string_append_c(str, c);
+        }
     }
     return str;
 }

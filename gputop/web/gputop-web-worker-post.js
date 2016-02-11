@@ -30,8 +30,8 @@ onmessage = function(e) {
     var func = Module[sym_name];
 
     if (!func) {
-	console.warn("Failed to resolve symbol: " + sym_name);
-	return;
+        console.warn("Failed to resolve symbol: " + sym_name);
+        return;
     }
 
     var stack = Runtime.stackSave();
@@ -57,19 +57,19 @@ onmessage = function(e) {
     /*
     console.log("params:");
     for (var arg of req.params) {
-	console.log("  " + arg);
+        console.log("  " + arg);
     }
     */
 
     for (var arg of req.params) {
-	if (arg.substring) /* recognise literals or objects */
-	    args[i++] = allocate(intArrayFromString(arg), 'i8', ALLOC_STACK);
-	else if (arg.toFixed)
-	    args[i++] = arg;
-	else if (typeof arg === "boolean")
-	    args[i++] = arg ? 1 : 0;
-	else
-	    console.warn("JS param couldn't be coerced for calling " + sym_name + ": param = " + arg)
+        if (arg.substring) /* recognise literals or objects */
+            args[i++] = allocate(intArrayFromString(arg), 'i8', ALLOC_STACK);
+        else if (arg.toFixed)
+            args[i++] = arg;
+        else if (typeof arg === "boolean")
+            args[i++] = arg ? 1 : 0;
+        else
+            console.warn("JS param couldn't be coerced for calling " + sym_name + ": param = " + arg)
     }
 
     args[i++] = allocate(intArrayFromString(req.uuid), 'i8', ALLOC_STACK);
