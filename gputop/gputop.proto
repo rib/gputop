@@ -95,12 +95,12 @@ message Message
     optional string reply_uuid = 1;
 
     oneof cmd {
-	string error = 2;
-	bool ack = 3;
-	Features features = 4;
-	Log log = 5;
-	CloseNotify close_notify = 6;
-	BufferFillNotify fill_notify = 7;
+        string error = 2;
+        bool ack = 3;
+        Features features = 4;
+        Log log = 5;
+        CloseNotify close_notify = 6;
+        BufferFillNotify fill_notify = 7;
     }
 }
 
@@ -135,10 +135,10 @@ message OpenQuery
     required uint32 id = 1;
 
     oneof type {
-	uint32 gl_query = 2;
-	OAQueryInfo oa_query = 3;
-	TraceInfo trace = 4;
-	GenericEventInfo generic = 5;
+        uint32 gl_query = 2;
+        OAQueryInfo oa_query = 3;
+        TraceInfo trace = 4;
+        GenericEventInfo generic = 5;
     }
     required bool overwrite = 6;
     required bool live_updates = 7;
@@ -149,8 +149,8 @@ message Request
     required string uuid = 1;
 
     oneof req {
-	bool get_features = 2;
-	OpenQuery open_query = 3;
-	uint32 close_query = 4;
+        bool get_features = 2;
+        OpenQuery open_query = 3;
+        uint32 close_query = 4;
     }
 }

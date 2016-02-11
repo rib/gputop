@@ -58,9 +58,9 @@ struct gputop_worker_query {
     uint64_t aggregation_period;
 
     struct oa_clock {
-	uint64_t start;
-	uint64_t timestamp;
-	uint32_t last_raw;
+        uint64_t start;
+        uint64_t timestamp;
+        uint32_t last_raw;
     } oa_clock;
 
     uint64_t start_timestamp;
@@ -97,16 +97,16 @@ assert_not_reached(void)
 
 uint64_t
 read_uint64_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     return counter->oa_counter_read_uint64(&devinfo, query, accumulator);
 }
 
 uint32_t
 read_uint32_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     assert_not_reached();
     //return counter->oa_counter_read_uint32(&devinfo, query, accumulator);
@@ -114,8 +114,8 @@ read_uint32_oa_counter(const struct gputop_perf_query *query,
 
 bool
 read_bool_oa_counter(const struct gputop_perf_query *query,
-		     const struct gputop_perf_query_counter *counter,
-		     uint64_t *accumulator)
+                     const struct gputop_perf_query_counter *counter,
+                     uint64_t *accumulator)
 {
     assert_not_reached();
     //return counter->oa_counter_read_bool(&devinfo, query, accumulator);
@@ -123,8 +123,8 @@ read_bool_oa_counter(const struct gputop_perf_query *query,
 
 double
 read_double_oa_counter(const struct gputop_perf_query *query,
-		       const struct gputop_perf_query_counter *counter,
-		       uint64_t *accumulator)
+                       const struct gputop_perf_query_counter *counter,
+                       uint64_t *accumulator)
 {
     assert_not_reached();
     //return counter->oa_counter_read_double(&devinfo, query, accumulator);
@@ -132,8 +132,8 @@ read_double_oa_counter(const struct gputop_perf_query *query,
 
 float
 read_float_oa_counter(const struct gputop_perf_query *query,
-		      const struct gputop_perf_query_counter *counter,
-		      uint64_t *accumulator)
+                      const struct gputop_perf_query_counter *counter,
+                      uint64_t *accumulator)
 {
     return counter->oa_counter_read_float(&devinfo, query, accumulator);
 }
@@ -162,7 +162,7 @@ oa_clock_accumulate_raw(struct oa_clock *clock, uint32_t raw_timestamp)
     //uint64_t elapsed;
 
     //gputop_web_console_log("oa_clock_accumulate_raw: raw=%"PRIu32" last = %"PRIu32" delta = %"PRIu32,
-	//		   raw_timestamp, clock->last_raw, delta);
+        //		   raw_timestamp, clock->last_raw, delta);
     //gputop_web_console_assert(((uint64_t)delta * 80) < 3000000000UL, "Huge timer jump foo");
 
     clock->timestamp += (uint64_t)delta * 80;
@@ -183,46 +183,46 @@ read_report_raw_timestamp(const uint32_t *report)
 
 static void
 append_raw_oa_counter(gputop_string_t *str,
-		      struct gputop_perf_query *query,
-		      const struct gputop_perf_query_counter *counter)
+                      struct gputop_perf_query *query,
+                      const struct gputop_perf_query_counter *counter)
 {
     uint64_t u53_check;
 
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	gputop_string_append_printf(str, "%" PRIu32,
-		  read_uint32_oa_counter(query,
-					 counter,
-					 query->accumulator));
-	break;
+        gputop_string_append_printf(str, "%" PRIu32,
+                  read_uint32_oa_counter(query,
+                                         counter,
+                                         query->accumulator));
+        break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	u53_check = read_uint64_oa_counter(query,
-					   counter,
-					   query->accumulator);
-	if (u53_check > JS_MAX_SAFE_INTEGER) {
-	    gputop_web_console_error("Clamping counter to large to represent in JavaScript");
-	    u53_check = JS_MAX_SAFE_INTEGER;
-	}
-	gputop_string_append_printf(str, "%" PRIu64, u53_check);
-	break;
+        u53_check = read_uint64_oa_counter(query,
+                                           counter,
+                                           query->accumulator);
+        if (u53_check > JS_MAX_SAFE_INTEGER) {
+            gputop_web_console_error("Clamping counter to large to represent in JavaScript");
+            u53_check = JS_MAX_SAFE_INTEGER;
+        }
+        gputop_string_append_printf(str, "%" PRIu64, u53_check);
+        break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	gputop_string_append_printf(str, "%f",
-		  read_float_oa_counter(query,
-					counter,
-					query->accumulator));
-	break;
+        gputop_string_append_printf(str, "%f",
+                  read_float_oa_counter(query,
+                                        counter,
+                                        query->accumulator));
+        break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	gputop_string_append_printf(str, "%f",
-		  read_double_oa_counter(query,
-					 counter,
-					 query->accumulator));
-	break;
+        gputop_string_append_printf(str, "%f",
+                  read_double_oa_counter(query,
+                                         counter,
+                                         query->accumulator));
+        break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	gputop_string_append_printf(str, "%s",
-		  read_bool_oa_counter(query,
-				       counter,
-				       query->accumulator) ? "TRUE" : "FALSE");
-	break;
+        gputop_string_append_printf(str, "%s",
+                  read_bool_oa_counter(query,
+                                       counter,
+                                       query->accumulator) ? "TRUE" : "FALSE");
+        break;
     }
 }
 
@@ -234,37 +234,37 @@ forward_query_update(struct gputop_worker_query *query)
     int i;
 
     //if (query->start_timestamp == 0)
-	//gputop_web_console_warn("WW: Zero timestamp");
+        //gputop_web_console_warn("WW: Zero timestamp");
 
     gputop_string_t *str = gputop_string_new("{ \"method\": \"oa_query_update\", ");
     gputop_string_append_printf(str,
-				"\"params\": [ { \"id\": %u, "
-				"\"gpu_start\": %" PRIu64 ", "
-				"\"gpu_end\": %" PRIu64 ", "
-				"\"counters\": [ \n",
-				query->id,
-				query->start_timestamp,
-				query->end_timestamp);
+                                "\"params\": [ { \"id\": %u, "
+                                "\"gpu_start\": %" PRIu64 ", "
+                                "\"gpu_end\": %" PRIu64 ", "
+                                "\"counters\": [ \n",
+                                query->id,
+                                query->start_timestamp,
+                                query->end_timestamp);
     delta = query->end_timestamp - query->start_timestamp;
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" delta = %"PRIu64" agg. period =%"PRIu64"\n",
-	//   start_timestamp, end_timestamp, delta, query->aggregation_period);
+        //   start_timestamp, end_timestamp, delta, query->aggregation_period);
 
     for (i = 0; i < oa_query->n_counters; i++) {
-	struct gputop_perf_query_counter *counter = &oa_query->counters[i];
+        struct gputop_perf_query_counter *counter = &oa_query->counters[i];
 
-	gputop_string_append(str, "  [ ");
-	append_raw_oa_counter(str, oa_query, counter);
+        gputop_string_append(str, "  [ ");
+        append_raw_oa_counter(str, oa_query, counter);
 
-	if (counter->max) {
-	    uint64_t max = counter->max(&devinfo, oa_query, oa_query->accumulator);
-	    gputop_string_append_printf(str, ", %"PRIu64" ]", max);
-	} else
-	    gputop_string_append(str, ", 0 ]");
+        if (counter->max) {
+            uint64_t max = counter->max(&devinfo, oa_query, oa_query->accumulator);
+            gputop_string_append_printf(str, ", %"PRIu64" ]", max);
+        } else
+            gputop_string_append(str, ", 0 ]");
 
-	if (i < (oa_query->n_counters - 1))
-	    gputop_string_append(str, ",\n");
-	else
-	    gputop_string_append(str, "\n");
+        if (i < (oa_query->n_counters - 1))
+            gputop_string_append(str, ",\n");
+        else
+            gputop_string_append(str, "\n");
     }
 
     gputop_string_append_printf(str, "] } ], \"id\": %u }\n", next_rpc_id++);
@@ -278,10 +278,10 @@ notify_bad_report(struct gputop_worker_query *query, uint64_t last_timestamp)
 {
     gputop_string_t *str = gputop_string_new("{ \"method\": \"oa_query_bad_report\", ");
     gputop_string_append_printf(str,
-				"\"params\": [ { \"id\": %u, "
-				"\"last_timestamp\": %"PRIu64,
-				query->id,
-				last_timestamp);
+                                "\"params\": [ { \"id\": %u, "
+                                "\"last_timestamp\": %"PRIu64,
+                                query->id,
+                                last_timestamp);
 
     gputop_string_append_printf(str, "} ], \"id\": %u }\n", next_rpc_id++);
 
@@ -296,10 +296,10 @@ handle_perf_message(int id, uint8_t *data, int len)
 
     gputop_list_for_each(query, &open_queries, link) {
 
-	if (query->id == id) {
-	    gputop_web_console_log("FIXME: parse perf data");
-	    return;
-	}
+        if (query->id == id) {
+            gputop_web_console_log("FIXME: parse perf data");
+            return;
+        }
     }
     gputop_web_console_log("received perf data for unknown query id: %d", id);
 }
@@ -313,120 +313,120 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
     uint64_t end_timestamp;
 
     if (query->continuation_report) {
-	last = query->continuation_report;
-	end_timestamp = query->end_timestamp;
+        last = query->continuation_report;
+        end_timestamp = query->end_timestamp;
     }
 
     for (header = (void *)data;
-	 (uint8_t *)header < (data + len);
-	 header = (void *)(((uint8_t *)header) + header->size))
+         (uint8_t *)header < (data + len);
+         header = (void *)(((uint8_t *)header) + header->size))
     {
 #if 0
-	gputop_web_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
+        gputop_web_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
 
-	i++;
-	if (i > 200) {
-	    gputop_web_console_log("perf message too large!\n");
-	    return;
-	}
+        i++;
+        if (i > 200) {
+            gputop_web_console_log("perf message too large!\n");
+            return;
+        }
 #endif
 
-	switch (header->type) {
+        switch (header->type) {
 
-	case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-		gputop_web_console_log("i915_oa: OA buffer overflow\n");
-		break;
+        case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
+                gputop_web_console_log("i915_oa: OA buffer overflow\n");
+                break;
         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
             gputop_web_console_log("i915_oa: OA report lost\n");
             break;
 
-	case DRM_I915_PERF_RECORD_SAMPLE: {
-	    struct oa_sample *sample = (struct oa_sample *)header;
-	    uint8_t *report = sample->oa_report;
-	    uint32_t raw_timestamp = read_report_raw_timestamp((uint32_t *)report);
-	    uint64_t timestamp;
+        case DRM_I915_PERF_RECORD_SAMPLE: {
+            struct oa_sample *sample = (struct oa_sample *)header;
+            uint8_t *report = sample->oa_report;
+            uint32_t raw_timestamp = read_report_raw_timestamp((uint32_t *)report);
+            uint64_t timestamp;
 
-	    if (raw_timestamp == 0) {
+            if (raw_timestamp == 0) {
 #warning "check for zero report reason instead of checking timestamp"
-		/* FIXME: check reason field too, since a zero timestamp may sometimes be valid */
-		gputop_web_console_log("i915_oa: spurious report with zero timestamp\n");
-		notify_bad_report(query, oa_clock_get_time(&query->oa_clock));
-		continue;
-	    }
+                /* FIXME: check reason field too, since a zero timestamp may sometimes be valid */
+                gputop_web_console_log("i915_oa: spurious report with zero timestamp\n");
+                notify_bad_report(query, oa_clock_get_time(&query->oa_clock));
+                continue;
+            }
 
-	    if (!last) {
-		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
+            if (!last) {
+                memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
 
-		oa_clock_init(&query->oa_clock, raw_timestamp);
-		timestamp = oa_clock_get_time(&query->oa_clock);
+                oa_clock_init(&query->oa_clock, raw_timestamp);
+                timestamp = oa_clock_get_time(&query->oa_clock);
 
-		query->start_timestamp = timestamp;
-		end_timestamp = timestamp + query->aggregation_period;
-	    } else {
-		oa_clock_accumulate_raw(&query->oa_clock, raw_timestamp);
-		timestamp = oa_clock_get_time(&query->oa_clock);
-	    }
+                query->start_timestamp = timestamp;
+                end_timestamp = timestamp + query->aggregation_period;
+            } else {
+                oa_clock_accumulate_raw(&query->oa_clock, raw_timestamp);
+                timestamp = oa_clock_get_time(&query->oa_clock);
+            }
 
-	    //gputop_web_console_log("timestamp = %"PRIu64" target duration=%u",
-	    //			     timestamp, (unsigned)(end_timestamp - query->start_timestamp));
+            //gputop_web_console_log("timestamp = %"PRIu64" target duration=%u",
+            //			     timestamp, (unsigned)(end_timestamp - query->start_timestamp));
             if (timestamp >= end_timestamp) {
-		forward_query_update(query);
-		memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
-		query->start_timestamp = timestamp;
+                forward_query_update(query);
+                memset(oa_query->accumulator, 0, sizeof(oa_query->accumulator));
+                query->start_timestamp = timestamp;
 
 #if 0
-		/* Note: end_timestamp isn't the last timestamp that belonged
-		 * to the last update. We don't want the end_timestamp for the
-		 * next update to be skewed by exact duration of the previous
-		 * update otherwise the elapsed time relative to when the
-		 * query started will appear to drift from wall clock time */
-		end_timestamp += query->aggregation_period;
+                /* Note: end_timestamp isn't the last timestamp that belonged
+                 * to the last update. We don't want the end_timestamp for the
+                 * next update to be skewed by exact duration of the previous
+                 * update otherwise the elapsed time relative to when the
+                 * query started will appear to drift from wall clock time */
+                end_timestamp += query->aggregation_period;
 
-		if (end_timestamp <= query->start_timestamp) {
-		    gputop_web_console_warn("i915_oa: not forwarding fast enough\n");
-		    end_timestamp = timestamp + query->aggregation_period;
-		}
+                if (end_timestamp <= query->start_timestamp) {
+                    gputop_web_console_warn("i915_oa: not forwarding fast enough\n");
+                    end_timestamp = timestamp + query->aggregation_period;
+                }
 #else
-		/* XXX: the above comment proably isn't really a good way of
-		 * considering this. We want aggregated updates to have a consistent
-		 * statistical significance. If we always set our end_timestamp
-		 * relative to when we opened the query then there's a risk that
-		 * if we aren't keeping up with forwarding data or in cases where
-		 * where we have to skip spurious reports from the hardware then
-		 * some updates may represent quite varying durations. Setting
-		 * the end_timestamp relative to now might be better from this pov.
-		 * The issue of elapsed time appearing to drift described above isn't
-		 * really an issue since the timestamps themselves will correctly
-		 * reflect the progress of time which the UI can represent.
-		 */
-		end_timestamp = timestamp + query->aggregation_period;
+                /* XXX: the above comment proably isn't really a good way of
+                 * considering this. We want aggregated updates to have a consistent
+                 * statistical significance. If we always set our end_timestamp
+                 * relative to when we opened the query then there's a risk that
+                 * if we aren't keeping up with forwarding data or in cases where
+                 * where we have to skip spurious reports from the hardware then
+                 * some updates may represent quite varying durations. Setting
+                 * the end_timestamp relative to now might be better from this pov.
+                 * The issue of elapsed time appearing to drift described above isn't
+                 * really an issue since the timestamps themselves will correctly
+                 * reflect the progress of time which the UI can represent.
+                 */
+                end_timestamp = timestamp + query->aggregation_period;
 #endif
-	    }
+            }
 
-	    //str = strdup("SAMPLE\n");
-	    if (last) {
-		query->end_timestamp = timestamp;
-		gputop_oa_accumulate_reports(oa_query, last, report);
-	    }
+            //str = strdup("SAMPLE\n");
+            if (last) {
+                query->end_timestamp = timestamp;
+                gputop_oa_accumulate_reports(oa_query, last, report);
+            }
 
-	    last = report;
-	    break;
-	}
+            last = report;
+            break;
+        }
 
-	default:
-	    gputop_web_console_log("i915 perf: Spurious header type = %d\n", header->type);
-	    return;
-	}
+        default:
+            gputop_web_console_log("i915 perf: Spurious header type = %d\n", header->type);
+            return;
+        }
     }
 
     if (last) {
-	int raw_size = query->oa_query->perf_raw_size;
+        int raw_size = query->oa_query->perf_raw_size;
 
-	if (!query->continuation_report)
-	    query->continuation_report = malloc(raw_size);
+        if (!query->continuation_report)
+            query->continuation_report = malloc(raw_size);
 
-	memcpy(query->continuation_report, last, raw_size);
-	query->end_timestamp = end_timestamp;
+        memcpy(query->continuation_report, last, raw_size);
+        query->end_timestamp = end_timestamp;
     }
 }
 
@@ -437,11 +437,11 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
 
     gputop_list_for_each(query, &open_queries, link) {
 
-	if (query->id == id) {
-	    if (query->oa_query)
-		handle_oa_query_i915_perf_data(query, data, len);
-	    return;
-	}
+        if (query->id == id) {
+            if (query->oa_query)
+                handle_oa_query_i915_perf_data(query, data, len);
+            return;
+        }
     }
     gputop_web_console_log("received perf data for unknown query id: %d", id);
 }
@@ -452,17 +452,17 @@ counter_type_name(gputop_counter_type_t type)
 {
     switch (type) {
     case GPUTOP_PERFQUERY_COUNTER_RAW:
-	return "raw";
+        return "raw";
     case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
-	return "raw_duration";
+        return "raw_duration";
     case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
-	return "normalized_duration";
+        return "normalized_duration";
     case GPUTOP_PERFQUERY_COUNTER_EVENT:
-	return "event";
+        return "event";
     case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
-	return "throughput";
+        return "throughput";
     case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
-	return "timestamp";
+        return "timestamp";
     }
     assert_not_reached();
     return "unknown";
@@ -474,15 +474,15 @@ data_counter_type_name(gputop_counter_data_type_t type)
 
     switch(type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-	return "uint64";
+        return "uint64";
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-	return "uint32";
+        return "uint32";
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-	return "double";
+        return "double";
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-	return "float";
+        return "float";
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-	return "bool";
+        return "bool";
     }
     assert_not_reached();
     return "unknown";
@@ -499,30 +499,30 @@ append_i915_oa_query(gputop_string_t *str, struct gputop_perf_query *query)
     gputop_string_append_printf(str, "    \"counters\": [\n");
 
     for (i = 0; i < query->n_counters; i++) {
-	struct gputop_perf_query_counter *counter = &query->counters[i];
+        struct gputop_perf_query_counter *counter = &query->counters[i];
 
-	switch (counter->type) {
-	case GPUTOP_PERFQUERY_COUNTER_EVENT:
-	case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
-	case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
-	case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
-	case GPUTOP_PERFQUERY_COUNTER_RAW:
-	case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
-	    gputop_string_append_printf(str, "      { \"name\": \"%s\", ", counter->name);
-	    gputop_string_append_printf(str, "\"index\": %u, ", i);
-	    gputop_string_append_printf(str, "\"description\": \"%s\", ", counter->desc);
-	    gputop_string_append_printf(str, "\"type\": \"%s\", ",
-					counter_type_name(counter->type));
-	    gputop_string_append_printf(str, "\"data_type\": \"%s\" ",
-					data_counter_type_name(counter->data_type));
-	    gputop_string_append(str, "}");
-	    break;
-	}
+        switch (counter->type) {
+        case GPUTOP_PERFQUERY_COUNTER_EVENT:
+        case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
+        case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
+        case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
+        case GPUTOP_PERFQUERY_COUNTER_RAW:
+        case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
+            gputop_string_append_printf(str, "      { \"name\": \"%s\", ", counter->name);
+            gputop_string_append_printf(str, "\"index\": %u, ", i);
+            gputop_string_append_printf(str, "\"description\": \"%s\", ", counter->desc);
+            gputop_string_append_printf(str, "\"type\": \"%s\", ",
+                                        counter_type_name(counter->type));
+            gputop_string_append_printf(str, "\"data_type\": \"%s\" ",
+                                        data_counter_type_name(counter->data_type));
+            gputop_string_append(str, "}");
+            break;
+        }
 
-	if (i < (query->n_counters - 1))
-	    gputop_string_append(str, ",\n");
-	else
-	    gputop_string_append(str, "\n");
+        if (i < (query->n_counters - 1))
+            gputop_string_append(str, ",\n");
+        else
+            gputop_string_append(str, "\n");
     }
 
     gputop_string_append(str, "    ]\n");
@@ -567,19 +567,19 @@ update_features(Gputop__Features *features)
     if (features->fake_mode)
         gputop_oa_add_queries_bdw(&devinfo);
     else if (IS_HASWELL(devinfo.devid)) {
-	_gputop_web_console_log("Adding Haswell queries\n");
-	gputop_oa_add_queries_hsw(&devinfo);
+        _gputop_web_console_log("Adding Haswell queries\n");
+        gputop_oa_add_queries_hsw(&devinfo);
     } else if (IS_BROADWELL(devinfo.devid)) {
-	_gputop_web_console_log("Adding Broadwell queries\n");
-	gputop_oa_add_queries_bdw(&devinfo);
+        _gputop_web_console_log("Adding Broadwell queries\n");
+        gputop_oa_add_queries_bdw(&devinfo);
     } else if (IS_CHERRYVIEW(devinfo.devid)) {
-	_gputop_web_console_log("Adding Cherryview queries\n");
-	gputop_oa_add_queries_chv(&devinfo);
+        _gputop_web_console_log("Adding Cherryview queries\n");
+        gputop_oa_add_queries_chv(&devinfo);
     } else if (IS_SKYLAKE(devinfo.devid)) {
-	_gputop_web_console_log("Adding Skylake queries\n");
-	gputop_oa_add_queries_skl(&devinfo);
+        _gputop_web_console_log("Adding Skylake queries\n");
+        gputop_oa_add_queries_skl(&devinfo);
     } else
-	assert_not_reached();
+        assert_not_reached();
 
     for (i = 0; i < features->n_supported_oa_query_guids; i++)
     {
@@ -619,24 +619,24 @@ forward_log(Gputop__Log *log)
     int i;
 
     for (i = 0; i < log->n_entries; i++) {
-	Gputop__LogEntry *entry = log->entries[i];
-	char *msg = entry->log_message;
-	int j;
+        Gputop__LogEntry *entry = log->entries[i];
+        char *msg = entry->log_message;
+        int j;
 
-	/* XXX: hack to remove newlines which mess up the json format... */
-	for (j = 0; msg[j]; j++) {
-	    if (msg[j] == '\n')
-		msg[j] = ' ';
-	}
+        /* XXX: hack to remove newlines which mess up the json format... */
+        for (j = 0; msg[j]; j++) {
+            if (msg[j] == '\n')
+                msg[j] = ' ';
+        }
 
-	gputop_string_append_printf(str, "    { \"level\": %d, \"message\": \"%s\" }",
-				    entry->log_level,
-				    msg);
+        gputop_string_append_printf(str, "    { \"level\": %d, \"message\": \"%s\" }",
+                                    entry->log_level,
+                                    msg);
 
-	if (i < (log->n_entries - 1))
-	    gputop_string_append(str, ",\n");
-	else
-	    gputop_string_append(str, "\n");
+        if (i < (log->n_entries - 1))
+            gputop_string_append(str, ",\n");
+        else
+            gputop_string_append(str, "\n");
 
     }
 
@@ -708,35 +708,35 @@ handle_protobuf_message(uint8_t *data, int len)
     _gputop_web_console_log("PROTOBUF MESSAGE RECEIVED\n");
 
     message = (void *)protobuf_c_message_unpack(&gputop__message__descriptor,
-						NULL, /* default allocator */
-						len,
-						data);
+                                                NULL, /* default allocator */
+                                                len,
+                                                data);
 
     switch (message->cmd_case) {
     case GPUTOP__MESSAGE__CMD_ERROR:
-	/* FIXME: check if the message originated here */
-	forward_error(message);
-	break;
+        /* FIXME: check if the message originated here */
+        forward_error(message);
+        break;
     case GPUTOP__MESSAGE__CMD_ACK:
-	/* FIXME: check if the message originated here */
-	forward_ack(message);
-	break;
+        /* FIXME: check if the message originated here */
+        forward_ack(message);
+        break;
     case GPUTOP__MESSAGE__CMD_FEATURES:
-	_gputop_web_console_log("Features message\n");
-	update_features(message->features);
-	break;
+        _gputop_web_console_log("Features message\n");
+        update_features(message->features);
+        break;
     case GPUTOP__MESSAGE__CMD_LOG:
-	_gputop_web_console_log("Logs message\n");
-	forward_log(message->log);
-	break;
+        _gputop_web_console_log("Logs message\n");
+        forward_log(message->log);
+        break;
     case GPUTOP__MESSAGE__CMD_CLOSE_NOTIFY:
-	forward_close_notify(message->close_notify);
-	break;
+        forward_close_notify(message->close_notify);
+        break;
     case GPUTOP__MESSAGE__CMD_FILL_NOTIFY:
-	forward_fill_notify(message->fill_notify);
-	break;
+        forward_fill_notify(message->fill_notify);
+        break;
     case GPUTOP__MESSAGE__CMD__NOT_SET:
-	assert_not_reached();
+        assert_not_reached();
     }
 
     free(message);
@@ -752,12 +752,12 @@ gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_oa_query(uint32_t id,
-				  const char *guid,
-				  int period_exponent,
-				  unsigned overwrite,
-				  uint32_t aggregation_period,
-				  unsigned live_updates,
-				  const char *req_uuid)
+                                  const char *guid,
+                                  int period_exponent,
+                                  unsigned overwrite,
+                                  uint32_t aggregation_period,
+                                  unsigned live_updates,
+                                  const char *req_uuid)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
@@ -768,9 +768,9 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     memset(query, 0, sizeof(*query));
 
     gputop_web_console_log("on_open_oa_query set=%s, exponent=%d, overwrite=%d live=%s agg_period=%"PRIu32"\n",
-			   guid, period_exponent, overwrite,
-			   live_updates ? "true" : "false",
-			   aggregation_period);
+                           guid, period_exponent, overwrite,
+                           live_updates ? "true" : "false",
+                           aggregation_period);
 
 
     open.id = id;
@@ -810,17 +810,17 @@ gputop_webworker_on_close_oa_query(uint32_t id, char *req_uuid)
     gputop_web_console_log("on_close_oa_query(%d)\n", id);
 
     gputop_list_for_each(query, &open_queries, link) {
-	if (query->id == id) {
-	    req.uuid = req_uuid;
-	    req.req_case = GPUTOP__REQUEST__REQ_CLOSE_QUERY;
-	    req.close_query = id;
+        if (query->id == id) {
+            req.uuid = req_uuid;
+            req.req_case = GPUTOP__REQUEST__REQ_CLOSE_QUERY;
+            req.close_query = id;
 
-	    send_pb_message(socket, &req.base);
+            send_pb_message(socket, &req.base);
 
-	    gputop_list_remove(&query->link);
-	    free(query);
-	    return;
-	}
+            gputop_list_remove(&query->link);
+            free(query);
+            return;
+        }
     }
 
     gputop_web_console_warn("webworker: requested to close unknown query ID: %d\n", id);
@@ -828,13 +828,13 @@ gputop_webworker_on_close_oa_query(uint32_t id, char *req_uuid)
 
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_tracepoint(uint32_t id,
-				    int pid,
-				    int cpu,
-				    const char *system,
-				    const char *event,
-				    unsigned overwrite,
-				    unsigned live_updates,
-				    const char *req_uuid)
+                                    int pid,
+                                    int cpu,
+                                    const char *system,
+                                    const char *event,
+                                    unsigned overwrite,
+                                    unsigned live_updates,
+                                    const char *req_uuid)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
@@ -842,7 +842,7 @@ gputop_webworker_on_open_tracepoint(uint32_t id,
     struct gputop_worker_query *query = malloc(sizeof(*query));
 
     gputop_web_console_log("on_open_trace pid=%d cpu=%d %s:%s overwrite=%s live=%s\n",
-			   pid, cpu, system, event, overwrite ? "true" : "false", live_updates ? "true" : "false");
+                           pid, cpu, system, event, overwrite ? "true" : "false", live_updates ? "true" : "false");
 
     open.id = id;
     open.type_case = GPUTOP__OPEN_QUERY__TYPE_TRACE;
@@ -868,16 +868,16 @@ gputop_webworker_on_open_tracepoint(uint32_t id,
 
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_generic(uint32_t id,
-				 int pid,
-				 int cpu,
-				 unsigned type,	    /* XXX: emscripten apparently
-						     * gets upset with uint64_t args!?
-						     * might just need to test with
-						     * a more recent version.*/
-				 unsigned config,
-				 unsigned overwrite,
-				 unsigned live_updates,
-				 const char *req_uuid)
+                                 int pid,
+                                 int cpu,
+                                 unsigned type,	    /* XXX: emscripten apparently
+                                                     * gets upset with uint64_t args!?
+                                                     * might just need to test with
+                                                     * a more recent version.*/
+                                 unsigned config,
+                                 unsigned overwrite,
+                                 unsigned live_updates,
+                                 const char *req_uuid)
 {
     Gputop__Request req = GPUTOP__REQUEST__INIT;
     Gputop__OpenQuery open = GPUTOP__OPEN_QUERY__INIT;
@@ -885,7 +885,7 @@ gputop_webworker_on_open_generic(uint32_t id,
     struct gputop_worker_query *query = malloc(sizeof(*query));
 
     gputop_web_console_log("on_open_generic pid=%d, cpu=%d, type=%u config=%u overwrite=%d live=%s\n",
-			   pid, cpu, type, config, overwrite, live_updates ? "true" : "false");
+                           pid, cpu, type, config, overwrite, live_updates ? "true" : "false");
 
     open.id = id;
     open.type_case = GPUTOP__OPEN_QUERY__TYPE_GENERIC;
@@ -918,20 +918,20 @@ gputop_websocket_onmessage(int socket, uint8_t *data, int len, void *user_data)
     /* FIXME: don't use hardcoded enum values here! */
     switch (data[0]) {
     case 1: { /* WS_MESSAGE_PERF */
-	uint32_t id = *((uint32_t *)(data + 4));
+        uint32_t id = *((uint32_t *)(data + 4));
 
-	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
-	handle_perf_message(id, data + 8, len - 8);
+        //gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
+        handle_perf_message(id, data + 8, len - 8);
         break;
     }
     case 2: /* WS_MESSAGE_PROTOBUF */
-	handle_protobuf_message(data + 8, len - 8);
+        handle_protobuf_message(data + 8, len - 8);
         break;
     case 3: {/* WS_MESSAGE_I915_PERF */
-	uint32_t id = *((uint32_t *)(data + 4));
+        uint32_t id = *((uint32_t *)(data + 4));
 
-	//gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
-	handle_i915_perf_message(id, data + 8, len - 8);
+        //gputop_web_console_log("perf message, len=%d, id=%d\n", len, id);
+        handle_i915_perf_message(id, data + 8, len - 8);
         break;
     }
     }
@@ -978,15 +978,15 @@ gputop_webworker_init(void)
 
     socket = _gputop_web_socket_new(url, "binary");
     _gputop_web_socket_set_onopen(socket,
-				  gputop_websocket_onopen,
-				  NULL); /* user data */
+                                  gputop_websocket_onopen,
+                                  NULL); /* user data */
     _gputop_web_socket_set_onerror(socket,
-				   gputop_websocket_onerror,
-				   NULL); /* user data */
+                                   gputop_websocket_onerror,
+                                   NULL); /* user data */
     _gputop_web_socket_set_onclose(socket,
-				   gputop_websocket_onclose,
-				   NULL); /* user data */
+                                   gputop_websocket_onclose,
+                                   NULL); /* user data */
     _gputop_web_socket_set_onmessage(socket,
-				     gputop_websocket_onmessage,
-				     NULL); /* user data */
+                                     gputop_websocket_onmessage,
+                                     NULL); /* user data */
 }

@@ -116,4 +116,3 @@ void gputop_list_prepend_list(gputop_list_t *list, gputop_list_t *other);
          gputop_list_set_iterator((pos)->member.prev, tmp, member);              \
          &pos->member != (head);                                                 \
          pos = tmp, gputop_list_set_iterator(pos->member.prev, tmp, member))
-

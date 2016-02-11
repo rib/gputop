@@ -74,28 +74,28 @@ static pthread_key_t winsys_context_key;
 
 static void *(*real_glXGetProcAddress)(const GLubyte *procName);
 static Bool (*real_glXMakeCurrent)(Display *dpy, GLXDrawable drawable,
-				   GLXContext ctx);
+                                   GLXContext ctx);
 static Bool (*real_glXMakeContextCurrent)(Display *dpy, GLXDrawable draw,
-					  GLXDrawable read, GLXContext ctx);
+                                          GLXDrawable read, GLXContext ctx);
 static GLXFBConfig *(*real_glXChooseFBConfig)(Display *dpy,
-					      int screen,
-					      const int *attrib_list,
-					      int *nelements);
+                                              int screen,
+                                              const int *attrib_list,
+                                              int *nelements);
 static int (*real_glXGetConfig)(Display *dpy,
-				XVisualInfo *vis,
-				int attrib,
-				int *value);
+                                XVisualInfo *vis,
+                                int attrib,
+                                int *value);
 static GLXContext (*real_glXCreateContext)(Display *dpy, XVisualInfo *vis,
-					   GLXContext shareList, Bool direct);
+                                           GLXContext shareList, Bool direct);
 static GLXContext (*real_glXCreateNewContext)(Display *dpy, GLXFBConfig config,
-					      int render_type,
-					      GLXContext share_list,
-					      Bool direct);
+                                              int render_type,
+                                              GLXContext share_list,
+                                              Bool direct);
 static GLXContext (*real_glXCreateContextAttribsARB)(Display *dpy,
-						     GLXFBConfig config,
-						     GLXContext share_context,
-						     Bool direct,
-						     const int *attrib_list);
+                                                     GLXFBConfig config,
+                                                     GLXContext share_context,
+                                                     Bool direct,
+                                                     const int *attrib_list);
 static void (*real_glXDestroyContext)(Display *dpy, GLXContext glx_ctx);
 static void (*real_glXSwapBuffers)(Display *dpy, GLXDrawable drawable);
 
@@ -112,25 +112,25 @@ static void (*pfn_glDisable)(GLenum cap);
 static void (*pfn_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 
 static void (*pfn_glDebugMessageControl)(GLenum source,
-					 GLenum type,
-					 GLenum severity,
-					 GLsizei count,
-					 const GLuint *ids,
-					 GLboolean enabled);
+                                         GLenum type,
+                                         GLenum severity,
+                                         GLsizei count,
+                                         const GLuint *ids,
+                                         GLboolean enabled);
 static void (*pfn_glDebugMessageCallback)(GLDEBUGPROC callback,
-					  const void *userParam);
+                                          const void *userParam);
 
 static void (*pfn_glGetPerfQueryInfoINTEL)(GLuint queryId, GLuint queryNameLength,
-					   GLchar *queryName, GLuint *dataSize,
-					   GLuint *noCounters, GLuint *maxInstances,
-					   GLuint *noActiveInstances, GLuint *capsMask);
+                                           GLchar *queryName, GLuint *dataSize,
+                                           GLuint *noCounters, GLuint *maxInstances,
+                                           GLuint *noActiveInstances, GLuint *capsMask);
 static void (*pfn_glGetPerfCounterInfoINTEL)(GLuint queryId, GLuint counterId,
-					     GLuint counterNameLength, GLchar *counterName,
-					     GLuint counterDescLength, GLchar *counterDesc,
-					     GLuint *counterOffset, GLuint *counterDataSize,
-					     GLuint *counterTypeEnum,
-					     GLuint *counterDataTypeEnum,
-					     GLuint64 *rawCounterMaxValue);
+                                             GLuint counterNameLength, GLchar *counterName,
+                                             GLuint counterDescLength, GLchar *counterDesc,
+                                             GLuint *counterOffset, GLuint *counterDataSize,
+                                             GLuint *counterTypeEnum,
+                                             GLuint *counterDataTypeEnum,
+                                             GLuint64 *rawCounterMaxValue);
 static void (*pfn_glGetFirstPerfQueryIdINTEL)(GLuint *queryId);
 static void (*pfn_glGetNextPerfQueryIdINTEL)(GLuint queryId, GLuint *nextQueryId);
 static void (*pfn_glGetPerfQueryIdByNameINTEL)(GLchar *queryName, GLuint *queryId);
@@ -139,8 +139,8 @@ static void (*pfn_glDeletePerfQueryINTEL)(GLuint queryHandle);
 static void (*pfn_glBeginPerfQueryINTEL)(GLuint queryHandle);
 static void (*pfn_glEndPerfQueryINTEL)(GLuint queryHandle);
 static void (*pfn_glGetPerfQueryDataINTEL)(GLuint queryHandle, GLuint flags,
-					   GLsizei dataSize, GLvoid *data,
-					   GLuint *bytesWritten);
+                                           GLsizei dataSize, GLvoid *data,
+                                           GLuint *bytesWritten);
 
 void *
 gputop_glXGetProcAddress(const GLubyte *procName);
@@ -257,12 +257,12 @@ gputop_gl_init(void)
     gputop_gl_surfaces = array_new(sizeof(void *), 5);
 
     if (gputop_get_bool_env("GPUTOP_GL_DEBUG_CONTEXT"))
-	gputop_gl_force_debug_ctx_enabled = true;
+        gputop_gl_force_debug_ctx_enabled = true;
 
     if (gputop_get_bool_env("GPUTOP_GL_SCISSOR_TEST"))
-	atomic_store(&gputop_gl_scissor_test_enabled, true);
+        atomic_store(&gputop_gl_scissor_test_enabled, true);
     else
-	atomic_store(&gputop_gl_scissor_test_enabled, false);
+        atomic_store(&gputop_gl_scissor_test_enabled, false);
 }
 
 static void
@@ -272,14 +272,14 @@ static void
 gputop_abort(const char *error)
 {
     if (gputop_ui_loop) {
-	uv_idle_t idle;
+        uv_idle_t idle;
 
-	uv_idle_init(gputop_ui_loop, &idle);
-	idle.data = (void *)error;
-	uv_idle_start(&idle, gputop_ui_quit_idle_cb);
+        uv_idle_init(gputop_ui_loop, &idle);
+        idle.data = (void *)error;
+        uv_idle_start(&idle, gputop_ui_quit_idle_cb);
 
-	for (;;)
-	    ;
+        for (;;)
+            ;
     }
 
     fprintf(stderr, "%s", error);
@@ -300,7 +300,7 @@ gputop_glXQueryExtension(Display *dpy,  int *errorBase,  int *eventBase)
     static Bool (*pfn_glXQueryExtension)(Display *dpy,  int *errorBase,  int *eventBase);
 
     if (!pfn_glXQueryExtension)
-	pfn_glXQueryExtension = gputop_passthrough_gl_resolve("glXQueryExtension");
+        pfn_glXQueryExtension = gputop_passthrough_gl_resolve("glXQueryExtension");
 
     return pfn_glXQueryExtension(dpy, errorBase, eventBase);
 }
@@ -321,16 +321,16 @@ void *dlopen(const char *filename, int flag)
     static void *(*real_dlopen)(const char *filename, int flag);
 
     if (filename && strncmp(filename, "libGL.so", 8) == 0) {
-	/*
-	 * We're assuming that libfakeGL.so was forcibly loaded via LD_PRELOAD
-	 * so lookups based on a dlopen(NULL) handle should find libfakeGL.so
-	 * symbols.
-	 */
-	return dlopen(NULL, flag);
+        /*
+         * We're assuming that libfakeGL.so was forcibly loaded via LD_PRELOAD
+         * so lookups based on a dlopen(NULL) handle should find libfakeGL.so
+         * symbols.
+         */
+        return dlopen(NULL, flag);
     } else {
-	if (!real_dlopen)
-	    real_dlopen = dlsym(RTLD_NEXT, "dlopen");
-	return real_dlopen(filename, flag);
+        if (!real_dlopen)
+            real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+        return real_dlopen(filename, flag);
     }
 }
 
@@ -344,20 +344,20 @@ have_extension(const char *name)
     /* Note: we're not currently being careful to consider extension
      * names that are an abbreviation of another name... */
     if (gl_extensions)
-	return strstr(gl_extensions, name);
+        return strstr(gl_extensions, name);
 
     if (pfn_glGetError() != GL_INVALID_ENUM || pfn_glGetStringi == NULL)
-	gputop_abort("Spurious NULL from glGetString(GL_EXTENSIONS)");
+        gputop_abort("Spurious NULL from glGetString(GL_EXTENSIONS)");
 
     /* If we got GL_INVALID_ENUM lets just assume we have a core
      * profile context so we need to use glGetStringi() */
     pfn_glGetIntegerv(GL_NUM_EXTENSIONS, &n_extensions);
     if (!n_extensions)
-	gputop_abort("glGetIntegerv(GL_NUM_EXTENSIONS) returned zero");
+        gputop_abort("glGetIntegerv(GL_NUM_EXTENSIONS) returned zero");
 
     for (i = 0; i < n_extensions; i++)
-	if (strcmp(name, (char *)pfn_glGetStringi(GL_EXTENSIONS, i)) == 0)
-	    return true;
+        if (strcmp(name, (char *)pfn_glGetStringi(GL_EXTENSIONS, i)) == 0)
+            return true;
     return false;
 }
 
@@ -366,44 +366,44 @@ initialise_gl(void)
 {
 #define SYM(X) { #X, (void **)&pfn_##X }
     struct {
-	const char *name;
-	void **ptr;
+        const char *name;
+        void **ptr;
     } symbols[] = {
-	SYM(glGetString),
-	SYM(glGetStringi),
-	SYM(glGetIntegerv),
+        SYM(glGetString),
+        SYM(glGetStringi),
+        SYM(glGetIntegerv),
 
-	SYM(glGetError),
+        SYM(glGetError),
 
-	SYM(glEnable),
-	SYM(glIsEnabled),
-	SYM(glDisable),
-	SYM(glScissor),
+        SYM(glEnable),
+        SYM(glIsEnabled),
+        SYM(glDisable),
+        SYM(glScissor),
 
-	/* KHR_debug */
-	SYM(glDebugMessageControl),
-	SYM(glDebugMessageCallback),
+        /* KHR_debug */
+        SYM(glDebugMessageControl),
+        SYM(glDebugMessageCallback),
 
-	/* GL_INTEL_performance_query */
-	SYM(glGetPerfQueryInfoINTEL),
-	SYM(glGetPerfCounterInfoINTEL),
-	SYM(glGetFirstPerfQueryIdINTEL),
-	SYM(glGetNextPerfQueryIdINTEL),
-	SYM(glGetPerfQueryIdByNameINTEL),
-	SYM(glCreatePerfQueryINTEL),
-	SYM(glDeletePerfQueryINTEL),
-	SYM(glBeginPerfQueryINTEL),
-	SYM(glEndPerfQueryINTEL),
-	SYM(glGetPerfQueryDataINTEL),
+        /* GL_INTEL_performance_query */
+        SYM(glGetPerfQueryInfoINTEL),
+        SYM(glGetPerfCounterInfoINTEL),
+        SYM(glGetFirstPerfQueryIdINTEL),
+        SYM(glGetNextPerfQueryIdINTEL),
+        SYM(glGetPerfQueryIdByNameINTEL),
+        SYM(glCreatePerfQueryINTEL),
+        SYM(glDeletePerfQueryINTEL),
+        SYM(glBeginPerfQueryINTEL),
+        SYM(glEndPerfQueryINTEL),
+        SYM(glGetPerfQueryDataINTEL),
     };
 #undef SYM
     int i;
 
     for (i = 0; i < sizeof(symbols) / sizeof(symbols[0]); i++)
-	*(symbols[i].ptr) = real_glXGetProcAddress((GLubyte *)symbols[i].name);
+        *(symbols[i].ptr) = real_glXGetProcAddress((GLubyte *)symbols[i].name);
 
     gputop_gl_has_intel_performance_query_ext =
-	have_extension("GL_INTEL_performance_query");
+        have_extension("GL_INTEL_performance_query");
 
     gputop_gl_has_khr_debug_ext = have_extension("GL_KHR_debug");
 }
@@ -417,34 +417,34 @@ get_query_info(unsigned id)
     query_info->id = id;
 
     pfn_glGetPerfQueryInfoINTEL(
-	id,
-	sizeof(query_info->name),
-	query_info->name,
-	&query_info->max_counter_data_len,
-	&query_info->n_counters,
-	&query_info->max_queries,
-	&query_info->n_active_queries,
-	&query_info->caps_mask);
+        id,
+        sizeof(query_info->name),
+        query_info->name,
+        &query_info->max_counter_data_len,
+        &query_info->n_counters,
+        &query_info->max_queries,
+        &query_info->n_active_queries,
+        &query_info->caps_mask);
 
     for (i = 0; i < query_info->n_counters && i < MAX_QUERY_COUNTERS; i++) {
-	struct intel_counter *counter = &query_info->counters[i];
+        struct intel_counter *counter = &query_info->counters[i];
 
-	/* XXX: INTEL_performance_query reserves id 0 with sequential
-	 * counter ids, base 1 */
-	counter->id = i + 1;
+        /* XXX: INTEL_performance_query reserves id 0 with sequential
+         * counter ids, base 1 */
+        counter->id = i + 1;
 
-	pfn_glGetPerfCounterInfoINTEL(
-	    id,
-	    counter->id,
-	    sizeof(counter->name),
-	    counter->name,
-	    sizeof(counter->description),
-	    counter->description,
-	    &counter->data_offset,
-	    &counter->data_size,
-	    &counter->type,
-	    &counter->data_type,
-	    &counter->max_raw_value);
+        pfn_glGetPerfCounterInfoINTEL(
+            id,
+            counter->id,
+            sizeof(counter->name),
+            counter->name,
+            sizeof(counter->description),
+            counter->description,
+            &counter->data_offset,
+            &counter->data_size,
+            &counter->type,
+            &counter->data_type,
+            &counter->max_raw_value);
     }
 
     return query_info;
@@ -460,7 +460,7 @@ query_obj_cache_pop(struct winsys_context *wctx)
     first = gputop_list_first(&wctx->query_obj_cache, struct gl_perf_query, link);
 
     if (first)
-	gputop_list_remove(&first->link);
+        gputop_list_remove(&first->link);
 
     pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
 
@@ -481,35 +481,35 @@ query_obj_cache_destroy(struct winsys_context *wctx)
     struct gl_perf_query *obj, *tmp;
 
     gputop_list_for_each_safe(obj, tmp, &wctx->query_obj_cache, link) {
-	gputop_list_remove(&obj->link);
-	query_obj_destroy(obj);
+        gputop_list_remove(&obj->link);
+        query_obj_destroy(obj);
     }
 }
 
 static void
 gputop_khr_debug_callback(GLenum source,
-			  GLenum type,
-			  GLuint id,
-			  GLenum gl_severity,
-			  GLsizei length,
-			  const GLchar *message,
-			  void *userParam)
+                          GLenum type,
+                          GLuint id,
+                          GLenum gl_severity,
+                          GLsizei length,
+                          const GLchar *message,
+                          void *userParam)
 {
     int level = GPUTOP_LOG_LEVEL_NOTIFICATION;
 
     switch (gl_severity) {
     case GL_DEBUG_SEVERITY_HIGH:
-	level = GPUTOP_LOG_LEVEL_HIGH;
-	break;
+        level = GPUTOP_LOG_LEVEL_HIGH;
+        break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-	level = GPUTOP_LOG_LEVEL_MEDIUM;
-	break;
+        level = GPUTOP_LOG_LEVEL_MEDIUM;
+        break;
     case GL_DEBUG_SEVERITY_LOW:
-	level = GPUTOP_LOG_LEVEL_LOW;
-	break;
+        level = GPUTOP_LOG_LEVEL_LOW;
+        break;
     case GL_DEBUG_SEVERITY_NOTIFICATION:
-	level = GPUTOP_LOG_LEVEL_NOTIFICATION;
-	break;
+        level = GPUTOP_LOG_LEVEL_NOTIFICATION;
+        break;
     }
 
     gputop_log(level, message, length);
@@ -526,41 +526,41 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
 
     /* NB: we need to be paranoid about leaking GL errors to the application */
     while (pfn_glGetError() != GL_NO_ERROR)
-	;
+        ;
 
     while (query_id) {
-	struct intel_query_info *query_info = get_query_info(query_id);
+        struct intel_query_info *query_info = get_query_info(query_id);
 
-	gputop_list_insert(wctx->queries.prev, &query_info->link);
+        gputop_list_insert(wctx->queries.prev, &query_info->link);
 
-	pfn_glGetNextPerfQueryIdINTEL(query_id, &query_id);
+        pfn_glGetNextPerfQueryIdINTEL(query_id, &query_id);
 
-	while (pfn_glGetError() != GL_NO_ERROR)
-	    ;
+        while (pfn_glGetError() != GL_NO_ERROR)
+            ;
     }
 
     gputop_gl_use_khr_debug = gputop_gl_has_khr_debug_ext &&
-			      gputop_get_bool_env("GPUTOP_GL_DEBUG_CONTEXT");
+                              gputop_get_bool_env("GPUTOP_GL_DEBUG_CONTEXT");
 
     if (gputop_gl_use_khr_debug) {
-	pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
-				  GL_DONT_CARE, /* type */
-				  GL_DONT_CARE, /* severity */
-				  0,
-				  NULL,
-				  false);
+        pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+                                  GL_DONT_CARE, /* type */
+                                  GL_DONT_CARE, /* severity */
+                                  0,
+                                  NULL,
+                                  false);
 
-	pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
-				  GL_DEBUG_TYPE_PERFORMANCE,
-				  GL_DONT_CARE, /* severity */
-				  0,
-				  NULL,
-				  true);
+        pfn_glDebugMessageControl(GL_DONT_CARE, /* source */
+                                  GL_DEBUG_TYPE_PERFORMANCE,
+                                  GL_DONT_CARE, /* severity */
+                                  0,
+                                  NULL,
+                                  true);
 
-	pfn_glDisable(GL_DEBUG_OUTPUT);
-	wctx->khr_debug_enabled = false;
+        pfn_glDisable(GL_DEBUG_OUTPUT);
+        wctx->khr_debug_enabled = false;
 
-	pfn_glDebugMessageCallback((GLDEBUGPROC)gputop_khr_debug_callback, wctx);
+        pfn_glDebugMessageCallback((GLDEBUGPROC)gputop_khr_debug_callback, wctx);
     }
 }
 
@@ -588,10 +588,10 @@ winsys_context_create(GLXContext glx_ctx)
 
 GLXContext
 gputop_glXCreateContextAttribsARB(Display *dpy,
-				  GLXFBConfig config,
-				  GLXContext share_context,
-				  Bool direct,
-				  const int *attrib_list)
+                                  GLXFBConfig config,
+                                  GLXContext share_context,
+                                  Bool direct,
+                                  const int *attrib_list)
 {
     GLXContext glx_ctx;
     bool is_debug_context = false;
@@ -601,46 +601,46 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
     pthread_once(&init_once, gputop_gl_init);
 
     if (gputop_gl_force_debug_ctx_enabled) {
-	int n_attribs;
-	int flags_index;
-	int *attribs_copy;
+        int n_attribs;
+        int flags_index;
+        int *attribs_copy;
 
-	for (n_attribs = 0; attrib_list[n_attribs] != None; n_attribs += 2)
-	    ;
+        for (n_attribs = 0; attrib_list[n_attribs] != None; n_attribs += 2)
+            ;
 
-	attribs_copy = alloca(sizeof(int) * n_attribs + 3);
-	memcpy(attribs_copy, attrib_list, sizeof(int) * (n_attribs + 1));
+        attribs_copy = alloca(sizeof(int) * n_attribs + 3);
+        memcpy(attribs_copy, attrib_list, sizeof(int) * (n_attribs + 1));
 
-	for (flags_index = 0;
-	     (flags_index < n_attribs &&
-	      attrib_list[flags_index] != GLX_CONTEXT_FLAGS_ARB);
-	     flags_index += 2)
-	    ;
+        for (flags_index = 0;
+             (flags_index < n_attribs &&
+              attrib_list[flags_index] != GLX_CONTEXT_FLAGS_ARB);
+             flags_index += 2)
+            ;
 
-	if (flags_index == n_attribs) {
-	    attribs_copy[n_attribs++] = GLX_CONTEXT_FLAGS_ARB;
-	    attribs_copy[n_attribs++] = 0;
-	    attribs_copy[n_attribs] = None;
-	}
+        if (flags_index == n_attribs) {
+            attribs_copy[n_attribs++] = GLX_CONTEXT_FLAGS_ARB;
+            attribs_copy[n_attribs++] = 0;
+            attribs_copy[n_attribs] = None;
+        }
 
-	attribs_copy[flags_index + 1] = GLX_CONTEXT_DEBUG_BIT_ARB;
+        attribs_copy[flags_index + 1] = GLX_CONTEXT_DEBUG_BIT_ARB;
 
-	attrib_list = attribs_copy;
-	is_debug_context = true;
+        attrib_list = attribs_copy;
+        is_debug_context = true;
     }
 
     for (i = 0; attrib_list[i] != None; i += 2) {
-	if (attrib_list[i] == GLX_CONTEXT_FLAGS_ARB &&
-	    attrib_list[i+1] & GLX_CONTEXT_DEBUG_BIT_ARB)
-	{
-	    is_debug_context = true;
-	}
+        if (attrib_list[i] == GLX_CONTEXT_FLAGS_ARB &&
+            attrib_list[i+1] & GLX_CONTEXT_DEBUG_BIT_ARB)
+        {
+            is_debug_context = true;
+        }
     }
 
     glx_ctx = real_glXCreateContextAttribsARB(dpy, config, share_context,
-					      direct, attrib_list);
+                                              direct, attrib_list);
     if (!glx_ctx)
-	return glx_ctx;
+        return glx_ctx;
 
     wctx = winsys_context_create(glx_ctx);
     wctx->is_debug_context = is_debug_context;
@@ -650,17 +650,17 @@ gputop_glXCreateContextAttribsARB(Display *dpy,
 
 GLXContext
 gputop_glXCreateNewContext(Display *dpy, GLXFBConfig config,
-			  int render_type, GLXContext share_list, Bool direct)
+                          int render_type, GLXContext share_list, Bool direct)
 {
     int attrib_list[] = { GLX_RENDER_TYPE, render_type, None };
 
     return gputop_glXCreateContextAttribsARB(dpy, config, share_list,
-					     direct, attrib_list);
+                                             direct, attrib_list);
 }
 
 static GLXContext
 try_create_new_context(Display *dpy, XVisualInfo *vis,
-		       GLXContext shareList, Bool direct)
+                       GLXContext shareList, Bool direct)
 {
     int attrib_list[3] = { GLX_FBCONFIG_ID, None, None };
     int n_configs;
@@ -672,11 +672,11 @@ try_create_new_context(Display *dpy, XVisualInfo *vis,
     attrib_list[1] = fb_config_id;
 
     configs = real_glXChooseFBConfig(dpy, vis->screen,
-				     attrib_list, &n_configs);
+                                     attrib_list, &n_configs);
 
     if (n_configs == 1) {
-	glx_ctx = gputop_glXCreateNewContext(dpy, configs[0], GLX_RGBA,
-					     shareList, direct);
+        glx_ctx = gputop_glXCreateNewContext(dpy, configs[0], GLX_RGBA,
+                                             shareList, direct);
     }
 
     XFree(configs);
@@ -686,7 +686,7 @@ try_create_new_context(Display *dpy, XVisualInfo *vis,
 
 GLXContext
 gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
-			GLXContext shareList, Bool direct)
+                        GLXContext shareList, Bool direct)
 {
     GLXContext glx_ctx;
     struct winsys_context *wctx;
@@ -698,11 +698,11 @@ gputop_glXCreateContext(Display *dpy, XVisualInfo *vis,
      * not possible to map a visual to an fbconfig. */
     glx_ctx = try_create_new_context(dpy, vis, shareList, direct);
     if (glx_ctx)
-	return glx_ctx;
+        return glx_ctx;
 
     glx_ctx = real_glXCreateContext(dpy, vis, shareList, direct);
     if (!glx_ctx)
-	return NULL;
+        return NULL;
 
     wctx = winsys_context_create(glx_ctx);
     wctx->try_create_new_context_failed = true;
@@ -717,12 +717,12 @@ winsys_context_lookup(GLXContext glx_ctx, int *idx)
     int i;
 
     for (i = 0; i < gputop_gl_contexts->len; i++) {
-	struct winsys_context *wctx = contexts[i];
+        struct winsys_context *wctx = contexts[i];
 
-	if (wctx->glx_ctx == glx_ctx) {
-	    *idx = i;
-	    return wctx;
-	}
+        if (wctx->glx_ctx == glx_ctx) {
+            *idx = i;
+            return wctx;
+        }
     }
 
     return NULL;
@@ -743,14 +743,14 @@ winsys_context_destroy(struct winsys_context *wctx)
     pthread_rwlock_unlock(&gputop_gl_lock);
 
     gputop_list_for_each_safe(q, tmp, &wctx->queries, link) {
-	gputop_list_remove(&q->link);
-	free(q);
+        gputop_list_remove(&q->link);
+        free(q);
     }
 
     if (wctx->draw_wsurface)
-	wctx->draw_wsurface->wctx = NULL;
+        wctx->draw_wsurface->wctx = NULL;
     if (wctx->read_wsurface)
-	wctx->read_wsurface->wctx = NULL;
+        wctx->read_wsurface->wctx = NULL;
 
     free(wctx);
 }
@@ -765,10 +765,10 @@ gputop_glXDestroyContext(Display *dpy, GLXContext glx_ctx)
 
     wctx = winsys_context_lookup(glx_ctx, &context_idx);
     if (wctx) {
-	if (--wctx->ref == 0)
-	    winsys_context_destroy(wctx);
+        if (--wctx->ref == 0)
+            winsys_context_destroy(wctx);
     } else
-	dbg("Spurious glXDestroyContext for unknown glx context");
+        dbg("Spurious glXDestroyContext for unknown glx context");
 }
 
 /* XXX: We don't currently have a way of knowing when a window has
@@ -820,15 +820,15 @@ get_wsurface(struct winsys_context *wctx, GLXWindow glx_window)
     int i;
 
     for (i = 0; i < gputop_gl_surfaces->len; i++) {
-	struct winsys_surface *wsurface = surfaces[i];
+        struct winsys_surface *wsurface = surfaces[i];
 
-	if (wsurface->glx_window == glx_window) {
+        if (wsurface->glx_window == glx_window) {
 
-	    if (wsurface->wctx != wctx)
-		gputop_abort("gputop doesn't support applications accessing one drawable from multiple contexts");
+            if (wsurface->wctx != wctx)
+                gputop_abort("gputop doesn't support applications accessing one drawable from multiple contexts");
 
-	    return wsurface;
-	}
+            return wsurface;
+        }
     }
 
     /* XXX: we don't try and hook into glXCreateWindow as a place
@@ -845,8 +845,8 @@ get_wsurface(struct winsys_context *wctx, GLXWindow glx_window)
 
 static bool
 make_context_current(Display *dpy,
-		     GLXDrawable draw, GLXDrawable read,
-		     GLXContext glx_ctx)
+                     GLXDrawable draw, GLXDrawable read,
+                     GLXContext glx_ctx)
 {
     struct winsys_context *prev_wctx;
     struct winsys_context *wctx;
@@ -859,13 +859,13 @@ make_context_current(Display *dpy,
 
     ret = real_glXMakeContextCurrent(dpy, draw, read, glx_ctx);
     if (!ret)
-	return ret;
+        return ret;
 
     wctx = winsys_context_lookup(glx_ctx, &wctx_idx);
     if (glx_ctx && !wctx) {
-	gputop_abort("Spurious glXMakeCurrent with unknown glx context\n"
-		     "\n"
-		     "GPU Top may be missing support for some new GLX API for creating contexts?\n");
+        gputop_abort("Spurious glXMakeCurrent with unknown glx context\n"
+                     "\n"
+                     "GPU Top may be missing support for some new GLX API for creating contexts?\n");
     }
 
     pthread_setspecific(winsys_context_key, wctx);
@@ -877,18 +877,18 @@ make_context_current(Display *dpy,
      * they are no longer current in any thread. */
 
     if (wctx)
-	wctx->ref++;
+        wctx->ref++;
 
     if (prev_wctx && --prev_wctx->ref == 0) {
-	winsys_context_destroy(prev_wctx);
-	prev_wctx = NULL;
+        winsys_context_destroy(prev_wctx);
+        prev_wctx = NULL;
     }
 
     if (!wctx)
-	return ret;
+        return ret;
 
     if (!wctx->gl_initialised)
-	winsys_context_gl_initialise(wctx);
+        winsys_context_gl_initialise(wctx);
 
     /* XXX: We have to make some assumptions about how applications
      * use GLX to be able to start and stop performance queries on
@@ -914,8 +914,8 @@ make_context_current(Display *dpy,
     wctx->draw_wsurface->wctx = wctx;
 
     if (read != draw) {
-	wctx->read_wsurface = get_wsurface(wctx, read);
-	wctx->read_wsurface->wctx = wctx;
+        wctx->read_wsurface = get_wsurface(wctx, read);
+        wctx->read_wsurface->wctx = wctx;
     }
 
     return ret;
@@ -930,7 +930,7 @@ gputop_glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext glx_ctx)
 
 Bool
 gputop_glXMakeContextCurrent(Display *dpy, GLXDrawable draw,
-			    GLXDrawable read, GLXContext ctx)
+                            GLXDrawable read, GLXContext ctx)
 {
     return make_context_current(dpy, draw, read, ctx);
 }
@@ -942,17 +942,17 @@ winsys_surface_start_frame(struct winsys_surface *wsurface)
     struct gl_perf_query *obj;
 
     if (!wctx->current_query)
-	return;
+        return;
 
     obj = query_obj_cache_pop(wctx);
     if (!obj) {
-	struct intel_query_info *info = wctx->current_query;
+        struct intel_query_info *info = wctx->current_query;
 
-	obj = xmalloc0(sizeof(struct gl_perf_query) +
-		       info->max_counter_data_len);
+        obj = xmalloc0(sizeof(struct gl_perf_query) +
+                       info->max_counter_data_len);
 
-	GE(pfn_glCreatePerfQueryINTEL(info->id, &obj->handle));
-	atomic_fetch_add(&gputop_gl_n_queries, 1);
+        GE(pfn_glCreatePerfQueryINTEL(info->id, &obj->handle));
+        atomic_fetch_add(&gputop_gl_n_queries, 1);
     }
 
     /* XXX: We're assuming that a BeginPerfQuery doesn't implicitly
@@ -973,9 +973,9 @@ static void
 winsys_surface_end_frame(struct winsys_surface *wsurface)
 {
     if (wsurface->open_query_obj) {
-	pfn_glEndPerfQueryINTEL(wsurface->open_query_obj->handle);
-	gputop_list_insert(wsurface->pending_queries.prev, &wsurface->open_query_obj->link);
-	wsurface->open_query_obj = NULL;
+        pfn_glEndPerfQueryINTEL(wsurface->open_query_obj->handle);
+        gputop_list_insert(wsurface->pending_queries.prev, &wsurface->open_query_obj->link);
+        wsurface->open_query_obj = NULL;
     }
 }
 
@@ -989,20 +989,20 @@ winsys_surface_check_for_finished_queries(struct winsys_surface *wsurface)
     gputop_list_init(&finished);
 
     gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
-	unsigned data_len = 0;
+        unsigned data_len = 0;
 
-	GE(pfn_glGetPerfQueryDataINTEL(
-		obj->handle,
-		GL_PERFQUERY_DONOT_FLUSH_INTEL,
-		wctx->current_query->max_counter_data_len,
-		obj->data,
-		&data_len));
+        GE(pfn_glGetPerfQueryDataINTEL(
+                obj->handle,
+                GL_PERFQUERY_DONOT_FLUSH_INTEL,
+                wctx->current_query->max_counter_data_len,
+                obj->data,
+                &data_len));
 
-	if (data_len) {
-	    gputop_list_remove(&obj->link);
-	    gputop_list_insert(finished.prev, &obj->link);
-	} else
-	    break;
+        if (data_len) {
+            gputop_list_remove(&obj->link);
+            gputop_list_insert(finished.prev, &obj->link);
+        } else
+            break;
     }
 
     /* FIXME: we should throttle here if we're somehow producing too
@@ -1018,18 +1018,18 @@ winsys_surface_delete_surface_queries(struct winsys_surface *wsurface)
     struct gl_perf_query *obj, *tmp;
 
     if (wsurface->open_query_obj) {
-	query_obj_destroy(wsurface->open_query_obj);
-	wsurface->open_query_obj = NULL;
+        query_obj_destroy(wsurface->open_query_obj);
+        wsurface->open_query_obj = NULL;
     }
 
     gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
-	gputop_list_remove(&obj->link);
-	query_obj_destroy(obj);
+        gputop_list_remove(&obj->link);
+        query_obj_destroy(obj);
     }
 
     gputop_list_for_each_safe(obj, tmp, &wsurface->finished_queries, link) {
-	gputop_list_remove(&obj->link);
-	query_obj_destroy(obj);
+        gputop_list_remove(&obj->link);
+        query_obj_destroy(obj);
     }
 }
 
@@ -1064,67 +1064,67 @@ gputop_glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 
     wctx = pthread_getspecific(winsys_context_key);
     if (!wctx)
-	gputop_abort("gputop can't support applications calling glXSwapBuffers without a current context");
+        gputop_abort("gputop can't support applications calling glXSwapBuffers without a current context");
 
     wsurface = get_wsurface(wctx, drawable);
 
     if (wsurface->wctx != wctx)
-	gputop_abort("gputop can't support applications calling glXSwapBuffers with a drawable not bound to calling thread's current context");
+        gputop_abort("gputop can't support applications calling glXSwapBuffers with a drawable not bound to calling thread's current context");
 
     if (gputop_gl_use_khr_debug != wctx->khr_debug_enabled) {
-	if (wctx->khr_debug_enabled)
-	    pfn_glEnable(GL_DEBUG_OUTPUT);
-	else
-	    pfn_glDisable(GL_DEBUG_OUTPUT);
+        if (wctx->khr_debug_enabled)
+            pfn_glEnable(GL_DEBUG_OUTPUT);
+        else
+            pfn_glDisable(GL_DEBUG_OUTPUT);
     }
 
     monitoring_enabled = atomic_load(&gputop_gl_monitoring_enabled);
 
     if (!monitoring_enabled) {
-	struct winsys_surface **surfaces;
-	int i;
+        struct winsys_surface **surfaces;
+        int i;
 
-	pthread_rwlock_wrlock(&gputop_gl_lock);
+        pthread_rwlock_wrlock(&gputop_gl_lock);
 
-	surfaces = gputop_gl_surfaces->data;
+        surfaces = gputop_gl_surfaces->data;
 
-	for (i = 0; i < gputop_gl_surfaces->len; i++) {
-	    winsys_surface_delete_surface_queries(surfaces[i]);
-	}
+        for (i = 0; i < gputop_gl_surfaces->len; i++) {
+            winsys_surface_delete_surface_queries(surfaces[i]);
+        }
 
-	pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
-	query_obj_cache_destroy(wctx);
-	pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
+        pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
+        query_obj_cache_destroy(wctx);
+        pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
 
-	pthread_rwlock_unlock(&gputop_gl_lock);
+        pthread_rwlock_unlock(&gputop_gl_lock);
     }
 
     if (monitoring_enabled)
-	winsys_surface_end_frame(wsurface);
+        winsys_surface_end_frame(wsurface);
 
     real_glXSwapBuffers(dpy, drawable);
 
     scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
     if (scissor_test)
     {
-	pfn_glScissor(0, 0, 1, 1);
-	if (!pfn_glIsEnabled(GL_SCISSOR_TEST))
-	    pfn_glEnable(GL_SCISSOR_TEST);
+        pfn_glScissor(0, 0, 1, 1);
+        if (!pfn_glIsEnabled(GL_SCISSOR_TEST))
+            pfn_glEnable(GL_SCISSOR_TEST);
     }
     else
     {
-	pfn_glScissor(wctx->scissor_x, wctx->scissor_y,
-	wctx->scissor_width, wctx->scissor_height);
+        pfn_glScissor(wctx->scissor_x, wctx->scissor_y,
+        wctx->scissor_width, wctx->scissor_height);
 
-	if (wctx->scissor_enabled)
-	    pfn_glEnable(GL_SCISSOR_TEST);
-	else
-	    pfn_glDisable(GL_SCISSOR_TEST);
+        if (wctx->scissor_enabled)
+            pfn_glEnable(GL_SCISSOR_TEST);
+        else
+            pfn_glDisable(GL_SCISSOR_TEST);
     }
 
     if (monitoring_enabled) {
-	winsys_surface_check_for_finished_queries(wsurface);
-	winsys_surface_start_frame(wsurface);
+        winsys_surface_check_for_finished_queries(wsurface);
+        winsys_surface_start_frame(wsurface);
     }
 }
 
@@ -1134,12 +1134,12 @@ gputop_glEnable(GLenum cap)
     struct winsys_context *wctx = pthread_getspecific(winsys_context_key);
 
     if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
-	dbg("Ignoring application's conflicting use of KHR_debug extension");
-	return;
+        dbg("Ignoring application's conflicting use of KHR_debug extension");
+        return;
     }
 
     if (cap == GL_SCISSOR_TEST) {
-	wctx->scissor_enabled = true;
+        wctx->scissor_enabled = true;
     }
 
     pfn_glEnable(cap);
@@ -1155,16 +1155,16 @@ gputop_glDisable(GLenum cap)
     scissor_test = atomic_load(&gputop_gl_scissor_test_enabled);
 
     if (gputop_gl_use_khr_debug && cap == GL_DEBUG_OUTPUT) {
-	dbg("Ignoring application's conflicting use of KHR_debug extension");
-	return;
+        dbg("Ignoring application's conflicting use of KHR_debug extension");
+        return;
     }
 
     if (cap == GL_SCISSOR_TEST) {
-	wctx->scissor_enabled = false;
+        wctx->scissor_enabled = false;
     }
 
     if (!scissor_test || (cap != GL_SCISSOR_TEST)) {
-	pfn_glDisable(cap);
+        pfn_glDisable(cap);
     }
 }
 
@@ -1178,23 +1178,23 @@ gputop_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
     wctx->scissor_width = width;
     wctx->scissor_height = height;
     if (!atomic_load(&gputop_gl_scissor_test_enabled))
-	pfn_glScissor(x, y, width, height);
+        pfn_glScissor(x, y, width, height);
 }
 
 void
 gputop_glDebugMessageControl(GLenum source,
-			     GLenum type,
-			     GLenum severity,
-			     GLsizei count,
-			     const GLuint *ids,
-			     GLboolean enabled)
+                             GLenum type,
+                             GLenum severity,
+                             GLsizei count,
+                             const GLuint *ids,
+                             GLboolean enabled)
 {
     dbg("Ignoring application's conflicting use of KHR_debug extension");
 }
 
 void
 gputop_glDebugMessageCallback(GLDEBUGPROC callback,
-			      const void *userParam)
+                              const void *userParam)
 {
     dbg("Ignoring application's conflicting use of KHR_debug extension");
 }
@@ -1205,34 +1205,34 @@ gputop_glXGetProcAddress(const GLubyte *procName)
     int i;
 #define SYM(X) { #X, (void **)&gputop_ ## X }
     struct {
-	const char *name;
-	void **ptr;
+        const char *name;
+        void **ptr;
 } static symbols[] = {
-	SYM(glXCreateContextAttribsARB),
-	SYM(glXCreateNewContext),
-	SYM(glXCreateContext),
-	SYM(glXDestroyContext),
-	SYM(glXMakeCurrent),
-	SYM(glXMakeContextCurrent),
-	SYM(glXSwapBuffers),
+        SYM(glXCreateContextAttribsARB),
+        SYM(glXCreateNewContext),
+        SYM(glXCreateContext),
+        SYM(glXDestroyContext),
+        SYM(glXMakeCurrent),
+        SYM(glXMakeContextCurrent),
+        SYM(glXSwapBuffers),
 
-	SYM(glEnable),
-	SYM(glDisable),
-	SYM(glScissor),
-	SYM(glDebugMessageControl),
-	SYM(glDebugMessageCallback)
+        SYM(glEnable),
+        SYM(glDisable),
+        SYM(glScissor),
+        SYM(glDebugMessageControl),
+        SYM(glDebugMessageCallback)
 
     };
 #undef SYM
 
     pthread_once(&init_once, gputop_gl_init);
     if (strcmp((char *)procName, "glXCreateContextWithConfigSGIX") == 0)
-	return NULL;
+        return NULL;
 
     for (i = 0; i < (sizeof(symbols) / sizeof(symbols[0])); i++)
     {
-	if (strcmp((char *)procName, symbols[i].name) == 0)
-	    return (symbols[i].ptr);
+        if (strcmp((char *)procName, symbols[i].name) == 0)
+            return (symbols[i].ptr);
     }
 
     return real_glXGetProcAddress(procName);

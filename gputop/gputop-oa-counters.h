@@ -10,4 +10,3 @@ void gputop_oa_accumulate_uint40(int a_index, const uint32_t *report0,
 
 void gputop_oa_accumulate_reports(struct gputop_perf_query *query,
             const uint8_t *report0, const uint8_t *report1);
-

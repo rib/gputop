@@ -54,18 +54,18 @@ gputop_log(int level, const char *message, int len)
     printf("%s", message);
 
     if (len < 0)
-	len = strlen(message);
+        len = strlen(message);
 
     pthread_rwlock_wrlock(&gputop_log_lock);
 
     if (gputop_log_len > 10000) {
-	entry = gputop_container_of(gputop_log_entries.prev,
+        entry = gputop_container_of(gputop_log_entries.prev,
                                     struct gputop_log_entry, link);
-	gputop_list_remove(&entry->link);
-	free(entry->msg);
-	gputop_log_len--;
+        gputop_list_remove(&entry->link);
+        free(entry->msg);
+        gputop_log_len--;
     } else
-	entry = xmalloc(sizeof(*entry));
+        entry = xmalloc(sizeof(*entry));
 
     entry->level = level;
     entry->msg = strndup(message, len);
@@ -87,7 +87,7 @@ gputop_get_pb_log(void)
     pthread_once(&gputop_log_init_once, gputop_log_init);
 
     if (!gputop_log_len) {
-	return NULL;
+        return NULL;
     }
 
     pthread_rwlock_rdlock(&gputop_log_lock);
@@ -98,16 +98,16 @@ gputop_get_pb_log(void)
     log->entries = xmalloc(gputop_log_len * sizeof(void *));
 
     gputop_list_for_each_safe(entry, tmp, &gputop_log_entries, link) {
-	Gputop__LogEntry *pb_entry = xmalloc(sizeof(Gputop__LogEntry));
+        Gputop__LogEntry *pb_entry = xmalloc(sizeof(Gputop__LogEntry));
 
-	gputop__log_entry__init(pb_entry);
-	pb_entry->log_level = entry->level;
-	pb_entry->log_message = entry->msg; /* steal the string */
-	log->entries[i] = pb_entry;
+        gputop__log_entry__init(pb_entry);
+        pb_entry->log_level = entry->level;
+        pb_entry->log_message = entry->msg; /* steal the string */
+        log->entries[i] = pb_entry;
 
-	i++;
+        i++;
 
-	gputop_list_remove(&entry->link);
+        gputop_list_remove(&entry->link);
     }
     gputop_log_len = 0;
 
@@ -122,17 +122,15 @@ gputop_pb_log_free(Gputop__Log *log)
     int i;
 
     if (log->n_entries) {
-	for (i = 0; i < log->n_entries; i++) {
-	    Gputop__LogEntry *entry = log->entries[i];
-	    free(entry->log_message);
-	    free(entry);
-	}
+        for (i = 0; i < log->n_entries; i++) {
+            Gputop__LogEntry *entry = log->entries[i];
+            free(entry->log_message);
+            free(entry);
+        }
 
-	free(log->entries);
+        free(log->entries);
     }
 
     free(log);
 }
 #endif
-
-

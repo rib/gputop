@@ -46,10 +46,10 @@ count_cpus(void)
     unsigned ignore = 0, max_cpu = 0;
 
     if (!gputop_read_file("/sys/devices/system/cpu/present", buf, sizeof(buf)))
-	return;
+        return;
 
     if (sscanf(buf, "%u-%u", &ignore, &max_cpu) != 2)
-	return;
+        return;
 
     n_cpus = max_cpu + 1;
 }
@@ -81,15 +81,15 @@ gputop_cpu_model(char *buf, int len)
 
     fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
-	return false;
+        return false;
 
     while ((read = getline(&line, &line_len, fp)) != -1) {
-	if (strncmp(key, line, key_len) == 0) {
-	    snprintf(buf, len, "%s", line + key_len);
-	    fclose(fp);
-	    free(line);
-	    return true;
-	}
+        if (strncmp(key, line, key_len) == 0) {
+            snprintf(buf, len, "%s", line + key_len);
+            fclose(fp);
+            free(line);
+            return true;
+        }
     }
 
     fclose(fp);

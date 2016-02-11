@@ -41,56 +41,56 @@ static void
 usage(void)
 {
     printf("Usage: gputop [options] <program> [program args...]\n"
-	   "\n"
-	   "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
-	   "                                   DRM_CONTEXT ioctl's\n\n"
-	   "                                   without executing the program\n\n"
-	   "     --dry-run                     Print the environment variables\n"
-	   "                                   without executing the program\n\n"
-	   "     --fake                        Run gputop using fake metrics\n\n");
+           "\n"
+           "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
+           "                                   DRM_CONTEXT ioctl's\n\n"
+           "                                   without executing the program\n\n"
+           "     --dry-run                     Print the environment variables\n"
+           "                                   without executing the program\n\n"
+           "     --fake                        Run gputop using fake metrics\n\n");
 #ifdef SUPPORT_GL
     printf("     --libgl=<libgl_filename>      Explicitly specify the real libGL\n"
-	   "                                   library to intercept\n\n"
-	   "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
-	   "                                   library to intercept\n\n"
-	   "     --debug-gl-context            Create a debug context and report\n"
-	   "                                   KHR_debug perf issues\n\n"
-	   "     --enable-gl-scissor-test      Enable 1x1 scissor test\n"
-	   "                                   glScissor(0, 0, 1, 1);\n");
+           "                                   library to intercept\n\n"
+           "     --libegl=<libegl_filename>    Explicitly specify the real libEGL\n"
+           "                                   library to intercept\n\n"
+           "     --debug-gl-context            Create a debug context and report\n"
+           "                                   KHR_debug perf issues\n\n"
+           "     --enable-gl-scissor-test      Enable 1x1 scissor test\n"
+           "                                   glScissor(0, 0, 1, 1);\n");
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n\n");
     printf("     --nodejs                      Enable remote nodejs-based interface\n\n");
 #endif
     printf(" -h, --help                        Display this help\n\n"
-	   "\n"
-	   " Note: gputop is only a wrapper for setting environment variables\n"
-	   " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
-	   " system-wide metrics (when no program is specified) gputop-system\n"
-	   " is run as a dummy 'GL' application.\n"
-	   "\n"
-	   " Environment:\n"
-	   "\n"
+           "\n"
+           " Note: gputop is only a wrapper for setting environment variables\n"
+           " including LD_LIBRARY_PATH to interpose OpenGL. For only viewing\n"
+           " system-wide metrics (when no program is specified) gputop-system\n"
+           " is run as a dummy 'GL' application.\n"
+           "\n"
+           " Environment:\n"
+           "\n"
 #ifdef SUPPORT_WEBUI
-	   "     GPUTOP_MODE={remote,ncurses,nodejs}  The mode of visualizing metrics\n"
-	   "                                          (defaults to ncurses)\n\n"
+           "     GPUTOP_MODE={remote,ncurses,nodejs}  The mode of visualizing metrics\n"
+           "                                          (defaults to ncurses)\n\n"
 #endif
 #ifdef SUPPORT_GL
-	   "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
-	   "                                   The gputop libGL.so and syscall\n"
+           "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
+           "                                   The gputop libGL.so and syscall\n"
            "                                   interposer\n\n"
-	   "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
-	   "                                   up to from interposer\n\n"
-	   "     GPUTOP_GL_DEBUG_CONTEXT=1     Force GL contexts to be debug\n"
-	   "                                   contexts and report KHR_debug\n"
-	   "                                   perf issues\n"
+           "     GPUTOP_GL_LIBRARY=<libGL.so>  Path to real libGL.so to chain\n"
+           "                                   up to from interposer\n\n"
+           "     GPUTOP_GL_DEBUG_CONTEXT=1     Force GL contexts to be debug\n"
+           "                                   contexts and report KHR_debug\n"
+           "                                   perf issues\n"
 #else
-	   "     LD_PRELOAD=<prefix>/lib/libgputop.so\n"
-	   "                                   The gputop syscall interposer\n\n"
+           "     LD_PRELOAD=<prefix>/lib/libgputop.so\n"
+           "                                   The gputop syscall interposer\n\n"
 #endif
-	   "\n"
-	   ""
-	   );
+           "\n"
+           ""
+           );
 
     exit(1);
 }
@@ -182,40 +182,40 @@ main (int argc, char **argv)
     bool dry_run = false;
     bool disable_ioctl = false;
 
-#define LIB_GL_OPT		(CHAR_MAX + 1)
-#define LIB_EGL_OPT		(CHAR_MAX + 2)
-#define DEBUG_CTX_OPT		(CHAR_MAX + 3)
-#define REMOTE_OPT		(CHAR_MAX + 4)
-#define DRY_RUN_OPT		(CHAR_MAX + 5)
-#define DISABLE_IOCTL_OPT	(CHAR_MAX + 6)
-#define FAKE_OPT	        (CHAR_MAX + 7)
-#define GPUTOP_SCISSOR_TEST	(CHAR_MAX + 8)
-#define NODEJS_OPT          (CHAR_MAX + 9)
+#define LIB_GL_OPT              (CHAR_MAX + 1)
+#define LIB_EGL_OPT             (CHAR_MAX + 2)
+#define DEBUG_CTX_OPT           (CHAR_MAX + 3)
+#define REMOTE_OPT              (CHAR_MAX + 4)
+#define DRY_RUN_OPT             (CHAR_MAX + 5)
+#define DISABLE_IOCTL_OPT       (CHAR_MAX + 6)
+#define FAKE_OPT                (CHAR_MAX + 7)
+#define GPUTOP_SCISSOR_TEST     (CHAR_MAX + 8)
+#define NODEJS_OPT              (CHAR_MAX + 9)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
     const char *short_options="+h";
     const struct option long_options[] = {
-	{"help",	    no_argument,	0, 'h'},
-	{"dry-run",         no_argument,        0, DRY_RUN_OPT},
-	{"fake",            no_argument,        0, FAKE_OPT},
-	{"disable-ioctl-intercept", optional_argument,	0, DISABLE_IOCTL_OPT},
+        {"help",            no_argument,        0, 'h'},
+        {"dry-run",         no_argument,        0, DRY_RUN_OPT},
+        {"fake",            no_argument,        0, FAKE_OPT},
+        {"disable-ioctl-intercept", optional_argument,  0, DISABLE_IOCTL_OPT},
 #ifdef SUPPORT_GL
-	{"libgl",	            optional_argument,	0, LIB_GL_OPT},
-	{"libegl",	            optional_argument,	0, LIB_EGL_OPT},
-	{"debug-gl-context",        no_argument,	0, DEBUG_CTX_OPT},
-	{"enable-gl-scissor-test",  optional_argument,  0, GPUTOP_SCISSOR_TEST},
+        {"libgl",                   optional_argument,  0, LIB_GL_OPT},
+        {"libegl",                  optional_argument,  0, LIB_EGL_OPT},
+        {"debug-gl-context",        no_argument,        0, DEBUG_CTX_OPT},
+        {"enable-gl-scissor-test",  optional_argument,  0, GPUTOP_SCISSOR_TEST},
 #endif
 #ifdef SUPPORT_WEBUI
-	{"remote",	    no_argument,	0, REMOTE_OPT},
-	{"nodejs",	    no_argument,	0, NODEJS_OPT},
+        {"remote",          no_argument,        0, REMOTE_OPT},
+        {"nodejs",          no_argument,        0, NODEJS_OPT},
 #endif
-	{0, 0, 0, 0}
+        {0, 0, 0, 0}
     };
     char *ld_preload_path;
     char *gputop_system_args[] = {
-	"gputop-system",
-	NULL
+        "gputop-system",
+        NULL
     };
     char **args = argv;
     int err;
@@ -223,56 +223,56 @@ main (int argc, char **argv)
 
 
     while ((opt = getopt_long(argc, argv, short_options, long_options, NULL))
-	   != -1)
+           != -1)
     {
-	switch (opt) {
-	    case 'h':
-		usage();
-		return 0;
-	    case DRY_RUN_OPT:
-		dry_run = true;
+        switch (opt) {
+            case 'h':
+                usage();
+                return 0;
+            case DRY_RUN_OPT:
+                dry_run = true;
                 break;
-	    case FAKE_OPT:
-		setenv("GPUTOP_FAKE_MODE", "1", true);
-		break;
-	    case DISABLE_IOCTL_OPT:
+            case FAKE_OPT:
+                setenv("GPUTOP_FAKE_MODE", "1", true);
+                break;
+            case DISABLE_IOCTL_OPT:
                 disable_ioctl = true;
-		break;
+                break;
 #ifdef SUPPORT_GL
-	    case LIB_GL_OPT:
-		setenv("GPUTOP_GL_LIBRARY", optarg, true);
-		break;
-	    case LIB_EGL_OPT:
-		setenv("GPUTOP_EGL_LIBRARY", optarg, true);
-		break;
-	    case DEBUG_CTX_OPT:
-		setenv("GPUTOP_GL_DEBUG_CONTEXT", "1", true);
-		break;
-	    case GPUTOP_SCISSOR_TEST:
-		setenv("GPUTOP_GL_SCISSOR_TEST", "1", true);
-		break;
+            case LIB_GL_OPT:
+                setenv("GPUTOP_GL_LIBRARY", optarg, true);
+                break;
+            case LIB_EGL_OPT:
+                setenv("GPUTOP_EGL_LIBRARY", optarg, true);
+                break;
+            case DEBUG_CTX_OPT:
+                setenv("GPUTOP_GL_DEBUG_CONTEXT", "1", true);
+                break;
+            case GPUTOP_SCISSOR_TEST:
+                setenv("GPUTOP_GL_SCISSOR_TEST", "1", true);
+                break;
 #endif
 #ifdef SUPPORT_WEBUI
-	    case REMOTE_OPT:
-		setenv("GPUTOP_MODE", "remote", true);
-		break;
-        case NODEJS_OPT:
-            setenv("GPUTOP_MODE", "nodejs", true);
-            break;
+            case REMOTE_OPT:
+                setenv("GPUTOP_MODE", "remote", true);
+                break;
+            case NODEJS_OPT:
+                setenv("GPUTOP_MODE", "nodejs", true);
+                break;
 #endif
-	    default:
-		fprintf (stderr, "Internal error: "
-			 "unexpected getopt value: %d\n", opt);
-		exit (1);
-	}
+            default:
+                fprintf (stderr, "Internal error: "
+                         "unexpected getopt value: %d\n", opt);
+                exit (1);
+        }
     }
 
     if (optind >= argc) {
-	/* If no program is given then launch a dummy "test
-	 * application" so gputop can also be used for analysing
-	 * system wide metrics. */
-	args = gputop_system_args;
-	optind = 0;
+        /* If no program is given then launch a dummy "test
+         * application" so gputop can also be used for analysing
+         * system wide metrics. */
+        args = gputop_system_args;
+        optind = 0;
     }
 
     if (!disable_ioctl)
@@ -282,16 +282,16 @@ main (int argc, char **argv)
     env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/wrappers/libfakeGL.so");
 
     if (!getenv("GPUTOP_GL_LIBRARY")) {
-	bool found = resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
-	    if (!found)
+        bool found = resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
+            if (!found)
             {
-		fprintf(stderr, "Could not resolve a path for the system libGL.so library\n");
-		exit(0);
+                fprintf(stderr, "Could not resolve a path for the system libGL.so library\n");
+                exit(0);
             }
     }
 
     if (!getenv("GPUTOP_EGL_LIBRARY"))
-	resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
+        resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
 #endif
 
 
@@ -346,9 +346,9 @@ main (int argc, char **argv)
         err = errno;
 
         fprintf(stderr, "gputop: Failed to run GL application: \n\n"
-	       "  ");
+               "  ");
         for (i = optind; i < argc; i++)
-	       fprintf(stderr, "%s ", args[i]);
+               fprintf(stderr, "%s ", args[i]);
         fprintf(stderr, "\n\n%s\n", strerror(err));
     }
 

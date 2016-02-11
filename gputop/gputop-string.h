@@ -51,4 +51,3 @@ gputop_string_t *gputop_string_set_size(gputop_string_t *string, size_t len);
 gputop_string_t *gputop_string_erase(gputop_string_t *string, ssize_t pos, ssize_t len);
 gputop_string_t *gputop_string_append_escaped(gputop_string_t *str, const char *_str);
 #define gputop_string_sprintfa gputop_string_append_printf
-
