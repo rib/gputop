@@ -92,6 +92,7 @@ static uv_poll_t input_poll;
 static uv_idle_t redraw_idle;
 
 static struct tab *current_tab;
+static struct tab *pending_tab;
 static bool debug_disable_ncurses = false;
 
 #ifdef SUPPORT_WEBUI
@@ -121,6 +122,217 @@ static pthread_t gputop_ui_thread_id;
 uv_loop_t *gputop_ui_loop;
 
 static void redraw_ui(void);
+
+
+/**
+ * Given pointers to starting and ending OA snapshots, calculate the deltas for each
+ * counter to update the results.
+ */
+static void
+overview_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
+{
+    gputop_oa_accumulate_reports(stream->query, start, end);
+}
+
+static void
+oa_counter_accumulator_clear(struct gputop_perf_stream *stream)
+{
+    struct gputop_perf_query *query = stream->query;
+
+    memset(query->accumulator, 0, sizeof(query->accumulator));
+
+    stream->oa.last = NULL;
+}
+
+static struct perf_oa_user overview_user = {
+    .sample = overview_sample_cb,
+};
+
+static bool
+i915_perf_oa_overview_open(struct gputop_perf_query *query,
+                           bool enable_per_ctx)
+{
+    int period_exponent;
+    char *error = NULL;
+
+    assert(gputop_current_perf_query == NULL);
+
+    if (!gputop_perf_initialize())
+	return false;
+
+    gputop_perf_current_user = &overview_user;
+    gputop_current_perf_query = query;
+
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
+
+    /* The timestamp for HSW+ increments every 80ns
+     *
+     * The period_exponent gives a sampling period as follows:
+     *   sample_period = 80ns * 2^(period_exponent + 1)
+     *
+     * The overflow period for Haswell can be calculated as:
+     *
+     * 2^32 / (n_eus * max_gen_freq * 2)
+     * (E.g. 40 EUs @ 1GHz = ~53ms)
+     *
+     * We currently sample ~ every 10 milliseconds...
+     */
+    period_exponent = 16;
+
+    gputop_current_perf_stream =
+	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
+				       period_exponent,
+				       32 * sysconf(_SC_PAGE_SIZE),
+				       gputop_perf_read_samples,
+				       false,
+				       &error);
+
+    if (!gputop_current_perf_stream) {
+	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+	free(error);
+
+	gputop_current_perf_query = NULL;
+	return false;
+    }
+
+    oa_counter_accumulator_clear(gputop_current_perf_stream);
+
+    return true;
+}
+
+static void
+overview_closed_cb(struct gputop_perf_stream *stream)
+{
+    current_tab = NULL;
+
+    gputop_perf_stream_unref(gputop_current_perf_stream);
+    gputop_current_perf_stream = NULL;
+    gputop_current_perf_query = NULL;
+}
+
+static void
+i915_perf_oa_overview_close(void)
+{
+    if (!gputop_current_perf_stream)
+	return;
+
+    gputop_perf_stream_close(gputop_current_perf_stream,
+                             overview_closed_cb);
+}
+
+int gputop_perf_trace_buffer_size;
+uint8_t *gputop_perf_trace_buffer;
+bool gputop_perf_trace_empty;
+bool gputop_perf_trace_full;
+uint8_t *gputop_perf_trace_head;
+int gputop_perf_n_samples = 0;
+
+static void
+trace_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
+{
+    struct gputop_perf_query *query = stream->query;
+    int sample_size = query->perf_raw_size;
+
+    if (gputop_perf_trace_empty) {
+	memcpy(gputop_perf_trace_head, start, sample_size);
+	gputop_perf_trace_head += sample_size;
+	gputop_perf_trace_empty = false;
+    }
+
+    memcpy(gputop_perf_trace_head, end, sample_size);
+
+    gputop_perf_trace_head += sample_size;
+    if (gputop_perf_trace_head >= (gputop_perf_trace_buffer + gputop_perf_trace_buffer_size)) {
+	gputop_perf_trace_head = gputop_perf_trace_buffer;
+	gputop_perf_trace_full = true;
+    }
+
+    if (!gputop_perf_trace_full)
+	gputop_perf_n_samples++;
+}
+
+static struct perf_oa_user trace_user = {
+    .sample = trace_sample_cb,
+};
+
+bool
+gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
+                               bool enable_per_ctx)
+{
+    int period_exponent;
+    double duration = 5.0; /* seconds */
+    uint64_t period_ns;
+    uint64_t n_samples;
+    char *error = NULL;
+
+    assert(gputop_current_perf_query == NULL);
+
+    if (!gputop_perf_initialize())
+	return false;
+
+    gputop_perf_current_user = &trace_user;
+    gputop_current_perf_query = query;
+
+    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
+
+    /* The timestamp for HSW+ increments every 80ns
+     *
+     * The period_exponent gives a sampling period as follows:
+     *   sample_period = 80ns * 2^(period_exponent + 1)
+     *
+     * Sample ~ every 1 millisecond...
+     */
+    period_exponent = 11;
+
+    gputop_current_perf_stream =
+	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
+				       period_exponent,
+				       32 * sysconf(_SC_PAGE_SIZE),
+				       gputop_perf_read_samples,
+				       false,
+				       &error);
+    if (!gputop_current_perf_stream) {
+	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+	free(error);
+
+	gputop_current_perf_query = NULL;
+	return false;
+    }
+
+    period_ns = 80 * (2 << period_exponent);
+    n_samples = (duration  * 1000000000.0) / period_ns;
+    n_samples *= 1.25; /* a bit of leeway */
+
+    gputop_perf_trace_buffer_size = n_samples * gputop_current_perf_query->perf_raw_size;
+    gputop_perf_trace_buffer = xmalloc0(gputop_perf_trace_buffer_size);
+    gputop_perf_trace_head = gputop_perf_trace_buffer;
+    gputop_perf_trace_empty = true;
+    gputop_perf_trace_full = false;
+
+    return true;
+}
+
+static void
+trace_closed_cb(struct gputop_perf_stream *stream)
+{
+    current_tab = NULL;
+
+    gputop_perf_stream_unref(gputop_current_perf_stream);
+
+    free(gputop_perf_trace_buffer);
+    gputop_current_perf_query = NULL;
+    gputop_current_perf_stream = NULL;
+}
+
+void
+gputop_i915_perf_oa_trace_close(void)
+{
+    if (!gputop_current_perf_stream)
+	return;
+
+    gputop_perf_stream_close(gputop_current_perf_stream,
+                             trace_closed_cb);
+}
 
 static void
 timer_cb(uv_timer_t *timer)
@@ -301,7 +513,7 @@ perf_counters_redraw(WINDOW *win)
 	y++;
     }
 
-    gputop_perf_accumulator_clear(gputop_current_perf_stream);
+    oa_counter_accumulator_clear(gputop_current_perf_stream);
 }
 
 static void
@@ -504,7 +716,7 @@ perf_oa_trace_redraw(WINDOW *win)
     report1 = get_next_trace_sample(query, report0);
     start_timestamp = read_report_timestamp((uint32_t *)report0);
 
-    gputop_perf_accumulator_clear(gputop_current_perf_stream);
+    oa_counter_accumulator_clear(gputop_current_perf_stream);
 
     print_trace_counter_names(win, query);
 
@@ -520,7 +732,7 @@ perf_oa_trace_redraw(WINDOW *win)
 
 	    if (report_timestamp >= column_end) {
 		print_trace_counter_spark(win, query, i);
-		gputop_perf_accumulator_clear(gputop_current_perf_stream);
+		oa_counter_accumulator_clear(gputop_current_perf_stream);
 		break;
 	    }
 
@@ -538,13 +750,13 @@ perf_tab_enter(struct tab *owner_tab)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    gputop_i915_perf_oa_overview_open(owner_tab->query, false);
+    i915_perf_oa_overview_open(owner_tab->query, false);
 }
 
 static void
 perf_tab_leave(void)
 {
-    gputop_i915_perf_oa_overview_close();
+    i915_perf_oa_overview_close();
 
     uv_timer_stop(&timer);
 }
@@ -612,7 +824,7 @@ debug_log_tab_enter(struct tab *owner_tab)
 static void
 debug_log_tab_leave(void)
 {
-
+    current_tab = NULL;
 }
 
 static void
@@ -928,6 +1140,8 @@ gl_perf_query_tab_leave(void)
     pthread_rwlock_unlock(&gputop_gl_lock);
 
     uv_timer_stop(&timer);
+
+    current_tab = NULL;
 }
 
 static void
@@ -959,6 +1173,8 @@ static void
 gl_knobs_tab_leave(void)
 {
     uv_timer_stop(&timer);
+
+    current_tab = NULL;
 }
 
 static void
@@ -1060,6 +1276,7 @@ redraw_ui(void)
     int screen_width;
     int screen_height;
     WINDOW *titlebar_win;
+    struct tab *reference_tab = pending_tab ? pending_tab : current_tab;
     struct tab *tab;
     WINDOW *tab_win;
     int i;
@@ -1110,9 +1327,13 @@ redraw_ui(void)
 	pthread_rwlock_unlock(&gputop_gl_lock);
 
 	if (switch_to_tab) {
-	    current_tab->leave();
-	    current_tab = switch_to_tab;
-	    current_tab->enter(current_tab);
+            pending_tab = switch_to_tab;
+
+            /* NB: current_tab will be set to NULL once any resources associated
+             * with the tab have been freed, at which point the next redraw_ui()
+             * will call pending_tab->enter() */
+            if (current_tab)
+                current_tab->leave();
 	}
     }
 #endif
@@ -1138,7 +1359,7 @@ redraw_ui(void)
     mvwprintw(titlebar_win, 0, 0,
               "     gputop %s   «%s» (Press Tab key to cycle through)",
               PACKAGE_VERSION,
-              current_tab->name);
+              reference_tab->name);
 
     wnoutrefresh(titlebar_win);
 
@@ -1149,7 +1370,7 @@ redraw_ui(void)
 	int len = strlen(tab->nick);
 	int offset;
 
-	if (tab == current_tab) {
+	if (tab == reference_tab) {
 	    wattrset(tab_title_win, COLOR_PAIR (GPUTOP_ACTIVE_COLOR));
 	    wbkgd(tab_title_win, COLOR_PAIR (GPUTOP_ACTIVE_COLOR));
 	} else {
@@ -1160,7 +1381,7 @@ redraw_ui(void)
 	werase(tab_title_win);
 
 	offset = (TAB_TITLE_WIDTH - len) / 2;
-	if (tab == current_tab)
+	if (tab == reference_tab)
 	    mvwprintw(tab_title_win, 0, offset, "[%s]", tab->nick);
 	else
 	    mvwprintw(tab_title_win, 0, offset, tab->nick);
@@ -1173,7 +1394,14 @@ redraw_ui(void)
     tab_win = subwin(stdscr, screen_height - 2, screen_width, 2, 0);
     //touchwin(stdscr);
 
-    current_tab->redraw(tab_win);
+    if (current_tab)
+        current_tab->redraw(tab_win);
+    else if (pending_tab) {
+        current_tab = pending_tab;
+        pending_tab = NULL;
+
+        current_tab->enter(current_tab);
+    }
 
     wnoutrefresh(tab_win);
 
@@ -1195,21 +1423,22 @@ redraw_idle_cb(uv_idle_t *idle)
 static int
 common_input(int key)
 {
+    struct tab *reference_tab = pending_tab ? pending_tab : current_tab;
     struct tab *next = NULL;
 
     switch (key) {
     case KEY_RIGHT:
     case 9: /* Urgh, ncurses is not making things better :-/ */
-	if (current_tab->link.next != &tabs)
-	    next = gputop_container_of(current_tab->link.next, struct tab, link);
+	if (reference_tab->link.next != &tabs)
+	    next = gputop_container_of(reference_tab->link.next, struct tab, link);
 	else
-	    next = gputop_container_of(current_tab->link.next->next, struct tab, link);
+	    next = gputop_container_of(reference_tab->link.next->next, struct tab, link);
 	break;
     case KEY_LEFT:
-	if (current_tab->link.prev != &tabs)
-	    next = gputop_container_of(current_tab->link.prev, struct tab, link);
+	if (reference_tab->link.prev != &tabs)
+	    next = gputop_container_of(reference_tab->link.prev, struct tab, link);
 	else
-	    next = gputop_container_of(current_tab->link.prev->prev, struct tab, link);
+	    next = gputop_container_of(reference_tab->link.prev->prev, struct tab, link);
 	break;
     case KEY_UP:
 	if (y_pos > 0)
@@ -1228,9 +1457,13 @@ common_input(int key)
     }
 
     if (next) {
-	current_tab->leave();
-	current_tab = next;
-	current_tab->enter(current_tab);
+        pending_tab = next;
+
+        /* NB: current_tab will be set to NULL once any resources associated
+         * with the tab have been freed, at which point the next redraw_ui()
+         * will call pending_tab->enter() */
+        if (current_tab)
+            current_tab->leave();
 
 	return INPUT_HANDLED;
     }

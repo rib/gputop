@@ -256,6 +256,11 @@ struct gputop_perf_stream
     uv_timer_t fd_timer;
     void (*ready_cb)(struct gputop_perf_stream *);
 
+    int n_closing_uv_handles;
+    void (*on_close_cb)(struct gputop_perf_stream *stream);
+    bool pending_close;
+    bool closed;
+
 // fields used for fake data:
     uint64_t start_time;  // stream opening time
     uint32_t gen_so_far; // amount of reports generated since stream opening
@@ -272,38 +277,26 @@ struct gputop_perf_stream
 	bool flushing;
     } user;
 };
+
+/* E.g. for tracing vs rolling view */
+struct perf_oa_user {
+    void (*sample)(struct gputop_perf_stream *stream,
+                   uint8_t *start, uint8_t *end);
+};
+
+extern struct gputop_perf_query *gputop_current_perf_query;
+extern struct gputop_perf_stream *gputop_current_perf_stream;
+extern struct perf_oa_user *gputop_perf_current_user;
 #endif
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
 
 extern struct gputop_devinfo gputop_devinfo;
-extern struct gputop_perf_query *gputop_current_perf_query;
-extern struct gputop_perf_stream *gputop_current_perf_stream;
 
 bool gputop_enumerate_queries_via_sysfs(void);
 bool gputop_perf_initialize(void);
 void gputop_perf_free(void);
-
-bool gputop_i915_perf_oa_overview_open(struct gputop_perf_query *query,
-                                       bool enable_per_ctx);
-void gputop_i915_perf_oa_overview_close(void);
-
-int fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length);
-
-void gputop_perf_accumulator_clear(struct gputop_perf_stream *stream);
-void gputop_perf_accumulate(struct gputop_perf_stream *stream,
-			    const uint8_t *report0,
-			    const uint8_t *report1);
-
-void gputop_perf_read_samples(struct gputop_perf_stream *stream);
-void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
-				    uint8_t *buf,
-				    int len);
-
-bool gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
-                                    bool enable_per_ctx);
-void gputop_i915_perf_oa_trace_close(void);
 
 extern struct gputop_hash_table *queries;
 extern struct array *perf_oa_supported_query_guids;
@@ -365,6 +358,17 @@ bool gputop_stream_data_pending(struct gputop_perf_stream *stream);
 
 void gputop_perf_update_header_offsets(struct gputop_perf_stream *stream);
 
+int gputop_perf_fake_read(struct gputop_perf_stream *stream,
+                          uint8_t *buf, int buf_length);
+
+void gputop_perf_read_samples(struct gputop_perf_stream *stream);
+
+void gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
+				    uint8_t *buf,
+				    int len);
+
+void gputop_perf_stream_close(struct gputop_perf_stream *stream,
+                              void (*on_close_cb)(struct gputop_perf_stream *stream));
 void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
 void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
 #endif

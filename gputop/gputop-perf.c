@@ -109,14 +109,7 @@ struct intel_device {
 
 struct gputop_devinfo gputop_devinfo;
 
-/* E.g. for tracing vs rolling view */
-struct perf_oa_user {
-    void (*sample)(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end);
-};
-
 bool gputop_fake_mode = false;
-
-static struct perf_oa_user *current_user;
 
 static struct intel_device intel_dev;
 
@@ -126,6 +119,7 @@ struct gputop_hash_table *queries;
 struct array *perf_oa_supported_query_guids;
 struct gputop_perf_query *gputop_current_perf_query;
 struct gputop_perf_stream *gputop_current_perf_stream;
+struct perf_oa_user *gputop_perf_current_user;
 
 static int drm_fd = -1;
 
@@ -238,64 +232,115 @@ gputop_perf_stream_ref(struct gputop_perf_stream *stream)
     stream->ref_count++;
 }
 
+/* Stream closing is split up to allow for the closure of
+ * uv poll or timer handles to happen via the mainloop,
+ * via uv_close() before we finish up here... */
+static void
+finish_stream_close(struct gputop_perf_stream *stream)
+{
+    switch(stream->type) {
+    case GPUTOP_STREAM_PERF:
+        if (stream->fd > 0) {
+
+            if (stream->perf.mmap_page) {
+                munmap(stream->perf.mmap_page, stream->perf.buffer_size + page_size);
+                stream->perf.mmap_page = NULL;
+                stream->perf.buffer = NULL;
+                stream->perf.buffer_size = 0;
+            }
+
+            if (stream->perf.header_buf.offsets) {
+                free(stream->perf.header_buf.offsets);
+                stream->perf.header_buf.offsets = NULL;
+            }
+
+            close(stream->fd);
+            stream->fd = -1;
+
+            fprintf(stderr, "closed perf stream\n");
+        }
+
+        break;
+    case GPUTOP_STREAM_I915_PERF:
+        if (stream->fd == -1) {
+            if (stream->oa.bufs[0])
+                free(stream->oa.bufs[0]);
+            if (stream->oa.bufs[1])
+                free(stream->oa.bufs[1]);
+            fprintf(stderr, "closed i915 fake perf stream\n");
+        }
+        if (stream->fd > 0) {
+            if (stream->oa.bufs[0])
+                free(stream->oa.bufs[0]);
+            if (stream->oa.bufs[1])
+                free(stream->oa.bufs[1]);
+
+            close(stream->fd);
+            stream->fd = -1;
+
+            fprintf(stderr, "closed i915 perf stream\n");
+        }
+
+        break;
+    }
+
+    stream->closed = true;
+    stream->on_close_cb(stream);
+}
+
+static void
+stream_handle_closed_cb(uv_handle_t *handle)
+{
+    struct gputop_perf_stream *stream = handle->data;
+
+    if (--(stream->n_closing_uv_handles) == 0)
+        finish_stream_close(stream);
+}
+
+void
+gputop_perf_stream_close(struct gputop_perf_stream *stream,
+                         void (*on_close_cb)(struct gputop_perf_stream *stream))
+{
+    stream->on_close_cb = on_close_cb;
+
+    /* First we close any libuv handles before closing anything else in
+     * stream_handle_closed_cb()...
+     */
+    switch(stream->type) {
+    case GPUTOP_STREAM_PERF:
+        if (stream->fd >= 0) {
+            uv_close((uv_handle_t *)&stream->fd_poll, stream_handle_closed_cb);
+            stream->n_closing_uv_handles++;
+        }
+        break;
+    case GPUTOP_STREAM_I915_PERF:
+        if (stream->fd == -1) {
+            uv_close((uv_handle_t *)&stream->fd_timer, stream_handle_closed_cb);
+            stream->n_closing_uv_handles++;
+
+        }
+        if (stream->fd >= 0) {
+            uv_close((uv_handle_t *)&stream->fd_poll, stream_handle_closed_cb);
+            stream->n_closing_uv_handles++;
+        }
+        break;
+    }
+
+    if (!stream->n_closing_uv_handles)
+        finish_stream_close(stream);
+}
+
 void
 gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 {
     if (--(stream->ref_count) == 0) {
-
-	switch(stream->type) {
-	case GPUTOP_STREAM_PERF:
-	    if (stream->fd > 0) {
-		uv_poll_stop(&stream->fd_poll);
-
-		if (stream->perf.mmap_page) {
-		    munmap(stream->perf.mmap_page, stream->perf.buffer_size + page_size);
-		    stream->perf.mmap_page = NULL;
-		    stream->perf.buffer = NULL;
-		    stream->perf.buffer_size = 0;
-		}
-
-		if (stream->perf.header_buf.offsets) {
-		    free(stream->perf.header_buf.offsets);
-		    stream->perf.header_buf.offsets = NULL;
-		}
-
-		close(stream->fd);
-		stream->fd = -1;
-
-		fprintf(stderr, "closed perf stream\n");
-	    }
-
-	    break;
-	case GPUTOP_STREAM_I915_PERF:
-            if (stream->fd == -1) {
-                uv_timer_stop(&stream->fd_timer);
-
-                if (stream->oa.bufs[0])
-		    free(stream->oa.bufs[0]);
-		if (stream->oa.bufs[1])
-		    free(stream->oa.bufs[1]);
-                fprintf(stderr, "closed i915 fake perf stream\n");
-            }
-	    if (stream->fd > 0) {
-		uv_poll_stop(&stream->fd_poll);
-
-		if (stream->oa.bufs[0])
-		    free(stream->oa.bufs[0]);
-		if (stream->oa.bufs[1])
-		    free(stream->oa.bufs[1]);
-
-		close(stream->fd);
-		stream->fd = -1;
-
-		fprintf(stderr, "closed i915 perf stream\n");
-	    }
-
-	    break;
-	}
+        /* gputop_perf_stream_close() must have been called before the
+         * last reference is dropped... */
+        assert(stream->closed);
 
 	if (stream->user.destroy_cb)
 	    stream->user.destroy_cb(stream);
+
 	free(stream);
 	fprintf(stderr, "freed gputop-perf stream\n");
     }
@@ -1004,7 +1049,8 @@ struct report_layout
 
 // Function that generates fake Broadwell report metrics
 int
-fake_read(struct gputop_perf_stream *stream, uint8_t *buf, int buf_length)
+gputop_perf_fake_read(struct gputop_perf_stream *stream,
+                      uint8_t *buf, int buf_length)
 {
     struct report_layout *report = (struct report_layout *)buf;
     struct i915_perf_record_header header;
@@ -1085,7 +1131,7 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 	buf = stream->oa.bufs[stream->oa.buf_idx];
 
         if (gputop_fake_mode)
-            count = fake_read(stream, buf, stream->oa.buf_sizes);
+            count = gputop_perf_fake_read(stream, buf, stream->oa.buf_sizes);
         else
 	    count = read(stream->fd, buf, stream->oa.buf_sizes);
 
@@ -1159,9 +1205,9 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 		     * a sample-source-field for OA reports. */
 		    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
 			if (!(reason & OAREPORT_REASON_CTX_SWITCH))
-			    current_user->sample(stream, stream->oa.last, report);
+			    gputop_perf_current_user->sample(stream, stream->oa.last, report);
 		    } else {
-			current_user->sample(stream, stream->oa.last, report);
+			gputop_perf_current_user->sample(stream, stream->oa.last, report);
 		    }
 		}
 
@@ -1484,195 +1530,3 @@ gputop_perf_free(void)
     array_free(perf_oa_supported_query_guids);
 }
 
-/**
- * Given pointers to starting and ending OA snapshots, calculate the deltas for each
- * counter to update the results.
- */
-static void
-overview_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
-{
-    gputop_oa_accumulate_reports(stream->query, start, end);
-}
-
-void
-gputop_perf_accumulator_clear(struct gputop_perf_stream *stream)
-{
-    struct gputop_perf_query *query = stream->query;
-
-    memset(query->accumulator, 0, sizeof(query->accumulator));
-
-    stream->oa.last = NULL;
-}
-
-static struct perf_oa_user overview_user = {
-    .sample = overview_sample_cb,
-};
-
-bool
-gputop_i915_perf_oa_overview_open(struct gputop_perf_query *query,
-                                  bool enable_per_ctx)
-{
-    int period_exponent;
-    char *error = NULL;
-
-    assert(gputop_current_perf_query == NULL);
-
-    if (!gputop_perf_initialize())
-	return false;
-
-    current_user = &overview_user;
-    gputop_current_perf_query = query;
-
-    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
-
-    /* The timestamp for HSW+ increments every 80ns
-     *
-     * The period_exponent gives a sampling period as follows:
-     *   sample_period = 80ns * 2^(period_exponent + 1)
-     *
-     * The overflow period for Haswell can be calculated as:
-     *
-     * 2^32 / (n_eus * max_gen_freq * 2)
-     * (E.g. 40 EUs @ 1GHz = ~53ms)
-     *
-     * We currently sample ~ every 10 milliseconds...
-     */
-    period_exponent = 16;
-
-    gputop_current_perf_stream =
-	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
-				       period_exponent,
-				       32 * page_size,
-				       gputop_perf_read_samples,
-				       false,
-				       &error);
-
-    if (!gputop_current_perf_stream) {
-	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
-	free(error);
-
-	gputop_current_perf_query = NULL;
-	return false;
-    }
-
-    gputop_perf_accumulator_clear(gputop_current_perf_stream);
-
-    return true;
-}
-
-void
-gputop_i915_perf_oa_overview_close(void)
-{
-    if (!gputop_current_perf_query)
-	return;
-
-    gputop_perf_stream_unref(gputop_current_perf_stream);
-
-    gputop_current_perf_query = NULL;
-    gputop_current_perf_stream = NULL;
-}
-
-int gputop_perf_trace_buffer_size;
-uint8_t *gputop_perf_trace_buffer;
-bool gputop_perf_trace_empty;
-bool gputop_perf_trace_full;
-uint8_t *gputop_perf_trace_head;
-int gputop_perf_n_samples = 0;
-
-static void
-trace_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
-{
-    struct gputop_perf_query *query = stream->query;
-    int sample_size = query->perf_raw_size;
-
-    if (gputop_perf_trace_empty) {
-	memcpy(gputop_perf_trace_head, start, sample_size);
-	gputop_perf_trace_head += sample_size;
-	gputop_perf_trace_empty = false;
-    }
-
-    memcpy(gputop_perf_trace_head, end, sample_size);
-
-    gputop_perf_trace_head += sample_size;
-    if (gputop_perf_trace_head >= (gputop_perf_trace_buffer + gputop_perf_trace_buffer_size)) {
-	gputop_perf_trace_head = gputop_perf_trace_buffer;
-	gputop_perf_trace_full = true;
-    }
-
-    if (!gputop_perf_trace_full)
-	gputop_perf_n_samples++;
-}
-
-static struct perf_oa_user trace_user = {
-    .sample = trace_sample_cb,
-};
-
-bool
-gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
-                               bool enable_per_ctx)
-{
-    int period_exponent;
-    double duration = 5.0; /* seconds */
-    uint64_t period_ns;
-    uint64_t n_samples;
-    char *error = NULL;
-
-    assert(gputop_current_perf_query == NULL);
-
-    if (!gputop_perf_initialize())
-	return false;
-
-    current_user = &trace_user;
-    gputop_current_perf_query = query;
-
-    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
-
-    /* The timestamp for HSW+ increments every 80ns
-     *
-     * The period_exponent gives a sampling period as follows:
-     *   sample_period = 80ns * 2^(period_exponent + 1)
-     *
-     * Sample ~ every 1 millisecond...
-     */
-    period_exponent = 11;
-
-    gputop_current_perf_stream =
-	gputop_open_i915_perf_oa_query(gputop_current_perf_query,
-				       period_exponent,
-				       32 * page_size,
-				       gputop_perf_read_samples,
-				       false,
-				       &error);
-    if (!gputop_current_perf_stream) {
-	gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
-	free(error);
-
-	gputop_current_perf_query = NULL;
-	return false;
-    }
-
-    period_ns = 80 * (2 << period_exponent);
-    n_samples = (duration  * 1000000000.0) / period_ns;
-    n_samples *= 1.25; /* a bit of leeway */
-
-    gputop_perf_trace_buffer_size = n_samples * gputop_current_perf_query->perf_raw_size;
-    gputop_perf_trace_buffer = xmalloc0(gputop_perf_trace_buffer_size);
-    gputop_perf_trace_head = gputop_perf_trace_buffer;
-    gputop_perf_trace_empty = true;
-    gputop_perf_trace_full = false;
-
-    return true;
-}
-
-void
-gputop_i915_perf_oa_trace_close(void)
-{
-    if (!gputop_current_perf_query)
-	return;
-
-    gputop_perf_stream_unref(gputop_current_perf_stream);
-
-    free(gputop_perf_trace_buffer);
-    gputop_current_perf_query = NULL;
-    gputop_current_perf_stream = NULL;
-}

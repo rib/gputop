@@ -167,9 +167,66 @@ write_perf_tail(struct perf_event_mmap_page *mmap_page,
                 unsigned int tail)
 {
     /* Make sure we've finished reading all the sample data we
-     * we're consuming before updating the tail... */
+     * were consuming before updating the tail... */
     mb();
     mmap_page->data_tail = tail;
+}
+
+static void
+send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
+{
+    struct wslay_event_fragmented_msg msg;
+    struct protobuf_msg_closure *closure;
+
+    closure = xmalloc(sizeof(*closure));
+    closure->current_offset = 0;
+    closure->len = protobuf_c_message_get_packed_size(pb_message);
+    closure->data = xmalloc(closure->len);
+
+    protobuf_c_message_pack(pb_message, closure->data);
+
+    msg.opcode = WSLAY_BINARY_FRAME;
+    msg.source.data = closure;
+    msg.read_callback = fragmented_protobuf_msg_read_cb;
+    msg.finish_callback = on_protobuf_msg_sent_cb;
+
+    wslay_event_queue_fragmented_msg(conn->ws_ctx, &msg);
+    wslay_event_send(conn->ws_ctx);
+}
+
+static void
+stream_closed_cb(struct gputop_perf_stream *stream)
+{
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+    Gputop__CloseNotify notify = GPUTOP__CLOSE_NOTIFY__INIT;
+
+    /* stream->user.data will = a UUID if it was closed
+     * in response to a remote request which we need to
+     * ACK... */
+    if (stream->user.data) {
+
+	message.reply_uuid = stream->user.data;
+	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+	message.ack = true;
+
+	dbg("CMD_ACK: %s\n", (char *)stream->user.data);
+
+	send_pb_message(h2o_conn, &message.base);
+
+        free(stream->user.data);
+        stream->user.data = NULL;
+    }
+
+    notify.id = stream->user.id;
+
+    message.cmd_case = GPUTOP__MESSAGE__CMD_CLOSE_NOTIFY;
+    message.close_notify = &notify;
+
+    send_pb_message(h2o_conn, &message.base);
+
+    gputop_list_remove(&stream->user.link);
+
+    gputop_perf_stream_unref(stream);
 }
 
 static void
@@ -180,7 +237,12 @@ on_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
 
     //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
     closure->stream->user.flushing = false;
+
+    if (closure->stream->pending_close)
+        gputop_perf_stream_close(closure->stream, stream_closed_cb);
+
     gputop_perf_stream_unref(closure->stream);
+
     free(closure);
 }
 
@@ -307,7 +369,12 @@ on_i915_perf_flush_done(const union wslay_event_msg_source *source, void *user_d
 
     //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
     closure->stream->user.flushing = false;
+
+    if (closure->stream->pending_close)
+        gputop_perf_stream_close(closure->stream, stream_closed_cb);
+
     gputop_perf_stream_unref(closure->stream);
+
     free(closure);
 }
 
@@ -338,7 +405,7 @@ fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
     }
 
     if (gputop_fake_mode)
-        read_len = fake_read(stream, data, len);
+        read_len = gputop_perf_fake_read(stream, data, len);
     else
         while ((read_len = read(stream->fd, data, len)) < 0 && errno == EINTR)
 	    ;
@@ -393,6 +460,9 @@ flush_stream_samples(struct gputop_perf_stream *stream)
 	return;
     }
 
+    assert(!stream->pending_close);
+    assert(!stream->closed);
+
     if (!gputop_stream_data_pending(stream))
 	return;
 
@@ -414,28 +484,6 @@ flush_streams(void)
     gputop_list_for_each(stream, &streams, user.link) {
 	flush_stream_samples(stream);
     }
-}
-
-static void
-send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
-{
-    struct wslay_event_fragmented_msg msg;
-    struct protobuf_msg_closure *closure;
-
-    closure = xmalloc(sizeof(*closure));
-    closure->current_offset = 0;
-    closure->len = protobuf_c_message_get_packed_size(pb_message);
-    closure->data = xmalloc(closure->len);
-
-    protobuf_c_message_pack(pb_message, closure->data);
-
-    msg.opcode = WSLAY_BINARY_FRAME;
-    msg.source.data = closure;
-    msg.read_callback = fragmented_protobuf_msg_read_cb;
-    msg.finish_callback = on_protobuf_msg_sent_cb;
-
-    wslay_event_queue_fragmented_msg(conn->ws_ctx, &msg);
-    wslay_event_send(conn->ws_ctx);
 }
 
 static void
@@ -505,36 +553,6 @@ periodic_update_head_pointers(uv_timer_t *timer)
 }
 
 static void
-stream_close_cb(struct gputop_perf_stream *stream)
-{
-    Gputop__Message message = GPUTOP__MESSAGE__INIT;
-    Gputop__CloseNotify notify = GPUTOP__CLOSE_NOTIFY__INIT;
-
-    if (stream->user.data) {
-
-	message.reply_uuid = stream->user.data;
-	message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
-	message.ack = true;
-
-	dbg("CMD_ACK: %s\n", (char *)stream->user.data);
-
-	send_pb_message(h2o_conn, &message.base);
-
-	free(stream->user.data);
-	stream->user.data = NULL;
-    }
-
-    notify.id = stream->user.id;
-
-    message.cmd_case = GPUTOP__MESSAGE__CMD_CLOSE_NOTIFY;
-    message.close_notify = &notify;
-
-    send_pb_message(h2o_conn, &message.base);
-
-    gputop_list_remove(&stream->user.link);
-}
-
-static void
 handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 			       Gputop__Request *request)
 {
@@ -581,8 +599,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 					    &error);
     if (stream) {
 	stream->user.id = id;
-	stream->user.data = NULL;
-	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
 	gputop_list_insert(streams.prev, &stream->user.link);
 
@@ -644,7 +660,6 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
 				    &error);
     if (stream) {
 	stream->user.id = id;
-	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
 	gputop_list_insert(streams.prev, &stream->user.link);
 
@@ -701,7 +716,6 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
 					      &error);
     if (stream) {
 	stream->user.id = id;
-	stream->user.destroy_cb = stream_close_cb;
 	gputop_list_init(&stream->user.link);
 	gputop_list_insert(streams.prev, &stream->user.link);
 
@@ -750,16 +764,19 @@ handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
 static void
 close_stream(struct gputop_perf_stream *stream)
 {
-    /* NB: we can't synchronously close the perf event since
-     * we may be in the middle of writing samples to the
-     * websocket.
-     *
-     * By moving the stream into the closing_streams list
-     * we ensure we won't forward anymore for the stream.
+    /* By moving the stream into the closing_streams list we ensure we
+     * won't forward anymore for the stream in case we can't close the
+     * stream immediately.
      */
     gputop_list_remove(&stream->user.link);
     gputop_list_insert(closing_streams.prev, &stream->user.link);
-    gputop_perf_stream_unref(stream);
+    stream->pending_close = true;
+
+    /* NB: we can't synchronously close the perf event if we're in the
+     * middle of writing samples to the websocket...
+     */
+    if (!stream->user.flushing)
+        gputop_perf_stream_close(stream, stream_closed_cb);
 }
 
 static void
@@ -774,7 +791,7 @@ close_all_streams(void)
 
 static void
 handle_close_query(h2o_websocket_conn_t *conn,
-		  Gputop__Request *request)
+                   Gputop__Request *request)
 {
     struct gputop_perf_stream *stream;
     uint32_t id = request->close_query;
