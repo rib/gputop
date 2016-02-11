@@ -338,6 +338,7 @@ def output_counter_report(set, counter):
     c("counter = &query->counters[query->n_counters++];\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
     c("counter->name = \"" + counter.get('name') + "\";\n")
+    c("counter->symbol_name = \"" + counter.get('symbol_name') + "\";\n")
     c("counter->desc = \"" + counter.get('description') + "\";\n")
     c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")

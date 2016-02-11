@@ -1,0 +1,284 @@
+<!-- Pannel 2 -->
+<div id = "header-div">
+    <h1 id="page-header-metrics">Metrics panel loading</h1>
+</div>
+<!--
+<div class="btn-group" role="group" aria-label="..." style = "padding-top: 23px; float: none">
+    <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
+</div>
+-->
+
+<!-- Options bar -->
+<div class="well" id="options_bar" style="display: table">
+    <div style="display: table-cell; vertical-align: middle;">
+    <label><b>Stop query</b></label>
+    <button type="button" id="button_stop" class="btn" onclick="buttonTogglePlay()" >
+        <div id="toggle-query" class="glyphicon glyphicon-pause"></div>
+    </button>
+    </div>
+
+    <div style="display: table-cell; padding-left:25px; vertical-align: middle">
+    <b>Adjust Speed: &nbsp</b> <input type="text" class="span2" value="1000000000" data-slider-min="10000000" data-slider-max="1000000000" data-slider-step="10000000" data-slider-value="1000000000" data-slider-id="slider_style" id="speed_slider" data-slider-handle="round">
+    </div>
+    <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
+        <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b></label>
+    </div>
+    <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
+        <label><input type = "checkbox" id = "hide_metrics"><b>Hide unsupported</b></label>
+    </div>
+
+</div>
+
+
+<!-- Main pannel with the counter metrics -->
+<div class = "tab-content" id = "counter_metrics"></div>
+
+<script>
+    function buttonTogglePlay(){
+        var iSelector = $("#toggle-query");
+        if(iSelector.hasClass('glyphicon-pause')) {
+            iSelector.removeClass('glyphicon-pause')
+            iSelector.addClass('glyphicon-play')
+            gputop_ui.btn_close_current_query();
+        } else {
+            iSelector.removeClass('glyphicon-play')
+            iSelector.addClass('glyphicon-pause')
+            gputop.open_oa_query_for_trace(global_guid);
+        }
+    }
+
+    function read_metrics_counter() {
+        var $counter = $(this);
+        var name = $counter.attr("name");
+        var symbol_name = $counter.attr("symbol_name");
+        var description = $counter.attr("description");
+        //gputop_ui.syslog("Counter name: " + name);
+
+        var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
+        if (counter == undefined) {
+            console.log(" Failed to load counter "+ set_index +" "+ counter_index);
+            gputop_ui.show_alert("Counter missing, forgot to compile?","alert-danger");
+            return;
+        }
+
+        if (symbol_name.localeCompare(counter.symbol_name)) {
+            gputop_ui.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
+            return;
+        }
+
+        var stripped_bar = "";
+        var initial_progress = "0%";
+        var unsupported = "supported";
+        var flot_id = "flotcontainer_" + set_index + "_" + counter_index;
+
+        if (!counter.supported_) {
+            stripped_bar = "-striped";
+            initial_progress = "100%";
+            unsupported = "hide_unsupported";
+        }
+
+        var counter_name = '<a href="#" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
+
+        var div_id = 'div_counter_'+set_index + '_' + counter_index;
+        var counter_bar_id = 'div_bar_counter_'+set_index + '_' + counter_index;
+        var counter_text_bar_id = 'div_txt_'+set_index + '_' + counter_index;
+
+        // add transition: none to progress bar css for no animation.
+        // display of counter bar metrics
+        counter_bars = '\
+        <div> \
+            <div class = "metric_row ' + unsupported + '" id="' + div_id + '"> \
+                <div class = "counter_name">' + counter_name + '</div> \
+                <div class="progress"> \
+                    <div id = "'+ counter_bar_id +'" class = "progress-bar progress-bar' + stripped_bar + ' active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left"></div> \
+                </div> \
+                <div class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</div> \
+                <div class = "live_trace_dropdown">&nbsp\
+                    <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"> \
+                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon test123 glyphicon-collapse-down"></div> \
+                    </a> \
+                </div> \
+                <div class = "handle glyphicon glyphicon-move"></div> \
+            </div> \
+            <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
+                <div class="well graph_container" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
+            </div> \
+        </div>';
+
+        $("#tab_number_" + set_index).append(counter_bars);
+
+        $('#'+counter_bar_id).css("width", "100%");
+        $('#'+div_id).data(counter);
+        //counter.div_ = $('#'+div_id);
+        $('#' + flot_id).data(counter);
+
+        if (!counter.supported_)
+            $('#'+counter_bar_id).css("background-color", "#999999");
+
+        counter.div_id_ = div_id;
+        counter.div_bar_id_ = counter_bar_id;
+        counter.div_txt_id_ = counter_text_bar_id;
+
+        counter_index ++;
+    } // read_metrics_counter
+
+    function read_metrics_set() {
+        var $set = $(this);
+        var title = $set.attr("name");
+        var guid = $set.attr("guid");
+        if (global_guid == "")
+            global_guid = guid;
+
+        var active = "";
+        if (set_index == 0) {
+            active = " active";
+            $('#page-header-metrics').text(title);
+        }
+
+        counter_index = 0;
+
+        // contents of the sidebar menu
+        $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+        $('#'+guid).click(function (e) {
+            $('#metrics-tab-a').trigger('click');
+
+            global_guid = guid;
+            console.log("click "+e.target.id);
+
+            gputop.open_oa_query_for_trace(e.target.id);
+        });
+
+        // display of metrics tab-pane
+        $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
+
+        $set.find("counter").each(read_metrics_counter);
+
+        $("#counter_metrics").append("</div");
+
+        set_index ++;
+
+    } // read_metrics_set
+
+    function read_from_xml(xml_name) {
+        $("#sidebar_right").html("");
+        $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
+
+        $(xml_name).find("set").each(read_metrics_set);
+
+        //$(".glyphicon-collapse-down").hide();
+
+        $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            e.target // newly activated tab
+            e.relatedTarget // previous active tab
+            $('#page-header-metrics').text(e.target.text);
+        });
+
+        $('.collapse').on('shown.bs.collapse', function(e) {
+            var $glyphicon = $(e.target).parent().find(".test123");
+            var glyphicon_class = $glyphicon.attr("class").replace
+                ("glyphicon-collapse-down", "glyphicon-collapse-up");
+
+            $glyphicon.attr("class", glyphicon_class);
+
+            var id = $(e.target).find(".well");
+            //graph_start("#" + id.attr("id"));
+            gputop_ui.graph_array.push(id.attr("id"));
+        });
+
+        $('.collapse').on('hidden.bs.collapse', function(e) {
+            var $glyphicon = $(e.target).parent().find(".test123");
+            var glyphicon_class = $glyphicon.attr("class").replace
+                ("glyphicon-collapse-up", "glyphicon-collapse-down");
+
+            $glyphicon.attr("class", glyphicon_class);
+
+            var id = $(e.target).find(".well");
+            var index = gputop_ui.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
+            gputop_ui.graph_array.splice(index, 1); // remove element from the graph array
+        })
+
+    } // read_from_xml
+
+    // index of set + index of active counter forms an unique id for all counters
+    var global_guid = ""; // variable to keep track of the active metric set
+    var set_index = 0;
+    var counter_index = 0;
+    var graph_array = [];
+
+    var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
+    var i = 0;
+    var k = 1;
+
+    $("#switch_button").on("click", function(){
+        if (toggle_mode == 1) {
+            $("#switch_button").text("Switch to Overview");
+            //$('.overview_bars, .progress_text').hide();
+            //$(".glyphicon-collapse-down").show(); // graph dropdown button
+        }
+        else {
+            $("#switch_button").text("Switch to Live Tracing");
+            //$('.overview_bars, .progress_text').show();
+            //$(".glyphicon-collapse-down").hide();
+        }
+        toggle_mode *= -1;
+    });
+
+    $('#per_ctx_mode').click(function() {
+        var $this = $(this);
+
+        var metric = gputop.get_map_metric(global_guid);
+        if (metric == undefined)
+            return;
+
+        if ($this.is(':checked')) {
+            metric.per_ctx_mode_ = true;
+            console.log("Switching On "+metric.name_+" per context");
+        } else {
+            metric.per_ctx_mode_ = false;
+            console.log("Switching Off "+metric.name_+" per context");
+        }
+
+        gputop.open_oa_query_for_trace(global_guid);
+    });
+
+    $('#hide_metrics').click(function() {
+        var $this = $(this);
+        if ($this.is(':checked')) {
+            $(".hide_unsupported").hide();
+        } else {
+            $(".hide_unsupported").show();
+        }
+    });
+
+    $('#speed_slider').slider({
+      formater: function(value) {
+          gputop_ui.syslog("Speed: " + value);
+          if (global_guid != "")
+            gputop.update_period(global_guid, value);
+        return 'Current value: '+value;
+      }    });
+
+    // read counters from xml file and populate the website
+    read_from_xml(gputop.get_metrics_xml());
+
+    // function that makes each counter pane draggable.
+    $(function(){
+        for (j = 0; j < set_index; j++) {
+            $('#tab_number_' + j).sortable({
+                handle: '.handle',
+                start: function(e, ui) {
+                    ui.placeholder.height(ui.item.height());
+                }
+            });
+        }
+
+    });
+/*
+    var graph_time = 0;
+    setInterval(function call_graph() {
+        graph_time += 200;
+        gputop_ui.display_graph(10000000 * graph_time)
+    }, 200);
+*/
+
+</script>

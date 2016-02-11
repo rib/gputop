@@ -519,8 +519,6 @@ stream_close_cb(struct gputop_perf_stream *stream)
 
 	send_pb_message(h2o_conn, &message.base);
 
-	free(stream->user.data);
-	stream->user.data = NULL;
     }
 
     notify.id = stream->user.id;
@@ -531,6 +529,9 @@ stream_close_cb(struct gputop_perf_stream *stream)
     send_pb_message(h2o_conn, &message.base);
 
     gputop_list_remove(&stream->user.link);
+
+    free(stream->user.data);
+    stream->user.data = NULL;
 }
 
 static void
@@ -557,10 +558,15 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     dbg("handle_open_i915_oa_query\n");
 
     entry = gputop_hash_table_search(queries, oa_query_info->guid);
-    if (entry != NULL)
+    if (entry != NULL) {
         perf_query = entry->data;
-    else
+    } else {
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Guid is not available\n";
+        send_pb_message(conn, &message.base);
         return;
+    }
 
     // TODO(matt-auld): Add support for per-ctx OA metrics for the web-ui
     perf_query->per_ctx_mode = false;
@@ -571,6 +577,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 	buffer_size = 128 * 1024;
     else
 	buffer_size = 16 * 1024 * 1024;
+
+    perf_query->per_ctx_mode = open_query->per_ctx_mode;
 
     stream = gputop_open_i915_perf_oa_query(perf_query,
 					    oa_query_info->period_exponent,
@@ -594,7 +602,13 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 	dbg("Failed to open perf query set=%s period=%d: %s\n",
 	    oa_query_info->guid, oa_query_info->period_exponent,
 	    error);
-	free(error);
+
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = error;
+        send_pb_message(conn, &message.base);
+        free(error);
+        return;
     }
 
     message.reply_uuid = request->uuid;
@@ -867,7 +881,6 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__Features features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
-    int i;
 
     if (!gputop_perf_initialize()) {
 	message.reply_uuid = request->uuid;

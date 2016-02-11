@@ -144,7 +144,7 @@ function trace_ui_redraw(timestamp)
 	if (!graph)
 	    continue;
 
-	var counter = update.counters[i];
+	//var counter = update.counters[i];
 
 	var plot_data = graph.data("plot-data");
 	var graph_data = plot_data.values;
@@ -157,6 +157,7 @@ function trace_ui_redraw(timestamp)
 
 	for (var j = 0; j < n_updates; j++) {
 	    var update = trace_ui_updates[j];
+            var counter = update.counters[i];
 	    var start = update.gpu_start;
 	    var end = update.gpu_end;
 
