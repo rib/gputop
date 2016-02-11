@@ -1393,6 +1393,48 @@ gputop_enumerate_queries_via_sysfs (void)
     return true;
 }
 
+// function that hard-codes the guids specific for the broadwell configuration
+bool
+gputop_enumerate_queries_fake (void)
+{
+    static const char *fake_bdw_guids[] = {
+        "b541bd57-0e0f-4154-b4c0-5858010a2bf7",
+        "35fbc9b2-a891-40a6-a38d-022bb7057552",
+        "233d0544-fff7-4281-8291-e02f222aff72",
+        "2b255d48-2117-4fef-a8f7-f151e1d25a2c",
+        "f7fd3220-b466-4a4d-9f98-b0caf3f2394c",
+        "e99ccaca-821c-4df9-97a7-96bdb7204e43",
+        "27a364dc-8225-4ecb-b607-d6f1925598d9",
+        "857fc630-2f09-4804-85f1-084adfadd5ab",
+        "343ebc99-4a55-414c-8c17-d8e259cf5e20",
+        "2cf0c064-68df-4fac-9b3f-57f51ca8a069",
+        "78a87ff9-543a-49ce-95ea-26d86071ea93",
+        "9f2cece5-7bfe-4320-ad66-8c7cc526bec5",
+        "d890ef38-d309-47e4-b8b5-aa779bb19ab0",
+        "5fdff4a6-9dc8-45e1-bfda-ef54869fbdd4",
+        "2c0e45e1-7e2c-4a14-ae00-0b7ec868b8aa",
+        "71148d78-baf5-474f-878a-e23158d0265d",
+        "b996a2b7-c59c-492d-877a-8cd54fd6df84",
+        "eb2fecba-b431-42e7-8261-fe9429a6e67a",
+        "60749470-a648-4a4b-9f10-dbfe1e36e44d",
+    };
+
+    struct gputop_perf_query *query;
+    struct gputop_hash_entry *queries_entry;
+
+    int i;
+    int array_length = sizeof(fake_bdw_guids) / sizeof(fake_bdw_guids[0]);
+
+    for (i = 0; i < array_length; i++){
+        queries_entry = gputop_hash_table_search(queries, fake_bdw_guids[i]);
+        query = (struct gputop_perf_query*)queries_entry->data;
+        query->perf_oa_metrics_set = i;
+        array_append(perf_oa_supported_query_guids, &query->guid);
+    }
+
+    return true;
+}
+
 bool
 gputop_perf_initialize(void)
 {
@@ -1431,7 +1473,10 @@ gputop_perf_initialize(void)
     } else
 	assert(0);
 
-    return gputop_enumerate_queries_via_sysfs();
+    if (gputop_fake_mode)
+        return gputop_enumerate_queries_fake();
+    else
+        return gputop_enumerate_queries_via_sysfs();
 }
 
 static void

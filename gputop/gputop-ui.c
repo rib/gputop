@@ -86,7 +86,7 @@ static int real_stdin;
 static int real_stdout;
 static int real_stderr;
 
-static uv_timer_t timer;
+static uv_timer_t timer, fake_timer;
 static uv_poll_t input_poll;
 static uv_idle_t redraw_idle;
 
@@ -1063,7 +1063,7 @@ redraw_ui(void)
     int i;
 
 #ifdef SUPPORT_GL
-    if (gputop_gl_has_intel_performance_query_ext && !added_gl_tabs) {
+    if (gputop_gl_has_intel_performance_query_ext && !added_gl_tabs && !gputop_fake_mode) {
 	struct tab *switch_to_tab = NULL;
 
 	pthread_rwlock_rdlock(&gputop_gl_lock);
@@ -1329,6 +1329,12 @@ init_ncurses(FILE *infile, FILE *outfile)
     init_pair(GPUTOP_BAR_BAD_COLOR, COLOR_RED, COLOR_BLACK);
 }
 
+static void
+exit_fake_mode_cb(uv_timer_t *timer)
+{
+    exit(0);
+}
+
 void *
 gputop_ui_run(void *arg)
 {
@@ -1411,13 +1417,18 @@ gputop_ui_run(void *arg)
 	current_tab->enter(current_tab);
     }
 
+    if (gputop_fake_mode && gputop_get_bool_env("GPUTOP_TRAVIS_MODE")) {
+        uv_timer_init(gputop_ui_loop, &fake_timer);
+        uv_timer_start(&fake_timer, exit_fake_mode_cb, 5000, 5000);
+    }
+
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
 
     gputop_perf_free();
-
     gputop_list_for_each_safe(tab, tmp, &tabs, link) {
         free (tab);
     }
+
 
     return 0;
 }
