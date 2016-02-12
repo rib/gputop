@@ -6,28 +6,8 @@ var http = require("http"),
     open = require("open"),
     ProtoBuf = require("protobufjs");
 
-// Copy dependencies to "www/" (example specific, you usually don't have to care
-var deps = [
-    ["Long.min.js", "./node_modules/protobufjs/node_modules/bytebuffer/node_modules/long/dist/Long.min.js"],
-    ["ByteBufferAB.min.js", "./node_modules/protobufjs/node_modules/bytebuffer/dist/ByteBufferAB.min.js"],
-    ["ProtoBuf.min.js", "./node_modules/protobufjs/dist/ProtoBuf.min.js"]
-];
-for (var i=0, dep, data; i<deps.length; i++) {
-    dep = deps[i];
-    if (!fs.existsSync(path.join(__dirname, "www", dep[0]))) {
-        console.log("Copying "+dep[0]+" from "+dep[1]);
-        try {
-            fs.writeFileSync(path.join(__dirname, "www", dep[0]), fs.readFileSync(path.join(__dirname, dep[1])));
-        } catch (err) {
-            console.log("Copying failed: "+err.message);
-            console.log("\nDid you run `npm install` ?");
-            process.exit(1);
-        }
-    }
-}
-
 // Initialize from .proto file
-var builder = ProtoBuf.loadProtoFile(path.join(__dirname, "www", "proto/gputop.proto")),
+var builder = ProtoBuf.loadProtoFile(path.join(__dirname, "gputop.proto")),
 
 LogEntry = builder.build("gputop.LogEntry");
 
@@ -51,7 +31,7 @@ var server = http.createServer(function(req, res) {
             }
         }
         if (file) {
-            fs.readFile(path.join(__dirname, "www", file), function(err, data) {
+            fs.readFile(path.join(__dirname, file), function(err, data) {
                 if (err) {
                     res.writeHead(500, {"Content-Type": type});
                     res.end("Internal Server Error: "+err);
@@ -60,7 +40,7 @@ var server = http.createServer(function(req, res) {
                     res.writeHead(200, {"Content-Type": type});
                     res.write(data);
                     res.end();
-                    console.log("Served www/"+file);
+                    console.log("Served "+file);
                 }
             });
         } else {

@@ -1037,7 +1037,10 @@ bool gputop_server_run(void)
     h2o_create_handler(pathconf, sizeof(h2o_handler_t))->on_req = on_req;
 
     root = h2o_config_register_path(hostconf, "/");
-    h2o_file_register(root, GPUTOP_WEB_ROOT, NULL, NULL, 0);
+    if (gputop_get_bool_env("GPUTOP_WEB2"))
+        h2o_file_register(root, GPUTOP_WEB2_ROOT, NULL, NULL, 0);
+    else
+        h2o_file_register(root, GPUTOP_WEB_ROOT, NULL, NULL, 0);
 
     cache_control = h2o_iovec_init(H2O_STRLIT("Cache-Control"));
     uncache_cmd[0].cmd = H2O_HEADERS_CMD_APPEND;

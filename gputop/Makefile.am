@@ -64,6 +64,7 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/web\" \
+    -DGPUTOP_WEB2_ROOT=\"$(datadir)/web2\" \
     -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\"
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
@@ -73,6 +74,12 @@ libgputop_la_LIBADD = \
     -ldl \
     -lm \
     -lrt
+
+oa_xml_files = \
+    oa-hsw.xml \
+    oa-bdw.xml \
+    oa-chv.xml \
+    oa-skl.xml
 
 if SUPPORT_WEBUI
 libgputop_la_SOURCES += \
@@ -88,9 +95,14 @@ libgputop_la_LIBADD += \
     $(PROTOBUF_DEP_LIBS) \
     -lssl -lcrypto -lyaml
 
-protodir = $(datadir)/web
-nobase_dist_proto_DATA = \
+webdir = $(datadir)/web
+nobase_dist_web_DATA = \
     gputop.proto
+
+web2dir = $(datadir)/web2
+nobase_dist_web2_DATA = \
+    gputop.proto \
+    $(oa_xml_files)
 endif
 
 if SUPPORT_GL

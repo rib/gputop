@@ -228,7 +228,7 @@ forward_query_update(struct gputop_worker_query *query)
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
                 u53_check = read_uint64_oa_counter(oa_query, counter, oa_query->accumulator);
                 if (u53_check > JS_MAX_SAFE_INTEGER) {
-                    //gputop_web_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
+                    gputop_web_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
                     u53_check = JS_MAX_SAFE_INTEGER;
                 }
                 d_value = u53_check;

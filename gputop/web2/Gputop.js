@@ -12,12 +12,12 @@ Object.size = function(obj) {
 //------------------------------ Protobuffer Init ----------------------------
 
 if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-    throw(new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
+    throw(new Error("ProtoBuf.js is not present."));
 }
 // Initialize ProtoBuf.js
 var ProtoBuf = dcodeIO.ProtoBuf;
 
-var proto_builder = ProtoBuf.loadProtoFile("./proto/gputop.proto");
+var proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
 
 //----------------------------- COUNTER --------------------------------------
 function Counter () {
@@ -276,7 +276,7 @@ Gputop.prototype.load_xml_metrics = function(xml) {
 Gputop.prototype.load_oa_queries = function(architecture) {
     this.config_.architecture = architecture;
     // read counters from xml file and populate the website
-    gputop.xml_file_name_ = "xml/oa-"+ architecture +".xml";
+    gputop.xml_file_name_ = "oa-"+ architecture +".xml";
     $.get(gputop.xml_file_name_, this.load_xml_metrics);
 }
 
