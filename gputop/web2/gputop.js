@@ -542,8 +542,8 @@ Gputop.prototype.dispose = function() {
 }
 
 Gputop.prototype.get_socket = function(websocket_url) {
-    var socket = new WebSocket( websocket_url);
-    socket.binaryType = "arraybuffer"; // We are talking binary
+    var socket = new WebSocket(websocket_url, "binary");
+    socket.binaryType = "arraybuffer";
 
     socket.onopen = function() {
         gputop_ui.syslog("Connected");
