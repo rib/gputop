@@ -273,6 +273,7 @@ main (int argc, char **argv)
          * system wide metrics. */
         args = gputop_system_args;
         optind = 0;
+        argc = 1;
     }
 
     if (!disable_ioctl)
