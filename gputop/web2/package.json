@@ -15,10 +15,6 @@
         "jquery-ui": "^1.9.1",
         "jquery-flot": "^0.8.3"
     },
-    "devDependencies": {
-        "ws": "^1.0.1",
-        "open": "^0.0.5"
-    },
     "engines": {
         "node": ">=0.8.0"
     }
