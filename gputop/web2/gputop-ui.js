@@ -1,6 +1,6 @@
-//@ sourceURL=Gputop_ui.js
+//@ sourceURL=gputop-ui.js
 
-function Gputop_ui () {
+function GputopUI () {
     this.graph_array = [];
     this.graph_options = {
         grid: {
@@ -52,11 +52,11 @@ function Gputop_ui () {
 
 }
 
-Gputop_ui.prototype.update_slider_period = function(period_) {
+GputopUI.prototype.update_slider_period = function(period_) {
     $( '#speed_slider' ).slider('setValue', period_);
 }
 
-Gputop_ui.prototype.display_graph = function(timestamp) {
+GputopUI.prototype.display_graph = function(timestamp) {
     for (var i = 0; i < this.graph_array.length; ++i) {
         var container = "#" + this.graph_array[i];
         var counter = $(container).data();
@@ -100,7 +100,7 @@ Gputop_ui.prototype.display_graph = function(timestamp) {
 }
 
 
-Gputop_ui.prototype.display_counter = function(counter) {
+GputopUI.prototype.display_counter = function(counter) {
     if (counter.invalidate_ == false)
         return;
 
@@ -128,12 +128,12 @@ Gputop_ui.prototype.display_counter = function(counter) {
     }
 }
 
-Gputop_ui.prototype.render_bars = function() {
+GputopUI.prototype.render_bars = function() {
     window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
     // add support for render graphs as well
 }
 
-Gputop_ui.prototype.window_render_animation_bars = function(timestamp) {
+GputopUI.prototype.window_render_animation_bars = function(timestamp) {
     var metric = gputop.query_active_;
     if (metric == undefined)
         return;
@@ -148,11 +148,11 @@ Gputop_ui.prototype.window_render_animation_bars = function(timestamp) {
     }
 }
 
-Gputop_ui.prototype.metric_not_supported = function(metric) {
+GputopUI.prototype.metric_not_supported = function(metric) {
     alert(" Metric not supported " + metric.title_)
 }
 
-Gputop_ui.prototype.display_features = function(features) {
+GputopUI.prototype.display_features = function(features) {
     if (features.devinfo.get_devid() == 0 ) {
         gputop_ui.show_alert(" No device was detected, is it the functionality on kernel ? ","alert-danger");
     }
@@ -176,7 +176,7 @@ Gputop_ui.prototype.display_features = function(features) {
 }
 
 // types of alerts: alert-success alert-info alert-warning alert-danger
-Gputop_ui.prototype.show_alert = function(message,alerttype){
+GputopUI.prototype.show_alert = function(message,alerttype){
 
     var dimiss_time = 5000;
     if (alerttype == "alert-success") dimiss_time = 2500; else
@@ -190,7 +190,7 @@ Gputop_ui.prototype.show_alert = function(message,alerttype){
         }, dimiss_time);
 }
 
-Gputop_ui.prototype.log = function(log_level, log_message){
+GputopUI.prototype.log = function(log_level, log_message){
     var color = "red";
     switch(log_level) {
         case 0: color = "orange"; break;
@@ -202,31 +202,31 @@ Gputop_ui.prototype.log = function(log_level, log_message){
     $('#editor').append("<font color='"+color+"'>"+log_message+"<br/></font>");
 }
 
-Gputop_ui.prototype.syslog = function(message){
+GputopUI.prototype.syslog = function(message){
     log.value += message + "\n";
 }
 
-Gputop_ui.prototype.weblog = function(message){
+GputopUI.prototype.weblog = function(message){
     //log.value += message + "\n";
 }
 
-Gputop_ui.prototype.init_interface = function(){
+GputopUI.prototype.init_interface = function(){
     $( "#gputop-overview-panel" ).load( "ajax/overview.html", function() {
         console.log('gputop-overview-panel load');
         gputop.connect();
     });
 }
 
-Gputop_ui.prototype.load_metrics_panel = function(callback_success) {
+GputopUI.prototype.load_metrics_panel = function(callback_success) {
     $( '#pane2' ).load( "ajax/metrics.html", function() {
         console.log('Metrics panel loaded');
         callback_success();
     });
 }
 
-var gputop_ui = new Gputop_ui();
+var gputop_ui = new GputopUI();
 
-Gputop_ui.prototype.btn_close_current_query = function() {
+GputopUI.prototype.btn_close_current_query = function() {
     var active_query = gputop.query_active_;
     if (active_query==undefined) {
         gputop_ui.show_alert(" No Active Query","alert-info");

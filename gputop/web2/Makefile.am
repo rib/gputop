@@ -24,8 +24,8 @@ nobase_dist_web_DATA = \
 	gputop-web-v2.js \
 	gputop-web-v2.js.map \
 	index.html \
-	Gputop.js \
-	Gputop_ui.js \
+	gputop.js \
+	gputop-ui.js \
 	css/gputop.css \
 	css/custom.css \
 	css/slider.css \
