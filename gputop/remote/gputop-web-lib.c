@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <gputop-web.h>
+#include "gputop-web-lib.h"
 
 void
 gputop_web_console_log(const char *format, ...)

@@ -10,7 +10,7 @@ endif
 SUBDIRS += .
 
 if SUPPORT_WEBUI
-SUBDIRS += web web2 nodejs
+SUBDIRS += remote nodejs
 endif
 
 bin_PROGRAMS = gputop gputop-system
@@ -63,8 +63,7 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
-    -DGPUTOP_WEB_ROOT=\"$(datadir)/web\" \
-    -DGPUTOP_WEB2_ROOT=\"$(datadir)/web2\" \
+    -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
     -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\"
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
@@ -95,12 +94,8 @@ libgputop_la_LIBADD += \
     $(PROTOBUF_DEP_LIBS) \
     -lssl -lcrypto -lyaml
 
-webdir = $(datadir)/web
-nobase_dist_web_DATA = \
-    gputop.proto
-
-web2dir = $(datadir)/web2
-nobase_dist_web2_DATA = \
+remotedir = $(datadir)/remote
+nobase_dist_remote_DATA = \
     gputop.proto \
     $(oa_xml_files)
 endif

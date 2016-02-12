@@ -36,9 +36,10 @@
 #include <intel_chipset.h>
 #include <i915_oa_drm.h>
 
-#include "gputop-web.h"
 #include <gputop-string.h>
 #include <gputop-oa-counters.h>
+
+#include "gputop-web-lib.h"
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"

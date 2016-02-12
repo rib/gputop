@@ -467,7 +467,7 @@ Gputop.prototype.get_websocket_url = function() {
 
 /* Native compiled Javascript from emscripten to process the counters data */
 Gputop.prototype.get_gputop_native_js = function() {
-    return 'http://'+this.get_server_url()+'/gputop-web-v2.js';
+    return 'http://'+this.get_server_url()+'/gputop-web.js';
 }
 
 Gputop.prototype.generate_uuid = function()

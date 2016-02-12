@@ -19,10 +19,10 @@ third_party_files = \
 	bootstrap/fonts/glyphicons-halflings-regular.woff2 \
 	bootstrap/fonts/glyphicons-halflings-regular.svg
 
-webdir = $(datadir)/web2
-nobase_dist_web_DATA = \	
-	gputop-web-v2.js \
-	gputop-web-v2.js.map \
+remotedir = $(datadir)/remote
+nobase_dist_remote_DATA = \
+	gputop-web.js \
+	gputop-web.js.map \
 	index.html \
 	gputop.js \
 	gputop-ui.js \
@@ -35,7 +35,7 @@ nobase_dist_web_DATA = \
 	assets/gputop_logo_44.png \
 	$(third_party_files)
 
-BUILT_SOURCE = gputop-web-v2.js node_modules
+BUILT_SOURCE = gputop-web.js node_modules
 
 node_modules: $(srcdir)/package.json
 	npm install
@@ -46,10 +46,10 @@ bootstrap% %.js: | node_modules ;
 # we have a plain GNU Makefile that we proxy too instead...
 EMCC_PROXY_MAKEFLAGS=-f $(srcdir)/Makefile.emscripten $(AM_MAKEFLAGS) top_srcdir=$(top_srcdir)
 
-gputop-web-v2.js.map:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web-v2.js.map
-gputop-web-v2.js:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web-v2.js
+gputop-web.js.map:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
+gputop-web.js:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
 	
 all-local: | node_modules
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all

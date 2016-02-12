@@ -23,4 +23,4 @@
  */
 
 _gputop_webworker_init();
-console.log("Web v2 init");
+console.log("GPU Top Emscripten blob init");

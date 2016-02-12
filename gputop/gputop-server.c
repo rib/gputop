@@ -1040,12 +1040,8 @@ bool gputop_server_run(void)
     root = h2o_config_register_path(hostconf, "/");
 
     web_root = getenv("GPUTOP_WEB_ROOT");
-    if (!web_root) {
-        if (gputop_get_bool_env("GPUTOP_WEB2"))
-            web_root = GPUTOP_WEB2_ROOT;
-        else
+    if (!web_root)
             web_root = GPUTOP_WEB_ROOT;
-    }
 
     h2o_file_register(root, web_root, NULL, NULL, 0);
 

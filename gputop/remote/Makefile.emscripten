@@ -8,7 +8,7 @@ CC=emcc
 top_srcdir=../..
 gputop_srcdir=$(top_srcdir)/gputop
 gputop_builddir=$(top_builddir)/gputop
-web_srcdir=$(gputop_srcdir)/web2
+web_srcdir=$(gputop_srcdir)/remote
 protobuf_c_srcdir=$(top_srcdir)/protobuf-c
 top_builddir=../..
 builddir=.
@@ -28,12 +28,12 @@ _BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) 
 _JSFLAGS=$(JSFLAGS)
 
 
-gputop_web_SOURCE=gputop-web.c gputop-string.c gputop-hash-table.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web-v2.c gputop-oa-counters.c
+gputop_web_SOURCE=gputop-web-lib.c gputop-string.c gputop-hash-table.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web.c gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
 
-all:: gputop-web-v2.bc gputop-web-v2.js
+all:: gputop-web.bc gputop-web.js
 
-gputop-web-v2.bc: $(gputop_web_OBJECTS)
+gputop-web.bc: $(gputop_web_OBJECTS)
 
 %.o: %.c Makefile.emscripten | dirs
 	$(E)echo "(CC)     $(@)"
@@ -50,8 +50,8 @@ gputop-web-v2.bc: $(gputop_web_OBJECTS)
 %.js: %.bc | dirs
 	$(CC) $(_JSFLAGS) -o $@ $^
 
-gputop-web-v2.js gputop-web-v2.js.map: gputop-web-v2.bc gputop-web-lib-v2.js | dirs
-	$(CC) $(_JSFLAGS) --post-js $(web_srcdir)/gputop-web-v2-post.js --js-library $(web_srcdir)/gputop-web-lib-v2.js -o $@ gputop-web-v2.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0
+gputop-web.js gputop-web.js.map: gputop-web.bc gputop-web-lib.js | dirs
+	$(CC) $(_JSFLAGS) --post-js $(web_srcdir)/gputop-web-post.js --js-library $(web_srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0
 
 -include .deps/*.rules
 
@@ -60,7 +60,7 @@ dirs:
 
 clean:
 	-rm -f *.o *.bc *.js.map
-	-rm -f gputop-web-v2.js
+	-rm -f gputop-web.js
 
 distclean:
 	-rm -rf .deps
