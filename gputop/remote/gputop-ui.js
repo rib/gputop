@@ -51,7 +51,6 @@ function GputopUI () {
         },
         xaxis: {
             show: true,
-            //ticks: 5,
             min: 0,
             max: 1000
         },
@@ -71,8 +70,8 @@ function GputopUI () {
         color: "#6666ff"
     }];
 
-    this.start_timestamp = null;
-    this.start_gpu_timestamp = null;
+    this.start_timestamp = 0;
+    this.start_gpu_timestamp = 0;
 
 }
 
@@ -83,18 +82,20 @@ GputopUI.prototype.update_slider_period = function(period_) {
 GputopUI.prototype.display_graph = function(timestamp) {
     for (var i = 0; i < this.graph_array.length; ++i) {
         var container = "#" + this.graph_array[i];
-        var counter = $(container).data();
+        var counter = $(container).data("counter");
 
         var length = counter.updates.length;
         var x_min = 0;
         var x_max = 1;
-        if (!this.start_timestamp) {
+
+        if (!this.start_timestamp && length > 0) {
             this.start_timestamp = timestamp;
-            this.start_gpu_timestamp = counter.updates[length - 1][1]; // end_timestamp
+            this.start_gpu_timestamp = counter.updates[length - 1][0]; // end_timestamp
         }
 
-        var elapsed = timestamp - this.start_timestamp;
-        x_max = this.start_gpu_timestamp + elapsed * 1000000;
+        var elapsed = (timestamp - this.start_timestamp) * 1000000; // elapsed time from the very begining
+
+        x_max = this.start_gpu_timestamp + elapsed;
         x_min = x_max - 10000000000; // 10 seconds time interval
 
         // remove the older than 10 seconds samples from the graph data
@@ -103,13 +104,20 @@ GputopUI.prototype.display_graph = function(timestamp) {
         if (j > 0)
             counter.graph_data = counter.graph_data.slice(j);
 
-        var save_index = 0;
+        var save_index = -1;
         for (var j = 0; j < length; j++) {
             var start = counter.updates[j][0];
             var end = counter.updates[j][1];
             var val = counter.updates[j][2]; // value
             counter.graph_data.push([start / 100000, val]);
             save_index = j;
+        }
+
+        // resync the timestamps (the javascript timestamp with the counter timestamp)
+        if (elapsed > 5000000000 && save_index > -1)
+        {
+            this.start_timestamp = timestamp;
+            this.start_gpu_timestamp = counter.updates[save_index][0];
         }
 
         // adjust the min and max (start and end of the graph)
