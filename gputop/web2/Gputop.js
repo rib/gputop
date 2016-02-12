@@ -566,13 +566,13 @@ Gputop.prototype.get_socket = function(websocket_url) {
 
     socket.onmessage = function(evt) {
         try {
-            var msg_type = new Uint8Array(evt.data, 0);
+            var dv = new DataView(evt.data, 0);
+            var msg_type = dv.getUint8(0);
             var data = new Uint8Array(evt.data, 8);
 
-            switch(msg_type[0]) {
+            switch(msg_type) {
                 case 1: /* WS_MESSAGE_PERF */
-                    var id = new Uint16Array(evt.data, 4, 1);
-                    // Included in webworker
+                    var id = dv.getUint16(4, true /* little endian */);
                     //handle_perf_message(id, data);
                 break;
                 case 2: /* WS_MESSAGE_PROTOBUF */
@@ -628,11 +628,11 @@ Gputop.prototype.get_socket = function(websocket_url) {
 
                 break;
                 case 3: /* WS_MESSAGE_I915_PERF */
-                    var id = new Uint16Array(evt.data, 4, 1);
+                    var id = dv.getUint16(4, true /* little endian */);
                     var dataPtr = Module._malloc(data.length);
                     var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
                     dataHeap.set(data);
-                    _handle_i915_perf_message(id[0], dataHeap.byteOffset, data.length);
+                    _handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
                     Module._free(dataHeap.byteOffset);
                 break;
             }

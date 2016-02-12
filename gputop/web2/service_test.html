@@ -79,12 +79,14 @@ function handle_perf_message(id, data) {
             
 socket.onmessage = function(evt) {
     try {
-        var msg_type = new Uint8Array(evt.data, 0);                       
+        var dv = new DataView(evt.data);
+        var msg_type = dv.getUint8(0);
+
         var data = new Uint8Array(evt.data, 8);
         
-        switch(msg_type[0]) {
+        switch(msg_type) {
             case 1: 
-                var id = new Uint16Array(evt.data, 4, 1);
+                var id = dv.getUint16(4, true /* little endian */);
                 handle_perf_message(id, data);
             break;        
             case 2: /* WS_MESSAGE_PROTOBUF */     
