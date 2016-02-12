@@ -1,1 +1,1 @@
-node_modules/jquery-ui/jquery-ui.js
+node_modules/jqueryui-browser/ui/jquery-ui.js

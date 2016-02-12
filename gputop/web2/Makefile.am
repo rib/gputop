@@ -28,7 +28,7 @@ nobase_dist_web_DATA = \
 	gputop-ui.js \
 	css/gputop.css \
 	css/custom.css \
-	css/slider.css \
+	css/bootstrap-slider.min.css \
 	ajax/metrics.html \
 	ajax/overview.html \
 	assets/gputop_logo.png \
