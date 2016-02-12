@@ -59,16 +59,16 @@ function Counter () {
     this.data_ = [];
     this.updates = [];
     this.graph_data = [];
+    this.record_data = false;
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
-     if (max != 0) {
-        var current_delta = 0;
+     if (this.record_data && max != 0) {
         var value = 100 * d_value / max;
 
         this.updates.push([start_timestamp, end_timestamp, value]);
 
-        if (this.updates.length > 1000) {
+        if (this.updates.length > 2000) {
             this.updates.shift();
         }
     }
@@ -83,9 +83,6 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
 
     this.last_value_ = d_value;
     this.invalidate_ = true;
-
-    //if (max != 0)
-    //    console.log(" NSamples " + n_samples + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value + "/" + max +" Data " + this.symbol_name);
 
     this.data_.push(delta, d_value, max);
 
@@ -383,10 +380,10 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     open.id = metric.oa_query_id_; // oa_query ID
     open.overwrite = false;   /* don't overwrite old samples */
     open.live_updates = true; /* send live updates */
-                         /* nanoseconds of aggregation
-				          * i.e. request updates from the worker
-				          * as values that have been aggregated
-				          * over this duration */
+                              /* nanoseconds of aggregation
+                               * i.e. request updates from the worker
+                               * as values that have been aggregated
+                               * over this duration */
 
     open.per_ctx_mode = metric.is_per_ctx_mode();
     open.oa_query = oa_query;
@@ -476,8 +473,8 @@ Gputop.prototype.generate_uuid = function()
      * http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
      */
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    	var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-    	return v.toString(16);
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
     });
 }
 
