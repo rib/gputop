@@ -50,3 +50,9 @@ Makefile.in
 *.la
 *.pyc
 *.dirstamp
+*.swo
+*~
+cscope.out
+cscope.in.out
+cscope.po.out
+tags
