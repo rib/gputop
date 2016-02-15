@@ -384,7 +384,26 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
 	    //str = strdup("SAMPLE\n");
 	    if (last) {
 		query->end_timestamp = timestamp;
-		gputop_oa_accumulate_reports(oa_query, last, report);
+
+		/* On GEN8+ when a context switch occurs, the hardware
+		 * generates a report to indicate that such an event
+		 * occurred. We therefore skip over the accumulation for
+		 * this report, and instead use it as the base for
+		 * subsequent accumulation calculations.
+		 *
+		 * TODO:(matt-auld)
+		 * This can be simplified once our kernel rebases with Sourab'
+		 * patches, in particular his work which exposes to user-space
+		 * a sample-source-field for OA reports. */
+		if (oa_query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+		    uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
+			OAREPORT_REASON_MASK;
+
+		    if (!(reason & OAREPORT_REASON_CTX_SWITCH))
+		      gputop_oa_accumulate_reports(oa_query, last, report);
+		} else {
+		    gputop_oa_accumulate_reports(oa_query, last, report);
+		}
 	    }
 
 	    last = report;
