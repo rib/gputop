@@ -51,7 +51,18 @@ html, body {
 
 #options_bar {
     margin-top: 50px;
+    margin-bottom: 10px
+}
+
+#flags_bar {
     margin-bottom: 50px
+}
+
+#flag_checkbox {
+    display: table-cell;
+    padding-left:10px;
+    padding-right:10px;
+    vertical-align: middle
 }
 
 #unsupp2orted_checkbox {
