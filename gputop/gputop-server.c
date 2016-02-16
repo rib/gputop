@@ -178,6 +178,9 @@ send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
     struct wslay_event_fragmented_msg msg;
     struct protobuf_msg_closure *closure;
 
+    if (!conn)
+        return;
+
     closure = xmalloc(sizeof(*closure));
     closure->current_offset = 0;
     closure->len = protobuf_c_message_get_packed_size(pb_message);
@@ -197,6 +200,7 @@ send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
 static void
 stream_closed_cb(struct gputop_perf_stream *stream)
 {
+    Gputop__Message message_ack = GPUTOP__MESSAGE__INIT;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__CloseNotify notify = GPUTOP__CLOSE_NOTIFY__INIT;
 
@@ -205,13 +209,13 @@ stream_closed_cb(struct gputop_perf_stream *stream)
      * ACK... */
     if (stream->user.data) {
 
-        message.reply_uuid = stream->user.data;
-        message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
-        message.ack = true;
+        message_ack.reply_uuid = stream->user.data;
+        message_ack.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+        message_ack.ack = true;
 
         dbg("CMD_ACK: %s\n", (char *)stream->user.data);
 
-        send_pb_message(h2o_conn, &message.base);
+        send_pb_message(h2o_conn, &message_ack.base);
 
         free(stream->user.data);
         stream->user.data = NULL;
@@ -905,6 +909,7 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
 
     if (arg == NULL) {
         //dbg("socket closed\n");
+        h2o_conn = NULL;
         close_all_streams();
         h2o_websocket_close(conn);
         return;
@@ -981,6 +986,8 @@ static void on_connect(uv_stream_t *server, int status)
 
     if (status != 0)
         return;
+
+    signal(SIGPIPE, SIG_IGN);
 
     conn = h2o_mem_alloc(sizeof(*conn));
     uv_tcp_init(server->loop, conn);
