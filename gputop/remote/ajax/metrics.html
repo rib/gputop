@@ -2,11 +2,6 @@
 <div id = "header-div">
     <h1 id="page-header-metrics">Metrics panel loading</h1>
 </div>
-<!--
-<div class="btn-group" role="group" aria-label="..." style = "padding-top: 23px; float: none">
-    <button type="button" class="btn btn-default" id = "switch_button">Switch to Live Tracing</button>
-</div>
--->
 
 <!-- Options bar -->
 <div class="well" id="options_bar" style="display: table">
@@ -127,10 +122,11 @@
 
         $("#tab_number_" + set_index).append(counter_bars);
 
-        $('#'+counter_bar_id).css("width", "100%");
-        $('#'+div_id).data(counter);
-        //counter.div_ = $('#'+div_id);
-        $('#' + flot_id).data(counter);
+        $('#' + counter_bar_id).css("width", "100%");
+        $('#' + div_id).data("counter", counter);
+        $('#' + flot_id).data("counter", counter);
+
+        counter.my_first_world_problem = true;
 
         if (!counter.supported_)
             $('#'+counter_bar_id).css("background-color", "#999999");
@@ -209,9 +205,7 @@
         {
             current_set = k;
             break;
-	}
-
-        //$(".glyphicon-collapse-down").hide();
+    }
 
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
@@ -233,10 +227,12 @@
                 ("glyphicon-collapse-down", "glyphicon-collapse-up");
 
             $glyphicon.attr("class", glyphicon_class);
-
             var id = $(e.target).find(".well");
-            //graph_start("#" + id.attr("id"));
-            gputop_ui.graph_array.push(id.attr("id"));
+            var counter_id = id.attr("id");
+            var container = "#" + counter_id;
+            var counter = $(container).data("counter");
+            counter.record_data = true;
+            gputop_ui.graph_array.push(counter_id);
         });
 
         $('.collapse').on('hidden.bs.collapse', function(e) {
@@ -245,9 +241,12 @@
                 ("glyphicon-collapse-up", "glyphicon-collapse-down");
 
             $glyphicon.attr("class", glyphicon_class);
-
             var id = $(e.target).find(".well");
             var index = gputop_ui.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
+            var container = "#" + gputop_ui.graph_array[index];
+            var counter = $(container).data("counter");
+            counter.record_data = false;
+            counter.graph_data = [];
             gputop_ui.graph_array.splice(index, 1); // remove element from the graph array
         })
 
@@ -263,20 +262,6 @@
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
     var i = 0;
     var k = 1;
-
-    $("#switch_button").on("click", function(){
-        if (toggle_mode == 1) {
-            $("#switch_button").text("Switch to Overview");
-            //$('.overview_bars, .progress_text').hide();
-            //$(".glyphicon-collapse-down").show(); // graph dropdown button
-        }
-        else {
-            $("#switch_button").text("Switch to Live Tracing");
-            //$('.overview_bars, .progress_text').show();
-            //$(".glyphicon-collapse-down").hide();
-        }
-        toggle_mode *= -1;
-    });
 
     $('#per_ctx_mode').click(function() {
         var $this = $(this);
@@ -359,12 +344,5 @@
                 $("#" + underscore_name + "_" + k).hide();
         }
     });
-/*
-    var graph_time = 0;
-    setInterval(function call_graph() {
-        graph_time += 200;
-        gputop_ui.display_graph(10000000 * graph_time)
-    }, 200);
-*/
 
 </script>
