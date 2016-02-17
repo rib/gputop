@@ -357,6 +357,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     struct gputop_perf_stream *stream;
     struct i915_perf_open_param param;
     int stream_fd = -1;
+    int oa_query_fd = drm_fd;
 
     if (!gputop_fake_mode) {
         uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
@@ -396,12 +397,21 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
 
             properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
             properties[p++] = ctx->id;
+
+            // N.B The file descriptor that was used to create the context,
+            // _must_ be same as the one we use to open the per-context query.
+            // Since in the kernel we lookup the intel_context based on the ctx
+            // id and the fd that was used to open the query, so if there is a
+            // mismatch between the file descriptors for the query and the
+            // context creation then the kernel will simply fail with the
+            // lookup.
+            oa_query_fd = ctx->fd;
         }
 
         param.properties = (uint64_t)properties;
         param.n_properties = p / 2;
 
-        stream_fd = perf_ioctl(drm_fd, I915_IOCTL_PERF_OPEN, &param);
+        stream_fd = perf_ioctl(oa_query_fd, I915_IOCTL_PERF_OPEN, &param);
         if (stream_fd == -1) {
             asprintf(error, "Error opening i915 perf OA event: %m\n");
             return NULL;
