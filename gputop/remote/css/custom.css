@@ -58,7 +58,7 @@ html, body {
     margin-bottom: 50px
 }
 
-#flag_checkbox {
+.checkbox {
     display: table-cell;
     padding-left:10px;
     padding-right:10px;
