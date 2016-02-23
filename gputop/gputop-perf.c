@@ -175,6 +175,17 @@ bool gputop_remove_ctx_handle(uint32_t ctx_id)
     return false;
 }
 
+struct ctx_handle *get_first_available_ctx(char **error)
+{
+    struct ctx_handle *ctx = NULL;
+
+    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+    if (!ctx)
+        asprintf(error, "Error unable to find a context\n");
+
+    return ctx;
+}
+
 struct ctx_handle *lookup_ctx_handle(uint32_t ctx_id)
 {
     struct ctx_handle *ctx = NULL;
