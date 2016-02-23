@@ -568,14 +568,14 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     struct gputop_perf_stream *stream;
     char *error = NULL;
     int buffer_size;
+    struct ctx_handle *ctx = NULL;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
+    message.reply_uuid = request->uuid;
+    message.ack = true;
 
     if (!gputop_perf_initialize()) {
-        message.reply_uuid = request->uuid;
-        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-        message.error = "Failed to initialize perf\n";
-        send_pb_message(conn, &message.base);
-        return;
+        asprintf(&error, "Failed to initialize perf\n");
+        goto query_err;
     }
     dbg("handle_open_i915_oa_query\n");
 
@@ -583,11 +583,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     if (entry != NULL) {
         perf_query = entry->data;
     } else {
-        message.reply_uuid = request->uuid;
-        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-        message.error = "Guid is not available\n";
-        send_pb_message(conn, &message.base);
-        return;
+        asprintf(&error, "Guid is not available\n");
+        goto query_err;
     }
 
     /* NB: Perf buffer size must be a power of two.
@@ -597,10 +594,20 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     else
         buffer_size = 16 * 1024 * 1024;
 
-    perf_query->per_ctx_mode = open_query->per_ctx_mode;
+    // TODO: (matt-auld)
+    // Currently we don't support selectable contexts, so we just use the
+    // first one which is avaivable to us. Though this would only really
+    // make sense if we could make the list of contexts visible to the user.
+    // Maybe later the per_ctx_mode could become the context handle...
+    if (open_query->per_ctx_mode) {
+        ctx = get_first_available_ctx(&error);
+        if (!ctx)
+            goto query_err;
+    }
 
     stream = gputop_open_i915_perf_oa_query(perf_query,
                                             oa_query_info->period_exponent,
+                                            ctx,
                                             buffer_size,
                                             NULL,
                                             open_query->overwrite,
@@ -619,19 +626,21 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         dbg("Failed to open perf query set=%s period=%d: %s\n",
             oa_query_info->guid, oa_query_info->period_exponent,
             error);
-
-        message.reply_uuid = request->uuid;
-        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-        message.error = error;
-        send_pb_message(conn, &message.base);
-        free(error);
-        return;
+        goto query_err;
     }
 
-    message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
-    message.ack = true;
     send_pb_message(conn, &message.base);
+
+    return;
+
+query_err:
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+    message.error = error;
+    send_pb_message(conn, &message.base);
+    free(error);
+
+    return;
 }
 
 static void

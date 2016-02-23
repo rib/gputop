@@ -360,6 +360,7 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
                                int period_exponent,
+                               struct ctx_handle *ctx,
                                size_t perf_buffer_size,
                                void (*ready_cb)(struct gputop_perf_stream *),
                                bool overwrite,
@@ -392,20 +393,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
         properties[p++] = DRM_I915_PERF_OA_EXPONENT_PROP;
         properties[p++] = period_exponent;
 
-        if (query->per_ctx_mode) {
-            struct ctx_handle *ctx;
-
-            // TODO: (matt-auld)
-            // Currently we don't support selectable contexts, so we just use the
-            // first one which is avaivable to us. Though this would only really
-            // make sense if we could make the list of contexts visible to the user.
-            // Maybe later the per_ctx_mode could become the context handle...
-            ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-            if (!ctx) {
-              asprintf(error, "Error unable to find a context\n");
-              return NULL;
-            }
-
+        if (ctx) {
             properties[p++] = DRM_I915_PERF_CTX_HANDLE_PROP;
             properties[p++] = ctx->id;
 
@@ -434,6 +422,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream->ref_count = 1;
     stream->query = query;
     stream->ready_cb = ready_cb;
+    stream->per_ctx_mode = ctx != NULL;
 
     stream->fd = stream_fd;
 
@@ -1226,7 +1215,7 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
                      * This can be simplified once our kernel rebases with Sourab'
                      * patches, in particular his work which exposes to user-space
                      * a sample-source-field for OA reports. */
-                    if (stream->query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+                    if (stream->per_ctx_mode && gputop_devinfo.gen >= 8) {
                         if (!(reason & OAREPORT_REASON_CTX_SWITCH))
                             gputop_perf_current_user->sample(stream, stream->oa.last, report);
                     } else {
