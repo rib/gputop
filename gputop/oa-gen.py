@@ -28,10 +28,101 @@ import sys
 symbol_to_perf_map = { 'RenderBasic' : '3D',
                        'ComputeBasic' : 'COMPUTE' }
 
+def generate_string_1(value):
+    if value == "FADD" or value == "UADD":
+        return "\n"
+    elif value == "FDIV" or value == "UDIV":
+        return "\n<mfrac>\n<mrow>"
+    elif value == "FMAX" or value == "UMAX":
+        return "\n<mtext>max ( </mtext>\n"
+    elif value == "FMUL" or value == "UMUL":
+        return "\n"
+    elif value == "FSUB" or value == "USUB":
+        return "\n"
+    elif value.isdigit():
+        return "\n<mn>"
+    else:
+        return "\n<maction actiontype='tooltip'><mi>"
+
+def generate_string_2(value):
+    if value == "FADD" or value == "UADD":
+        return "<mo>+</mo>\n"
+    elif value == "FDIV" or value == "UDIV":
+        return "\n</mrow>\n<mrow>\n"
+    elif value == "FMAX" or value == "UMAX":
+        return "<mtext> , </mtext>\n"
+    elif value == "FMUL" or value == "UMUL":
+        return "<mo>*</mo>\n"
+    elif value == "FSUB" or value == "USUB":
+        return "<mo>-</mo>\n"
+    elif value.isdigit():
+        return str(value)
+    else:
+        return str(value)
+
+def generate_string_3(value):
+    if value == "FADD" or value == "UADD":
+        return ""
+    elif value == "FDIV" or value == "UDIV":
+        return "</mrow>\n</mfrac>\n"
+    elif value == "FMAX" or value == "UMAX":
+        return "<mtext> ) </mtext>\n"
+    elif value == "FMUL" or value == "UMUL":
+        return ""
+    elif value == "FSUB" or value == "USUB":
+        return ""
+    elif value.isdigit():
+        return "</mn>\n"
+    else:
+        return "</mi><mtext>placeholder</mtext></maction>\n"
+
+class Node:
+    def __init__(self, val):
+            self.left = None
+            self.right = None
+            self.value = val
+
+operations = ["FADD", "UADD", "FDIV", "UDIV", "FMAX", "UMAX", "FMUL", "UMUL", "FSUB", "USUB"]
+
+class Tree:
+    def __init__(self):
+        self.stack = []
+
+    def getRoot(self):
+        return self.stack[-1]
+
+    def add_node(self, val):
+        a_node = Node(val)
+        if (val in operations):
+            a_node.right = self.stack[-1] #last element
+            a_node.left = self.stack[-2] #second last element
+            del self.stack[-1] # remove last element
+            del self.stack[-1] # remove second last element
+            self.stack.append(a_node)
+        else:
+            self.stack.append(a_node)
+
+    def pre_order(self, node):
+        if (node != None):
+            return "\n" + node.value + self.pre_order(node.left) + self.pre_order(node.right)
+        else:
+             return ""
+
+    def print_equation(self, node):
+        if (node != None):
+            str_1 = generate_string_1(node.value)
+            str_2 = generate_string_2(node.value)
+            str_3 = generate_string_3(node.value)
+            return str_1 + self.print_equation(node.left) + str_2 + self.print_equation(node.right) + str_3
+        else:
+            return ""
+
+
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
 c_file = None
+xml_equations = None
 _c_indent = 0
 
 def c(*args):
@@ -174,21 +265,33 @@ hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
 
 counter_vars = {}
 
+
 def output_rpn_equation_code(set, counter, equation, counter_vars):
     c("/* RPN equation: " + equation + " */")
     tokens = equation.split()
     stack = []
     tmp_id = 0
     tmp = None
+    mathml_tree = Tree()
+    prev_token = ""
 
     for token in tokens:
         stack.append(token)
+        if (token != "READ"):
+            if (prev_token == "A") or (prev_token == "B") or (prev_token == "C") or (prev_token == "GPU_TIME"):
+                token = prev_token + token
+                mathml_tree.add_node(token)
+            elif (token != "A") and (token != "B") and (token != "C") and (token != "GPU_TIME"):
+                mathml_tree.add_node(token)
+        prev_token = token;
+
         while stack and stack[-1] in ops:
             op = stack.pop()
             argc, callback = ops[op]
             args = []
             for i in range(0, argc):
                 operand = stack.pop()
+
                 if operand[0] == "$":
                     if operand in hw_vars:
                         operand = hw_vars[operand]
@@ -203,6 +306,10 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
 
             tmp = "tmp" + str(tmp_id - 1)
             stack.append(tmp)
+
+    xml_string = mathml_tree.print_equation(mathml_tree.getRoot())
+    if xml_equations:
+        counter.append(ET.fromstring("<mathml_equation>" + xml_string + "</mathml_equation>"))
 
     if len(stack) != 1:
         raise Exception("Spurious empty rpn code for " + set.get('name') + " :: " +
@@ -354,6 +461,7 @@ parser.add_argument("xml", help="XML description of metrics")
 parser.add_argument("--header", help="Header file to write")
 parser.add_argument("--code", help="C file to write")
 parser.add_argument("--chipset", help="Chipset to generate code for")
+parser.add_argument("--xml_eq", help="Filename output for equations xml")
 
 args = parser.parse_args()
 
@@ -366,6 +474,8 @@ if args.code:
     c_file = open(args.code, 'w')
 
 tree = ET.parse(args.xml)
+if args.xml_eq:
+    xml_equations = open(args.xml_eq, 'w')
 
 
 copyright = """/* Autogenerated file, DO NOT EDIT manually!
@@ -487,6 +597,9 @@ query->c_offset = query->b_offset + 8;
 
     c_outdent(3)
     c("}\n")
+
+if args.xml_eq:
+    tree.write(args.xml_eq)
 
 h("void gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo);\n")
 

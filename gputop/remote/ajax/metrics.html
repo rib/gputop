@@ -2,6 +2,8 @@
 <div id = "header-div">
     <h1 id="page-header-metrics">Metrics panel loading</h1>
 </div>
+<script type="text/javascript" src="MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/javascript" src="extensions/TeX/action.js"></script>
 
 <!-- Options bar -->
 <div class="well" id="options_bar" style="display: table">
@@ -27,11 +29,15 @@
 <div class="well" id="flags_bar" style="display: table">
 
 </div>
+<div id='myexpression'/>
 
 <!-- Main pannel with the counter metrics -->
-<div class = "tab-content" id = "counter_metrics"></div>
+<div class = "tab-content" id = "counter_metrics" style="width: 50%;"></div>
+<div class="well" id = "documentation" style = "min-width:400px; position:fixed; top: 370px; right: 2%">
+</div>
 
 <script>
+
     function buttonTogglePlay(){
         var iSelector = $("#toggle-query");
         if(iSelector.hasClass('glyphicon-pause')) {
@@ -67,8 +73,6 @@
             all_flags.push(flags[i]);
         }
 
-        //gputop_ui.syslog("Counter name: " + name);
-
         var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
         if (counter == undefined) {
             console.log(" Failed to load counter "+ set_index +" "+ counter_index);
@@ -92,7 +96,7 @@
             unsupported = "hide_unsupported";
         }
 
-        var counter_name = '<a href="#" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
+        var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
 
         var div_id = 'div_counter_'+set_index + '_' + counter_index;
         var counter_bar_id = 'div_bar_counter_'+set_index + '_' + counter_index;
@@ -103,14 +107,14 @@
         counter_bars = '\
         <div id = "' + current_set_map[current_set] + '_' + symbol_name + '"> \
             <div class = "metric_row ' + unsupported + '" id="' + div_id + '"> \
-                <div class = "counter_name">' + counter_name + '</div> \
+                <div class = "counter_name ' +  symbol_name + '">' + counter_name + '</div> \
                 <div class="progress"> \
                     <div id = "'+ counter_bar_id +'" class = "progress-bar progress-bar' + stripped_bar + ' active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left"></div> \
                 </div> \
                 <div class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</div> \
                 <div class = "live_trace_dropdown">&nbsp\
                     <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"> \
-                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon test123 glyphicon-collapse-down"></div> \
+                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon expand_graph glyphicon-collapse-down"></div> \
                     </a> \
                 </div> \
                 <div class = "handle glyphicon glyphicon-move"></div> \
@@ -222,7 +226,7 @@
         });
 
         $('.collapse').on('shown.bs.collapse', function(e) {
-            var $glyphicon = $(e.target).parent().find(".test123");
+            var $glyphicon = $(e.target).parent().find(".expand_graph");
             var glyphicon_class = $glyphicon.attr("class").replace
                 ("glyphicon-collapse-down", "glyphicon-collapse-up");
 
@@ -236,7 +240,7 @@
         });
 
         $('.collapse').on('hidden.bs.collapse', function(e) {
-            var $glyphicon = $(e.target).parent().find(".test123");
+            var $glyphicon = $(e.target).parent().find(".expand_graph");
             var glyphicon_class = $glyphicon.attr("class").replace
                 ("glyphicon-collapse-up", "glyphicon-collapse-down");
 
@@ -262,6 +266,7 @@
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
     var i = 0;
     var k = 1;
+    $('#documentation').hide(); // by default hide the equation container
 
     $('#per_ctx_mode').click(function() {
         var $this = $(this);
@@ -304,6 +309,28 @@
 
     // read counters from xml file and populate the website
     read_from_xml(gputop.get_metrics_xml());
+
+    // display the new equation
+    $('.equation').click(function() {
+        var metric = gputop.get_map_metric(global_guid);
+        var symbol = $(this).parent().attr("class").split(' ')[1]
+        var ctr = metric.find_counter_by_name(symbol);
+        $('#documentation').hide();
+        $('#documentation').html("<math display='block'><mstyle mathsize='1.3em' mathcolor='#002080' mathvariant='italic'>"
+            + (ctr.mathml_xml).prop('innerHTML') + "</mstyle></math>");
+
+        // First queue the mathjax processing, then queue the .show html,
+        // so that there will not be artifacts when changing equation
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub, "documentation"]);
+        MathJax.Hub.Queue(function () {
+            $('#documentation').show();
+        });
+    });
+
+    // this is to prevent jumping at the top of the page when clicking counters
+    $('.equation').click(function(e) {
+        e.preventDefault();
+    });
 
     // function that makes each counter pane draggable.
     $(function(){
