@@ -18,7 +18,8 @@
         "ws": "^1.0.1",
         "http": "^0.0.0",
         "string_decoder": "^0.10.31",
-        "pkill": "^1.0.0"
+        "pkill": "^1.0.0",
+        "mathjax": "^2.6.1"
     },
     "engines": {
         "node": ">=0.8.0"
