@@ -25,6 +25,11 @@
  * SOFTWARE.
  */
 
+var nodejs = false;
+if (typeof module !== 'undefined' && module.exports) {
+    nodejs = true;
+}
+
 Object.size = function(obj) {
     var size = 0, key;
     for (key in obj) {
@@ -34,12 +39,17 @@ Object.size = function(obj) {
 };
 
 //------------------------------ Protobuffer Init ----------------------------
+var ProtoBuf;
 
-if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-    throw(new Error("ProtoBuf.js is not present."));
+if (!nodejs) {
+    if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
+        throw(new Error("ProtoBuf.js is not present."));
+    }
+    // Initialize ProtoBuf.js
+    ProtoBuf = dcodeIO.ProtoBuf;
+} else {
+    ProtoBuf = require("protobufjs");
 }
-// Initialize ProtoBuf.js
-var ProtoBuf = dcodeIO.ProtoBuf;
 
 var proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
 
@@ -155,7 +165,7 @@ function Gputop () {
     this.is_connected_ = false;
     // Gputop generic configuration
     this.config_ = {
-        url_path: window.location.hostname,
+        url_path: nodejs ? "http://localhost" : window.location.hostname,
         uri_port: 7890,
         architecture: 'ukn'
     }
