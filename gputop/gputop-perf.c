@@ -361,7 +361,6 @@ struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
                                int period_exponent,
                                struct ctx_handle *ctx,
-                               size_t perf_buffer_size,
                                void (*ready_cb)(struct gputop_perf_stream *),
                                bool overwrite,
                                char **error)

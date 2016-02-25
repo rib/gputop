@@ -567,7 +567,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     struct gputop_hash_entry *entry = NULL;
     struct gputop_perf_stream *stream;
     char *error = NULL;
-    int buffer_size;
     struct ctx_handle *ctx = NULL;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     message.reply_uuid = request->uuid;
@@ -587,13 +586,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         goto query_err;
     }
 
-    /* NB: Perf buffer size must be a power of two.
-     * We don't need a large buffer if we're periodically forwarding data */
-    if (open_query->live_updates)
-        buffer_size = 128 * 1024;
-    else
-        buffer_size = 16 * 1024 * 1024;
-
     // TODO: (matt-auld)
     // Currently we don't support selectable contexts, so we just use the
     // first one which is avaivable to us. Though this would only really
@@ -608,7 +600,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     stream = gputop_open_i915_perf_oa_query(perf_query,
                                             oa_query_info->period_exponent,
                                             ctx,
-                                            buffer_size,
                                             NULL,
                                             open_query->overwrite,
                                             &error);
