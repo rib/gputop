@@ -213,8 +213,10 @@ overview_closed_cb(struct gputop_perf_stream *stream)
 static void
 i915_perf_oa_overview_close(void)
 {
-    if (!gputop_current_perf_stream)
+    if (!gputop_current_perf_stream) {
+        current_tab = NULL;
         return;
+    }
 
     gputop_perf_stream_close(gputop_current_perf_stream,
                              overview_closed_cb);
@@ -327,8 +329,10 @@ trace_closed_cb(struct gputop_perf_stream *stream)
 void
 gputop_i915_perf_oa_trace_close(void)
 {
-    if (!gputop_current_perf_stream)
+    if (!gputop_current_perf_stream) {
+        current_tab = NULL;
         return;
+    }
 
     gputop_perf_stream_close(gputop_current_perf_stream,
                              trace_closed_cb);
