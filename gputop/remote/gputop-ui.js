@@ -50,9 +50,7 @@ function GputopUI () {
             }
         },
         xaxis: {
-            show: true,
-            min: 0,
-            max: 1000
+            show: false,
         },
         yaxis: {
             min: 0,
@@ -122,7 +120,7 @@ GputopUI.prototype.display_graph = function(timestamp) {
 
         // adjust the min and max (start and end of the graph)
         this.graph_options.xaxis.min = (x_min / 100000);
-        this.graph_options.xaxis.max = (x_max / 100000) - (gputop.period * 1.5 / 100000);
+        this.graph_options.xaxis.max = (x_max / 100000) - 10000;
         this.series[0].data = counter.graph_data;
         $.plot(container, this.series, this.graph_options);
 
