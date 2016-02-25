@@ -103,7 +103,6 @@ struct gputop_perf_query
     const char *guid;
     struct gputop_perf_query_counter *counters;
     int n_counters;
-    bool per_ctx_mode;
 
     int perf_oa_metrics_set;
     int perf_oa_format;
@@ -261,6 +260,7 @@ struct gputop_perf_stream
     void (*on_close_cb)(struct gputop_perf_stream *stream);
     bool pending_close;
     bool closed;
+    bool per_ctx_mode;
 
 // fields used for fake data:
     uint64_t start_time;  // stream opening time
@@ -292,6 +292,7 @@ extern struct perf_oa_user *gputop_perf_current_user;
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
+struct ctx_handle *get_first_available_ctx(char **error);
 
 extern struct gputop_devinfo gputop_devinfo;
 
@@ -330,6 +331,7 @@ float read_float_oa_counter(const struct gputop_perf_query *query,
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
                                int period_exponent,
+                               struct ctx_handle *ctx,
                                size_t perf_buffer_size,
                                void (*ready_cb)(struct gputop_perf_stream *),
                                bool overwrite,

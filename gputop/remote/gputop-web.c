@@ -51,6 +51,7 @@ struct gputop_hash_table *queries;
 struct gputop_worker_query {
     int id;
     uint64_t aggregation_period;
+    bool per_ctx_mode;
 
     struct oa_clock {
 	uint64_t start;
@@ -395,7 +396,7 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
 		 * This can be simplified once our kernel rebases with Sourab'
 		 * patches, in particular his work which exposes to user-space
 		 * a sample-source-field for OA reports. */
-		if (oa_query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+		if (query->per_ctx_mode && gputop_devinfo.gen >= 8) {
 		    uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
 			OAREPORT_REASON_MASK;
 
@@ -491,12 +492,14 @@ gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_oa_query(uint32_t id,
 				  char *guid,
+				  bool per_ctx_mode,
 				  uint32_t aggregation_period)
 {
     struct gputop_worker_query *query = malloc(sizeof(*query));
     memset(query, 0, sizeof(*query));
     query->id = id;
     query->aggregation_period = aggregation_period;
+    query->per_ctx_mode = per_ctx_mode;
 
     struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);
 

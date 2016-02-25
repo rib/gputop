@@ -391,6 +391,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     _gputop_webworker_on_open_oa_query(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
+          open.per_ctx_mode,
           metric.period_
           ); //100000000
 

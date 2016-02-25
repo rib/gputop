@@ -154,6 +154,7 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
 {
     int period_exponent;
     char *error = NULL;
+    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -163,7 +164,16 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
     gputop_perf_current_user = &overview_user;
     gputop_current_perf_query = query;
 
-    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
+    // TODO: (matt-auld)
+    // Currently we don't support selectable contexts, so we just use the
+    // first one which is avaivable to us. Though this would only really
+    // make sense if we could make the list of contexts visible to the user.
+    // Maybe later the per_ctx_mode could become the context handle...
+    if (enable_per_ctx) {
+        ctx = get_first_available_ctx(&error);
+        if (!ctx)
+            goto query_err;
+    }
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -182,22 +192,26 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
     gputop_current_perf_stream =
         gputop_open_i915_perf_oa_query(gputop_current_perf_query,
                                        period_exponent,
+                                       ctx,
                                        32 * sysconf(_SC_PAGE_SIZE),
                                        gputop_perf_read_samples,
                                        false,
                                        &error);
 
-    if (!gputop_current_perf_stream) {
-        gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
-        free(error);
-
-        gputop_current_perf_query = NULL;
-        return false;
-    }
+    if (!gputop_current_perf_stream)
+        goto query_err;
 
     oa_counter_accumulator_clear(gputop_current_perf_stream);
 
     return true;
+
+query_err:
+    gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+    free(error);
+    gputop_current_perf_query = NULL;
+
+    return false;
+
 }
 
 static void
@@ -264,6 +278,7 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     uint64_t period_ns;
     uint64_t n_samples;
     char *error = NULL;
+    struct ctx_handle *ctx = NULL;
 
     assert(gputop_current_perf_query == NULL);
 
@@ -273,7 +288,16 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     gputop_perf_current_user = &trace_user;
     gputop_current_perf_query = query;
 
-    gputop_current_perf_query->per_ctx_mode = enable_per_ctx;
+    // TODO: (matt-auld)
+    // Currently we don't support selectable contexts, so we just use the
+    // first one which is avaivable to us. Though this would only really
+    // make sense if we could make the list of contexts visible to the user.
+    // Maybe later the per_ctx_mode could become the context handle...
+    if (enable_per_ctx) {
+        ctx = get_first_available_ctx(&error);
+        if (!ctx)
+            goto query_err;
+    }
 
     /* The timestamp for HSW+ increments every 80ns
      *
@@ -287,17 +311,13 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     gputop_current_perf_stream =
         gputop_open_i915_perf_oa_query(gputop_current_perf_query,
                                        period_exponent,
+                                       ctx,
                                        32 * sysconf(_SC_PAGE_SIZE),
                                        gputop_perf_read_samples,
                                        false,
                                        &error);
-    if (!gputop_current_perf_stream) {
-        gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
-        free(error);
-
-        gputop_current_perf_query = NULL;
-        return false;
-    }
+    if (!gputop_current_perf_stream)
+        goto query_err;
 
     period_ns = 80 * (2 << period_exponent);
     n_samples = (duration  * 1000000000.0) / period_ns;
@@ -310,6 +330,13 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     gputop_perf_trace_full = false;
 
     return true;
+
+query_err:
+    gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
+    free(error);
+    gputop_current_perf_query = NULL;
+
+    return false;
 }
 
 static void
