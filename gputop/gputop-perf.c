@@ -1492,7 +1492,7 @@ gputop_perf_initialize(void)
         return true;
     if (getenv("GPUTOP_FAKE_MODE") && strcmp(getenv("GPUTOP_FAKE_MODE"), "1") == 0) {
         gputop_fake_mode = true;
-        intel_dev.device = 0;
+        intel_dev.device = 5654;
     }
     else {
         drm_fd = open_render_node(&intel_dev);
@@ -1510,9 +1510,7 @@ gputop_perf_initialize(void)
                                        gputop_key_string_equal);
     perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
 
-    if (gputop_fake_mode) {
-        gputop_oa_add_queries_bdw(&gputop_devinfo);
-    } else if (IS_HASWELL(intel_dev.device)) {
+    if (IS_HASWELL(intel_dev.device)) {
         gputop_oa_add_queries_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
         gputop_oa_add_queries_bdw(&gputop_devinfo);

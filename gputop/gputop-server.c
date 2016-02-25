@@ -371,7 +371,6 @@ on_i915_perf_flush_done(const union wslay_event_msg_source *source, void *user_d
     struct i915_perf_flush_closure *closure =
         (struct i915_perf_flush_closure *)source->data;
 
-    //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
     closure->stream->user.flushing = false;
 
     if (closure->stream->pending_close)
