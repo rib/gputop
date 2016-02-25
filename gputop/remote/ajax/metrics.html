@@ -19,7 +19,7 @@
         <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b></label>
     </div>
     <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
-        <label><input type = "checkbox" id = "hide_metrics"><b>Hide unsupported</b></label>
+        <label><input type = "checkbox" id = "hide_metrics"><b>Show unsupported</b></label>
     </div>
 
 </div>
@@ -266,9 +266,9 @@
             {
                 $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].counters[i].underscore_name).show();
                 if ($("#hide_metrics").is(':checked')) {
-                    $(".hide_unsupported").hide();
-                } else {
                     $(".hide_unsupported").show();
+                } else {
+                    $(".hide_unsupported").hide();
                 }
             } else {
                 $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].counters[i].underscore_name).hide();
@@ -375,9 +375,9 @@
     $('#hide_metrics').click(function() {
         var $this = $(this);
         if ($this.is(':checked')) {
-            $(".hide_unsupported").hide();
-        } else {
             $(".hide_unsupported").show();
+        } else {
+            $(".hide_unsupported").hide();
         }
     });
 
