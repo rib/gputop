@@ -1325,12 +1325,12 @@ redraw_ui(void)
             gputop_list_for_each(q, &first_wctx->queries, link) {
                 struct tab *gl_tab = xmalloc0(sizeof(*gl_tab));
 
-                if (strlen(q->name) > TAB_TITLE_WIDTH) {
-                    asprintf(&gl_tab->nick, "%.*s...", TAB_TITLE_WIDTH - 5, q->name);
+                if (strlen(q->name) + 5 > TAB_TITLE_WIDTH) {
+                    asprintf(&gl_tab->nick, "GL: %.*s...", TAB_TITLE_WIDTH - 8, q->name);
                 } else
-                    gl_tab->nick = strdup(q->name);
+                    asprintf(&gl_tab->nick, "GL: %s", q->name);
 
-                gl_tab->name = q->name;
+                asprintf(&gl_tab->name, "GL: %s", q->name);
                 gl_tab->enter = gl_perf_query_tab_enter;
                 gl_tab->leave = gl_perf_query_tab_leave;
                 gl_tab->input = gl_perf_query_tab_input;
