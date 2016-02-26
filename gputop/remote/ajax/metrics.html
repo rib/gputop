@@ -289,6 +289,16 @@
         }
         draw_filter_checkboxes();
 
+        for (i = 0; i < set_array.length; i++)
+        {
+            set_array[i].checked_flags.splice(0, set_array[i].checked_flags.length);
+            set_array[i].checked_flags.push("Overview");
+            for (ii = 0; ii < set_array[i].flags.length; ii++)
+                $("#" + set_array[i].underscore_name + "_" + set_array[i].flags[ii]).prop('checked', false);
+            $("#" + set_array[i].underscore_name + "_Overview").prop('checked', true);
+        }
+        filter_counters();
+
         $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             e.target // newly activated tab
             e.relatedTarget // previous active tab
