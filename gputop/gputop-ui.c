@@ -1705,7 +1705,7 @@ gputop_ui_run(void *arg)
 
     if (gputop_fake_mode && gputop_get_bool_env("GPUTOP_TRAVIS_MODE")) {
         uv_timer_init(gputop_ui_loop, &fake_timer);
-        uv_timer_start(&fake_timer, exit_fake_mode_cb, 5000, 5000);
+        uv_timer_start(&fake_timer, exit_fake_mode_cb, 10000, 10000);
     }
 
     uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
