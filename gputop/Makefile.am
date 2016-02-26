@@ -76,9 +76,13 @@ libgputop_la_LIBADD = \
 
 oa_xml_files = \
     oa-hsw.xml \
+    hsw.xml \
     oa-bdw.xml \
+    bdw.xml \
     oa-chv.xml \
-    oa-skl.xml
+    chv.xml \
+    oa-skl.xml \
+    skl.xml
 
 if SUPPORT_WEBUI
 libgputop_la_SOURCES += \
@@ -162,25 +166,29 @@ oa-hsw.h oa-hsw.c: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-hsw.h \
 	    --code=$(builddir)/oa-hsw.c \
-	    --chipset="hsw" $(srcdir)/oa-hsw.xml
+	    --chipset="hsw" $(srcdir)/oa-hsw.xml \
+	    --xml_eq="hsw.xml"
 
 oa-bdw.h oa-bdw.c: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-bdw.h \
 	    --code=$(builddir)/oa-bdw.c \
-	    --chipset="bdw" $(srcdir)/oa-bdw.xml
+	    --chipset="bdw" $(srcdir)/oa-bdw.xml \
+	    --xml_eq="bdw.xml"
 
 oa-chv.h oa-chv.c: oa-chv.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-chv.h \
 	    --code=$(builddir)/oa-chv.c \
-	    --chipset="chv" $(srcdir)/oa-chv.xml
+	    --chipset="chv" $(srcdir)/oa-chv.xml \
+	    --xml_eq="chv.xml"
 
 oa-skl.h oa-skl.c: oa-skl.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-skl.h \
 	    --code=$(builddir)/oa-skl.c \
-	    --chipset="skl" $(srcdir)/oa-skl.xml
+	    --chipset="skl" $(srcdir)/oa-skl.xml \
+	    --xml_eq="skl.xml"
 
 %.pb-c.c %.pb-c.h: %.proto
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto

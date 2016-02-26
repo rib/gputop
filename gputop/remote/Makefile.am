@@ -5,6 +5,21 @@ third_party_files = \
 	jquery.min.js \
 	jquery-ui.js \
 	jquery.flot.js \
+	MathJax/MathJax.js \
+	MathJax/extensions/TeX/action.js \
+	MathJax/jax/output/HTML-CSS/jax.js \
+	MathJax/jax/output/HTML-CSS/fonts/TeX/fontdata.js \
+	MathJax/jax/output/HTML-CSS/autoload/maction.js \
+	MathJax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Regular.woff \
+	MathJax/fonts/HTML-CSS/TeX/woff/MathJax_Math-Italic.woff \
+	MathJax/fonts/HTML-CSS/TeX/woff/MathJax_Size1-Regular.woff \
+	MathJax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf \
+	MathJax/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf \
+	MathJax/fonts/HTML-CSS/TeX/otf/MathJax_Size1-Regular.otf \
+	MathJax/jax/output/HTML-CSS/imageFonts.js \
+	MathJax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Italic.woff \
+	MathJax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Italic.otf \
+	MathJax/config/TeX-AMS-MML_HTMLorMML.js \
 	bootstrap-wysiwyg.min.js \
 	bootstrap-slider.min.js \
 	bootstrap/css/bootstrap.min.css \
@@ -50,7 +65,7 @@ gputop-web.js.map:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
 gputop-web.js:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
-	
+
 all-local: | node_modules
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all
 #check-local:
