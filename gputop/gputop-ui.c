@@ -216,8 +216,6 @@ query_err:
 static void
 overview_closed_cb(struct gputop_perf_stream *stream)
 {
-    current_tab = NULL;
-
     gputop_perf_stream_unref(gputop_current_perf_stream);
     gputop_current_perf_stream = NULL;
     gputop_current_perf_query = NULL;
@@ -226,6 +224,8 @@ overview_closed_cb(struct gputop_perf_stream *stream)
 static void
 i915_perf_oa_overview_close(void)
 {
+    current_tab = NULL;
+
     if (!gputop_current_perf_stream)
         return;
 
@@ -340,8 +340,6 @@ query_err:
 static void
 trace_closed_cb(struct gputop_perf_stream *stream)
 {
-    current_tab = NULL;
-
     gputop_perf_stream_unref(gputop_current_perf_stream);
 
     free(gputop_perf_trace_buffer);
@@ -352,6 +350,8 @@ trace_closed_cb(struct gputop_perf_stream *stream)
 void
 gputop_i915_perf_oa_trace_close(void)
 {
+    current_tab = NULL;
+
     if (!gputop_current_perf_stream)
         return;
 
