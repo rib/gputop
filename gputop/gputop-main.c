@@ -60,7 +60,7 @@ usage(void)
 #endif
 #ifdef SUPPORT_WEBUI
     printf("     --remote                      Enable remote web-based interface\n\n");
-    printf("     --nodejs                      Enable remote nodejs-based interface\n\n");
+    printf("     --nodejs                      Enable remote nodejs-based tool\n\n");
 #endif
     printf(" -h, --help                        Display this help\n\n"
            "\n"
@@ -208,7 +208,7 @@ main (int argc, char **argv)
 #endif
 #ifdef SUPPORT_WEBUI
         {"remote",          no_argument,        0, REMOTE_OPT},
-        {"nodejs",          no_argument,        0, NODEJS_OPT},
+        {"nodejs",          optional_argument,  0, NODEJS_OPT},
 #endif
         {0, 0, 0, 0}
     };
@@ -258,6 +258,9 @@ main (int argc, char **argv)
                 break;
             case NODEJS_OPT:
                 setenv("GPUTOP_MODE", "nodejs", true);
+
+                if (optarg)
+                    setenv("GPUTOP_NODEJS_TOOL", optarg, true);
                 break;
 #endif
             default:

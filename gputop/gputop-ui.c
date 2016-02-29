@@ -1674,13 +1674,17 @@ gputop_ui_run(void *arg)
 
     } else if (nodejs_ui) {
         pid_t pid;
+        char *tool = getenv("GPUTOP_NODEJS_TOOL");
+
+        if (!tool)
+            tool = "features";
 
         gputop_server_run();
         pid = fork();
 
         if (pid != 0) {
             char *exec_args[] = { "node",
-                GPUTOP_NODEJS_ROOT "/gputop-nodejs-ui.js", NULL };
+                GPUTOP_NODEJS_ROOT "/gputop-nodejs-toolkit.js", tool, NULL };
             int i, err;
 
             unsetenv("LD_PRELOAD");
