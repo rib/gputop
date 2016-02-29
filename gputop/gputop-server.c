@@ -460,7 +460,7 @@ static void
 flush_stream_samples(struct gputop_perf_stream *stream)
 {
     if (stream->user.flushing) {
-        fprintf(stderr, "Throttling websocket forwarding");
+        fprintf(stderr, "Throttling websocket forwarding\n");
         return;
     }
 
