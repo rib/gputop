@@ -37,7 +37,8 @@ nobase_dist_remote_DATA = \
 
 nodejsdir = $(libdir)/nodejs/gputop
 nobase_dist_nodejs_DATA = \
-gputop-nodejs-ui.js
+gputop-nodejs-ui.js \
+gputop-nodejs-toolkit.js
 
 nodemodulesdir = $(libdir)/nodejs/gputop
 nobase_dist_nodemodules_DATA := \
