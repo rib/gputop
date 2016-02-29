@@ -1,4 +1,4 @@
-//@ sourceURL=Gputop.js
+//# sourceURL=Gputop.js
 // https://google.github.io/styleguide/javascriptguide.xml
 
 /*

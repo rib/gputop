@@ -1,4 +1,4 @@
-//@ sourceURL=gputop-ui.js
+//# sourceURL=gputop-ui.js
 
 /*
  * GPU Top
