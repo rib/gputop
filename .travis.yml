@@ -72,6 +72,9 @@ before_install:
     - export PKG_CONFIG_PATH="$TRAVIS_BUILD_DIR/protobuf/lib/pkgconfig"
     # Fetch glext.h header including INTEL_performance_query enums
     - $(mkdir GL && cd GL && wget https://raw.githubusercontent.com/rib/mesa/wip/rib/oa-next/include/GL/glext.h)
+    - "export DISPLAY=:99.0"
+    - "sh -e /etc/init.d/xvfb start"
+    - sleep 3
 
 before_script:
     - NOCONFIGURE=1 ./autogen.sh
@@ -81,3 +84,4 @@ script:
     - export GPUTOP_TRAVIS_MODE=1
     - cd $TRAVIS_BUILD_DIR/install/bin
     - ./gputop --fake ./gputop-system
+    - if [ "${CONFIG_OPTS/'enable-webui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake --remote ./gputop-system 2> travis_log& sleep 3; firefox http://localhost:7890& sleep 10; grep OpenQuery travis_log; cat travis_log; fi
