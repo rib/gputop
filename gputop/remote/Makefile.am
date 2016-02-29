@@ -42,7 +42,7 @@ gputop-nodejs-toolkit.js
 
 nodemodulesdir = $(libdir)/nodejs/gputop
 nobase_dist_nodemodules_DATA := \
-   $(shell find ./node_modules -type f)
+   $(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options} -type f -name '*.js' -o -name 'package.json')
 
 BUILT_SOURCE = gputop-web.js node_modules
 
