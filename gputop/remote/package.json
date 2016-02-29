@@ -1,5 +1,5 @@
 {
-    "name": "gputop-web2",
+    "name": "gputop",
     "description": "GPU Top",
     "repository": "https://github.com/rib/gputop",
     "version": "0.0.1",
@@ -13,7 +13,12 @@
         "long": "^3.0.3",
         "jquery": "^2.2.0",
         "jqueryui-browser": "^1.10.2-1",
-        "jquery-flot": "^0.8.3"
+        "jquery-flot": "^0.8.3",
+        "uuid": "^2.0.1",
+        "ws": "^1.0.1",
+        "http": "^0.0.0",
+        "string_decoder": "^0.10.31",
+        "pkill": "^1.0.0"
     },
     "engines": {
         "node": ">=0.8.0"

@@ -35,6 +35,14 @@ nobase_dist_remote_DATA = \
 	assets/gputop_logo_44.png \
 	$(third_party_files)
 
+nodejsdir = $(libdir)/nodejs/gputop
+nobase_dist_nodejs_DATA = \
+gputop-nodejs-ui.js
+
+nodemodulesdir = $(libdir)/nodejs/gputop
+nobase_dist_nodemodules_DATA := \
+   $(shell find ./node_modules -type f)
+
 BUILT_SOURCE = gputop-web.js node_modules
 
 node_modules: $(srcdir)/package.json
@@ -50,7 +58,7 @@ gputop-web.js.map:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
 gputop-web.js:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
-	
+
 all-local: | node_modules
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all
 #check-local:

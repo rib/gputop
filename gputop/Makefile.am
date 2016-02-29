@@ -10,7 +10,7 @@ endif
 SUBDIRS += .
 
 if SUPPORT_WEBUI
-SUBDIRS += remote nodejs
+SUBDIRS += remote
 endif
 
 bin_PROGRAMS = gputop gputop-system
