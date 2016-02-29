@@ -183,7 +183,7 @@ GputopUI.prototype.metric_not_supported = function(metric) {
 }
 
 GputopUI.prototype.display_features = function(features) {
-    if (features.devinfo.get_devid() == 0 ) {
+    if (features.devinfo.get_devid() == 0 && !features.get_fake_mode()) {
         gputop_ui.show_alert(" No device was detected, is it the functionality on kernel ? ","alert-danger");
     }
 
