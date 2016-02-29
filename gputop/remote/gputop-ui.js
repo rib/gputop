@@ -194,11 +194,10 @@ GputopUI.prototype.display_features = function(features) {
     $( "#gputop-kernel-build" ).html( features.get_kernel_build() );
     $( "#gputop-kernel-release" ).html( features.get_kernel_release() );
     $( "#gputop-n-cpus" ).html( features.get_n_cpus() );
-    $( "#gputop-kernel-performance-query" ).html( features.get_has_gl_performance_query() );
-    $( "#gputop-kernel-performance-i915-oa" ).html( features.get_has_i915_oa() );
 
     $( "#gputop-n-eus" ).html( features.devinfo.get_n_eus().toInt() );
-    $( "#gputop-n-eus-slices" ).html( features.devinfo.get_n_eu_slices().toInt()  );
+    $( "#gputop-n-eu-slices" ).html( features.devinfo.get_n_eu_slices().toInt()  );
+    $( "#gputop-n-eu-sub-slices" ).html( features.devinfo.get_n_eu_sub_slices().toInt()  );
     $( "#gputop-n-eu-threads-count" ).html( features.devinfo.get_eu_threads_count().toInt()  );
 
     if (features.get_fake_mode())
