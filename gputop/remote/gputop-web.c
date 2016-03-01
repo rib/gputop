@@ -447,11 +447,12 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
 }
 
 static void EMSCRIPTEN_KEEPALIVE
-update_features(uint32_t devid, uint32_t n_eus, uint32_t n_eu_slices,
+update_features(uint32_t devid, uint32_t gen, uint32_t n_eus, uint32_t n_eu_slices,
                 uint32_t n_eu_sub_slices, uint32_t eu_threads_count,
                 uint32_t subslice_mask, uint32_t slice_mask) {
 
     devinfo.devid = devid;
+    devinfo.gen = gen;
     devinfo.n_eus = n_eus;
     devinfo.n_eu_slices = n_eu_slices;
     devinfo.n_eu_sub_slices = n_eu_sub_slices;

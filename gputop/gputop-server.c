@@ -843,6 +843,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     }
 
     devinfo.devid = gputop_devinfo.devid;
+    devinfo.gen = gputop_devinfo.gen;
     devinfo.n_eus = gputop_devinfo.n_eus;
     devinfo.n_eu_slices = gputop_devinfo.n_eu_slices;
     devinfo.n_eu_sub_slices = gputop_devinfo.n_eu_sub_slices;
@@ -878,6 +879,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     dbg("GPU:\n");
     dbg("  Device ID = 0x%x\n", devinfo.devid);
+    dbg("  Gen = %"PRIu32"\n", devinfo.gen);
     dbg("  EU Count = %"PRIu64"\n", devinfo.n_eus);
     dbg("  EU Slice Count = %"PRIu64"\n", devinfo.n_eu_slices);
     dbg("  EU Sub Slice Count = %"PRIu64"\n", devinfo.n_eu_sub_slices);
