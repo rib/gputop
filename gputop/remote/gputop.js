@@ -1,3 +1,5 @@
+"use strict";
+
 //# sourceURL=Gputop.js
 // https://google.github.io/styleguide/javascriptguide.xml
 
@@ -660,7 +662,7 @@ Gputop.prototype.get_socket = function(websocket_url) {
             }
         } catch (err) {
             console.log("Error: "+err);
-            log.value += "Error: "+err+"\n";
+            gputop_ui.log(0, "Error: "+err+"\n");
         }
     };
 

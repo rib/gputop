@@ -1,3 +1,5 @@
+"use strict";
+
 //# sourceURL=gputop-ui.js
 
 /*
@@ -280,11 +282,11 @@ GputopUI.prototype.log = function(log_level, log_message){
 }
 
 GputopUI.prototype.syslog = function(message){
-    log.value += message + "\n";
+    gputop_ui.syslog_.value += message + "\n";
 }
 
 GputopUI.prototype.weblog = function(message){
-    //log.value += message + "\n";
+    //gputop_ui.weblog.value += message + "\n";
 }
 
 GputopUI.prototype.init_interface = function(){
@@ -318,7 +320,7 @@ GputopUI.prototype.btn_close_current_query = function() {
 // jquery code
 $( document ).ready(function() {
     //log = $( "#log" );
-    log = document.getElementById("log");
+    gputop_ui.syslog_ = document.getElementById("log");
 
 /*
     $( "#gputop-entries" ).append( '<li><a id="close_query" href="#" onClick>Close Query</a></li>' );
