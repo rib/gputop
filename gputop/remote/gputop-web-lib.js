@@ -58,5 +58,4 @@ var LibraryGpuTopWeb = {
 
 };
 
-autoAddDeps(LibraryGpuTopWeb, '$GpuTopWeb');
 mergeInto(LibraryManager.library, LibraryGpuTopWeb);
