@@ -367,8 +367,10 @@
     var counter_index = 0;
 
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
-    var i = 0;
-    var k = 1;
+
+    /* FIXME: avoid having these global i + k variables */
+    //var i = 0;
+    //var k = 1;
     $('#documentation').hide(); // by default hide the equation container
 
     $('#per_ctx_mode').click(function() {
