@@ -255,6 +255,9 @@
 
     function filter_counters()
     {
+        if (selected_index < 0)
+            return;
+
         for (i = 0; i < set_array[selected_index].counters.length; i++)
         {
             var display = false;
