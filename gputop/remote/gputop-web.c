@@ -384,7 +384,16 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
 
             //str = strdup("SAMPLE\n");
             if (last) {
+                uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
+                        OAREPORT_REASON_MASK;
+
                 query->end_timestamp = timestamp;
+
+                if (devinfo.gen >= 8)
+                    if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
+                                    OAREPORT_REASON_TIMER)))
+                        gputop_web_console_log("i915_oa: Unknown OA sample reason value %"
+                                               PRIu32"\n", reason);
 
                 /* On GEN8+ when a context switch occurs, the hardware
                  * generates a report to indicate that such an event
@@ -397,9 +406,6 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
                  * patches, in particular his work which exposes to user-space
                  * a sample-source-field for OA reports. */
                 if (query->per_ctx_mode && devinfo.gen >= 8) {
-                    uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
-                        OAREPORT_REASON_MASK;
-
                     if (!(reason & OAREPORT_REASON_CTX_SWITCH))
                       gputop_oa_accumulate_reports(oa_query, last, report);
                 } else {
