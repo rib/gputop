@@ -326,12 +326,6 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     var metric = this.get_map_metric(guid);
 
-    // Check if the query is active to not try to open it again
-    if (metric.oa_query_id_ != undefined && metric.oa_query_id_ > 0) {
-        // Query is already open
-        gputop_ui.show_alert("Metric "+guid+" already active","alert-info");
-    }
-
     // Check if we have to close the old query before opening this one
     var active_metric = this.query_active_;
     if (active_metric != undefined) {
