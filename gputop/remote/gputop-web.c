@@ -396,7 +396,7 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
                  * This can be simplified once our kernel rebases with Sourab'
                  * patches, in particular his work which exposes to user-space
                  * a sample-source-field for OA reports. */
-                if (query->per_ctx_mode && gputop_devinfo.gen >= 8) {
+                if (query->per_ctx_mode && devinfo.gen >= 8) {
                     uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
                         OAREPORT_REASON_MASK;
 
