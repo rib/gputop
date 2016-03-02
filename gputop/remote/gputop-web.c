@@ -384,7 +384,16 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
 
             //str = strdup("SAMPLE\n");
             if (last) {
+                uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
+                        OAREPORT_REASON_MASK;
+
                 query->end_timestamp = timestamp;
+
+                if (devinfo.gen >= 8)
+                    if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
+                                    OAREPORT_REASON_TIMER)))
+                        gputop_web_console_log("i915_oa: Unknown OA sample reason value %"
+                                               PRIu32"\n", reason);
 
                 /* On GEN8+ when a context switch occurs, the hardware
                  * generates a report to indicate that such an event
@@ -396,10 +405,7 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query, uint8_t *data,
                  * This can be simplified once our kernel rebases with Sourab'
                  * patches, in particular his work which exposes to user-space
                  * a sample-source-field for OA reports. */
-                if (query->per_ctx_mode && gputop_devinfo.gen >= 8) {
-                    uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
-                        OAREPORT_REASON_MASK;
-
+                if (query->per_ctx_mode && devinfo.gen >= 8) {
                     if (!(reason & OAREPORT_REASON_CTX_SWITCH))
                       gputop_oa_accumulate_reports(oa_query, last, report);
                 } else {
@@ -447,11 +453,12 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
 }
 
 static void EMSCRIPTEN_KEEPALIVE
-update_features(uint32_t devid, uint32_t n_eus, uint32_t n_eu_slices,
+update_features(uint32_t devid, uint32_t gen, uint32_t n_eus, uint32_t n_eu_slices,
                 uint32_t n_eu_sub_slices, uint32_t eu_threads_count,
                 uint32_t subslice_mask, uint32_t slice_mask) {
 
     devinfo.devid = devid;
+    devinfo.gen = gen;
     devinfo.n_eus = n_eus;
     devinfo.n_eu_slices = n_eu_slices;
     devinfo.n_eu_sub_slices = n_eu_sub_slices;

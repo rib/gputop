@@ -515,7 +515,7 @@ Gputop.prototype.process_features = function(features){
      * DevInfo values should not overflow the native type,
      * but stay in 64b internally to help native processing in C.
      */
-    _update_features(di.devid, di.n_eus.toInt(),  di.n_eu_slices.toInt(),
+    _update_features(di.devid, di.gen, di.n_eus.toInt(),  di.n_eu_slices.toInt(),
         di.n_eu_sub_slices.toInt(), di.eu_threads_count.toInt(), di.subslice_mask.toInt(),
         di.slice_mask.toInt());
 
