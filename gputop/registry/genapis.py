@@ -356,33 +356,6 @@ eglapiHeaders = [
     ''
 ]
 
-passthroughGLResolver = ['''
-void *gputop_passthrough_gl_resolve(const char *name);
-static void *
-passthrough_resolve(const char *name)
-{
-    return gputop_passthrough_gl_resolve(name);
-}
-''']
-
-passthroughGLXResolver = ['''
-void *gputop_passthrough_glx_resolve(const char *name);
-static void *
-passthrough_resolve(const char *name)
-{
-    return gputop_passthrough_glx_resolve(name);
-}
-''']
-
-passthroughEGLResolver = ['''
-void *gputop_passthrough_egl_resolve(const char *name);
-static void *
-passthrough_resolve(const char *name)
-{
-    return gputop_passthrough_egl_resolve(name);
-}
-''']
-
 buildList = [
     # GL API 1.2+ + extensions
     ShimGeneratorOptions(
@@ -396,7 +369,7 @@ buildList = [
         defaultExtensions = 'gl',
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + glextVersionStrings + glapiHeaders + passthroughGLResolver),
+        prefixText        = prefixStrings + glextVersionStrings + glapiHeaders),
     # GLX 1.* API
     ShimGeneratorOptions(
         xmlfile           = 'glx.xml',
@@ -410,7 +383,7 @@ buildList = [
         addExtensions     = None,
         removeExtensions  = None,
         # add glXPlatformStrings?
-        prefixText        = prefixStrings + genDateCommentString + glxapiHeaders + passthroughGLXResolver),
+        prefixText        = prefixStrings + genDateCommentString + glxapiHeaders),
     # EGL API
     ShimGeneratorOptions(
         xmlfile           = 'egl.xml',
@@ -422,7 +395,7 @@ buildList = [
         defaultExtensions = 'egl',
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + eglPlatformStrings + genDateCommentString + eglapiHeaders + passthroughEGLResolver),
+        prefixText        = prefixStrings + eglPlatformStrings + genDateCommentString + eglapiHeaders),
 
     # End of list
     None
