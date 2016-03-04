@@ -32,6 +32,7 @@ def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
 c_file = None
+xml_equations = None
 _c_indent = 0
 
 def c(*args):
@@ -69,6 +70,81 @@ def h_indent(n):
 def h_outdent(n):
     global _c_indent
     _h_indent = _h_indent - n
+
+
+def check_operand(arg):
+    if arg.isdigit():
+        return "\n<mn>" + arg + "</mn>"
+    elif arg[0] == "$":
+        return "\n<maction actiontype='tooltip'>\n<mi>" + arg + "</mi>\n<mtext>placeholder</mtext>\n</maction>"
+    return arg
+
+unavailable = -1 #we dont use paranthesis for unavailable operations
+
+div_cohesion = unavailable
+mul_cohesion = 2
+add_cohesion = 1
+sub_cohesion = 1
+read_cohesion = unavailable
+max_cohesion = 2
+min_cohesion = 2
+
+
+def put_brackets(arg):
+    return "\n<mtext>(</mtext>" + arg + "\n<mtext>)</mtext>"
+
+def mathml_splice_fadd(arg0, arg1):
+    return [arg1 + "\n<mo>+</mo>" + arg0, add_cohesion]
+
+def mathml_splice_fdiv(arg0, arg1):
+    return ["\n<mfrac>\n<mrow>" + arg1 + "\n</mrow>\n<mrow>" + arg0 + "</mrow>\n</mfrac>", div_cohesion]
+
+def mathml_splice_fmax(arg0, arg1):
+    return ["\n<mtext>max ( </mtext>" + arg1 + "\n<mtext> , </mtext>" + arg0 + "\n<mtext> ) </mtext>", max_cohesion]
+
+def mathml_splice_fmul(arg0, arg1):
+    return [arg1 + "\n<mo>*</mo>" + arg0, mul_cohesion]
+
+def mathml_splice_fsub(arg0, arg1):
+    return [arg1 + "\n<mo>-</mo>" + arg0, sub_cohesion]
+
+def mathml_splice_read(arg0, arg1):
+    return ["\n<maction actiontype='tooltip'>\n<mi>" + arg1 + arg0 + "</mi>\n<mtext>placeholder</mtext>\n</maction>", read_cohesion]
+
+def mathml_splice_uadd(arg0, arg1):
+    return [arg1 + "\n<mo>+</mo>" + arg0, add_cohesion]
+
+def mathml_splice_udiv(arg0, arg1):
+    return ["\n<mfrac>\n<mrow>" + arg1 + "\n</mrow>\n<mrow>" + arg0 + "</mrow>\n</mfrac>", div_cohesion]
+
+def mathml_splice_umax(arg0, arg1):
+    return ["\n<mtext>max ( </mtext>" + arg1 + "\n<mtext> , </mtext>" + arg0 + "\n<mtext> ) </mtext>", max_cohesion]
+
+def mathml_splice_umul(arg0, arg1):
+    return [arg1 + "\n<mo>*</mo>" + arg0, mul_cohesion]
+
+def mathml_splice_usub(arg0, arg1):
+    return [arg1 + "\n<mo>-</mo>" + arg0, sub_cohesion]
+
+def mathml_splice_umin(arg0, arg1):
+    return ["\n<mtext>min ( </mtext>" + arg1 + "\n<mtext> , </mtext>" + arg0 + "\n<mtext> ) </mtext>", min_cohesion]
+
+def mathml_splice(args, callback, current_cohesion):
+    if callback != mathml_splice_read:
+        operand_0 = check_operand(args[0][0])
+        operand_1 = check_operand(args[1][0])
+        if (current_cohesion != unavailable):
+            cohesion_0 = args[0][1]
+            cohesion_1 = args[1][1]
+            if cohesion_0 != unavailable and cohesion_0 < current_cohesion:
+                operand_0 = put_brackets(operand_0)
+            if cohesion_1 != unavailable and cohesion_1 < current_cohesion:
+                operand_1 = put_brackets(operand_1)
+    else:
+        operand_0 = args[0][0]
+        operand_1 = args[1][0]
+
+    return callback(operand_0, operand_1)
 
 
 def emit_fadd(tmp_id, args):
@@ -125,18 +201,18 @@ def emit_umin(tmp_id, args):
     return tmp_id + 1
 
 ops = {}
-#             (n operands, emitter)
-ops["FADD"] = (2, emit_fadd)
-ops["FDIV"] = (2, emit_fdiv)
-ops["FMAX"] = (2, emit_fmax)
-ops["FMUL"] = (2, emit_fmul)
-ops["FSUB"] = (2, emit_fsub)
-ops["READ"] = (2, emit_read)
-ops["UADD"] = (2, emit_uadd)
-ops["UDIV"] = (2, emit_udiv)
-ops["UMUL"] = (2, emit_umul)
-ops["USUB"] = (2, emit_usub)
-ops["UMIN"] = (2, emit_umin)
+#             (n operands, emitter1, emitter2, cohesion)
+ops["FADD"] = (2, emit_fadd, mathml_splice_fadd, add_cohesion)
+ops["FDIV"] = (2, emit_fdiv, mathml_splice_fdiv, div_cohesion)
+ops["FMAX"] = (2, emit_fmax, mathml_splice_fmax, max_cohesion)
+ops["FMUL"] = (2, emit_fmul, mathml_splice_fmul, mul_cohesion)
+ops["FSUB"] = (2, emit_fsub, mathml_splice_fsub, sub_cohesion)
+ops["READ"] = (2, emit_read, mathml_splice_read, read_cohesion)
+ops["UADD"] = (2, emit_uadd, mathml_splice_uadd, add_cohesion)
+ops["UDIV"] = (2, emit_udiv, mathml_splice_udiv, div_cohesion)
+ops["UMUL"] = (2, emit_umul, mathml_splice_umul, mul_cohesion)
+ops["USUB"] = (2, emit_usub, mathml_splice_usub, sub_cohesion)
+ops["UMIN"] = (2, emit_umin, mathml_splice_umin, min_cohesion)
 
 def brkt(subexp):
     if " " in subexp:
@@ -174,21 +250,28 @@ hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
 
 counter_vars = {}
 
+
 def output_rpn_equation_code(set, counter, equation, counter_vars):
     c("/* RPN equation: " + equation + " */")
     tokens = equation.split()
     stack = []
     tmp_id = 0
     tmp = None
+    tmp_xml_operand = ""
+    mathml_stack = []
 
     for token in tokens:
         stack.append(token)
+        mathml_stack.append([token, 10])
         while stack and stack[-1] in ops:
             op = stack.pop()
-            argc, callback = ops[op]
+            mathml_stack.pop()
+            argc, callback, mathml_callback, cohesion = ops[op]
             args = []
+            xml_args = []
             for i in range(0, argc):
                 operand = stack.pop()
+                xml_operand = mathml_stack.pop()
                 if operand[0] == "$":
                     if operand in hw_vars:
                         operand = hw_vars[operand]
@@ -198,11 +281,18 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                     else:
                         raise Exception("Failed to resolve variable " + operand + " in equation " + equation + " for " + set.get('name') + " :: " + counter.get('name'));
                 args.append(operand)
+                xml_args.append(xml_operand)
 
             tmp_id = callback(tmp_id, args)
+            tmp_xml_operand = mathml_splice(xml_args, mathml_callback, cohesion)
 
             tmp = "tmp" + str(tmp_id - 1)
             stack.append(tmp)
+            mathml_stack.append(tmp_xml_operand)
+
+    xml_string = mathml_stack.pop()[0]
+    if xml_equations:
+        counter.append(ET.fromstring("<mathml_equation>" + xml_string + "</mathml_equation>"))
 
     if len(stack) != 1:
         raise Exception("Spurious empty rpn code for " + set.get('name') + " :: " +
@@ -354,6 +444,7 @@ parser.add_argument("xml", help="XML description of metrics")
 parser.add_argument("--header", help="Header file to write")
 parser.add_argument("--code", help="C file to write")
 parser.add_argument("--chipset", help="Chipset to generate code for")
+parser.add_argument("--xml_eq", help="Filename output for equations xml")
 
 args = parser.parse_args()
 
@@ -366,6 +457,8 @@ if args.code:
     c_file = open(args.code, 'w')
 
 tree = ET.parse(args.xml)
+if args.xml_eq:
+    xml_equations = open(args.xml_eq, 'w')
 
 
 copyright = """/* Autogenerated file, DO NOT EDIT manually!
@@ -487,6 +580,9 @@ query->c_offset = query->b_offset + 8;
 
     c_outdent(3)
     c("}\n")
+
+if args.xml_eq:
+    tree.write(args.xml_eq)
 
 h("void gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo);\n")
 
