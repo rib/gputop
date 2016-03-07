@@ -59,6 +59,7 @@ function Counter () {
     this.data_ = [];
     this.updates = [];
     this.graph_data = [];
+    this.units = '';
     this.record_data = false;
 }
 
@@ -209,9 +210,11 @@ Gputop.prototype.read_counter_xml = function() {
     try {
         var $cnt = $(this);
         var symbol_name = $cnt.attr("symbol_name");
+        var units = $cnt.attr("units");
 
         var counter = new Counter();
         counter.xml_ = $cnt;
+        counter.units = units;
         metric.add_new_counter(emc_guid, symbol_name, counter);
     } catch (e) {
         gputop_ui.syslog("Catch parsing counter " + e);

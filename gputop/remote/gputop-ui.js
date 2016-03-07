@@ -140,6 +140,40 @@ GputopUI.prototype.display_counter = function(counter) {
     var delta = counter.data_.shift();
     var d_value = counter.data_.shift();
     var max = counter.data_.shift();
+    var units = " " + counter.units;
+    var unit = units;
+    var dp = 0;
+    var mega = 1000000;
+    var giga = mega * 1000;
+    var scale = {" percent":["%"],
+                 " bytes":["B/s", "MB/s", "GB/s"],
+                 " ns":["ns", "ms", "s"],
+                 " khz":["KHz", "MHz", "GHz"]};
+
+    if (units == " mhz")
+    {
+        units = " khz";
+        unit = units;
+        d_value *= 1000;
+        giga /= 1000;
+        mega /= 1000;
+    }
+
+    if ((units in scale))
+    {
+        dp = 2;
+        unit = scale[units][0];
+        if (d_value >= giga)
+        {
+            unit = scale[units][2];
+            d_value /= giga;
+        }
+        if (d_value >= mega)
+        {
+            unit = scale[units][1];
+            d_value /= mega;
+        }
+    }
 
     if (counter.div_ == undefined)
         counter.div_ = $('#'+counter.div_bar_id_ );
@@ -150,10 +184,9 @@ GputopUI.prototype.display_counter = function(counter) {
     if (max != 0) {
         var value = 100 * d_value / max;
         counter.div_.css("width", value + "%");
-        counter.div_txt_.text(value.toFixed(2));// + " " +counter.samples_);
-
+        counter.div_txt_.text(d_value.toFixed(dp) + unit);// + " " +counter.samples_);
     } else {
-        counter.div_txt_.text(d_value.toFixed(0));// + " " +counter.samples_);
+        counter.div_txt_.text(d_value.toFixed(dp) + unit);// + " " +counter.samples_);
         counter.div_.css("width", "0%");
     }
 }
