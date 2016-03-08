@@ -48,9 +48,15 @@
 
 struct gputop_hash_table *queries;
 
+#define SAMPLE_OA_REPORT       (1<<0)
+#define SAMPLE_OA_SOURCE_INFO  (1<<1)
+#define SAMPLE_CTX_ID          (1<<2)
+#define SAMPLE_PID             (1<<3)
+
 struct gputop_worker_query {
     int id;
     uint64_t aggregation_period;
+    uint32_t sample_flags;
     bool per_ctx_mode;
 
     struct oa_clock {
@@ -81,8 +87,6 @@ struct oa_sample {
 
 
 static struct gputop_devinfo devinfo;
-
-static int next_rpc_id = 1;
 
 static void __attribute__((noreturn))
 assert_not_reached(void)
@@ -177,7 +181,7 @@ read_report_raw_timestamp(const uint32_t *report)
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
 
 void
-_gputop_query_update_counter(int counter, int id,
+_gputop_query_update_counter(int pid, int ctx_id, int counter, int id,
         double start_timestamp, double end_timestamp,
         double delta, double max, double ui64_value);
 
@@ -205,6 +209,9 @@ forward_query_update(struct gputop_worker_query *query)
     struct gputop_perf_query *oa_query = query->oa_query;
     uint64_t delta;
     int i;
+
+    int pid = 0;
+    int ctx_id = 0;
 
     if (query->start_timestamp == 0)
         gputop_web_console_warn("WW: Zero timestamp");
@@ -246,7 +253,7 @@ forward_query_update(struct gputop_worker_query *query)
             break;
         }
 
-        _gputop_query_update_counter(i, query->id,
+        _gputop_query_update_counter(pid, ctx_id, i, query->id,
                     query->start_timestamp, query->end_timestamp,
                     delta, max, d_value);
     }
@@ -255,17 +262,7 @@ forward_query_update(struct gputop_worker_query *query)
 static void
 notify_bad_report(struct gputop_worker_query *query, uint64_t last_timestamp)
 {
-    gputop_string_t *str = gputop_string_new("{ \"method\": \"oa_query_bad_report\", ");
-    gputop_string_append_printf(str,
-                                "\"params\": [ { \"id\": %u, "
-                                "\"last_timestamp\": %"PRIu64,
-                                query->id,
-                                last_timestamp);
-
-    gputop_string_append_printf(str, "} ], \"id\": %u }\n", next_rpc_id++);
-
-    //_gputop_web_worker_post(str->str);
-    gputop_string_free(str, true);
+    gputop_web_console_log("bad report:  %"PRIu64" ", last_timestamp);
 }
 
 static void EMSCRIPTEN_KEEPALIVE
@@ -498,6 +495,8 @@ gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_oa_query(uint32_t id,
                                   char *guid,
+                                  bool pid,
+                                  bool ctx,
                                   bool per_ctx_mode,
                                   uint32_t aggregation_period)
 {
@@ -505,6 +504,10 @@ gputop_webworker_on_open_oa_query(uint32_t id,
     memset(query, 0, sizeof(*query));
     query->id = id;
     query->aggregation_period = aggregation_period;
+
+    if (pid) query->sample_flags |= SAMPLE_PID;
+    if (ctx) query->sample_flags |= SAMPLE_CTX_ID;
+
     query->per_ctx_mode = per_ctx_mode;
 
     struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);

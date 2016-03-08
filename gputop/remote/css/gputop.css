@@ -25,6 +25,14 @@ body {
   border: 0;
 }
 
+.navbar-brand {
+    float: left;
+    height: 72px;
+    padding: 15px 15px;
+    font-size: 18px;
+    line-height: 20px;
+}
+
 /*
  * Sidebar
  */
