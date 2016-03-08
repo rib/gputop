@@ -143,20 +143,19 @@ GputopUI.prototype.display_counter = function(counter) {
     var units = " " + counter.units;
     var unit = units;
     var dp = 0;
-    var mega = 1000000;
+    var kilo = 1000;
+    var mega = kilo * 1000;
     var giga = mega * 1000;
     var scale = {" percent":["%"],
-                 " bytes":["B/s", "MB/s", "GB/s"],
-                 " ns":["ns", "ms", "s"],
-                 " khz":["KHz", "MHz", "GHz"]};
+                 " bytes":["B/s", "KB/s", "MB/s", "GB/s"],
+                 " ns":["ns", "μs", "ms", "s"],
+                 " hz":["Hz", "KHz", "MHz", "GHz"]};
 
     if (units == " mhz")
     {
-        units = " khz";
+        units = " hz";
         unit = units;
-        d_value *= 1000;
-        giga /= 1000;
-        mega /= 1000;
+        d_value *= mega;
     }
 
     if ((units in scale))
@@ -165,13 +164,18 @@ GputopUI.prototype.display_counter = function(counter) {
         unit = scale[units][0];
         if (d_value >= giga)
         {
-            unit = scale[units][2];
+            unit = scale[units][3];
             d_value /= giga;
         }
         if (d_value >= mega)
         {
-            unit = scale[units][1];
+            unit = scale[units][2];
             d_value /= mega;
+        }
+        if (d_value >= kilo)
+        {
+            unit = scale[units][1];
+            d_value /= kilo;
         }
     }
 
