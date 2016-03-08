@@ -292,7 +292,7 @@ Gputop.prototype.get_metrics_xml = function() {
 // Remember to free this tring
 function emc_str_copy(string_to_convert) {
     var buf = Module._malloc(string_to_convert.length+1); // Zero terminated
-    stringToAscii(string_to_convert, buf);
+    Module.stringToAscii(string_to_convert, buf);
     return buf;
 }
 
@@ -565,7 +565,7 @@ Gputop.prototype.get_emc_guid = function(guid) {
     if (gputop.buffer_guid_ == undefined)
         gputop.buffer_guid_ = Module._malloc(guid.length+1); // Zero terminated
 
-    stringToAscii(guid,  gputop.buffer_guid_);
+    Module.stringToAscii(guid,  gputop.buffer_guid_);
     return gputop.buffer_guid_;
 }
 
