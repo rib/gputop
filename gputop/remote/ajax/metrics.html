@@ -7,7 +7,7 @@
 
 <!-- Options bar -->
 <div class="well" id="options_bar" style="display: table">
-    <div style="display: table-cell; vertical-align: middle;">
+    <div style="display: table-cell; vertical-align: middle;" data-toggle="tooltip" title="Pause the capturing of data">
     <label><b>Stop query</b></label>
     <button type="button" id="button_stop" class="btn" onclick="buttonTogglePlay()" >
         <div id="toggle-query" class="glyphicon glyphicon-pause"></div>
@@ -17,10 +17,10 @@
     <div style="display: table-cell; padding-left:25px; vertical-align: middle">
         <b>Zoom: &nbsp</b> <input type="text" value="10" data-slider-min="1" data-slider-max="20" data-slider-step="0.5" data-slider-value="10" data-slider-id="slider_style" id="zoom_slider">
     </div>
-    <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
-        <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b></label>
+    <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle"  data-toggle="tooltip" title="Filter by context using the kernel. For userspace metrics without root access">
+        <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b> <small>(experimental)</small></label>
     </div>
-    <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
+    <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle" data-toggle="tooltip" title="Hide unsupported metrics, you will not be able to see the documentation for them.">
         <label><input type = "checkbox" id = "hide_metrics"><b>Show unsupported</b></label>
     </div>
 
@@ -121,10 +121,10 @@
                 <div class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</div> \
                 <div class = "live_trace_dropdown">&nbsp\
                     <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"> \
-                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon expand_graph glyphicon-collapse-down"></div> \
+                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon expand_graph glyphicon-collapse-down"  data-toggle="tooltip" title="Show the time graph"></div> \
                     </a> \
                 </div> \
-                <div class = "handle glyphicon glyphicon-move"></div> \
+                <div class = "handle glyphicon glyphicon-move" data-toggle="tooltip" title="Reorder by drag and drop of the counters"></div> \
             </div> \
             <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
                 <div class="well graph_container" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
