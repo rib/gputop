@@ -53,11 +53,12 @@ nobase_dist_remote_DATA = \
 nodejsdir = $(libdir)/nodejs/gputop
 nobase_dist_nodejs_DATA = \
 gputop-nodejs-ui.js \
+gputop-nodejs-csv.js \
 gputop-nodejs-toolkit.js
 
 nodemodulesdir = $(libdir)/nodejs/gputop
 nobase_dist_nodemodules_DATA := \
-   $(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options} -type f -name '*.js' -o -name 'package.json')
+   $(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options,jsdom,jquery} -type f -name '*.js' -o -name '*.json' -o -name '*.node')
 
 BUILT_SOURCE = gputop-web.js node_modules
 

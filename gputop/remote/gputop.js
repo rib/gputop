@@ -27,6 +27,12 @@
  * SOFTWARE.
  */
 
+var is_nodejs = false;
+
+if (typeof module !== 'undefined' && module.exports) {
+    is_nodejs = true;
+}
+
 Object.size = function(obj) {
     var size = 0, key;
     for (key in obj) {
@@ -37,13 +43,49 @@ Object.size = function(obj) {
 
 //------------------------------ Protobuffer Init ----------------------------
 
-if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-    throw(new Error("ProtoBuf.js is not present."));
-}
-// Initialize ProtoBuf.js
-var ProtoBuf = dcodeIO.ProtoBuf;
+var ProtoBuf;
+var proto_builder;
+var gputop;
+var $;
 
-var proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
+function on_jquery_ready() {
+    http_request.get("http://localhost:7890/gputop.proto", function(response) {
+        response.setEncoding('utf8');
+        response.on('data', function(data) {
+            proto_builder = ProtoBuf.newBuilder();
+            ProtoBuf.protoFromString(data, proto_builder, "gputop.proto");
+            gputop = new Gputop();
+            gputop_ready(gputop);
+        });
+    });
+}
+
+if (!is_nodejs) {
+    if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
+        throw(new Error("ProtoBuf.js is not present."));
+    }
+    // Initialize ProtoBuf.js
+    ProtoBuf = dcodeIO.ProtoBuf;
+    proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
+    $ = window.jQuery;
+} else {
+    var http_request = require('http');
+    ProtoBuf = require("protobufjs");
+
+    http_request.get("http://localhost:7890/index.html", function(response) {
+        response.setEncoding('utf8');
+        response.on('data', function(data) {
+            var jsdom = require('jsdom');
+            jsdom.env({html: data, scripts:
+                ['http://localhost:7890/jquery.min.js'],
+                    loaded: function (err, window) {
+                        $ = require('jquery')(window);
+                        on_jquery_ready();
+                    }
+            });
+        });
+    });
+}
 
 //----------------------------- COUNTER --------------------------------------
 function Counter () {
@@ -167,7 +209,7 @@ function Gputop () {
     this.is_connected_ = false;
     // Gputop generic configuration
     this.config_ = {
-        url_path: window.location.hostname,
+        url_path: is_nodejs ? "localhost" : window.location.hostname,
         uri_port: 7890,
         architecture: 'ukn'
     }
@@ -489,7 +531,7 @@ Gputop.prototype.generate_uuid = function()
 }
 
 Gputop.prototype.request_features = function() {
-    if (this.socket_.readyState == WebSocket.OPEN) {
+    if (this.socket_.readyState == is_nodejs ? 1 : WebSocket.OPEN) {
         var msg = new this.builder_.Request();
 
         msg.uuid = this.generate_uuid();
@@ -531,17 +573,19 @@ Gputop.prototype.process_features = function(features){
      * easy to forget to update this to forward new devinfo
      * state
      */
-    _update_features(di.devid,
-                     di.gen,
-                     di.timestamp_frequency.toInt(),
-                     di.n_eus.toInt(),
-                     di.n_eu_slices.toInt(),
-                     di.n_eu_sub_slices.toInt(),
-                     di.eu_threads_count.toInt(),
-                     di.subslice_mask.toInt(),
-                     di.slice_mask.toInt(),
-                     di.gt_min_freq.toInt(),
-                     di.gt_max_freq.toInt());
+    if (!is_nodejs) {
+        _update_features(di.devid,
+                         di.gen,
+                         di.timestamp_frequency.toInt(),
+                         di.n_eus.toInt(),
+                         di.n_eu_slices.toInt(),
+                         di.n_eu_sub_slices.toInt(),
+                         di.eu_threads_count.toInt(),
+                         di.subslice_mask.toInt(),
+                         di.slice_mask.toInt(),
+                         di.gt_min_freq.toInt(),
+                         di.gt_max_freq.toInt());
+    }
 
     gputop_ui.update_features(features);
 }
@@ -556,16 +600,22 @@ Gputop.prototype.load_emscripten = function() {
         return;
     }
 
-    $.getScript( gputop.get_gputop_native_js() )
-        .done(function( script, textStatus ) {
+    if (!is_nodejs) {
+        $.getScript( gputop.get_gputop_native_js() )
+            .done(function( script, textStatus ) {
+                gputop.request_features();
+                gputop.native_js_loaded_ = true;
+                console.log("gputop weqafrersrgrdfh\n");
+            }).fail(function( jqxhr, settings, exception ) {
+                console.log( "Failed loading emscripten" );
+                setTimeout(function() {
+                    gputop.connect();
+                }, 5000);
+        });
+    } else {
         gputop.request_features();
         gputop.native_js_loaded_ = true;
-    }).fail(function( jqxhr, settings, exception ) {
-        console.log( "Failed loading emscripten" );
-        setTimeout(function() {
-            gputop.connect();
-        }, 5000);
-    });
+    }
 }
 
 Gputop.prototype.dispose = function() {
@@ -587,108 +637,145 @@ Gputop.prototype.dispose = function() {
     gputop.query_active_ = undefined;
 }
 
-Gputop.prototype.get_socket = function(websocket_url) {
+function gputop_socket_on_open() {
+    gputop_ui.syslog("Connected");
+    gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-success");
+    gputop.load_emscripten();
+}
+
+function gputop_socket_on_close() {
+    // Resets the connection
+    gputop.dispose();
+
+    gputop_ui.syslog("Disconnected");
+    gputop_ui.show_alert("Failed connecting to GPUTOP <p\>Retry in 5 seconds","alert-warning");
+    setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
+        gputop.connect();
+    }, 5000);
+
+    gputop.is_connected_ = false;
+}
+
+function gputop_socket_on_message(evt) {
+    try {
+        var dv;
+        var msg_type;
+        var data;
+
+        if (!is_nodejs) {
+            dv = new DataView(evt.data, 0);
+            msg_type = dv.getUint8(0);
+            data = new Uint8Array(evt.data, 8);
+        } else {
+            var buffer = new ArrayBuffer(evt.length);
+            data = new Uint8Array(buffer);
+            for (i = 0; i < evt.length; i++) {
+                data[i] = evt[i];
+            }
+
+            dv = new DataView(buffer, 0);
+            msg_type = dv.getUint8(0);
+        }
+
+        switch(msg_type) {
+            case 1: /* WS_MESSAGE_PERF */
+                var id = dv.getUint16(4, true /* little endian */);
+                //handle_perf_message(id, data);
+            break;
+            case 2: /* WS_MESSAGE_PROTOBUF */
+                var msg = gputop.builder_.Message.decode(data);
+                if (msg.features != undefined) {
+                    gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
+                    gputop.process_features(msg.features);
+                }
+                if (msg.ack != undefined) {
+                    //gputop_ui.log(0, "Ack");
+                    gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
+                    if (gputop.query_active_!=undefined) {
+                        gputop.query_active_.waiting_ack_ = false;
+                    }
+                }
+                if (msg.error != undefined) {
+                    gputop_ui.show_alert(msg.error,"alert-danger");
+                    gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
+                    gputop_ui.log(4, msg.error);
+                }
+                if (msg.log != undefined) {
+                    var entries = msg.log.entries;
+                    entries.forEach(function(entry) {
+                        gputop_ui.log(entry.log_level, entry.log_message);
+                    });
+                }
+                if (msg.close_notify != undefined) {
+                    var id = msg.close_notify.id;
+                    gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
+                    gputop.query_metric_handles_.forEach(function(metric) {
+                        if (metric.oa_query_id_ == id) {
+                            if (gputop.query_active_ == metric) {
+                                gputop.query_active_ = undefined;
+                            } else {
+                                gputop_ui.syslog("* Query was NOT active "+id);
+                            }
+
+                            delete gputop.query_metric_handles_[id];
+                            // the query stopped being tracked
+                            metric.oa_query = undefined;
+                            metric.oa_query_id_ = undefined;
+
+                            var callback = metric.on_close_callback_;
+                            if (callback != undefined) {
+                                gputop_ui.syslog("* Callback! ");
+                                metric.on_close_callback_ = undefined;
+                                callback();
+                            }
+
+                        }
+                    });
+                }
+
+            break;
+            case 3: /* WS_MESSAGE_I915_PERF */
+                var id = dv.getUint16(4, true /* little endian */);
+                var dataPtr = Module._malloc(data.length);
+                var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
+                dataHeap.set(data);
+                _handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
+                Module._free(dataHeap.byteOffset);
+            break;
+        }
+    } catch (err) {
+        console.log("Error: "+err);
+        gputop_ui.log(0, "Error: "+err+"\n");
+    }
+}
+
+function gputop_get_socket_web(websocket_url) {
     var socket = new WebSocket(websocket_url, "binary");
     socket.binaryType = "arraybuffer";
 
-    socket.onopen = function() {
-        gputop_ui.syslog("Connected");
-        gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-success");
-        gputop.load_emscripten();
-    };
-
-    socket.onclose = function() {
-        // Resets the connection
-        gputop.dispose();
-
-        gputop_ui.syslog("Disconnected");
-        gputop_ui.show_alert("Failed connecting to GPUTOP <p\>Retry in 5 seconds","alert-warning");
-        setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
-            gputop.connect();
-        }, 5000);
-
-        gputop.is_connected_ = false;
-    };
-
-    socket.onmessage = function(evt) {
-        try {
-            var dv = new DataView(evt.data, 0);
-            var msg_type = dv.getUint8(0);
-            var data = new Uint8Array(evt.data, 8);
-
-            switch(msg_type) {
-                case 1: /* WS_MESSAGE_PERF */
-                    var id = dv.getUint16(4, true /* little endian */);
-                    //handle_perf_message(id, data);
-                break;
-                case 2: /* WS_MESSAGE_PROTOBUF */
-                    var msg = gputop.builder_.Message.decode(data);
-                    if (msg.features != undefined) {
-                        gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
-                        gputop.process_features(msg.features);
-                    }
-                    if (msg.ack != undefined) {
-                        //gputop_ui.log(0, "Ack");
-                        gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
-                        if (gputop.query_active_!=undefined) {
-                            gputop.query_active_.waiting_ack_ = false;
-                        }
-                    }
-                    if (msg.error != undefined) {
-                        gputop_ui.show_alert(msg.error,"alert-danger");
-                        gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
-                        gputop_ui.log(4, msg.error);
-                    }
-                    if (msg.log != undefined) {
-                        var entries = msg.log.entries;
-                        entries.forEach(function(entry) {
-                            gputop_ui.log(entry.log_level, entry.log_message);
-                        });
-                    }
-                    if (msg.close_notify != undefined) {
-                        var id = msg.close_notify.id;
-                        gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
-                        gputop.query_metric_handles_.forEach(function(metric) {
-                            if (metric.oa_query_id_ == id) {
-                                if (gputop.query_active_ == metric) {
-                                    gputop.query_active_ = undefined;
-                                } else {
-                                    gputop_ui.syslog("* Query was NOT active "+id);
-                                }
-
-                                delete gputop.query_metric_handles_[id];
-                                // the query stopped being tracked
-                                metric.oa_query = undefined;
-                                metric.oa_query_id_ = undefined;
-
-                                var callback = metric.on_close_callback_;
-                                if (callback != undefined) {
-                                    gputop_ui.syslog("* Callback! ");
-                                    metric.on_close_callback_ = undefined;
-                                    callback();
-                                }
-
-                            }
-                        });
-                    }
-
-                break;
-                case 3: /* WS_MESSAGE_I915_PERF */
-                    var id = dv.getUint16(4, true /* little endian */);
-                    var dataPtr = Module._malloc(data.length);
-                    var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
-                    dataHeap.set(data);
-                    _handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
-                    Module._free(dataHeap.byteOffset);
-                break;
-            }
-        } catch (err) {
-            console.log("Error: "+err);
-            gputop_ui.log(0, "Error: "+err+"\n");
-        }
-    };
+    socket.onopen = gputop_socket_on_open;
+    socket.onclose = gputop_socket_on_close;
+    socket.onmessage = gputop_socket_on_message;
 
     return socket;
+}
+
+function gputop_get_socket_nodejs(websocket_url) {
+    var WebSocket = require('ws');
+    var socket = new WebSocket(websocket_url);
+
+    socket.on('open', gputop_socket_on_open);
+    socket.on('close', gputop_socket_on_close);
+    socket.on('message', gputop_socket_on_message);
+
+    return socket;
+}
+
+Gputop.prototype.get_socket = function(websocket_url) {
+    if (!is_nodejs)
+        return gputop_get_socket_web(websocket_url);
+    else
+        return gputop_get_socket_nodejs(websocket_url);
 }
 
 // Connect to the socket for transactions
@@ -699,4 +786,5 @@ Gputop.prototype.connect = function() {
     this.socket_ = this.get_socket(websocket_url);
 }
 
-var gputop = new Gputop();
+if (!is_nodejs)
+    gputop = new Gputop();
