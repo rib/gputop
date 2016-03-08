@@ -188,14 +188,17 @@
 
         set_index ++;
 
-        for (i = 0; i < set_array[set_array.length - 1].counters.length; i++)
+        var last = set_array[set_array.length - 1];
+        var counters = last.counters;
+        for (i = 0; i < counters.length; i++)
         {
-            for (ii = 0; ii < set_array[set_array.length - 1].counters[i].flags.length; ii++)
+            var flags = counters[i].flags;
+            for (ii = 0; ii < flags.length; ii++)
             {
-                if (!(set_array[set_array.length - 1].flags.indexOf(set_array[set_array.length - 1].counters[i].flags[ii]) > -1))
+                if (!(last.flags.indexOf(flags[ii]) > -1))
                 {
-                    set_array[set_array.length - 1].flags.push(set_array[set_array.length - 1].counters[i].flags[ii]);
-                    set_array[set_array.length - 1].checked_flags.push(set_array[set_array.length - 1].counters[i].flags[ii]);
+                    last.flags.push(flags[ii]);
+                    last.checked_flags.push(flags[ii]);
                 }
             }
         }
@@ -205,52 +208,57 @@
     {
         if (selected_index < 0)
             return;
+
         var d1 = document.getElementById('flags_bar');
         d1.innerHTML = "";
         var current_drawn_flags = [];
-        //var selected_set = set_array[selected_index];
+
+        var set = set_array[selected_index];
+        var flags = set.flags;
+
         for (i = 0; i < flag_order.length; i++)
         {
-            if (set_array[selected_index].flags.indexOf(flag_order[i]) > -1)
+            if (flags.indexOf(flag_order[i]) > -1)
             {
                 current_drawn_flags.push(flag_order[i]);
             }
         }
-        for (i = 0; i < set_array[selected_index].flags.length; i++)
+
+        for (i = 0; i < flags.length; i++)
         {
-            if (current_drawn_flags.indexOf(set_array[selected_index].flags[i]) > -1)
+            if (current_drawn_flags.indexOf(flags[i]) > -1)
                 continue;
-            current_drawn_flags.push(set_array[selected_index].flags[i]);
+
+            current_drawn_flags.push(flags[i]);
         }
 
         for (i = 0; i < current_drawn_flags.length; i++)
         {
             flags_c = '<div class="checkbox"> \
                            <label> \
-                               <input type = "checkbox" id = "' + set_array[selected_index].underscore_name + '_' + current_drawn_flags[i] + '" class="checkbox_event"> \
+                               <input type = "checkbox" id = "' + set.underscore_name + '_' + current_drawn_flags[i] + '" class="checkbox_event"> \
                                    <b>' + current_drawn_flags[i] + '</b> \
                            </label> \
                        </div>';
             d1.insertAdjacentHTML('beforeend', flags_c);
-
         }
 
         $('.checkbox_event').click(function() {
-            set_array[selected_index].checked_flags.splice(0, set_array[selected_index].checked_flags.length);
-            for (i = 0; i < set_array[selected_index].flags.length; i++)
+            set.checked_flags.splice(0, set.checked_flags.length);
+            for (i = 0; i < flags.length; i++)
             {
-                if (document.getElementById(set_array[selected_index].underscore_name + '_' + set_array[selected_index].flags[i]).checked)
-                set_array[selected_index].checked_flags.push(set_array[selected_index].flags[i]);
+                if (document.getElementById(set.underscore_name + '_' + flags[i]).checked)
+                set.checked_flags.push(flags[i]);
             }
             filter_counters();
         });
 
-        for (i = 0; i < set_array[selected_index].flags.length; i++)
+        for (i = 0; i < flags.length; i++)
         {
-            if (set_array[selected_index].checked_flags.indexOf(set_array[selected_index].flags[i]) > -1) {
-                $("#" + set_array[selected_index].underscore_name + "_" + current_drawn_flags[i]).prop('checked', true);
+            if (set.checked_flags.indexOf(flags[i]) > -1) {
+                $("#" + set.underscore_name + "_" + current_drawn_flags[i]).prop('checked', true);
             } else {
-                $("#" + set_array[selected_index].underscore_name + "_" + current_drawn_flags[i]).prop('checked', false);
+                $("#" + set.underscore_name + "_" + current_drawn_flags[i]).prop('checked', false);
             }
         }
     }
@@ -260,12 +268,15 @@
         if (selected_index < 0)
             return;
 
-        for (i = 0; i < set_array[selected_index].counters.length; i++)
+        var set = set_array[selected_index];
+        var counters = set.counters;
+
+        for (i = 0; i < counters.length; i++)
         {
             var display = false;
-            for (ii = 0; ii < set_array[selected_index].counters[i].flags.length; ii++)
+            for (ii = 0; ii < counters[i].flags.length; ii++)
             {
-                if (set_array[selected_index].checked_flags.indexOf(set_array[selected_index].counters[i].flags[ii]) > -1)
+                if (set.checked_flags.indexOf(counters[i].flags[ii]) > -1)
                 {
                     display = true;
                     break;
@@ -273,14 +284,14 @@
             }
             if (display)
             {
-                $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].counters[i].underscore_name).show();
+                $("#" + set.underscore_name + "_" + counters[i].underscore_name).show();
                 if ($("#hide_metrics").is(':checked')) {
                     $(".hide_unsupported").show();
                 } else {
                     $(".hide_unsupported").hide();
                 }
             } else {
-                $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].counters[i].underscore_name).hide();
+                $("#" + set.underscore_name + "_" + counters[i].underscore_name).hide();
             }
         }
     }
@@ -320,12 +331,14 @@
                 }
             }
             draw_filter_checkboxes();
-            for (i = 0; i < set_array[selected_index].flags.length; i++)
+
+            var set = set_array[selected_index];
+            for (i = 0; i < set.flags.length; i++)
             {
-                $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].flags[i]).prop('checked', false);
-                if (set_array[selected_index].checked_flags.indexOf(set_array[selected_index].flags[i]) > -1)
+                $("#" + set.underscore_name + "_" + set.flags[i]).prop('checked', false);
+                if (set.checked_flags.indexOf(set.flags[i]) > -1)
                 {
-                    $("#" + set_array[selected_index].underscore_name + "_" + set_array[selected_index].flags[i]).prop('checked', true);
+                    $("#" + set.underscore_name + "_" + set.flags[i]).prop('checked', true);
                 }
             }
             filter_counters();
@@ -448,6 +461,37 @@
             });
         }
 
+    });
+
+    $('.checkbox_event').click(function() {
+	if (typeof current_set_map === 'undefined') {
+	    return;
+	}
+
+        underscore_name = current_set_map[current_set];
+        checked_flags_map[underscore_name].splice(0, checked_flags_map[underscore_name].length);
+        for (i = 0; i < all_flags.length; i++)
+        {
+            if (document.getElementById('flags_' + all_flags[i]).checked)
+                checked_flags_map[underscore_name].push(all_flags[i]);
+        }
+        for (var k in counter_flags_map)
+        {
+            var values = counter_flags_map[k];
+            display = false;
+            for (v = 0; v < values.length; v++)
+            {
+                if (checked_flags_map[underscore_name].indexOf(values[v]) > -1)
+                {
+                    display = true;
+                    break;
+                }
+            }
+            if (display)
+                $("#" + underscore_name + "_" + k).show();
+            else
+                $("#" + underscore_name + "_" + k).hide();
+        }
     });
 
     //# sourceURL=metrics.html
