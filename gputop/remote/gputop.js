@@ -201,6 +201,33 @@ Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
     this.counters_[counter.idx_] = counter;
 }
 
+//----------------------------- PID --------------------------------------
+function Process_info () {
+    this.pid_ = 0;
+    this.process_name_ = "empty";
+    this.cmd_line_ = "empty";
+    this.active_ = false;
+    this.process_path_ = "empty";
+
+    // List of ctx ids on this process
+    this.context_ids_ = [];
+
+    // Did we ask gputop about this process?
+    this.init_ = false;
+}
+
+Process_info.prototype.update = function(process) {
+    this.pid_ = process.pid;
+    this.cmd_line_ = process.cmd_line;
+    var res = this.cmd_line_.split(" ", 2);
+
+    this.process_path_ = res[0];
+
+    var path = res[0].split("/");
+    this.process_name_ = path[path.length-1];
+    gputop_ui.update_process(this);
+}
+
 //------------------------------ GPUTOP --------------------------------------
 function Gputop () {
     this.metrics_ = [];
@@ -237,6 +264,21 @@ function Gputop () {
 
     // Current metric on display
     this.metric_visible_ = undefined;
+
+    // Callbacks for messages usign the reply id
+    this.gputop_callbacks_ = [];
+
+    // Process list map organized by PID
+    this.map_processes_ = [];
+}
+
+Gputop.prototype.get_process_by_pid = function(pid) {
+    var process = this.map_processes_[pid];
+    if (process == undefined) {
+        process = new Process_info();
+        this.map_processes_[pid] = process;
+    }
+    return process;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -706,6 +748,13 @@ function gputop_socket_on_message(evt) {
                         gputop_ui.log(entry.log_level, entry.log_message);
                     });
                 }
+                if (msg.process_info != undefined) {
+                    var pid = msg.process_info.pid;
+                    var process = gputop.get_process_by_pid(pid);
+
+                    process.update(msg.process_info);
+                    gputop_ui.syslog(msg.reply_uuid + " recv: Console process info "+pid);
+                }
                 if (msg.close_notify != undefined) {
                     var id = msg.close_notify.id;
                     gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
@@ -733,6 +782,13 @@ function gputop_socket_on_message(evt) {
                     });
                 }
 
+                var callback = gputop.gputop_callbacks_[msg.uuid];
+                gputop.gputop_callbacks_[msg.uuid] = undefined;
+
+                if (callback != undefined) {
+                    callback(msg);
+                }
+
             break;
             case 3: /* WS_MESSAGE_I915_PERF */
                 var id = dv.getUint16(4, true /* little endian */);
@@ -747,6 +803,18 @@ function gputop_socket_on_message(evt) {
         console.log("Error: "+err);
         gputop_ui.log(0, "Error: "+err+"\n");
     }
+}
+
+Gputop.prototype.get_process_info = function(pid, callback) {
+    var msg = new this.builder_.Request();
+    var uuid = this.generate_uuid();
+
+    this.gputop_callbacks_[uuid] = callback;
+
+    msg.uuid = uuid;
+    msg.get_process_info = pid;
+    msg.encode();
+    this.socket_.send(msg.toArrayBuffer());
 }
 
 function gputop_get_socket_web(websocket_url) {

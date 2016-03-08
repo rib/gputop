@@ -70,6 +70,12 @@ message Features
     repeated string supported_oa_query_guids = 10;
 }
 
+message ProcessInfo
+{
+    required uint32 pid = 1;
+    required string cmd_line = 2;
+}
+
 message LogEntry
 {
   required uint32 log_level = 1;
@@ -104,6 +110,7 @@ message Message
         Log log = 5;
         CloseNotify close_notify = 6;
         BufferFillNotify fill_notify = 7;
+        ProcessInfo process_info = 8;
     }
 }
 
@@ -156,5 +163,6 @@ message Request
         bool get_features = 2;
         OpenQuery open_query = 3;
         uint32 close_query = 4;
+        uint32 get_process_info = 5;
     }
 }
