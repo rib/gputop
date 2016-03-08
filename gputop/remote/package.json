@@ -14,6 +14,7 @@
         "jquery": "^2.2.0",
         "jqueryui-browser": "^1.10.2-1",
         "jquery-flot": "^0.8.3",
+        "bootbox": "4.4.0",
         "uuid": "^2.0.1",
         "ws": "^1.0.1",
         "http": "^0.0.0",

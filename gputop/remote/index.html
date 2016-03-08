@@ -22,14 +22,51 @@
 
   </head>
 
-  <body>
+  <body class="bb-js">
 <script>
+var getUrlParameter = function(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
+
+function gputop_is_website() {
+    console.log(" Location host "+window.location.hostname);
+
+    var demo = getUrlParameter('demo');
+    if (demo == "true" || demo == "1" || window.location.hostname == "gputop.github.io"
+//      || window.location.hostname == "localhost"
+    ) {
+           return true;
+    }
+
+    return false;
+}
+
 function gputop_help() {
     alert("WIP Version");
 }
 function gputop_wip_error() {
     alert("Not implemented yet!");
 }
+
+function gputop_reconnect() {
+    gputop.connect();
+}
+
+function gputop_load_metric_set(metric_set) {
+    gputop.load_fake_metrics(metric_set);
+}
+
 </script>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
@@ -61,13 +98,14 @@ function gputop_wip_error() {
 
     <div class="container-fluid" >
       <div class="row" >
-        <div class="col-sm-2 sidebar" style="width:12%">
+        <div class="col-sm-2 sidebar" style="width:12%; margin-top:25px">
           <ul class="nav nav-sidebar">
-            <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview</a></li>
+            <li id="welcome"><a href="#gputop-welcome-panel" data-toggle="tab" id="welcome-tab-a">Welcome</a></li>
             <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#pane2" data-toggle="tab">Metrics</a>
               <ul class="nav nav-stacked nav-pills navbar-custom" id="sidebar_right" data-toggle="tabs" style="list-style-type:none; padding-top:10px; padding-bottom:10px;">
               </ul>
             </li>
+            <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview</a></li>
             <li><a href="#log-panel" data-toggle="tab">App logs</a></li>
             <li role="separator" class="divider"></li>
             <li id="process-tab"><a id="process-tab-a" data-bb="prompt" href="#process">Process list <i class="glyphicon glyphicon-play"></i></a>
@@ -79,17 +117,13 @@ function gputop_wip_error() {
         </div>
          <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" style = "margin-left: 13%">
           <div class="tab-content" id="gputop-panels">
+            <div class="tab-pane" id="gputop-welcome-panel">
+              <p>Welcome didn't load yet</p>
+            </div>
             <div class="tab-pane" id="gputop-overview-panel">
               <p>Overview didn't load yet</p>
             </div>
             <div class="tab-pane active" id="pane2">
-              <div class="gputop-connecting">
-                  <p><center>
-                  <button class="btn btn-lg btn-warning">
-                      <span class="glyphicon glyphicon-refresh spinning"></span> Loading metrics...
-                  </button>
-                  </center></p>
-              </div>
             </div>
             <div class="tab-pane" id="instructions">
               <p>Installation FAQ</p>
@@ -98,6 +132,7 @@ function gputop_wip_error() {
               <p>Pane 4</p>
             </div>
             <div class="tab-pane" id="log-panel">
+                <p/>
                 <h2 class="page-header">Gputop log</h2>
                 <div id="editor"></div>
                 <h2 class="page-header">Web log</h2>
@@ -111,7 +146,14 @@ function gputop_wip_error() {
       <footer class="footer">
           <div class="container">
             <img src="/assets/gputop_logo.png" alt="GPUTOP LOGO" class="img-invert img-responsive center-block" />
-            </p>
+            <p/>
+              <div class="gputop-connecting">
+                  <p><center>
+                  <button class="btn btn-lg btn-warning">
+                      <span class="glyphicon glyphicon-refresh spinning"></span> Loading metrics...
+                  </button>
+                  </center></p>
+              </div>
           </div>
         </footer>
     </div>
@@ -130,9 +172,23 @@ function gputop_wip_error() {
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <script src="bootstrap-slider.min.js"></script>
     <script src="bootstrap-wysiwyg.min.js"></script>
+    <script src="bootbox.min.js"></script>
 
     <script src="gputop-ui.js"></script>
     <script src="gputop.js"></script>
-
+<script>
+    if (gputop_is_website()) {
+        $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
+                console.log('Loaded welcome');
+        });
+         
+        $('#welcome-tab-a').trigger('click');
+        $( ".gputop-connecting" ).hide();
+    } else {
+        $( "#welcome" ).hide();
+        $( "#build-instructions" ).hide();
+        $( "#wiki" ).hide();
+    }
+ </script>
   </body>
 </html>

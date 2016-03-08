@@ -72,3 +72,7 @@ gputop_web_socket.on('message', function(proto_message) {
         gputop_clean_exit();
     }
 });
+
+function gputop_is_website() {
+    return false;
+}

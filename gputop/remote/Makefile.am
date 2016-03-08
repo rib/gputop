@@ -32,7 +32,8 @@ third_party_files = \
 	bootstrap/fonts/glyphicons-halflings-regular.ttf \
 	bootstrap/fonts/glyphicons-halflings-regular.eot \
 	bootstrap/fonts/glyphicons-halflings-regular.woff2 \
-	bootstrap/fonts/glyphicons-halflings-regular.svg
+	bootstrap/fonts/glyphicons-halflings-regular.svg \
+	bootbox.min.js
 
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
@@ -46,6 +47,7 @@ nobase_dist_remote_DATA = \
 	css/bootstrap-slider.min.css \
 	ajax/metrics.html \
 	ajax/overview.html \
+	ajax/welcome.html \
 	assets/gputop_logo.png \
 	assets/gputop_logo_44.png \
 	$(third_party_files)
