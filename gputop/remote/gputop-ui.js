@@ -249,6 +249,7 @@ GputopUI.prototype.display_features = function(features) {
     $( "#gputop-n-eu-slices" ).html( features.devinfo.get_n_eu_slices().toInt()  );
     $( "#gputop-n-eu-sub-slices" ).html( features.devinfo.get_n_eu_sub_slices().toInt()  );
     $( "#gputop-n-eu-threads-count" ).html( features.devinfo.get_eu_threads_count().toInt()  );
+    $( "#gputop-timestamp-frequency" ).html( features.devinfo.get_timestamp_frequency().toInt()  );
 
     if (features.get_fake_mode())
         $( "#metrics-tab-a" ).html("Metrics (Fake Mode) ");
