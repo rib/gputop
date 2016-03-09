@@ -240,8 +240,8 @@ struct gputop_perf_stream
         struct {
             int buf_sizes;
             uint8_t *bufs[2];
-            int buf_idx;
             uint8_t *last;
+            int last_buf_idx;
         } oa;
         /* linux perf event */
         struct {
