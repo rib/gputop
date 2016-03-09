@@ -850,6 +850,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
     devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
     devinfo.subslice_mask = gputop_devinfo.subslice_mask;
     devinfo.slice_mask = gputop_devinfo.slice_mask;
+    devinfo.timestamp_frequency = gputop_devinfo.timestamp_frequency;
+    devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
+    devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
 
     features.fake_mode = gputop_fake_mode;
 
@@ -880,14 +883,16 @@ handle_get_features(h2o_websocket_conn_t *conn,
     dbg("GPU:\n");
     dbg("  Device ID = 0x%x\n", devinfo.devid);
     dbg("  Gen = %"PRIu32"\n", devinfo.gen);
-    dbg("  EU Count = %"PRIu64"\n", devinfo.n_eus);
     dbg("  EU Slice Count = %"PRIu64"\n", devinfo.n_eu_slices);
     dbg("  EU Sub Slice Count = %"PRIu64"\n", devinfo.n_eu_sub_slices);
-    dbg("  EU Threads Count = %"PRIu64"\n", devinfo.eu_threads_count);
-    dbg("  Sub Slice Mask = 0x%"PRIx64"\n", devinfo.subslice_mask);
+    dbg("  EU Count (total) = %"PRIu64"\n", devinfo.n_eus);
+    dbg("  EU Threads Count (total) = %"PRIu64"\n", devinfo.eu_threads_count);
     dbg("  Slice Mask = 0x%"PRIx64"\n", devinfo.slice_mask);
+    dbg("  Sub Slice Mask = 0x%"PRIx64"\n", devinfo.subslice_mask);
     dbg("  OA Metrics Available = %s\n", features.has_i915_oa ? "true" : "false");
-    dbg("  OpenGL Metrics Available = %s\n", features.has_gl_performance_query ? "true" : "false");
+    dbg("  Timestamp Frequency = %"PRIu64"\n", devinfo.timestamp_frequency);
+    dbg("  Min Frequency = %"PRIu64"\n", devinfo.gt_min_freq);
+    dbg("  Max Frequency = %"PRIu64"\n", devinfo.gt_max_freq);
     dbg("\n");
     dbg("CPU:\n");
     dbg("  Model = %s\n", features.cpu_model);

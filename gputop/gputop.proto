@@ -14,6 +14,9 @@ message DevInfo
     required uint64 subslice_mask = 6;
     required uint64 slice_mask = 7;
     required uint32 gen = 8;
+    required uint64 timestamp_frequency=9;
+    required uint64 gt_min_freq=10;
+    required uint64 gt_max_freq=11;
 }
 
 enum GLCounterType
