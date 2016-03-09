@@ -22,8 +22,7 @@
  * SOFTWARE.
  */
 
-#ifndef _GPUTOP_PERF_H_
-#define _GPUTOP_PERF_H_
+#pragma once
 
 #include <stdbool.h>
 
@@ -377,5 +376,3 @@ void gputop_perf_stream_close(struct gputop_perf_stream *stream,
 void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
 void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
 #endif
-
-#endif /* _GPUTOP_PERF_H_ */
