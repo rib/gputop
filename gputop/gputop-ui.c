@@ -131,17 +131,7 @@ static void redraw_ui(void);
 static void
 overview_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
 {
-    gputop_oa_accumulate_reports(stream->query, start, end);
-}
-
-static void
-oa_counter_accumulator_clear(struct gputop_perf_stream *stream)
-{
-    struct gputop_perf_query *query = stream->query;
-
-    memset(query->accumulator, 0, sizeof(query->accumulator));
-
-    stream->oa.last = NULL;
+    gputop_oa_accumulate_reports(stream->query, start, end, stream->per_ctx_mode);
 }
 
 static struct perf_oa_user overview_user = {
@@ -200,7 +190,7 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
     if (!gputop_current_perf_stream)
         goto query_err;
 
-    oa_counter_accumulator_clear(gputop_current_perf_stream);
+    gputop_oa_accumulator_clear(query);
 
     return true;
 
@@ -538,7 +528,7 @@ perf_counters_redraw(WINDOW *win)
         y++;
     }
 
-    oa_counter_accumulator_clear(gputop_current_perf_stream);
+    gputop_oa_accumulator_clear(query);
 }
 
 static void
@@ -703,11 +693,10 @@ perf_oa_trace_redraw(WINDOW *win)
     float fill_percentage = 100.0f * ((float)fill / (float)gputop_perf_trace_buffer_size);
     int timeline_width;
     uint64_t ns_per_column;
-    uint64_t start_timestamp;
+    uint64_t start_timestamp = 0;
     //float bars[timeline_width];
     const uint8_t *report0;
     const uint8_t *report1;
-    int i;
 
     wattrset(win, A_NORMAL);
 
@@ -735,33 +724,39 @@ perf_oa_trace_redraw(WINDOW *win)
     if (timeline_width < 0)
         return;
 
+    print_trace_counter_names(win, query);
+
     ns_per_column = (1000000000 * zoom) / timeline_width;
 
     report0 = gputop_perf_trace_head;
     report1 = get_next_trace_sample(query, report0);
-    start_timestamp = read_report_timestamp((uint32_t *)report0);
 
-    oa_counter_accumulator_clear(gputop_current_perf_stream);
+    gputop_oa_accumulator_clear(query);
 
-    print_trace_counter_names(win, query);
+    do {
+        if (gputop_oa_accumulate_reports(gputop_current_perf_stream->query,
+                                         report0, report1,
+                                         gputop_current_perf_stream->per_ctx_mode))
+            start_timestamp = query->accumulator_first_timestamp;
 
-    for (i = 0; i < timeline_width; i++) {
+        report0 = report1;
+        report1 = get_next_trace_sample(query, report0);
+    } while (start_timestamp == 0);
+
+    for (int i = 0; i < timeline_width; i++) {
         uint64_t column_end = start_timestamp + trace_view_start +
             (i *  ns_per_column) + ns_per_column;
 
         while (1) {
-            uint64_t report_timestamp = read_report_timestamp((uint32_t *)report1);
-
-            if (report_timestamp <= start_timestamp)
-                return;
-
-            if (report_timestamp >= column_end) {
-                print_trace_counter_spark(win, query, i);
-                oa_counter_accumulator_clear(gputop_current_perf_stream);
-                break;
+            if (gputop_oa_accumulate_reports(gputop_current_perf_stream->query,
+                                             report0, report1,
+                                             gputop_current_perf_stream->per_ctx_mode))
+            {
+                if (query->accumulator_last_timestamp > column_end) {
+                    print_trace_counter_spark(win, query, i);
+                    gputop_oa_accumulator_clear(query);
+                }
             }
-
-            gputop_oa_accumulate_reports(gputop_current_perf_stream->query, report0, report1);
 
             report0 = report1;
             report1 = get_next_trace_sample(query, report0);

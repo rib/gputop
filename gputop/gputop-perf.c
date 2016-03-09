@@ -107,8 +107,6 @@ struct intel_device {
     uint32_t subsystem_vendor;
 };
 
-struct gputop_devinfo gputop_devinfo;
-
 bool gputop_fake_mode = false;
 
 static struct intel_device intel_dev;
@@ -416,6 +414,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
             // context creation then the kernel will simply fail with the
             // lookup.
             oa_query_fd = ctx->fd;
+            dbg("opening per context i915 perf stream: fd = %d, ctx=%u\n", ctx->fd, ctx->id);
         }
 
         param.properties_ptr = (uint64_t)properties;
@@ -443,6 +442,8 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
         stream->period = 80 * (2 << period_exponent);
         stream->prev_timestamp = gputop_get_time();
     }
+
+    gputop_oa_accumulator_clear(query);
 
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
@@ -1215,43 +1216,9 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
             case DRM_I915_PERF_RECORD_SAMPLE: {
                 struct oa_sample *sample = (struct oa_sample *)header;
                 uint8_t *report = sample->oa_report;
-                uint32_t reason = (((uint32_t*)report)[0] >> OAREPORT_REASON_SHIFT) &
-                        OAREPORT_REASON_MASK;
 
-                /* On GEN8+ the hardware is able to generate reports with a
-                 * reason field. So for example when capturing perdiodic counter
-                 * snapshots the reason field would be TIMER. This is _not_ the
-                 * case when capturing snapshots by inserting MI_RPC commands
-                 * into the CS, instead this field is overridden with the u32
-                 * id passed with the MI_RPC. But within GPUTOP we should
-                 * currently only expect either CTX_SWITCH or TIMER.
-                 */
-                if (gputop_devinfo.gen >= 8) {
-                        if (!(reason & (OAREPORT_REASON_CTX_SWITCH |
-                                        OAREPORT_REASON_TIMER))) {
-                            dbg("i915 perf: Unexpected OA sample reason value %"
-                                PRIu32 "\n", reason);
-                        }
-                }
-
-                if (stream->oa.last) {
-                    /* On GEN8+ when a context switch occurs, the hardware
-                     * generates a report to indicate that such an event
-                     * occurred. We therefore skip over the accumulation for
-                     * this report, and instead use it as the base for
-                     * subsequent accumulation calculations.
-                     *
-                     * TODO:(matt-auld)
-                     * This can be simplified once our kernel rebases with Sourab'
-                     * patches, in particular his work which exposes to user-space
-                     * a sample-source-field for OA reports. */
-                    if (stream->per_ctx_mode && gputop_devinfo.gen >= 8) {
-                        if (!(reason & OAREPORT_REASON_CTX_SWITCH))
-                            gputop_perf_current_user->sample(stream, stream->oa.last, report);
-                    } else {
-                        gputop_perf_current_user->sample(stream, stream->oa.last, report);
-                    }
-                }
+                if (stream->oa.last)
+                    gputop_perf_current_user->sample(stream, stream->oa.last, report);
 
                 stream->oa.last = report;
 

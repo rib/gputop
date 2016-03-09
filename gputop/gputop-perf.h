@@ -31,96 +31,11 @@
 #include <time.h>
 #endif
 
-#include "i915_oa_drm.h"
-
 #include "gputop-list.h"
 #include "gputop-hash-table.h"
+#include "gputop-oa-counters.h"
 
-typedef enum {
-    GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
-    GPUTOP_PERFQUERY_COUNTER_DATA_UINT32,
-    GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE,
-    GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT,
-    GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32,
-} gputop_counter_data_type_t;
-
-typedef enum {
-    GPUTOP_PERFQUERY_COUNTER_RAW,
-    GPUTOP_PERFQUERY_COUNTER_DURATION_RAW,
-    GPUTOP_PERFQUERY_COUNTER_DURATION_NORM,
-    GPUTOP_PERFQUERY_COUNTER_EVENT,
-    GPUTOP_PERFQUERY_COUNTER_THROUGHPUT,
-    GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
-} gputop_counter_type_t;
-
-
-#define OAREPORT_REASON_MASK           0x3f
-#define OAREPORT_REASON_SHIFT          19
-#define OAREPORT_REASON_TIMER          (1<<0)
-#define OAREPORT_REASON_CTX_SWITCH     (1<<3)
-
-struct gputop_devinfo {
-    uint32_t devid;
-    uint32_t gen;
-    uint64_t timestamp_frequency;
-    uint64_t n_eus;
-    uint64_t n_eu_slices;
-    uint64_t n_eu_sub_slices;
-    uint64_t eu_threads_count;
-    uint64_t subslice_mask;
-    uint64_t slice_mask;
-    uint64_t gt_min_freq;
-    uint64_t gt_max_freq;
-};
-
-struct gputop_perf_query;
 uint64_t get_time(void);
-struct gputop_perf_query_counter
-{
-   const char *name;
-   const char *symbol_name;
-   const char *desc;
-   gputop_counter_type_t type;
-   gputop_counter_data_type_t data_type;
-   uint64_t (*max)(struct gputop_devinfo *devinfo,
-                   const struct gputop_perf_query *query,
-                   uint64_t *accumulator);
-
-   union {
-      uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,
-                                         const struct gputop_perf_query *query,
-                                         uint64_t *accumulator);
-      float (*oa_counter_read_float)(struct gputop_devinfo *devinfo,
-                                     const struct gputop_perf_query *query,
-                                     uint64_t *accumulator);
-   };
-};
-
-#define MAX_RAW_OA_COUNTERS 62
-
-struct gputop_perf_query
-{
-    const char *name;
-    const char *symbol_name;
-    const char *guid;
-    struct gputop_perf_query_counter *counters;
-    int n_counters;
-
-    int perf_oa_metrics_set;
-    int perf_oa_format;
-    int perf_raw_size;
-
-    /* For indexing into the accumulator[] ... */
-    int gpu_time_offset;
-    int gpu_clock_offset;
-    int a_offset;
-    int b_offset;
-    int c_offset;
-
-    uint64_t accumulator[MAX_RAW_OA_COUNTERS];
-
-    gputop_list_t link;
-};
 
 struct ctx_handle {
     gputop_list_t link;
@@ -295,8 +210,6 @@ extern struct perf_oa_user *gputop_perf_current_user;
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
 struct ctx_handle *get_first_available_ctx(char **error);
-
-extern struct gputop_devinfo gputop_devinfo;
 
 bool gputop_enumerate_queries_via_sysfs(void);
 bool gputop_perf_initialize(void);
