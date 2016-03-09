@@ -671,6 +671,8 @@ init_dev_info(int drm_fd, uint32_t devid)
 
     gputop_devinfo.devid = devid;
 
+    gputop_devinfo.timestamp_frequency = 12500000;
+
     if (gputop_fake_mode) {
             gputop_devinfo.n_eus = 10;
             gputop_devinfo.n_eu_slices = 1;
@@ -724,6 +726,11 @@ init_dev_info(int drm_fd, uint32_t devid)
                 s_max = 3;
                 ss_max = 3;
                 gputop_devinfo.gen = 9;
+
+                assert(!IS_BROXTON(devid)); /* XXX: the frequency is different
+                                               for Broxton */
+
+                gputop_devinfo.timestamp_frequency = 12000000;
             }
 
             gp.param = I915_PARAM_EU_TOTAL;
