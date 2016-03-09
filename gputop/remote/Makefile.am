@@ -32,7 +32,8 @@ third_party_files = \
 	bootstrap/fonts/glyphicons-halflings-regular.ttf \
 	bootstrap/fonts/glyphicons-halflings-regular.eot \
 	bootstrap/fonts/glyphicons-halflings-regular.woff2 \
-	bootstrap/fonts/glyphicons-halflings-regular.svg
+	bootstrap/fonts/glyphicons-halflings-regular.svg \
+	bootbox.min.js
 
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
@@ -74,7 +75,7 @@ gputop-web.js.map:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
 gputop-web.js:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
-
+	
 all-local: | node_modules
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all
 #check-local:
