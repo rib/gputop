@@ -516,10 +516,23 @@ Gputop.prototype.process_features = function(features){
      * to make it easier to call the emscripten native API.
      * DevInfo values should not overflow the native type,
      * but stay in 64b internally to help native processing in C.
+     *
+     * XXX: it would be good if there were a more maintainable
+     * way of forwarding this info, since it's currently too
+     * easy to forget to update this to forward new devinfo
+     * state
      */
-    _update_features(di.devid, di.gen, di.n_eus.toInt(),  di.n_eu_slices.toInt(),
-        di.n_eu_sub_slices.toInt(), di.eu_threads_count.toInt(), di.subslice_mask.toInt(),
-        di.slice_mask.toInt());
+    _update_features(di.devid,
+                     di.gen,
+                     di.timestamp_frequency.toInt(),
+                     di.n_eus.toInt(),
+                     di.n_eu_slices.toInt(),
+                     di.n_eu_sub_slices.toInt(),
+                     di.eu_threads_count.toInt(),
+                     di.subslice_mask.toInt(),
+                     di.slice_mask.toInt(),
+                     di.gt_min_freq.toInt(),
+                     di.gt_max_freq.toInt());
 
     gputop_ui.display_features(features);
 }

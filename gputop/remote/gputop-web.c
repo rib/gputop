@@ -452,19 +452,30 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
     gputop_web_console_log("received perf data for unknown query id: %d", id);
 }
 
-static void EMSCRIPTEN_KEEPALIVE
-update_features(uint32_t devid, uint32_t gen, uint32_t n_eus, uint32_t n_eu_slices,
-                uint32_t n_eu_sub_slices, uint32_t eu_threads_count,
-                uint32_t subslice_mask, uint32_t slice_mask) {
-
+void EMSCRIPTEN_KEEPALIVE
+update_features(uint32_t devid,
+                uint32_t gen,
+                uint32_t timestamp_frequency,
+                uint32_t n_eus,
+                uint32_t n_eu_slices,
+                uint32_t n_eu_sub_slices,
+                uint32_t eu_threads_count,
+                uint32_t subslice_mask,
+                uint32_t slice_mask,
+                uint32_t gt_min_freq,
+                uint32_t gt_max_freq)
+{
     devinfo.devid = devid;
     devinfo.gen = gen;
+    devinfo.timestamp_frequency = timestamp_frequency;
     devinfo.n_eus = n_eus;
     devinfo.n_eu_slices = n_eu_slices;
     devinfo.n_eu_sub_slices = n_eu_sub_slices;
     devinfo.eu_threads_count = eu_threads_count;
     devinfo.subslice_mask = subslice_mask;
     devinfo.slice_mask = slice_mask;
+    devinfo.gt_min_freq = gt_min_freq;
+    devinfo.gt_max_freq = gt_max_freq;
 
     queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
                                        gputop_key_string_equal);
