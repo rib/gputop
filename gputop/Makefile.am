@@ -76,12 +76,14 @@ libgputop_la_LIBADD = \
 
 oa_xml_files = \
     oa-hsw.xml \
-    hsw.xml \
     oa-bdw.xml \
-    bdw.xml \
     oa-chv.xml \
+    oa-skl.xml
+
+built_oa_xml_files = \
+    hsw.xml \
+    bdw.xml \
     chv.xml \
-    oa-skl.xml \
     skl.xml
 
 if SUPPORT_WEBUI
@@ -101,7 +103,8 @@ libgputop_la_LIBADD += \
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
     gputop.proto \
-    $(oa_xml_files)
+    $(oa_xml_files) \
+    $(built_oa_xml_files)
 endif
 
 if SUPPORT_GL
@@ -154,7 +157,8 @@ BUILT_SOURCES = \
     oa-chv.h \
     oa-chv.c \
     oa-skl.h \
-    oa-skl.c
+    oa-skl.c \
+    $(built_oa_xml_files)
 
 if SUPPORT_WEBUI
 BUILT_SOURCES += \
@@ -162,28 +166,28 @@ BUILT_SOURCES += \
     gputop.pb-c.c
 endif
 
-oa-hsw.h oa-hsw.c: oa-hsw.xml oa-gen.py
+oa-hsw.h oa-hsw.c hsw.xml: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-hsw.h \
 	    --code=$(builddir)/oa-hsw.c \
 	    --chipset="hsw" $(srcdir)/oa-hsw.xml \
 	    --xml_eq="hsw.xml"
 
-oa-bdw.h oa-bdw.c: oa-bdw.xml oa-gen.py
+oa-bdw.h oa-bdw.c bdw.xml: oa-bdw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-bdw.h \
 	    --code=$(builddir)/oa-bdw.c \
 	    --chipset="bdw" $(srcdir)/oa-bdw.xml \
 	    --xml_eq="bdw.xml"
 
-oa-chv.h oa-chv.c: oa-chv.xml oa-gen.py
+oa-chv.h oa-chv.c chv.xml: oa-chv.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-chv.h \
 	    --code=$(builddir)/oa-chv.c \
 	    --chipset="chv" $(srcdir)/oa-chv.xml \
 	    --xml_eq="chv.xml"
 
-oa-skl.h oa-skl.c: oa-skl.xml oa-gen.py
+oa-skl.h oa-skl.c skl.xml: oa-skl.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \
 	    --header=$(builddir)/oa-skl.h \
 	    --code=$(builddir)/oa-skl.c \
