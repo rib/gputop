@@ -122,6 +122,7 @@ struct gputop_perf_stream *gputop_current_perf_stream;
 struct perf_oa_user *gputop_perf_current_user;
 
 static int drm_fd = -1;
+static int drm_card = -1;
 
 static gputop_list_t ctx_handles_list = {
     .prev = &ctx_handles_list,
@@ -131,7 +132,7 @@ static gputop_list_t ctx_handles_list = {
 /******************************************************************************/
 
 static uint64_t
-read_file_uint64 (const char *file)
+read_file_uint64(const char *file)
 {
     char buf[32];
     int fd, n;
@@ -147,6 +148,17 @@ read_file_uint64 (const char *file)
     buf[n] = '\0';
     return strtoull(buf, 0, 0);
 }
+
+static uint64_t
+sysfs_card_read(const char *file)
+{
+        char buf[512];
+
+        snprintf(buf, sizeof(buf), "/sys/class/drm/card%d/%s", drm_card, file);
+
+        return read_file_uint64(buf);
+}
+
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
 {
@@ -658,93 +670,103 @@ init_dev_info(int drm_fd, uint32_t devid)
     int threads_per_eu = 7;
 
     gputop_devinfo.devid = devid;
+
     if (gputop_fake_mode) {
             gputop_devinfo.n_eus = 10;
             gputop_devinfo.n_eu_slices = 1;
             gputop_devinfo.n_eu_sub_slices = 1;
             gputop_devinfo.slice_mask = 0x1;
             gputop_devinfo.subslice_mask = 0x1;
-    } else if (IS_HASWELL(devid)) {
-        if (IS_HSW_GT1(devid)) {
-            gputop_devinfo.n_eus = 10;
-            gputop_devinfo.n_eu_slices = 1;
-            gputop_devinfo.n_eu_sub_slices = 1;
-            gputop_devinfo.slice_mask = 0x1;
-            gputop_devinfo.subslice_mask = 0x1;
-        } else if (IS_HSW_GT2(devid)) {
-            gputop_devinfo.n_eus = 20;
-            gputop_devinfo.n_eu_slices = 1;
-            gputop_devinfo.n_eu_sub_slices = 2;
-            gputop_devinfo.slice_mask = 0x1;
-            gputop_devinfo.subslice_mask = 0x3;
-        } else if (IS_HSW_GT3(devid)) {
-            gputop_devinfo.n_eus = 40;
-            gputop_devinfo.n_eu_slices = 2;
-            gputop_devinfo.n_eu_sub_slices = 4;
-            gputop_devinfo.slice_mask = 0x3;
-            gputop_devinfo.subslice_mask = 0xf;
-        }
-        gputop_devinfo.gen = 7;
+            gputop_devinfo.gt_min_freq = 500;
+            gputop_devinfo.gt_min_freq = 1100;
     } else {
-        i915_getparam_t gp;
-        int ret;
-        int n_eus = 0;
-        int slice_mask = 0;
-        int ss_mask = 0;
-        int s_max;
-        int ss_max;
-        uint64_t subslice_mask = 0;
-        int s;
-
-        if (IS_BROADWELL(devid)) {
-            s_max = 2;
-            ss_max = 3;
-            gputop_devinfo.gen = 8;
-        } else if (IS_CHERRYVIEW(devid)) {
-            s_max = 1;
-            ss_max = 2;
-            gputop_devinfo.gen = 8;
-        } else if (IS_SKYLAKE(devid)) {
-            s_max = 3;
-            ss_max = 3;
-            gputop_devinfo.gen = 9;
-        }
-
-        gp.param = I915_PARAM_EU_TOTAL;
-        gp.value = &n_eus;
-        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-        assert(ret == 0 && n_eus > 0);
-
-        gp.param = I915_PARAM_SLICE_MASK;
-        gp.value = &slice_mask;
-        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-        assert(ret == 0 && slice_mask);
-
-        gp.param = I915_PARAM_SUBSLICE_MASK;
-        gp.value = &ss_mask;
-        ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
-        assert(ret == 0 && ss_mask);
-
-        gputop_devinfo.n_eus = n_eus;
-        gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
-        gputop_devinfo.slice_mask = slice_mask;
-
-        /* Note: some of the metrics we have (as described in XML)
-         * are conditional on a $SubsliceMask variable which is
-         * expected to also reflect the slice mask by packing
-         * together subslice masks for each slice in one value...
-         */
-        for (s = 0; s < s_max; s++) {
-            if (slice_mask & (1<<s)) {
-                subslice_mask |= ss_mask << (ss_max * s);
+        if (IS_HASWELL(devid)) {
+            if (IS_HSW_GT1(devid)) {
+                gputop_devinfo.n_eus = 10;
+                gputop_devinfo.n_eu_slices = 1;
+                gputop_devinfo.n_eu_sub_slices = 1;
+                gputop_devinfo.slice_mask = 0x1;
+                gputop_devinfo.subslice_mask = 0x1;
+            } else if (IS_HSW_GT2(devid)) {
+                gputop_devinfo.n_eus = 20;
+                gputop_devinfo.n_eu_slices = 1;
+                gputop_devinfo.n_eu_sub_slices = 2;
+                gputop_devinfo.slice_mask = 0x1;
+                gputop_devinfo.subslice_mask = 0x3;
+            } else if (IS_HSW_GT3(devid)) {
+                gputop_devinfo.n_eus = 40;
+                gputop_devinfo.n_eu_slices = 2;
+                gputop_devinfo.n_eu_sub_slices = 4;
+                gputop_devinfo.slice_mask = 0x3;
+                gputop_devinfo.subslice_mask = 0xf;
             }
+            gputop_devinfo.gen = 7;
+        } else {
+            i915_getparam_t gp;
+            int ret;
+            int n_eus = 0;
+            int slice_mask = 0;
+            int ss_mask = 0;
+            int s_max;
+            int ss_max;
+            uint64_t subslice_mask = 0;
+            int s;
+
+            if (IS_BROADWELL(devid)) {
+                s_max = 2;
+                ss_max = 3;
+                gputop_devinfo.gen = 8;
+            } else if (IS_CHERRYVIEW(devid)) {
+                s_max = 1;
+                ss_max = 2;
+                gputop_devinfo.gen = 8;
+            } else if (IS_SKYLAKE(devid)) {
+                s_max = 3;
+                ss_max = 3;
+                gputop_devinfo.gen = 9;
+            }
+
+            gp.param = I915_PARAM_EU_TOTAL;
+            gp.value = &n_eus;
+            ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            assert(ret == 0 && n_eus > 0);
+
+            gp.param = I915_PARAM_SLICE_MASK;
+            gp.value = &slice_mask;
+            ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            assert(ret == 0 && slice_mask);
+
+            gp.param = I915_PARAM_SUBSLICE_MASK;
+            gp.value = &ss_mask;
+            ret = perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            assert(ret == 0 && ss_mask);
+
+            gputop_devinfo.n_eus = n_eus;
+            gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
+            gputop_devinfo.slice_mask = slice_mask;
+
+            /* Note: some of the metrics we have (as described in XML)
+             * are conditional on a $SubsliceMask variable which is
+             * expected to also reflect the slice mask by packing
+             * together subslice masks for each slice in one value...
+             */
+            for (s = 0; s < s_max; s++) {
+                if (slice_mask & (1<<s)) {
+                    subslice_mask |= ss_mask << (ss_max * s);
+                }
+            }
+            gputop_devinfo.subslice_mask = subslice_mask;
+            gputop_devinfo.n_eu_sub_slices = __builtin_popcount(subslice_mask);
         }
-        gputop_devinfo.subslice_mask = subslice_mask;
-        gputop_devinfo.n_eu_sub_slices = __builtin_popcount(subslice_mask);
+
+        assert(drm_card >= 0);
+        gputop_devinfo.gt_min_freq = sysfs_card_read("gt_min_freq_mhz");
+        gputop_devinfo.gt_max_freq = sysfs_card_read("gt_max_freq_mhz");
     }
 
     gputop_devinfo.eu_threads_count =
         gputop_devinfo.n_eus * threads_per_eu;
+
 }
 
 static unsigned int
@@ -1308,12 +1330,50 @@ read_report_timestamp(const uint32_t *report)
    return timestamp;
 }
 
+static int
+get_card_for_fd(int drm_fd)
+{
+    struct stat sb;
+    int mjr, mnr;
+    char buffer[128];
+    DIR *drm_dir;
+    int entry_size;
+    struct dirent *entry1, *entry2;
+    int name_max;
+
+    if (fstat(drm_fd, &sb)) {
+        gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
+        return false;
+    }
+
+    mjr = major(sb.st_rdev);
+    mnr = minor(sb.st_rdev);
+
+    snprintf(buffer, sizeof(buffer), "/sys/dev/char/%d:%d/device/drm", mjr, mnr);
+
+    drm_dir = opendir(buffer);
+    assert(drm_dir != NULL);
+
+    name_max = pathconf(buffer, _PC_NAME_MAX);
+
+    if (name_max == -1)
+        name_max = 255;
+
+    entry_size = offsetof(struct dirent, d_name) + name_max + 1;
+    entry1 = alloca(entry_size);
+
+    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL)
+        if (entry2->d_type == DT_DIR && strncmp(entry2->d_name, "card", 4) == 0)
+            return strtoull(entry2->d_name + 4, NULL, 10);
+
+    return -1;
+}
+
 static uint32_t
-read_device_param(int id, const char *param)
+read_device_param(const char *stem, int id, const char *param)
 {
     char *name;
-    int ret = asprintf(&name, "/sys/class/drm/renderD%u/"
-                       "device/%s", id, param);
+    int ret = asprintf(&name, "/sys/class/drm/%s%u/device/%s", stem, id, param);
     uint32_t value;
 
     assert(ret != -1);
@@ -1325,65 +1385,60 @@ read_device_param(int id, const char *param)
 }
 
 static int
+find_intel_render_node(void)
+{
+    for (int i = 128; i < (128 + 16); i++) {
+        if (read_device_param("renderD", i, "vendor") == 0x8086)
+            return i;
+    }
+
+    return -1;
+}
+
+static int
 open_render_node(struct intel_device *dev)
 {
     char *name;
-    int i, fd;
+    int ret;
+    int fd;
 
-    for (i = 128; i < (128 + 16); i++) {
-        int ret;
+    int render = find_intel_render_node();
+    if (render < 0)
+        return -1;
 
-        ret = asprintf(&name, "/dev/dri/renderD%u", i);
-        assert(ret != -1);
+    ret = asprintf(&name, "/dev/dri/renderD%u", render);
+    assert(ret != -1);
 
-        fd = open(name, O_RDWR);
-        free(name);
+    fd = open(name, O_RDWR);
+    free(name);
 
-        if (fd == -1)
-            continue;
+    if (fd == -1)
+        return -1;
 
-        if (read_device_param(i, "vendor") != 0x8086) {
-            close(fd);
-            fd = -1;
-            continue;
-        }
-
-        dev->device = read_device_param(i, "device");
-        dev->subsystem_device = read_device_param(i, "subsystem_device");
-        dev->subsystem_vendor = read_device_param(i, "subsystem_vendor");
-
-        return fd;
-    }
+    dev->device = read_device_param("renderD", render, "device");
+    dev->subsystem_device = read_device_param("renderD",
+                                              render, "subsystem_device");
+    dev->subsystem_vendor = read_device_param("renderD",
+                                              render, "subsystem_vendor");
 
     return fd;
 }
 
 bool
-gputop_enumerate_queries_via_sysfs (void)
+gputop_enumerate_queries_via_sysfs(void)
 {
-    DIR *drm_dir, *metrics_dir;
-    struct dirent *entry1, *entry2, *entry3, *entry4;
-    struct stat sb;
-    int mjr, mnr;
+    DIR *metrics_dir;
+    struct dirent *entry1, *entry2;
     char buffer[128];
     int name_max;
     int entry_size;
 
-    if (fstat(drm_fd, &sb)) {
-        gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
+    assert(drm_card >= 0);
+    snprintf(buffer, sizeof(buffer), "/sys/class/drm/card%d/metrics", drm_card);
+
+    metrics_dir = opendir(buffer);
+    if (metrics_dir == NULL)
         return false;
-    }
-
-    mjr = major(sb.st_rdev);
-    mnr = minor(sb.st_rdev);
-
-    snprintf(buffer, sizeof(buffer), "/sys/dev/char/%d:%d/device/drm", mjr,
-        mnr);
-
-    drm_dir = opendir(buffer);
-
-    if (drm_dir == NULL)
-        assert(0);
 
     name_max = pathconf(buffer, _PC_NAME_MAX);
 
@@ -1392,52 +1447,31 @@ gputop_enumerate_queries_via_sysfs (void)
 
     entry_size = offsetof(struct dirent, d_name) + name_max + 1;
     entry1 = alloca(entry_size);
-    entry3 = alloca(entry_size);
 
-    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL) {
-        if (entry2->d_type == DT_DIR &&
-            strncmp(entry2->d_name, "card", 4) == 0)
-        {
-            snprintf(buffer, sizeof(buffer),
-                "/sys/dev/char/%d:%d/device/drm/%s/metrics", mjr,
-                mnr, entry2->d_name);
+    while ((readdir_r(metrics_dir, entry1, &entry2) == 0) && entry2 != NULL)
+    {
+        struct gputop_perf_query *query;
+        struct gputop_hash_entry *queries_entry;
 
-            metrics_dir = opendir(buffer);
+        if (entry2->d_type != DT_DIR || entry2->d_name[0] == '.')
+            continue;
 
-            if (metrics_dir == NULL) {
-                closedir(drm_dir);
-                return false;
-            }
+        queries_entry =
+            gputop_hash_table_search(queries, entry2->d_name);
 
-            while ((readdir_r(metrics_dir, entry3, &entry4) == 0) &&
-                   entry4 != NULL)
-            {
-                struct gputop_perf_query *query;
-                struct gputop_hash_entry *queries_entry;
+        if (queries_entry == NULL)
+            continue;
 
-                if (entry4->d_type != DT_DIR || entry4->d_name[0] == '.')
-                    continue;
+        query = (struct gputop_perf_query*)queries_entry->data;
 
-                queries_entry =
-                    gputop_hash_table_search(queries, entry4->d_name);
+        snprintf(buffer, sizeof(buffer),
+                 "/sys/class/drm/card%d/metrics/%s/id",
+                 drm_card, entry2->d_name);
 
-                if (queries_entry == NULL)
-                    continue;
-
-                query = (struct gputop_perf_query*)queries_entry->data;
-
-                snprintf(buffer, sizeof(buffer),
-                    "/sys/dev/char/%d:%d/device/drm/%s/metrics/%s/id",
-                        mjr, mnr, entry2->d_name, entry4->d_name);
-
-                query->perf_oa_metrics_set = read_file_uint64(buffer);
-                array_append(perf_oa_supported_query_guids, &query->guid);
-            }
-            closedir (metrics_dir);
-        }
+        query->perf_oa_metrics_set = read_file_uint64(buffer);
+        array_append(perf_oa_supported_query_guids, &query->guid);
     }
-
-    closedir(drm_dir);
+    closedir(metrics_dir);
 
     return true;
 }
@@ -1499,6 +1533,7 @@ gputop_perf_initialize(void)
             gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
             return false;
         }
+        drm_card = get_card_for_fd(drm_fd);
     }
 
     /* NB: eu_count needs to be initialized before declaring counters */
