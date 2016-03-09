@@ -57,39 +57,44 @@ function Counter () {
     this.supported_ = false;
     this.xml_ = "<xml/>";
 
+    this.latest_value =  0;
+    this.latest_max =  0;
+
+    /* Not all counters have a constant or equation for the maximum
+     * and so we simply derive a maximum based on the largest value
+     * we've seen */
+    this.inferred_max = 0;
+
     this.samples_ = 0; // Number of samples processed
-    this.data_ = [];
     this.updates = [];
     this.graph_data = [];
     this.units = '';
+    this.graph_markings = [];
     this.record_data = false;
     this.mathml_xml = "";
 }
 
-Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp, delta, d_value, max) {
+Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp,
+                                                  d_value, max, reason) {
      if (this.record_data && max != 0) {
-        var value = 100 * d_value / max;
-
-        this.updates.push([start_timestamp, end_timestamp, value]);
+        this.updates.push([start_timestamp, end_timestamp, d_value, max, reason]);
 
         if (this.updates.length > 2000) {
             this.updates.shift();
         }
     }
     this.samples_ ++;
-    var n_samples = this.data_.length/3;
-    if (n_samples>10)
-        return;
 
-    // Do not refresh the counter if there is not a change of data
-    if (this.last_value_ == d_value)
-        return;
 
-    this.last_value_ = d_value;
-    this.invalidate_ = true;
+    if (this.latest_value != d_value ||
+        this.latest_max != max)
+    {
+        this.latest_value = d_value;
+        this.latest_max = max;
 
-    this.data_.push(delta, d_value, max);
-
+        if (d_value > this.inferred_max)
+            this.inferred_max = d_value;
+    }
 }
 
 //------------------------------ METRIC --------------------------------------
@@ -114,8 +119,11 @@ function Metric () {
     // Real counter number including not available ones
     this.n_total_counters_ = 0;
 
-    // Update period
-    this.period_ = 1000000000;
+    // Aggregation period
+    this.period_ns_ = 1000000000;
+
+    // OA HW periodic timer exponent
+    this.exponent = 14;
 }
 
 Metric.prototype.is_per_ctx_mode = function() {
@@ -153,7 +161,7 @@ Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
 
 //------------------------------ GPUTOP --------------------------------------
 function Gputop () {
-    this.metrics_ = {};     // Map of metrics by INDEX for UI
+    this.metrics_ = [];
     this.map_metrics_ = {}; // Map of metrics by GUID
 
     this.is_connected_ = false;
@@ -187,7 +195,6 @@ function Gputop () {
 
     // Current metric on display
     this.metric_visible_ = undefined;
-    this.period = 1000000000;
 }
 
 Gputop.prototype.get_metrics_xml = function() {
@@ -273,7 +280,13 @@ function gputop_read_metrics_set() {
     }
 } // read_metrics_set
 
-Gputop.prototype.query_update_counter = function (counterId, id, start_timestamp, end_timestamp, delta, max, d_value) {
+Gputop.prototype.query_update_counter = function (counterId,
+                                                  id,
+                                                  start_timestamp,
+                                                  end_timestamp,
+                                                  max,
+                                                  d_value,
+                                                  reason) {
     var metric = this.query_metric_handles_[id];
     if (metric == undefined) {
         //TODO Close this query which is not being captured
@@ -288,17 +301,13 @@ Gputop.prototype.query_update_counter = function (counterId, id, start_timestamp
         return;
     }
 
-    counter.append_counter_data(start_timestamp, end_timestamp, delta, d_value, max);
+    counter.append_counter_data(start_timestamp, end_timestamp,
+                                d_value, max, reason);
 }
 
 Gputop.prototype.load_xml_metrics = function(xml) {
     gputop.metrics_xml_ = xml;
     $(xml).find("set").each(gputop_read_metrics_set);
-
-    gputop_ui.load_metrics_panel(function() {
-        var metric = gputop.get_metric_by_id(0);
-        gputop.open_oa_query_for_trace(metric.guid_);
-    });
 }
 
 Gputop.prototype.load_oa_queries = function(architecture) {
@@ -309,11 +318,10 @@ Gputop.prototype.load_oa_queries = function(architecture) {
     $.get(gputop.xml_file_name_, this.load_xml_metrics);
 }
 
-Gputop.prototype.update_period = function(guid, ms) {
+Gputop.prototype.update_period = function(guid, period_ns) {
     var metric = this.map_metrics_[guid];
-    metric.period_ = ms;
-    _gputop_webworker_update_query_period(metric.oa_query_id_, ms);
-    this.period = ms;
+    metric.period_ns_ = period_ns;
+    _gputop_webworker_update_query_period(metric.oa_query_id_, period_ns);
 }
 
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
@@ -350,7 +358,6 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
         return;
     }
     gputop_ui.syslog("Launch query GUID " + guid);
-    gputop_ui.update_slider_period(metric.period_);
 
     var oa_query = new this.builder_.OAQueryInfo();
     oa_query.guid = guid;
@@ -377,7 +384,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
 
     var open = new this.builder_.OpenQuery();
 
-    oa_query.period_exponent = 14 ;
+    oa_query.period_exponent = metric.exponent;
 
     open.id = metric.oa_query_id_; // oa_query ID
     open.overwrite = false;   /* don't overwrite old samples */
@@ -394,7 +401,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
           metric.oa_query_id_,
           this.get_emc_guid(guid),
           open.per_ctx_mode,
-          metric.period_
+          metric.period_ns_
           ); //100000000
 
     msg.open_query = open;
@@ -512,6 +519,8 @@ Gputop.prototype.process_features = function(features){
 
     var di = features.devinfo;
 
+    gputop.devinfo = di;
+
     /* We convert the 64 bits protobuffer entry into 32 bits
      * to make it easier to call the emscripten native API.
      * DevInfo values should not overflow the native type,
@@ -534,7 +543,7 @@ Gputop.prototype.process_features = function(features){
                      di.gt_min_freq.toInt(),
                      di.gt_max_freq.toInt());
 
-    gputop_ui.display_features(features);
+    gputop_ui.update_features(features);
 }
 
 Gputop.prototype.load_emscripten = function() {
@@ -560,7 +569,7 @@ Gputop.prototype.load_emscripten = function() {
 }
 
 Gputop.prototype.dispose = function() {
-    gputop.metrics_ = {};     // Map of metrics by INDEX for UI
+    gputop.metrics_ = [];
     gputop.map_metrics_ = {}; // Map of metrics by GUID
 
     gputop.is_connected_ = false;

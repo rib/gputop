@@ -15,7 +15,7 @@
     </div>
 
     <div style="display: table-cell; padding-left:25px; vertical-align: middle">
-        <b>Adjust Speed: &nbsp</b> <input type="text" value="1000000000" data-slider-min="10000000" data-slider-max="1000000000" data-slider-step="10000000" data-slider-value="1000000000" data-slider-id="slider_style" id="speed_slider">
+        <b>Zoom: &nbsp</b> <input type="text" value="10" data-slider-min="1" data-slider-max="20" data-slider-step="0.5" data-slider-value="10" data-slider-id="slider_style" id="zoom_slider">
     </div>
     <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle">
         <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b></label>
@@ -154,7 +154,9 @@
         var $set = $(this);
         var title = $set.attr("name");
         var guid = $set.attr("guid");
+
         set_array.push(new set(title, $set.attr("underscore_name"), [], []));
+
         if (global_guid == "")
             global_guid = guid;
 
@@ -400,17 +402,15 @@
         }
     });
 
-    slider = new Slider('#speed_slider', {
+    slider = new Slider('#zoom_slider', {
         formatter: function(value) {
             return 'Current value: ' + value;
         }
     });
 
-    $("#speed_slider").on("slide change", function(slideEvt) {
-        if (global_guid != "")
-            gputop.update_period(global_guid, slider.getValue());
+    $("#zoom_slider").on("slide change", function(slideEvt) {
+        gputop_ui.set_zoom(slider.getValue());
     });
-
 
     // read counters from xml file and populate the website
     read_from_xml(gputop.get_metrics_xml());

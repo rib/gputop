@@ -162,10 +162,8 @@ forward_query_update(struct gputop_worker_query *query,
                      enum update_reason reason)
 {
     struct gputop_perf_query *oa_query = query->oa_query;
-    uint64_t delta;
     int i;
 
-    delta = oa_query->accumulator_last_timestamp - oa_query->accumulator_first_timestamp;
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
     //        query->start_timestamp, query->end_timestamp, query->aggregation_period);
 
@@ -206,9 +204,9 @@ forward_query_update(struct gputop_worker_query *query,
                                      query->id,
                                      oa_query->accumulator_first_timestamp,
                                      oa_query->accumulator_last_timestamp,
-                                     delta,
                                      max,
-                                     d_value);
+                                     d_value,
+                                     reason);
     }
 }
 
