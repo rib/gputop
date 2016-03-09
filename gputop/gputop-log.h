@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <pthread.h>
 
 #include "gputop-list.h"
