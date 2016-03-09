@@ -419,7 +419,7 @@ fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
     } else {
         *eof = 1;
         if (!gputop_fake_mode && errno != EAGAIN)
-            dbg("Error reading i915 perf stream %m");
+            dbg("Error reading i915 perf stream %m\n");
     }
 
     return total;
@@ -532,7 +532,7 @@ periodic_update_head_pointers(uv_timer_t *timer)
 
         if (stream->query) {
             if (fsync(stream->fd) < 0)
-                dbg("Failed to flush i915_oa perf samples");
+                dbg("Failed to flush i915_oa perf samples\n");
         }
 
         gputop_perf_update_header_offsets(stream);
