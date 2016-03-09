@@ -140,6 +140,7 @@ GputopUI.prototype.display_counter = function(counter) {
     var delta = counter.data_.shift();
     var d_value = counter.data_.shift();
     var max = counter.data_.shift();
+    var t_val = d_value;
     var units = " " + counter.units;
     var unit = units;
     var dp = 0;
@@ -196,7 +197,7 @@ GputopUI.prototype.display_counter = function(counter) {
         counter.div_txt_ = $('#'+counter.div_txt_id_ );
 
     if (max != 0) {
-        var value = 100 * d_value / max;
+        var value = 100 * t_val / max;
         counter.div_.css("width", value + "%");
         counter.div_txt_.text(d_value.toFixed(dp) + unit);// + " " +counter.samples_);
     } else {
