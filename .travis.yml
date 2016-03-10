@@ -80,7 +80,7 @@ before_script:
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
-    - ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make && make install
+    - ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make V=1 && make V=1 install
     - export GPUTOP_TRAVIS_MODE=1
     - cd $TRAVIS_BUILD_DIR/install/bin
     - ./gputop --fake ./gputop-system
