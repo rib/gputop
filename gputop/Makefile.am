@@ -22,7 +22,8 @@ gputop_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     -ldl
 gputop_CFLAGS = \
-    $(GPUTOP_EXTRA_CFLAGS)
+    $(GPUTOP_EXTRA_CFLAGS) \
+    -std=gnu99
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(srcdir) \
@@ -64,7 +65,8 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
-    -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\"
+    -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\" \
+    -std=gnu99
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \
