@@ -37,7 +37,7 @@ third_party_files = \
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
 	gputop-web.js \
-	gputop-web.js.map \
+	gputop-web.js.mem \
 	index.html \
 	gputop.js \
 	gputop-ui.js \
@@ -60,34 +60,10 @@ nodemodulesdir = $(libdir)/nodejs/gputop
 nobase_dist_nodemodules_DATA := \
    $(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options,jsdom,jquery} -type f -name '*.js' -o -name '*.json' -o -name '*.node')
 
-BUILT_SOURCE = gputop-web.js node_modules
+BUILT_SOURCE = node_modules
 
 node_modules: $(srcdir)/package.json
 	npm install
 
 bootstrap% %.js: | node_modules ;
 
-# Automake seems awkward to use for running the emscripten toolchain so
-# we have a plain GNU Makefile that we proxy too instead...
-EMCC_PROXY_MAKEFLAGS=-f $(srcdir)/Makefile.emscripten $(AM_MAKEFLAGS) top_srcdir=$(top_srcdir)
-
-gputop-web.js.map:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
-gputop-web.js:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
-
-all-local: | node_modules
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all
-#check-local:
-#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) check
-clean-local:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) clean
-distclean-local:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) distclean
-	rm -fr node_modules
-install-data-local: | node_modules ;
-#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-data
-#install-exec-local:
-#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-exec
-#uninstall-local:
-#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) uninstall

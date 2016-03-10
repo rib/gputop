@@ -134,17 +134,13 @@ dnl Misc program dependencies.
 dnl ================================================================
 AC_PROG_INSTALL
 AC_CHECK_PROGS([PYTHON2], [python2 python])
-AC_CHECK_PROGS([EMCC], [emcc])
 
-have_emcc=no
-AS_IF([test -n "$EMCC"],
-      [ have_emcc="yes" ])
 AC_ARG_ENABLE(
   [webui],
   [AC_HELP_STRING([--enable-webui=@<:@no/yes@:>@],
                   [Enable Web UI @<:@default=auto@:>@])],
   [enable_webui="$enableval"],
-  [enable_webui="$have_emcc"]
+  [enable_webui="yes"]
 )
 AS_IF([test "$enable_webui" = "yes"],
       [
