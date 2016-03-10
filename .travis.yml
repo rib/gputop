@@ -26,12 +26,16 @@ cache:
         - protobuf
 
 env:
-    - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
-    - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
-    - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
-    - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
-    - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
-    - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
+    global:
+        # Adrian's token for now
+        - secure: "XRoEqbiUx4ZPoAjMG9oRBQLlVJMGGKGNjpuZbeH0IcjWaPUxQK/mWP+w5sox+4TVYC25tKaMV70CquGi9C9Mgu2pxOBr+JUN0BH2D6gLSD1NFFjqfQlmMK5txH3SAv1gJVFfciigAGa/12ICm1TQW2DAuNM4Vx+2I83HgZ97pi7utt3AyPG8UU+yJkngETNqDRLJk1C93IRH+OgGb9cBaX2WPCoBhRDvYw8uEOaRt6BOGU6NOwlwvKI8P+0vGTrqQTac5Qys9j/WOh3pppTLk7KUfKRZCMLxNWolIdFScAVLAoyJTWC8fsBpFzIq6SQ9iVNEK7vV0vpYWx/E88Cg4BrxAiZJsltQepO4amigbHnYPVpEP97013gKTUv4mmojKd4YoNq0Lh0LSm4mq65O34jzy7ButTGwUO1BBWQ07l+RWRwljGhh0TDh8cJN4il/GeZ6K+RgXk6JRMiT88fwZ9xTwmgeV46i4GmlbsZwP0Vpy3i23dI4GrLl7abU61AF4Jv5EYQ+m7jmEBBgm1C2u7LjJjoHhib6m1btOeG9P0kuBFbOkI/ZdQGXzeVLcGblfGTtY1sXAUbUruMs1Q8jOUX2XUEhlE+4gZxnZI6pAIsxkr7teza36bfOCzgFVrDSwqyX2KcQtw7A6pAS+PoJ8nBW098KRaibFLk7ov9dQNs="
+    matrix:
+        - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
+        - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
+        - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
+        - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
+        - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
 
 before_install:
     # We don't want to depend on a special version of gcc for building gputop but building
@@ -85,3 +89,12 @@ script:
     - cd $TRAVIS_BUILD_DIR/install/bin
     - ./gputop --fake ./gputop-system
     - if [ "${CONFIG_OPTS/'enable-webui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake --remote ./gputop-system 2> travis_log& sleep 3; firefox http://localhost:7890& sleep 10; grep OpenQuery travis_log; cat travis_log; fi
+    - cd -
+
+deploy:
+    provider: script
+    script: ./travis.sh
+    skip_cleanup: true
+    on:
+        condition: $CONFIG_OPTS = "--disable-debug --disable-gl --enable-webui"
+        all_branches: true
