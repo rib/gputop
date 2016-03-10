@@ -26,12 +26,17 @@ cache:
         - protobuf
 
 env:
-    - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
-    - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
-    - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
-    - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
-    - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
-    - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
+    global:
+        # GH_TOKEN scope=public_repo, for pushing to gh-pages demo site,
+        # limited to builds of the rib/gputop repo
+        - secure: "AuIFOUWwEZq+SoBqnH/9CjGtAI3t2lfBLwKrA04ZqyTJ4Z9F/I0hHP4msSZAdRrwrWDf97pwjEYN4Ll4+W5c2+N95Nks+jCZnRAvQi4uC7mlF+5dRBwSYcyz49t3kK6r986jowfxvqELZsl/8Q2ZQvrOnpAekuQ1oWjGmdXr1bfqDJyvahRKaB5zsIVkPAguSR5f2IFBkOhTaDo24i/LFFMPx9yR7p3/mhRke+yfq7xJlGzV7/wIKqB5ZgP+q3C3BKumBCgsEKIdvW/H/Ff8GzanREx9vs5EjEI9OA/Mtt/mkHLJDviqTkjhIkMaDC/5hHDYk/z2wQEBR2FE5FJqvtrdAyr/5GjUL5EzWWGzBN0r4WDVcbmzWQDCaMp3CHJbn8GG5pk5JKzeMVX5Yc/t37J0y3ESYNaaR/jFwEJB/7chYVftvL2afU6m6ySCZ6J7pX3TWVjd449QSFJyQ9LSawFhaKPvoNJ07upCTBS2PpzFcxvGhkF6xt3lNnwxKyQBpORVXlPQ9oNvrUBS2to+NiNm1sT0Ba6EQT592V+tXppnIE8vD6R0D1pcOZvwqnCm1UxmTpIqYWHojvAAG0V8LW0hbBdmrEEY5sj6BqFHP8MOSTp032Z/DJOCUqVwrO/2Md59RuWcMIlMmiCs7Dmq9Ht9OLxKaGHHI/3ep0mIvc0="
+    matrix:
+        - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
+        - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
+        - CONFIG_OPTS="--enable-debug --disable-gl --disable-webui"
+        - CONFIG_OPTS="--disable-debug --disable-gl --disable-webui"
+        - CONFIG_OPTS="--enable-debug --disable-gl --enable-webui"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-webui"
 
 before_install:
     # We don't want to depend on a special version of gcc for building gputop but building
@@ -85,3 +90,12 @@ script:
     - cd $TRAVIS_BUILD_DIR/install/bin
     - ./gputop --fake ./gputop-system
     - if [ "${CONFIG_OPTS/'enable-webui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake --remote ./gputop-system 2> travis_log& sleep 3; firefox http://localhost:7890& sleep 10; grep OpenQuery travis_log; cat travis_log; fi
+    - cd -
+
+deploy:
+    provider: script
+    script: ./scripts/deploy-demo-site.sh
+    skip_cleanup: true
+    on:
+        condition: $CONFIG_OPTS = "--disable-debug --disable-gl --enable-webui"
+        branch: master
