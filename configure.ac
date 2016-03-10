@@ -106,20 +106,6 @@ dnl LIBTOOL="$LIBTOOL --preserve-dup-deps"
 
 
 dnl ================================================================
-dnl I18n stuff.
-dnl ================================================================
-AM_GNU_GETTEXT_VERSION([0.18.1])
-AM_GNU_GETTEXT([external])
-
-GETTEXT_PACKAGE="gputop"
-AC_SUBST(GETTEXT_PACKAGE)
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,
-                   "$GETTEXT_PACKAGE",
-                   [The prefix for our gettext translation domains.])
-AS_ALL_LINGUAS
-
-
-dnl ================================================================
 dnl Check for dependency packages.
 dnl ================================================================
 
@@ -184,7 +170,6 @@ protoc-c/Makefile
 gputop/Makefile
 gputop/registry/Makefile
 gputop/remote/Makefile
-po/Makefile.in
 )
 
 echo ""
