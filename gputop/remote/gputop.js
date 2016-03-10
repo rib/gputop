@@ -40,8 +40,21 @@ if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
 }
 // Initialize ProtoBuf.js
 var ProtoBuf = dcodeIO.ProtoBuf;
+var proto_builder;
+var gputop;
 
-var proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
+var xmlHttp = new XMLHttpRequest();
+xmlHttp.onreadystatechange = function() {
+    if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+        proto_builder = ProtoBuf.newBuilder();
+        ProtoBuf.protoFromString(xmlHttp.responseText, proto_builder,
+            "gputop.proto");
+        gputop = new Gputop();
+    }
+}
+
+xmlHttp.open("GET", "http://localhost:7890/gputop.proto", true);
+xmlHttp.send(null);
 
 //----------------------------- COUNTER --------------------------------------
 function Counter () {
@@ -680,5 +693,3 @@ Gputop.prototype.connect = function() {
     //----------------- Data transactions ----------------------
     this.socket_ = this.get_socket(websocket_url);
 }
-
-var gputop = new Gputop();
