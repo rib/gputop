@@ -269,8 +269,9 @@ function Gputop () {
     // Current metric on display
     this.metric_visible_ = undefined;
 
-    // Callbacks for messages usign the reply id
-    this.gputop_callbacks_ = [];
+    // Pending RPC request closures, indexed by request uuid,
+    // to be called once we receive a reply.
+    this.rpc_closures_ = {};
 
     // Process list map organized by PID
     this.map_processes_ = [];
@@ -481,9 +482,6 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     metric.oa_query_ = oa_query;
     metric.oa_query_id_ = this.query_id_next_++;
 
-    var msg = new this.builder_.Request();
-    msg.uuid = this.generate_uuid();
-
     var open = new this.builder_.OpenQuery();
 
     oa_query.period_exponent = metric.exponent;
@@ -506,11 +504,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
           metric.period_ns_
           ); //100000000
 
-    msg.open_query = open;
-    msg.encode();
-    this.socket_.send(msg.toArrayBuffer());
-
-    gputop_ui.syslog(msg.uuid + " sent: Open Query Request ");
+    this.rpc_request('open_query', open);
 
     this.query_metric_handles_[metric.oa_query_id_] = metric;
     this.query_active_ = metric;
@@ -543,16 +537,9 @@ Gputop.prototype.close_oa_query = function(id, callback) {
 
     gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
 
-    var msg = new this.builder_.Request();
-    msg.uuid = this.generate_uuid();
-
     _gputop_webworker_on_close_oa_metric_set(metric.oa_query_id_);
 
-    msg.close_query = metric.oa_query_id_;
-    msg.encode();
-    this.socket_.send(msg.toArrayBuffer());
-
-    gputop_ui.syslog(msg.uuid + " sent: Request close query ");
+    this.rpc_request('close_query', metric.oa_query_id_);
 }
 
 // Moves the guid into the emscripten HEAP and returns a ptr to it
@@ -593,16 +580,30 @@ Gputop.prototype.generate_uuid = function()
     });
 }
 
+/* TODO: maybe make @value unnecessary for methods that take no data. */
+Gputop.prototype.rpc_request = function(method, value, closure) {
+    var msg = new this.builder_.Request();
+
+    msg.uuid = this.generate_uuid();
+
+    msg.set(method, value);
+
+    msg.encode();
+    this.socket_.send(msg.toArrayBuffer());
+
+    gputop_ui.syslog("RPC: " + msg.req + " request: ID = " + msg.uuid);
+
+    if (closure != undefined) {
+        gputop.rpc_closures_[msg.uuid] = closure;
+
+        console.assert(Object.keys(this.rpc_closures_).length < 1000,
+                       "Leaking RPC closures");
+    }
+}
+
 Gputop.prototype.request_features = function() {
     if (this.socket_.readyState == is_nodejs ? 1 : WebSocket.OPEN) {
-        var msg = new this.builder_.Request();
-
-        msg.uuid = this.generate_uuid();
-        msg.get_features = true;
-
-        msg.encode();
-        this.socket_.send(msg.toArrayBuffer());
-        gputop_ui.syslog(msg.uuid + " sent: Request features");
+        gputop.rpc_request('get_features', true);
     } else {
         gputop_ui.syslog("Not connected");
     }
@@ -808,11 +809,10 @@ function gputop_socket_on_message(evt) {
                     });
                 }
 
-                var callback = gputop.gputop_callbacks_[msg.uuid];
-                gputop.gputop_callbacks_[msg.uuid] = undefined;
-
-                if (callback != undefined) {
-                    callback(msg);
+                if (msg.reply_uuid in gputop.rpc_closures_) {
+                    var closure = gputop.rpc_closures_[msg.reply_uuid];
+                    closure(msg);
+                    delete gputop.rpc_closures_[msg.reply_uuid];
                 }
 
             break;
@@ -832,15 +832,7 @@ function gputop_socket_on_message(evt) {
 }
 
 Gputop.prototype.get_process_info = function(pid, callback) {
-    var msg = new this.builder_.Request();
-    var uuid = this.generate_uuid();
-
-    this.gputop_callbacks_[uuid] = callback;
-
-    msg.uuid = uuid;
-    msg.get_process_info = pid;
-    msg.encode();
-    this.socket_.send(msg.toArrayBuffer());
+    this.rpc_request('get_process_info', pid, callback);
 }
 
 function gputop_get_socket_web(websocket_url) {
