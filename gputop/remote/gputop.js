@@ -759,24 +759,9 @@ function gputop_socket_on_close() {
 
 function gputop_socket_on_message(evt) {
     try {
-        var dv;
-        var msg_type;
-        var data;
-
-        if (!is_nodejs) {
-            dv = new DataView(evt.data, 0);
-            msg_type = dv.getUint8(0);
-            data = new Uint8Array(evt.data, 8);
-        } else {
-            var buffer = new ArrayBuffer(evt.length);
-            data = new Uint8Array(buffer);
-            for (i = 0; i < evt.length; i++) {
-                data[i] = evt[i];
-            }
-
-            dv = new DataView(buffer, 0);
-            msg_type = dv.getUint8(0);
-        }
+        var dv = new DataView(evt.data, 0);
+        var data = new Uint8Array(evt.data, 8);
+        var msg_type = dv.getUint8(0);
 
         switch(msg_type) {
             case 1: /* WS_MESSAGE_PERF */
@@ -880,11 +865,17 @@ function gputop_get_socket_web(websocket_url) {
 
 function gputop_get_socket_nodejs(websocket_url) {
     var WebSocket = require('ws');
-    var socket = new WebSocket(websocket_url);
+    var socket = new WebSocket(websocket_url, "binary");
 
-    socket.on('open', gputop_socket_on_open);
-    socket.on('close', gputop_socket_on_close);
-    socket.on('message', gputop_socket_on_message);
+    socket.onopen = gputop_socket_on_open;
+    socket.onclose = gputop_socket_on_close;
+    socket.onmessage = function (evt) {
+        //node.js ws api doesn't support .binaryType = "arraybuffer"
+        //so manually convert evt.data to an ArrayBuffer...
+        evt.data = new Uint8Array(evt.data).buffer;
+
+        gputop_socket_on_node_message(evt);
+    }
 
     return socket;
 }

@@ -1,10 +1,10 @@
-const web_socket = require('ws');
+const WebSocket = require('ws');
 const protobufjs = require("protobufjs");
 const uuid = require('uuid');
 const http_request = require('http');
 const string_decoder = require('string_decoder').StringDecoder;
 const pkill = require('pkill');
-const gputop_web_socket = new web_socket('ws://localhost:7890/gputop/');
+const ws = new WebSocket('ws://localhost:7890/gputop/', 'binary');
 var protobuf_builder = null;
 var gputop_protobuf = null;
 var gputop_request = null;
@@ -37,14 +37,14 @@ function gputop_send_features_request()
 
     request_buffer = request.encode();
 
-    gputop_web_socket.send(request_buffer.toArrayBuffer());
+    ws.send(request_buffer.toArrayBuffer());
     console.log('Sent features request to GPUTop server');
 }
 
 process.on('SIGINT', gputop_clean_exit); // catch ctrl-c
 process.on('SIGTERM', gputop_clean_exit); // catch kill
 
-gputop_web_socket.on('open', function() {
+ws.onopen =  function() {
     console.log('Connected to GPUTop server');
     http_request.get("http://localhost:7890/gputop.proto", function(response) {
         response.on('data', function(data) {
@@ -60,18 +60,30 @@ gputop_web_socket.on('open', function() {
             gputop_send_features_request();
         });
     });
-});
+};
 
-gputop_web_socket.on('message', function(proto_message) {
-    var message = gputop_message.decode(proto_message);
-    console.log('Received message from GPUTop server');
+ws.onmessage = function(evt) {
+    //node.js ws api doesn't support .binaryType = "arraybuffer"
+    //so manually convert evt.data to an ArrayBuffer...
+    evt.data = new Uint8Array(evt.data).buffer;
 
+    dv = new DataView(evt.data, 0);
+    data = new Uint8Array(evt.data, 8);
+
+    msg_type = dv.getUint8(0);
+
+    if (msg_type !== 2) // WS_MESSAGE_PROTOBUF
+        return;
+
+    var message = gputop_message.decode(data);
+
+    console.log('Received protobuf message from GPUTop server');
     if (message.features !== null)
     {
         gputop_print_features(message.features);
         gputop_clean_exit();
     }
-});
+};
 
 function gputop_is_website() {
     return false;
