@@ -144,7 +144,7 @@ struct gputop_perf_stream
 {
     int ref_count;
 
-    struct gputop_perf_query *query;
+    struct gputop_metric_set *metric_set;
     bool overwrite;
 
     enum gputop_perf_stream_type type;
@@ -202,8 +202,6 @@ struct perf_oa_user {
                    uint8_t *start, uint8_t *end);
 };
 
-extern struct gputop_perf_query *gputop_current_perf_query;
-extern struct gputop_perf_stream *gputop_current_perf_stream;
 extern struct perf_oa_user *gputop_perf_current_user;
 #endif
 
@@ -211,12 +209,12 @@ bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
 struct ctx_handle *get_first_available_ctx(char **error);
 
-bool gputop_enumerate_queries_via_sysfs(void);
+bool gputop_enumerate_metrics_via_sysfs(void);
 bool gputop_perf_initialize(void);
 void gputop_perf_free(void);
 
-extern struct gputop_hash_table *queries;
-extern struct array *perf_oa_supported_query_guids;
+extern struct gputop_hash_table *metrics;
+extern struct array *gputop_perf_oa_supported_metric_set_guids;
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;
 extern bool gputop_perf_trace_empty;
@@ -226,30 +224,30 @@ extern int gputop_perf_n_samples;
 extern bool gputop_fake_mode;
 
 uint64_t read_report_timestamp(const uint32_t *report);
-uint64_t read_uint64_oa_counter(const struct gputop_perf_query *query,
-                                const struct gputop_perf_query_counter *counter,
-                                uint64_t *accumulator);
-uint32_t read_uint32_oa_counter(const struct gputop_perf_query *query,
-                                const struct gputop_perf_query_counter *counter,
-                                uint64_t *accumulator);
-bool read_bool_oa_counter(const struct gputop_perf_query *query,
-                          const struct gputop_perf_query_counter *counter,
-                          uint64_t *accumulator);
-double read_double_oa_counter(const struct gputop_perf_query *query,
-                              const struct gputop_perf_query_counter *counter,
-                              uint64_t *accumulator);
-float read_float_oa_counter(const struct gputop_perf_query *query,
-                            const struct gputop_perf_query_counter *counter,
-                            uint64_t *accumulator);
+uint64_t read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
+                                const struct gputop_metric_set_counter *counter,
+                                uint64_t *deltas);
+uint32_t read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
+                                const struct gputop_metric_set_counter *counter,
+                                uint64_t *deltas);
+bool read_bool_oa_counter(const struct gputop_metric_set *metric_set,
+                          const struct gputop_metric_set_counter *counter,
+                          uint64_t *deltas);
+double read_double_oa_counter(const struct gputop_metric_set *metric_set,
+                              const struct gputop_metric_set_counter *counter,
+                              uint64_t *deltas);
+float read_float_oa_counter(const struct gputop_metric_set *metric_set,
+                            const struct gputop_metric_set_counter *counter,
+                            uint64_t *deltas);
 
 #ifndef EMSCRIPTEN
 struct gputop_perf_stream *
-gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
-                               int period_exponent,
-                               struct ctx_handle *ctx,
-                               void (*ready_cb)(struct gputop_perf_stream *),
-                               bool overwrite,
-                               char **error);
+gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
+                                int period_exponent,
+                                struct ctx_handle *ctx,
+                                void (*ready_cb)(struct gputop_perf_stream *),
+                                bool overwrite,
+                                char **error);
 struct gputop_perf_stream *
 gputop_perf_open_trace(int pid,
                        int cpu,

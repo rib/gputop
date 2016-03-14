@@ -82,8 +82,8 @@ typedef enum {
 #define OAREPORT_REASON_TIMER          (1<<0)
 #define OAREPORT_REASON_CTX_SWITCH     (1<<3)
 
-struct gputop_perf_query;
-struct gputop_perf_query_counter
+struct gputop_metric_set;
+struct gputop_metric_set_counter
 {
    const char *name;
    const char *symbol_name;
@@ -91,16 +91,16 @@ struct gputop_perf_query_counter
    gputop_counter_type_t type;
    gputop_counter_data_type_t data_type;
    uint64_t (*max)(struct gputop_devinfo *devinfo,
-                   const struct gputop_perf_query *query,
-                   uint64_t *accumulator);
+                   const struct gputop_metric_set *metric_set,
+                   uint64_t *deltas);
 
    union {
       uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,
-                                         const struct gputop_perf_query *query,
-                                         uint64_t *accumulator);
+                                         const struct gputop_metric_set *metric_set,
+                                         uint64_t *deltas);
       float (*oa_counter_read_float)(struct gputop_devinfo *devinfo,
-                                     const struct gputop_perf_query *query,
-                                     uint64_t *accumulator);
+                                     const struct gputop_metric_set *metric_set,
+                                     uint64_t *deltas);
    };
 };
 
@@ -110,37 +110,42 @@ enum gputop_accumulator_flags {
     GPUTOP_ACCUMULATOR_CTX_TIMER_SEEN   = 4,
 };
 
-struct gputop_perf_query
+struct gputop_metric_set
 {
     const char *name;
     const char *symbol_name;
     const char *guid;
-    struct gputop_perf_query_counter *counters;
+    struct gputop_metric_set_counter *counters;
     int n_counters;
 
     int perf_oa_metrics_set;
     int perf_oa_format;
     int perf_raw_size;
 
-    /* For indexing into the accumulator[] ... */
+    /* For indexing into accumulator->deltas[] ... */
     int gpu_time_offset;
     int gpu_clock_offset;
     int a_offset;
     int b_offset;
     int c_offset;
 
-    /* TODO: factor out into a separate structure */
-    uint64_t accumulator_period_ns;
-    uint64_t accumulator_first_timestamp;
-    uint64_t accumulator_last_timestamp;
-#define MAX_RAW_OA_COUNTERS 62
-    uint64_t accumulator[MAX_RAW_OA_COUNTERS];
-    enum gputop_accumulator_flags accumulator_flags;
-    struct gputop_u32_clock accumulator_clock;
-    uint32_t accumulator_last_ctx_id;
-
     gputop_list_t link;
 };
+
+struct gputop_oa_accumulator
+{
+    struct gputop_metric_set *metric_set;
+
+    uint64_t period_ns;
+    uint64_t first_timestamp;
+    uint64_t last_timestamp;
+#define MAX_RAW_OA_COUNTERS 62
+    uint64_t deltas[MAX_RAW_OA_COUNTERS];
+    enum gputop_accumulator_flags flags;
+    struct gputop_u32_clock clock;
+    uint32_t last_ctx_id;
+};
+
 
 extern struct gputop_devinfo gputop_devinfo;
 
@@ -149,8 +154,10 @@ uint64_t gputop_u32_clock_get_time(struct gputop_u32_clock *clock);
 void gputop_u32_clock_progress(struct gputop_u32_clock *clock,
                                uint32_t u32_timestamp);
 
-void gputop_oa_accumulator_clear(struct gputop_perf_query *query);
-bool gputop_oa_accumulate_reports(struct gputop_perf_query *query,
+void gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
+                                struct gputop_metric_set *metric_set);
+void gputop_oa_accumulator_clear(struct gputop_oa_accumulator *accumulator);
+bool gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
                                   const uint8_t *report0,
                                   const uint8_t *report1,
                                   bool per_ctx_mode);

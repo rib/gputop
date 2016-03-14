@@ -72,7 +72,7 @@ struct tab
     void (*redraw)(WINDOW *win);
 
     unsigned int gl_query_id;
-    struct gputop_perf_query *query;
+    struct gputop_metric_set *metric_set;
 };
 
 #define TAB_TITLE_WIDTH 15
@@ -94,6 +94,9 @@ static uv_idle_t redraw_idle;
 static struct tab *current_tab;
 static struct tab *pending_tab;
 static bool debug_disable_ncurses = false;
+
+static struct gputop_perf_stream *current_oa_stream;
+static struct gputop_oa_accumulator current_oa_accumulator;
 
 #ifdef SUPPORT_WEBUI
 static bool web_ui = false;
@@ -131,7 +134,7 @@ static void redraw_ui(void);
 static void
 overview_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
 {
-    gputop_oa_accumulate_reports(stream->query, start, end, stream->per_ctx_mode);
+    gputop_oa_accumulate_reports(&current_oa_accumulator, start, end, stream->per_ctx_mode);
 }
 
 static struct perf_oa_user overview_user = {
@@ -139,20 +142,19 @@ static struct perf_oa_user overview_user = {
 };
 
 static bool
-i915_perf_oa_overview_open(struct gputop_perf_query *query,
+i915_perf_oa_overview_open(struct gputop_metric_set *metric_set,
                            bool enable_per_ctx)
 {
     int period_exponent;
     char *error = NULL;
     struct ctx_handle *ctx = NULL;
 
-    assert(gputop_current_perf_query == NULL);
+    assert(current_oa_stream == NULL);
 
     if (!gputop_perf_initialize())
         return false;
 
     gputop_perf_current_user = &overview_user;
-    gputop_current_perf_query = query;
 
     // TODO: (matt-auld)
     // Currently we don't support selectable contexts, so we just use the
@@ -162,7 +164,7 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
     if (enable_per_ctx) {
         ctx = get_first_available_ctx(&error);
         if (!ctx)
-            goto query_err;
+            goto err;
     }
 
     /* The timestamp for HSW+ increments every 80ns
@@ -179,25 +181,24 @@ i915_perf_oa_overview_open(struct gputop_perf_query *query,
      */
     period_exponent = 16;
 
-    gputop_current_perf_stream =
-        gputop_open_i915_perf_oa_query(gputop_current_perf_query,
-                                       period_exponent,
-                                       ctx,
-                                       gputop_perf_read_samples,
-                                       false,
-                                       &error);
+    current_oa_stream =
+        gputop_open_i915_perf_oa_stream(metric_set,
+                                        period_exponent,
+                                        ctx,
+                                        gputop_perf_read_samples,
+                                        false,
+                                        &error);
 
-    if (!gputop_current_perf_stream)
-        goto query_err;
+    if (!current_oa_stream)
+        goto err;
 
-    gputop_oa_accumulator_clear(query);
+    gputop_oa_accumulator_init(&current_oa_accumulator, metric_set);
 
     return true;
 
-query_err:
+err:
     gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
     free(error);
-    gputop_current_perf_query = NULL;
 
     return false;
 
@@ -208,18 +209,17 @@ overview_closed_cb(struct gputop_perf_stream *stream)
 {
     current_tab = NULL;
 
-    gputop_perf_stream_unref(gputop_current_perf_stream);
-    gputop_current_perf_stream = NULL;
-    gputop_current_perf_query = NULL;
+    gputop_perf_stream_unref(current_oa_stream);
+    current_oa_stream = NULL;
 }
 
 static void
 i915_perf_oa_overview_close(void)
 {
-    if (!gputop_current_perf_stream)
+    if (!current_oa_stream)
         return;
 
-    gputop_perf_stream_close(gputop_current_perf_stream,
+    gputop_perf_stream_close(current_oa_stream,
                              overview_closed_cb);
 }
 
@@ -233,8 +233,8 @@ int gputop_perf_n_samples = 0;
 static void
 trace_sample_cb(struct gputop_perf_stream *stream, uint8_t *start, uint8_t *end)
 {
-    struct gputop_perf_query *query = stream->query;
-    int sample_size = query->perf_raw_size;
+    struct gputop_metric_set *metric_set = stream->metric_set;
+    int sample_size = metric_set->perf_raw_size;
 
     if (gputop_perf_trace_empty) {
         memcpy(gputop_perf_trace_head, start, sample_size);
@@ -259,7 +259,7 @@ static struct perf_oa_user trace_user = {
 };
 
 bool
-gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
+gputop_i915_perf_oa_trace_open(struct gputop_metric_set *metric_set,
                                bool enable_per_ctx)
 {
     int period_exponent;
@@ -269,13 +269,12 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     char *error = NULL;
     struct ctx_handle *ctx = NULL;
 
-    assert(gputop_current_perf_query == NULL);
+    assert(current_oa_stream == NULL);
 
     if (!gputop_perf_initialize())
         return false;
 
     gputop_perf_current_user = &trace_user;
-    gputop_current_perf_query = query;
 
     // TODO: (matt-auld)
     // Currently we don't support selectable contexts, so we just use the
@@ -285,7 +284,7 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
     if (enable_per_ctx) {
         ctx = get_first_available_ctx(&error);
         if (!ctx)
-            goto query_err;
+            goto err;
     }
 
     /* The timestamp for HSW+ increments every 80ns
@@ -297,21 +296,23 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
      */
     period_exponent = 11;
 
-    gputop_current_perf_stream =
-        gputop_open_i915_perf_oa_query(gputop_current_perf_query,
-                                       period_exponent,
-                                       ctx,
-                                       gputop_perf_read_samples,
-                                       false,
-                                       &error);
-    if (!gputop_current_perf_stream)
-        goto query_err;
+    current_oa_stream =
+        gputop_open_i915_perf_oa_stream(metric_set,
+                                        period_exponent,
+                                        ctx,
+                                        gputop_perf_read_samples,
+                                        false,
+                                        &error);
+    if (!current_oa_stream)
+        goto err;
+
+    gputop_oa_accumulator_init(&current_oa_accumulator, metric_set);
 
     period_ns = 80 * (2 << period_exponent);
     n_samples = (duration  * 1000000000.0) / period_ns;
     n_samples *= 1.25; /* a bit of leeway */
 
-    gputop_perf_trace_buffer_size = n_samples * gputop_current_perf_query->perf_raw_size;
+    gputop_perf_trace_buffer_size = n_samples * metric_set->perf_raw_size;
     gputop_perf_trace_buffer = xmalloc0(gputop_perf_trace_buffer_size);
     gputop_perf_trace_head = gputop_perf_trace_buffer;
     gputop_perf_trace_empty = true;
@@ -319,10 +320,9 @@ gputop_i915_perf_oa_trace_open(struct gputop_perf_query *query,
 
     return true;
 
-query_err:
+err:
     gputop_log(GPUTOP_LOG_LEVEL_HIGH, error, -1);
     free(error);
-    gputop_current_perf_query = NULL;
 
     return false;
 }
@@ -332,20 +332,19 @@ trace_closed_cb(struct gputop_perf_stream *stream)
 {
     current_tab = NULL;
 
-    gputop_perf_stream_unref(gputop_current_perf_stream);
+    gputop_perf_stream_unref(current_oa_stream);
 
     free(gputop_perf_trace_buffer);
-    gputop_current_perf_query = NULL;
-    gputop_current_perf_stream = NULL;
+    current_oa_stream = NULL;
 }
 
 void
 gputop_i915_perf_oa_trace_close(void)
 {
-    if (!gputop_current_perf_stream)
+    if (!current_oa_stream)
         return;
 
-    gputop_perf_stream_close(gputop_current_perf_stream,
+    gputop_perf_stream_close(current_oa_stream,
                              trace_closed_cb);
 }
 
@@ -392,30 +391,35 @@ print_range_bar(WINDOW *win, int y, int x, uint64_t val, uint64_t range)
 
 static void
 print_range_oa_counter(WINDOW *win, int y, int x,
-                       struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
+                       struct gputop_perf_stream *stream,
+                       const struct gputop_metric_set_counter *counter,
                        uint64_t range)
 {
     uint64_t val;
 
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-        val = read_uint32_oa_counter(query, counter, query->accumulator);
+        val = read_uint32_oa_counter(stream->metric_set, counter,
+                                     current_oa_accumulator.deltas);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-        val = read_uint64_oa_counter(query, counter, query->accumulator);
+        val = read_uint64_oa_counter(stream->metric_set, counter,
+                                     current_oa_accumulator.deltas);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-        val = (read_float_oa_counter(query, counter, query->accumulator) + 0.5);
+        val = (read_float_oa_counter(stream->metric_set, counter,
+                                     current_oa_accumulator.deltas) + 0.5);
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-        val = (read_double_oa_counter(query, counter, query->accumulator) + 0.5);
+        val = (read_double_oa_counter(stream->metric_set, counter,
+                                      current_oa_accumulator.deltas) + 0.5);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-        val = read_bool_oa_counter(query, counter, query->accumulator);
+        val = read_bool_oa_counter(stream->metric_set, counter,
+                                   current_oa_accumulator.deltas);
         break;
     }
 
@@ -429,39 +433,39 @@ print_range_oa_counter(WINDOW *win, int y, int x,
 
 static void
 print_raw_oa_counter(WINDOW *win, int y, int x,
-                     struct gputop_perf_query *query,
-                     const struct gputop_perf_query_counter *counter)
+                     struct gputop_perf_stream *stream,
+                     const struct gputop_metric_set_counter *counter)
 {
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
         mvwprintw(win, y, x, "%" PRIu32,
-                  read_uint32_oa_counter(query,
+                  read_uint32_oa_counter(stream->metric_set,
                                          counter,
-                                         query->accumulator));
+                                         current_oa_accumulator.deltas));
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
         mvwprintw(win, y, x, "%" PRIu64,
-                  read_uint64_oa_counter(query,
+                  read_uint64_oa_counter(stream->metric_set,
                                          counter,
-                                         query->accumulator));
+                                         current_oa_accumulator.deltas));
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
         mvwprintw(win, y, x, "%f",
-                  read_float_oa_counter(query,
+                  read_float_oa_counter(stream->metric_set,
                                         counter,
-                                        query->accumulator));
+                                        current_oa_accumulator.deltas));
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
         mvwprintw(win, y, x, "%f",
-                  read_double_oa_counter(query,
+                  read_double_oa_counter(stream->metric_set,
                                          counter,
-                                         query->accumulator));
+                                         current_oa_accumulator.deltas));
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
         mvwprintw(win, y, x, "%s",
-                  read_bool_oa_counter(query,
+                  read_bool_oa_counter(stream->metric_set,
                                        counter,
-                                       query->accumulator) ? "TRUE" : "FALSE");
+                                       current_oa_accumulator.deltas) ? "TRUE" : "FALSE");
         break;
     }
 }
@@ -470,7 +474,8 @@ print_raw_oa_counter(WINDOW *win, int y, int x,
 static void
 perf_counters_redraw(WINDOW *win)
 {
-    struct gputop_perf_query *query = gputop_current_perf_query;
+    struct gputop_perf_stream *stream = current_oa_stream;
+    struct gputop_metric_set *metric_set = NULL;
     //int win_width;
     //int win_height __attribute__ ((unused));
     int j;
@@ -478,57 +483,60 @@ perf_counters_redraw(WINDOW *win)
 
     //getmaxyx(win, win_height, win_width);
 
-    if (!gputop_current_perf_query) {
-        mvwprintw(win, 2, 0, "Perf query not open (check log tab for details)");
+    if (!stream) {
+        mvwprintw(win, 2, 0, "i915 perf stream not open (check log tab for details)");
         return;
     }
 
-    gputop_perf_read_samples(gputop_current_perf_stream);
+    gputop_perf_read_samples(stream);
 
-    for (j = 0; j < query->n_counters; j++) {
-        struct gputop_perf_query_counter *counter = &query->counters[j];
+    metric_set = stream->metric_set;
+
+    for (j = 0; j < metric_set->n_counters; j++) {
+        struct gputop_metric_set_counter *counter = &metric_set->counters[j];
 
         wattrset(win, A_NORMAL);
 
         switch (counter->type) {
         case GPUTOP_PERFQUERY_COUNTER_EVENT:
             mvwprintw(win, y, 0, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
             mvwprintw(win, y, 0, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
             mvwprintw(win, y, 0, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
             if (wmove(win, y, 0) == ERR)
                 break;
             wprintw(win, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             wprintw(win, " bytes/s");
             break;
         case GPUTOP_PERFQUERY_COUNTER_RAW:
             mvwprintw(win, y, 0, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
             mvwprintw(win, y, 0, "%40s: ", counter->name);
-            print_raw_oa_counter(win, y, 41, query, counter);
+            print_raw_oa_counter(win, y, 41, stream, counter);
             break;
         }
 
         if (counter->max) {
-            uint64_t max = counter->max(&gputop_devinfo, query, query->accumulator);
-            print_range_oa_counter(win, y, 60, query, counter, max);
+            uint64_t max = counter->max(&gputop_devinfo, stream->metric_set,
+                                        current_oa_accumulator.deltas);
+            print_range_oa_counter(win, y, 60, stream, counter, max);
         }
 
         y++;
     }
 
-    gputop_oa_accumulator_clear(query);
+    gputop_oa_accumulator_clear(&current_oa_accumulator);
 }
 
 static void
@@ -563,29 +571,34 @@ print_percentage_spark(WINDOW *win, int x, int y, float percent)
 
 static void
 trace_print_percentage_oa_counter(WINDOW *win, int x, int y,
-                                  struct gputop_perf_query *query,
-                                  const struct gputop_perf_query_counter *counter)
+                                  struct gputop_perf_stream *stream,
+                                  const struct gputop_metric_set_counter *counter)
 {
     float percentage;
 
     switch(counter->data_type) {
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-        percentage = read_uint32_oa_counter(query, counter, query->accumulator);
+        percentage = read_uint32_oa_counter(stream->metric_set, counter,
+                                            current_oa_accumulator.deltas);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-        percentage = read_uint64_oa_counter(query, counter, query->accumulator);
+        percentage = read_uint64_oa_counter(stream->metric_set, counter,
+                                            current_oa_accumulator.deltas);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-        percentage = read_float_oa_counter(query, counter, query->accumulator);
+        percentage = read_float_oa_counter(stream->metric_set, counter,
+                                           current_oa_accumulator.deltas);
         break;
     case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-        percentage = read_double_oa_counter(query, counter, query->accumulator);
+        percentage = read_double_oa_counter(stream->metric_set, counter,
+                                            current_oa_accumulator.deltas);
         break;
 
     case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-        percentage = read_bool_oa_counter(query, counter, query->accumulator);
+        percentage = read_bool_oa_counter(stream->metric_set, counter,
+                                          current_oa_accumulator.deltas);
         break;
     }
 
@@ -602,20 +615,21 @@ trace_print_percentage_oa_counter(WINDOW *win, int x, int y,
 
 static void
 trace_print_raw_oa_counter(WINDOW *win, int x, int y,
-                           struct gputop_perf_query *query,
-                           const struct gputop_perf_query_counter *counter)
+                           struct gputop_perf_stream *stream,
+                           const struct gputop_metric_set_counter *counter)
 {
 }
 
 static void
-print_trace_counter_names(WINDOW *win, struct gputop_perf_query *query)
+print_trace_counter_names(WINDOW *win, struct gputop_perf_stream *stream)
 {
     int i;
     int y = 10 - y_pos;
 
     wattrset(win, A_NORMAL);
-    for (i = 0; i < query->n_counters; i++) {
-        struct gputop_perf_query_counter *counter = &query->counters[i];
+    for (i = 0; i < stream->metric_set->n_counters; i++) {
+        struct gputop_metric_set_counter *counter =
+            &stream->metric_set->counters[i];
 
         mvwprintw(win, y, 0, "%25s: ", counter->name);
 
@@ -624,44 +638,47 @@ print_trace_counter_names(WINDOW *win, struct gputop_perf_query *query)
 }
 
 static void
-print_trace_counter_spark(WINDOW *win, struct gputop_perf_query *query, int x)
+print_trace_counter_spark(WINDOW *win, struct gputop_perf_stream *stream, int x)
 {
+    struct gputop_metric_set *metric_set = stream->metric_set;
     int i;
     int y = 10 - y_pos;
 
     x += 27;
 
-    for (i = 0; i < query->n_counters; i++) {
-        struct gputop_perf_query_counter *counter = &query->counters[i];
+    for (i = 0; i < metric_set->n_counters; i++) {
+        struct gputop_metric_set_counter *counter = &metric_set->counters[i];
 
         switch (counter->type) {
         case GPUTOP_PERFQUERY_COUNTER_EVENT:
-            trace_print_raw_oa_counter(win, x, y, query, counter);
+            trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_DURATION_NORM:
-            trace_print_raw_oa_counter(win, x, y, query, counter);
+            trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_DURATION_RAW:
             if (counter->max &&
-                counter->max(&gputop_devinfo, query, query->accumulator) == 100)
+                counter->max(&gputop_devinfo, stream->metric_set,
+                             current_oa_accumulator.deltas) == 100)
             {
-                trace_print_percentage_oa_counter(win, x, y, query, counter);
+                trace_print_percentage_oa_counter(win, x, y, stream, counter);
             } else
-                trace_print_raw_oa_counter(win, x, y, query, counter);
+                trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_THROUGHPUT:
-            trace_print_raw_oa_counter(win, x, y, query, counter);
+            trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_RAW:
             if (counter->max &&
-                counter->max(&gputop_devinfo, query, query->accumulator) == 100)
+                counter->max(&gputop_devinfo, stream->metric_set,
+                             current_oa_accumulator.deltas) == 100)
             {
-                trace_print_percentage_oa_counter(win, x, y, query, counter);
+                trace_print_percentage_oa_counter(win, x, y, stream, counter);
             } else
-                trace_print_raw_oa_counter(win, x, y, query, counter);
+                trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         case GPUTOP_PERFQUERY_COUNTER_TIMESTAMP:
-            trace_print_raw_oa_counter(win, x, y, query, counter);
+            trace_print_raw_oa_counter(win, x, y, stream, counter);
             break;
         }
 
@@ -672,9 +689,9 @@ print_trace_counter_spark(WINDOW *win, struct gputop_perf_query *query, int x)
 static uint64_t trace_view_start;
 
 const uint8_t *
-get_next_trace_sample(struct gputop_perf_query *query, const uint8_t *current_sample)
+get_next_trace_sample(struct gputop_perf_stream *stream, const uint8_t *current_sample)
 {
-    const uint8_t *next = current_sample + query->perf_raw_size;
+    const uint8_t *next = current_sample + stream->metric_set->perf_raw_size;
 
     if (next >= (gputop_perf_trace_buffer + gputop_perf_trace_buffer_size))
         next = gputop_perf_trace_buffer;
@@ -685,7 +702,7 @@ get_next_trace_sample(struct gputop_perf_query *query, const uint8_t *current_sa
 static void
 perf_oa_trace_redraw(WINDOW *win)
 {
-    struct gputop_perf_query *query = gputop_current_perf_query;
+    struct gputop_perf_stream *stream = current_oa_stream;
     int win_width;
     int win_height __attribute__ ((unused));
     size_t fill = gputop_perf_trace_full ?
@@ -702,12 +719,12 @@ perf_oa_trace_redraw(WINDOW *win)
 
     getmaxyx(win, win_height, win_width);
 
-    if (!gputop_current_perf_query) {
-        mvwprintw(win, 2, 0, "Perf query not open (check log tab for details)");
+    if (!stream) {
+        mvwprintw(win, 2, 0, "Perf stream not open (check log tab for details)");
         return;
     }
 
-    gputop_perf_read_samples(gputop_current_perf_stream);
+    gputop_perf_read_samples(stream);
 
     if (!gputop_perf_trace_full) {
         mvwprintw(win, 2, 0, "Trace buffer fill %3.0f%: ", fill_percentage);
@@ -724,23 +741,23 @@ perf_oa_trace_redraw(WINDOW *win)
     if (timeline_width < 0)
         return;
 
-    print_trace_counter_names(win, query);
+    print_trace_counter_names(win, stream);
 
     ns_per_column = (1000000000 * zoom) / timeline_width;
 
     report0 = gputop_perf_trace_head;
-    report1 = get_next_trace_sample(query, report0);
+    report1 = get_next_trace_sample(stream, report0);
 
-    gputop_oa_accumulator_clear(query);
+    gputop_oa_accumulator_clear(&current_oa_accumulator);
 
     do {
-        if (gputop_oa_accumulate_reports(gputop_current_perf_stream->query,
+        if (gputop_oa_accumulate_reports(&current_oa_accumulator,
                                          report0, report1,
-                                         gputop_current_perf_stream->per_ctx_mode))
-            start_timestamp = query->accumulator_first_timestamp;
+                                         stream->per_ctx_mode))
+            start_timestamp = current_oa_accumulator.first_timestamp;
 
         report0 = report1;
-        report1 = get_next_trace_sample(query, report0);
+        report1 = get_next_trace_sample(stream, report0);
     } while (start_timestamp == 0);
 
     for (int i = 0; i < timeline_width; i++) {
@@ -748,18 +765,18 @@ perf_oa_trace_redraw(WINDOW *win)
             (i *  ns_per_column) + ns_per_column;
 
         while (1) {
-            if (gputop_oa_accumulate_reports(gputop_current_perf_stream->query,
+            if (gputop_oa_accumulate_reports(&current_oa_accumulator,
                                              report0, report1,
-                                             gputop_current_perf_stream->per_ctx_mode))
+                                             stream->per_ctx_mode))
             {
-                if (query->accumulator_last_timestamp > column_end) {
-                    print_trace_counter_spark(win, query, i);
-                    gputop_oa_accumulator_clear(query);
+                if (current_oa_accumulator.last_timestamp > column_end) {
+                    print_trace_counter_spark(win, stream, i);
+                    gputop_oa_accumulator_clear(&current_oa_accumulator);
                 }
             }
 
             report0 = report1;
-            report1 = get_next_trace_sample(query, report0);
+            report1 = get_next_trace_sample(stream, report0);
         }
     }
 }
@@ -770,7 +787,7 @@ perf_tab_enter(struct tab *owner_tab)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
-    i915_perf_oa_overview_open(owner_tab->query, false);
+    i915_perf_oa_overview_open(owner_tab->metric_set, false);
 }
 
 static void
@@ -802,7 +819,7 @@ perf_3d_trace_tab_enter(struct tab *owner_tab)
     uv_timer_init(gputop_ui_loop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
-    gputop_i915_perf_oa_trace_open(owner_tab->query, false);
+    gputop_i915_perf_oa_trace_open(owner_tab->metric_set, false);
 }
 
 static void
@@ -1724,21 +1741,21 @@ gputop_ui_init(void)
 {
     int i;
     pthread_attr_t attrs;
-    struct gputop_perf_query *trace_query = NULL;
+    struct gputop_metric_set *trace_metric_set = NULL;
 
     gputop_perf_initialize();
     gputop_list_init(&tabs);
     current_tab = NULL;
 
-    for (i = 0; i < perf_oa_supported_query_guids->len; i++)
+    for (i = 0; i < gputop_perf_oa_supported_metric_set_guids->len; i++)
     {
-        struct gputop_perf_query *query = (gputop_hash_table_search(queries,
-            array_value_at(perf_oa_supported_query_guids, char*, i)))->data;
+        struct gputop_metric_set *metric_set = (gputop_hash_table_search(metrics,
+            array_value_at(gputop_perf_oa_supported_metric_set_guids, char*, i)))->data;
         struct tab *counter_tab = xmalloc0(sizeof(struct tab));
 
-        counter_tab->name = (char*)query->name;
-        counter_tab->nick = (char*)query->symbol_name;
-        counter_tab->query = query;
+        counter_tab->name = (char*)metric_set->name;
+        counter_tab->nick = (char*)metric_set->symbol_name;
+        counter_tab->metric_set = metric_set;
         counter_tab->enter = perf_tab_enter;
         counter_tab->leave = perf_tab_leave;
         counter_tab->input = perf_tab_input;
@@ -1747,16 +1764,16 @@ gputop_ui_init(void)
 
         if (current_tab == NULL)
             current_tab = counter_tab;
-        if (trace_query == NULL &&
+        if (trace_metric_set == NULL &&
             strcmp(counter_tab->nick, "RenderBasic") == 0)
         {
             current_tab = counter_tab;
-            trace_query = query;
+            trace_metric_set = metric_set;
         }
     }
 
-    if (trace_query != NULL) {
-        tab_3d_trace.query = trace_query;
+    if (trace_metric_set != NULL) {
+        tab_3d_trace.metric_set = trace_metric_set;
         gputop_list_insert(tabs.prev, &tab_3d_trace.link);
     }
 

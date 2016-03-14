@@ -46,14 +46,15 @@
 #include "oa-chv.h"
 #include "oa-skl.h"
 
-struct gputop_hash_table *queries;
+struct gputop_hash_table *metrics;
 
-struct gputop_worker_query {
+struct gputop_remote_stream {
     int id;
     uint64_t aggregation_period;
     bool per_ctx_mode;
 
-    struct gputop_perf_query *oa_query;
+    struct gputop_metric_set *oa_metric_set;
+    struct gputop_oa_accumulator oa_accumulator;
 
     /* Aggregation may happen accross multiple perf data messages
      * so we may need to copy the last report so that aggregation
@@ -63,7 +64,7 @@ struct gputop_worker_query {
     gputop_list_t link;
 };
 
-static gputop_list_t open_queries;
+static gputop_list_t open_metrics;
 
 struct oa_sample {
    struct i915_perf_record_header header;
@@ -78,46 +79,46 @@ assert_not_reached(void)
 }
 
 uint64_t
-read_uint64_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
+read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
                        uint64_t *accumulator)
 {
-    return counter->oa_counter_read_uint64(&gputop_devinfo, query, accumulator);
+    return counter->oa_counter_read_uint64(&gputop_devinfo, metric_set, accumulator);
 }
 
 uint32_t
-read_uint32_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
+read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
                        uint64_t *accumulator)
 {
     assert_not_reached();
-    //return counter->oa_counter_read_uint32(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_uint32(&gputop_devinfo, metric_set, accumulator);
 }
 
 bool
-read_bool_oa_counter(const struct gputop_perf_query *query,
-                     const struct gputop_perf_query_counter *counter,
+read_bool_oa_counter(const struct gputop_metric_set *metric_set,
+                     const struct gputop_metric_set_counter *counter,
                      uint64_t *accumulator)
 {
     assert_not_reached();
-    //return counter->oa_counter_read_bool(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_bool(&gputop_devinfo, metric_set, accumulator);
 }
 
 double
-read_double_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
+read_double_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
                        uint64_t *accumulator)
 {
     assert_not_reached();
-    //return counter->oa_counter_read_double(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_double(&gputop_devinfo, metric_set, accumulator);
 }
 
 float
-read_float_oa_counter(const struct gputop_perf_query *query,
-                      const struct gputop_perf_query_counter *counter,
+read_float_oa_counter(const struct gputop_metric_set *metric_set,
+                      const struct gputop_metric_set_counter *counter,
                       uint64_t *accumulator)
 {
-    return counter->oa_counter_read_float(&gputop_devinfo, query, accumulator);
+    return counter->oa_counter_read_float(&gputop_devinfo, metric_set, accumulator);
 }
 
 uint32_t
@@ -129,22 +130,22 @@ read_report_raw_timestamp(const uint32_t *report)
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
 
 void
-_gputop_query_update_counter(int counter, int id,
-                             double start_timestamp, double end_timestamp,
-                             double delta, double max, double ui64_value);
+_gputop_stream_update_counter(int counter, int id,
+                              double start_timestamp, double end_timestamp,
+                              double delta, double max, double ui64_value);
 
 /* Returns the ID for a counter_name using the symbol_name */
 static int EMSCRIPTEN_KEEPALIVE
 get_counter_id(const char *guid, const char *counter_symbol_name)
 {
-    struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);
+    struct gputop_hash_entry *entry = gputop_hash_table_search(metrics, guid);
     if (entry == NULL)
         return -1;
 
-    struct gputop_perf_query *query = (struct gputop_perf_query *) entry->data;
+    struct gputop_metric_set *metric_set = (struct gputop_metric_set *) entry->data;
 
-    for (int t=0; t<query->n_counters; t++) {
-        struct gputop_perf_query_counter *counter = &query->counters[t];
+    for (int t=0; t<metric_set->n_counters; t++) {
+        struct gputop_metric_set_counter *counter = &metric_set->counters[t];
         if (!strcmp(counter->symbol_name, counter_symbol_name))
             return t;
     }
@@ -158,31 +159,35 @@ enum update_reason {
 };
 
 static void
-forward_query_update(struct gputop_worker_query *query,
-                     enum update_reason reason)
+forward_stream_update(struct gputop_remote_stream *stream,
+                      enum update_reason reason)
 {
-    struct gputop_perf_query *oa_query = query->oa_query;
+    struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
+    struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
     int i;
 
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
-    //        query->start_timestamp, query->end_timestamp, query->aggregation_period);
+    //        stream->start_timestamp, stream->end_timestamp, stream->aggregation_period);
 
-    for (i = 0; i < oa_query->n_counters; i++) {
+    for (i = 0; i < oa_metric_set->n_counters; i++) {
         uint64_t u53_check;
         double   d_value;
         uint64_t max = 0;
 
-        struct gputop_perf_query_counter *counter = &oa_query->counters[i];
+        struct gputop_metric_set_counter *counter = &oa_metric_set->counters[i];
         if (counter->max) {
-            max = counter->max(&gputop_devinfo, oa_query, oa_query->accumulator);
+            max = counter->max(&gputop_devinfo, oa_metric_set,
+                               oa_accumulator->deltas);
         }
 
         switch(counter->data_type) {
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-                d_value = read_uint32_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_uint32_oa_counter(oa_metric_set, counter,
+                                                 oa_accumulator->deltas);
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-                u53_check = read_uint64_oa_counter(oa_query, counter, oa_query->accumulator);
+                u53_check = read_uint64_oa_counter(oa_metric_set, counter,
+                                                   oa_accumulator->deltas);
                 if (u53_check > JS_MAX_SAFE_INTEGER) {
                     gputop_web_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
                     u53_check = JS_MAX_SAFE_INTEGER;
@@ -190,20 +195,23 @@ forward_query_update(struct gputop_worker_query *query,
                 d_value = u53_check;
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-                d_value = read_float_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_float_oa_counter(oa_metric_set, counter,
+                                                oa_accumulator->deltas);
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-                d_value = read_double_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_double_oa_counter(oa_metric_set, counter,
+                                                 oa_accumulator->deltas);
             break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-                d_value = read_bool_oa_counter(oa_query, counter, oa_query->accumulator);
+                d_value = read_bool_oa_counter(oa_metric_set, counter,
+                                               oa_accumulator->deltas);
             break;
         }
 
-        _gputop_query_update_counter(i,
-                                     query->id,
-                                     oa_query->accumulator_first_timestamp,
-                                     oa_query->accumulator_last_timestamp,
+        _gputop_stream_update_counter(i,
+                                     stream->id,
+                                     oa_accumulator->first_timestamp,
+                                     oa_accumulator->last_timestamp,
                                      max,
                                      d_value,
                                      reason);
@@ -213,30 +221,30 @@ forward_query_update(struct gputop_worker_query *query,
 static void EMSCRIPTEN_KEEPALIVE
 handle_perf_message(int id, uint8_t *data, int len)
 {
-    struct gputop_worker_query *query;
+    struct gputop_remote_stream *stream;
 
-    gputop_list_for_each(query, &open_queries, link) {
+    gputop_list_for_each(stream, &open_metrics, link) {
 
-        if (query->id == id) {
+        if (stream->id == id) {
             gputop_web_console_log("FIXME: parse perf data");
             return;
         }
     }
-    gputop_web_console_log("received perf data for unknown query id: %d", id);
+    gputop_web_console_log("received perf data for unknown stream id: %d", id);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-handle_oa_query_i915_perf_data(struct gputop_worker_query *query,
+handle_oa_metric_set_i915_perf_data(struct gputop_remote_stream *stream,
                                uint8_t *data, int len)
 {
-    struct gputop_perf_query *oa_query = query->oa_query;
+    struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
     const struct i915_perf_record_header *header;
     uint8_t *last = NULL;
 
-    if (query->continuation_report)
-        last = query->continuation_report;
+    if (stream->continuation_report)
+        last = stream->continuation_report;
     else
-        gputop_oa_accumulator_clear(oa_query);
+        gputop_oa_accumulator_clear(oa_accumulator);
 
     for (header = (void *)data;
          (uint8_t *)header < (data + len);
@@ -266,23 +274,23 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query,
             enum update_reason reason = 0;
 
             if (last) {
-                if (gputop_oa_accumulate_reports(oa_query,
-                                             last, sample->oa_report,
-                                             query->per_ctx_mode))
+                if (gputop_oa_accumulate_reports(oa_accumulator,
+                                                 last, sample->oa_report,
+                                                 stream->per_ctx_mode))
                 {
-                    uint64_t elapsed = (oa_query->accumulator_last_timestamp -
-                                        oa_query->accumulator_first_timestamp);
+                    uint64_t elapsed = (oa_accumulator->last_timestamp -
+                                        oa_accumulator->first_timestamp);
 
-                    if (elapsed > query->aggregation_period)
+                    if (elapsed > stream->aggregation_period)
                         reason = UPDATE_REASON_PERIOD;
-                    if (oa_query->accumulator_flags & GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN)
+                    if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN)
                         reason = UPDATE_REASON_CTX_SWITCH_TO;
-                    if (oa_query->accumulator_flags & GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN)
+                    if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN)
                         reason = UPDATE_REASON_CTX_SWITCH_AWAY;
 
                     if (reason) {
-                        forward_query_update(query, reason);
-                        gputop_oa_accumulator_clear(oa_query);
+                        forward_stream_update(stream, reason);
+                        gputop_oa_accumulator_clear(oa_accumulator);
                     }
                 }
             }
@@ -299,31 +307,31 @@ handle_oa_query_i915_perf_data(struct gputop_worker_query *query,
     }
 
     if (last) {
-        int raw_size = query->oa_query->perf_raw_size;
+        int raw_size = stream->oa_metric_set->perf_raw_size;
 
-        if (!query->continuation_report)
-            query->continuation_report = malloc(raw_size);
+        if (!stream->continuation_report)
+            stream->continuation_report = malloc(raw_size);
 
-        memcpy(query->continuation_report, last, raw_size);
+        memcpy(stream->continuation_report, last, raw_size);
     }
 }
 
 static void EMSCRIPTEN_KEEPALIVE
 handle_i915_perf_message(int id, uint8_t *data, int len)
 {
-    struct gputop_worker_query *query;
+    struct gputop_remote_stream *stream;
 
     printf(" %x ", data[0]);
 
-    gputop_list_for_each(query, &open_queries, link) {
+    gputop_list_for_each(stream, &open_metrics, link) {
 
-        if (query->id == id) {
-            if (query->oa_query)
-                handle_oa_query_i915_perf_data(query, data, len);
+        if (stream->id == id) {
+            if (stream->oa_metric_set)
+                handle_oa_metric_set_i915_perf_data(stream, data, len);
             return;
         }
     }
-    gputop_web_console_log("received perf data for unknown query id: %d", id);
+    gputop_web_console_log("received perf data for unknown stream id: %d", id);
 }
 
 void EMSCRIPTEN_KEEPALIVE
@@ -351,24 +359,24 @@ update_features(uint32_t devid,
     gputop_devinfo.gt_min_freq = gt_min_freq;
     gputop_devinfo.gt_max_freq = gt_max_freq;
 
-    queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
+    metrics = gputop_hash_table_create(NULL, gputop_key_hash_string,
                                        gputop_key_string_equal);
     if (IS_HASWELL(devid)) {
-        _gputop_web_console_log("Adding Haswell queries\n");
-        emscripten_run_script("gputop.load_oa_queries('hsw');");
-        gputop_oa_add_queries_hsw(&gputop_devinfo);
+        _gputop_web_console_log("Adding Haswell metrics\n");
+        emscripten_run_script("gputop.load_oa_metrics('hsw');");
+        gputop_oa_add_metrics_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(devid)) {
-        _gputop_web_console_log("Adding Broadwell queries\n");
-        emscripten_run_script("gputop.load_oa_queries('bdw');");
-        gputop_oa_add_queries_bdw(&gputop_devinfo);
+        _gputop_web_console_log("Adding Broadwell metrics\n");
+        emscripten_run_script("gputop.load_oa_metrics('bdw');");
+        gputop_oa_add_metrics_bdw(&gputop_devinfo);
     } else if (IS_CHERRYVIEW(devid)) {
-        _gputop_web_console_log("Adding Cherryview queries\n");
-        gputop_oa_add_queries_chv(&gputop_devinfo);
-        emscripten_run_script("gputop.load_oa_queries('chv');");
+        _gputop_web_console_log("Adding Cherryview metrics\n");
+        gputop_oa_add_metrics_chv(&gputop_devinfo);
+        emscripten_run_script("gputop.load_oa_metrics('chv');");
     } else if (IS_SKYLAKE(devid)) {
-        _gputop_web_console_log("Adding Skylake queries\n");
-        emscripten_run_script("gputop.load_oa_queries('skl');");
-        gputop_oa_add_queries_skl(&gputop_devinfo);
+        _gputop_web_console_log("Adding Skylake metrics\n");
+        emscripten_run_script("gputop.load_oa_metrics('skl');");
+        gputop_oa_add_metrics_skl(&gputop_devinfo);
     } else
         assert_not_reached();
 
@@ -381,32 +389,34 @@ gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_open_oa_query(uint32_t id,
-                                  char *guid,
-                                  bool per_ctx_mode,
-                                  uint32_t aggregation_period)
+gputop_webworker_on_open_oa_metric_set(uint32_t id,
+                                       char *guid,
+                                       bool per_ctx_mode,
+                                       uint32_t aggregation_period)
 {
-    struct gputop_worker_query *query = malloc(sizeof(*query));
-    memset(query, 0, sizeof(*query));
-    query->id = id;
-    query->aggregation_period = aggregation_period;
-    query->per_ctx_mode = per_ctx_mode;
+    struct gputop_remote_stream *stream = malloc(sizeof(*stream));
+    memset(stream, 0, sizeof(*stream));
+    stream->id = id;
+    stream->aggregation_period = aggregation_period;
+    stream->per_ctx_mode = per_ctx_mode;
 
-    struct gputop_hash_entry *entry = gputop_hash_table_search(queries, guid);
+    struct gputop_hash_entry *entry = gputop_hash_table_search(metrics, guid);
 
-    query->oa_query = (struct gputop_perf_query*) entry->data;
+    stream->oa_metric_set = (struct gputop_metric_set*) entry->data;
 
-    gputop_list_insert(open_queries.prev, &query->link);
+    gputop_oa_accumulator_init(&stream->oa_accumulator, stream->oa_metric_set);
+
+    gputop_list_insert(open_metrics.prev, &stream->link);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_update_query_period(uint32_t id,
-                                     uint32_t aggregation_period)
+gputop_webworker_update_stream_period(uint32_t id,
+                                      uint32_t aggregation_period)
 {
-    struct gputop_worker_query *query;
-    gputop_list_for_each(query, &open_queries, link) {
-        if (query->id == id) {
-            query->aggregation_period = aggregation_period;
+    struct gputop_remote_stream *stream;
+    gputop_list_for_each(stream, &open_metrics, link) {
+        if (stream->id == id) {
+            stream->aggregation_period = aggregation_period;
         }
     }
 
@@ -414,28 +424,28 @@ gputop_webworker_update_query_period(uint32_t id,
 
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_close_oa_query(uint32_t id)
+gputop_webworker_on_close_oa_metric_set(uint32_t id)
 {
-    struct gputop_worker_query *query;
+    struct gputop_remote_stream *stream;
 
-    gputop_web_console_log("on_close_oa_query(%d)\n", id);
+    gputop_web_console_log("on_close_oa_metric_set(%d)\n", id);
 
-    gputop_list_for_each(query, &open_queries, link) {
-        if (query->id == id) {
-            gputop_list_remove(&query->link);
-            free(query->continuation_report);
-            free(query);
+    gputop_list_for_each(stream, &open_metrics, link) {
+        if (stream->id == id) {
+            gputop_list_remove(&stream->link);
+            free(stream->continuation_report);
+            free(stream);
             return;
         }
     }
 
-    gputop_web_console_warn("webworker: requested to close unknown query ID: %d\n", id);
+    gputop_web_console_warn("webworker: requested to close unknown stream ID: %d\n", id);
 }
 
 void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_init(void)
 {
-    gputop_list_init(&open_queries);
+    gputop_list_init(&open_metrics);
     gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
 }
 

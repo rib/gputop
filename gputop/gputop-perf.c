@@ -113,10 +113,8 @@ static struct intel_device intel_dev;
 
 static unsigned int page_size;
 
-struct gputop_hash_table *queries;
-struct array *perf_oa_supported_query_guids;
-struct gputop_perf_query *gputop_current_perf_query;
-struct gputop_perf_stream *gputop_current_perf_stream;
+struct gputop_hash_table *metrics;
+struct array *gputop_perf_oa_supported_metric_set_guids;
 struct perf_oa_user *gputop_perf_current_user;
 
 static int drm_fd = -1;
@@ -368,17 +366,17 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 }
 
 struct gputop_perf_stream *
-gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
-                               int period_exponent,
-                               struct ctx_handle *ctx,
-                               void (*ready_cb)(struct gputop_perf_stream *),
-                               bool overwrite,
-                               char **error)
+gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
+                                int period_exponent,
+                                struct ctx_handle *ctx,
+                                void (*ready_cb)(struct gputop_perf_stream *),
+                                bool overwrite,
+                                char **error)
 {
     struct gputop_perf_stream *stream;
     struct i915_perf_open_param param;
     int stream_fd = -1;
-    int oa_query_fd = drm_fd;
+    int oa_stream_fd = drm_fd;
 
     if (!gputop_fake_mode) {
         uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
@@ -394,10 +392,10 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
         properties[p++] = true;
 
         properties[p++] = DRM_I915_PERF_PROP_OA_METRICS_SET;
-        properties[p++] = query->perf_oa_metrics_set;
+        properties[p++] = metric_set->perf_oa_metrics_set;
 
         properties[p++] = DRM_I915_PERF_PROP_OA_FORMAT;
-        properties[p++] = query->perf_oa_format;
+        properties[p++] = metric_set->perf_oa_format;
 
         properties[p++] = DRM_I915_PERF_PROP_OA_EXPONENT;
         properties[p++] = period_exponent;
@@ -407,20 +405,20 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
             properties[p++] = ctx->id;
 
             // N.B The file descriptor that was used to create the context,
-            // _must_ be same as the one we use to open the per-context query.
+            // _must_ be same as the one we use to open the per-context stream.
             // Since in the kernel we lookup the intel_context based on the ctx
-            // id and the fd that was used to open the query, so if there is a
-            // mismatch between the file descriptors for the query and the
+            // id and the fd that was used to open the stream, so if there is a
+            // mismatch between the file descriptors for the stream and the
             // context creation then the kernel will simply fail with the
             // lookup.
-            oa_query_fd = ctx->fd;
+            oa_stream_fd = ctx->fd;
             dbg("opening per context i915 perf stream: fd = %d, ctx=%u\n", ctx->fd, ctx->id);
         }
 
         param.properties_ptr = (uint64_t)properties;
         param.num_properties = p / 2;
 
-        stream_fd = perf_ioctl(oa_query_fd, I915_IOCTL_PERF_OPEN, &param);
+        stream_fd = perf_ioctl(oa_stream_fd, I915_IOCTL_PERF_OPEN, &param);
         if (stream_fd == -1) {
             asprintf(error, "Error opening i915 perf OA event: %m\n");
             return NULL;
@@ -430,7 +428,7 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
     stream = xmalloc0(sizeof(*stream));
     stream->type = GPUTOP_STREAM_I915_PERF;
     stream->ref_count = 1;
-    stream->query = query;
+    stream->metric_set = metric_set;
     stream->ready_cb = ready_cb;
     stream->per_ctx_mode = ctx != NULL;
 
@@ -442,8 +440,6 @@ gputop_open_i915_perf_oa_query(struct gputop_perf_query *query,
         stream->period = 80 * (2 << period_exponent);
         stream->prev_timestamp = gputop_get_time();
     }
-
-    gputop_oa_accumulator_clear(query);
 
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
@@ -1253,46 +1249,46 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
 /******************************************************************************/
 
 uint64_t
-read_uint64_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
-                       uint64_t *accumulator)
+read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
+                       uint64_t *deltas)
 {
-    return counter->oa_counter_read_uint64(&gputop_devinfo, query, accumulator);
+    return counter->oa_counter_read_uint64(&gputop_devinfo, metric_set, deltas);
 }
 
 uint32_t
-read_uint32_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
-                       uint64_t *accumulator)
+read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
+                       uint64_t *deltas)
 {
     assert(0);
-    //return counter->oa_counter_read_uint32(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_uint32(&gputop_devinfo, metric_set, deltas);
 }
 
 bool
-read_bool_oa_counter(const struct gputop_perf_query *query,
-                     const struct gputop_perf_query_counter *counter,
-                     uint64_t *accumulator)
+read_bool_oa_counter(const struct gputop_metric_set *metric_set,
+                     const struct gputop_metric_set_counter *counter,
+                     uint64_t *deltas)
 {
     assert(0);
-    //return counter->oa_counter_read_bool(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_bool(&gputop_devinfo, metric_set, deltas);
 }
 
 double
-read_double_oa_counter(const struct gputop_perf_query *query,
-                       const struct gputop_perf_query_counter *counter,
-                       uint64_t *accumulator)
+read_double_oa_counter(const struct gputop_metric_set *metric_set,
+                       const struct gputop_metric_set_counter *counter,
+                       uint64_t *deltas)
 {
     assert(0);
-    //return counter->oa_counter_read_double(&gputop_devinfo, query, accumulator);
+    //return counter->oa_counter_read_double(&gputop_devinfo, metric_set, deltas);
 }
 
 float
-read_float_oa_counter(const struct gputop_perf_query *query,
-                      const struct gputop_perf_query_counter *counter,
-                      uint64_t *accumulator)
+read_float_oa_counter(const struct gputop_metric_set *metric_set,
+                      const struct gputop_metric_set_counter *counter,
+                      uint64_t *deltas)
 {
-    return counter->oa_counter_read_float(&gputop_devinfo, query, accumulator);
+    return counter->oa_counter_read_float(&gputop_devinfo, metric_set, deltas);
 }
 
 uint64_t
@@ -1401,7 +1397,7 @@ open_render_node(struct intel_device *dev)
 }
 
 bool
-gputop_enumerate_queries_via_sysfs(void)
+gputop_enumerate_metrics_via_sysfs(void)
 {
     DIR *metrics_dir;
     struct dirent *entry1, *entry2;
@@ -1426,26 +1422,26 @@ gputop_enumerate_queries_via_sysfs(void)
 
     while ((readdir_r(metrics_dir, entry1, &entry2) == 0) && entry2 != NULL)
     {
-        struct gputop_perf_query *query;
-        struct gputop_hash_entry *queries_entry;
+        struct gputop_metric_set *metric_set;
+        struct gputop_hash_entry *metrics_entry;
 
         if (entry2->d_type != DT_DIR || entry2->d_name[0] == '.')
             continue;
 
-        queries_entry =
-            gputop_hash_table_search(queries, entry2->d_name);
+        metrics_entry =
+            gputop_hash_table_search(metrics, entry2->d_name);
 
-        if (queries_entry == NULL)
+        if (metrics_entry == NULL)
             continue;
 
-        query = (struct gputop_perf_query*)queries_entry->data;
+        metric_set = (struct gputop_metric_set*)metrics_entry->data;
 
         snprintf(buffer, sizeof(buffer),
                  "/sys/class/drm/card%d/metrics/%s/id",
                  drm_card, entry2->d_name);
 
-        query->perf_oa_metrics_set = read_file_uint64(buffer);
-        array_append(perf_oa_supported_query_guids, &query->guid);
+        metric_set->perf_oa_metrics_set = read_file_uint64(buffer);
+        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->guid);
     }
     closedir(metrics_dir);
 
@@ -1454,7 +1450,7 @@ gputop_enumerate_queries_via_sysfs(void)
 
 // function that hard-codes the guids specific for the broadwell configuration
 bool
-gputop_enumerate_queries_fake (void)
+gputop_enumerate_metrics_fake(void)
 {
     static const char *fake_bdw_guids[] = {
         "b541bd57-0e0f-4154-b4c0-5858010a2bf7",
@@ -1478,17 +1474,17 @@ gputop_enumerate_queries_fake (void)
         "60749470-a648-4a4b-9f10-dbfe1e36e44d",
     };
 
-    struct gputop_perf_query *query;
-    struct gputop_hash_entry *queries_entry;
+    struct gputop_metric_set *metric_set;
+    struct gputop_hash_entry *metrics_entry;
 
     int i;
     int array_length = sizeof(fake_bdw_guids) / sizeof(fake_bdw_guids[0]);
 
     for (i = 0; i < array_length; i++){
-        queries_entry = gputop_hash_table_search(queries, fake_bdw_guids[i]);
-        query = (struct gputop_perf_query*)queries_entry->data;
-        query->perf_oa_metrics_set = i;
-        array_append(perf_oa_supported_query_guids, &query->guid);
+        metrics_entry = gputop_hash_table_search(metrics, fake_bdw_guids[i]);
+        metric_set = (struct gputop_metric_set*)metrics_entry->data;
+        metric_set->perf_oa_metrics_set = i;
+        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->guid);
     }
 
     return true;
@@ -1516,29 +1512,29 @@ gputop_perf_initialize(void)
     init_dev_info(drm_fd, intel_dev.device);
     page_size = sysconf(_SC_PAGE_SIZE);
 
-    queries = gputop_hash_table_create(NULL, gputop_key_hash_string,
+    metrics = gputop_hash_table_create(NULL, gputop_key_hash_string,
                                        gputop_key_string_equal);
-    perf_oa_supported_query_guids = array_new(sizeof(char*), 1);
+    gputop_perf_oa_supported_metric_set_guids = array_new(sizeof(char*), 1);
 
     if (IS_HASWELL(intel_dev.device)) {
-        gputop_oa_add_queries_hsw(&gputop_devinfo);
+        gputop_oa_add_metrics_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(intel_dev.device)) {
-        gputop_oa_add_queries_bdw(&gputop_devinfo);
+        gputop_oa_add_metrics_bdw(&gputop_devinfo);
     } else if (IS_CHERRYVIEW(intel_dev.device)) {
-        gputop_oa_add_queries_chv(&gputop_devinfo);
+        gputop_oa_add_metrics_chv(&gputop_devinfo);
     } else if (IS_SKYLAKE(intel_dev.device)) {
-        gputop_oa_add_queries_skl(&gputop_devinfo);
+        gputop_oa_add_metrics_skl(&gputop_devinfo);
     } else
         assert(0);
 
     if (gputop_fake_mode)
-        return gputop_enumerate_queries_fake();
+        return gputop_enumerate_metrics_fake();
     else
-        return gputop_enumerate_queries_via_sysfs();
+        return gputop_enumerate_metrics_via_sysfs();
 }
 
 static void
-free_perf_oa_queries(struct gputop_hash_entry *entry)
+free_perf_oa_metrics(struct gputop_hash_entry *entry)
 {
     free(entry->data);
 }
@@ -1546,6 +1542,6 @@ free_perf_oa_queries(struct gputop_hash_entry *entry)
 void
 gputop_perf_free(void)
 {
-    gputop_hash_table_destroy(queries, free_perf_oa_queries);
-    array_free(perf_oa_supported_query_guids);
+    gputop_hash_table_destroy(metrics, free_perf_oa_metrics);
+    array_free(gputop_perf_oa_supported_metric_set_guids);
 }

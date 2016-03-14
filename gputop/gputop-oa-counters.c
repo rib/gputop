@@ -68,16 +68,16 @@ gputop_u32_clock_progress(struct gputop_u32_clock *clock,
 static void
 gputop_oa_accumulate_uint32(const uint32_t *report0,
                             const uint32_t *report1,
-                            uint64_t *accumulator)
+                            uint64_t *deltas)
 {
-   *accumulator += (uint32_t)(*report1 - *report0);
+   *deltas += (uint32_t)(*report1 - *report0);
 }
 
 static void
 gputop_oa_accumulate_uint40(int a_index,
                             const uint32_t *report0,
                             const uint32_t *report1,
-                            uint64_t *accumulator)
+                            uint64_t *deltas)
 {
     const uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
     const uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
@@ -92,16 +92,17 @@ gputop_oa_accumulate_uint40(int a_index,
     else
        delta = value1 - value0;
 
-    *accumulator += delta;
+    *deltas += delta;
 }
 
 bool
-gputop_oa_accumulate_reports(struct gputop_perf_query *query,
+gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
                              const uint8_t *report0,
                              const uint8_t *report1,
                              bool per_ctx_mode)
 {
-    uint64_t *accumulator = query->accumulator;
+    struct gputop_metric_set *metric_set = accumulator->metric_set;
+    uint64_t *deltas = accumulator->deltas;
     const uint32_t *start = (const uint32_t *)report0;
     const uint32_t *end = (const uint32_t *)report1;
     uint32_t start_reason = ((start[0] >> OAREPORT_REASON_SHIFT) &
@@ -114,9 +115,9 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
 
     assert(report0 != report1);
 
-    if (!query->accumulator_clock.initialized) {
-        gputop_u32_clock_init(&query->accumulator_clock, start[1]);
-        query->accumulator_last_ctx_id = start[2];
+    if (!accumulator->clock.initialized) {
+        gputop_u32_clock_init(&accumulator->clock, start[1]);
+        accumulator->last_ctx_id = start[2];
     }
 
 
@@ -127,7 +128,7 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
         dbg("switch away reason = 0x%x\n", end_reason);
     }
 
-    switch (query->perf_oa_format) {
+    switch (metric_set->perf_oa_format) {
     case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
 
         if (((start_reason | end_reason) & (OAREPORT_REASON_CTX_SWITCH |
@@ -152,7 +153,7 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
         if (per_ctx_mode) {
             /* the switch-from state may be transient if the caller doesn't
              * decide to clear the accumulator after seeing the switch-from */
-            query->accumulator_flags &= ~GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
+            accumulator->flags &= ~GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
 
 
             /* XXX: we don't trust that the first report we see after a context
@@ -161,19 +162,19 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
              * of the last ctx_id we've see so we can spot the switches
              * ourselves.
              */
-            if (query->accumulator_first_timestamp == 0 &&
-                query->accumulator_last_ctx_id != start[2])
+            if (accumulator->first_timestamp == 0 &&
+                accumulator->last_ctx_id != start[2])
             {
                 if (start[2] == 0x1ffff) { /* this invalid ctx-id marks a switch-from */
                     ret = false;
                     goto exit;
                 } else
-                    query->accumulator_flags |= GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN;
+                    accumulator->flags |= GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN;
             }
 
             if (start[2] != end[2]) {
                 if (end[2] == 0x1ffff) { /* this invalid ctx-id marks a switch-from */
-                    query->accumulator_flags |= GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
+                    accumulator->flags |= GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
                 } else {
                     if (start[2] != 0x1fffff)
                         dbg("accumulator: spurious per-ctx switch-to not preceded by switch-from");
@@ -184,22 +185,22 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
             }
         }
 
-        gputop_oa_accumulate_uint32(start + 1, end + 1, accumulator + idx++); /* timestamp */
-        gputop_oa_accumulate_uint32(start + 3, end + 3, accumulator + idx++); /* clock */
+        gputop_oa_accumulate_uint32(start + 1, end + 1, deltas + idx++); /* timestamp */
+        gputop_oa_accumulate_uint32(start + 3, end + 3, deltas + idx++); /* clock */
 
         /* 32x 40bit A counters... */
         for (i = 0; i < 32; i++)
-            gputop_oa_accumulate_uint40(i, start, end, accumulator + idx++);
+            gputop_oa_accumulate_uint40(i, start, end, deltas + idx++);
 
         /* 4x 32bit A counters... */
         for (i = 0; i < 4; i++)
             gputop_oa_accumulate_uint32(start + 36 + i, end + 36 + i,
-                                        accumulator + idx++);
+                                        deltas + idx++);
 
         /* 8x 32bit B counters + 8x 32bit C counters... */
         for (i = 0; i < 16; i++)
             gputop_oa_accumulate_uint32(start + 48 + i, end + 48 + i,
-                                        accumulator + idx++);
+                                        deltas + idx++);
         break;
 
     case I915_OA_FORMAT_A45_B8_C8:
@@ -209,36 +210,43 @@ gputop_oa_accumulate_reports(struct gputop_perf_query *query,
         if (start[1] == 0 || end[1] == 0)
             dbg("i915_oa: spurious report with timestamp of zero\n");
 
-        gputop_oa_accumulate_uint32(start + 1, end + 1, accumulator); /* timestamp */
+        gputop_oa_accumulate_uint32(start + 1, end + 1, deltas); /* timestamp */
 
         for (i = 0; i < 61; i++)
             gputop_oa_accumulate_uint32(start + 3 + i, end + 3 + i,
-                                        accumulator + 1 + i);
+                                        deltas + 1 + i);
         break;
     default:
         assert(0);
     }
 
-    gputop_u32_clock_progress(&query->accumulator_clock, start[1]);
-    if (query->accumulator_first_timestamp == 0)
-        query->accumulator_first_timestamp =
-            gputop_u32_clock_get_time(&query->accumulator_clock);
+    gputop_u32_clock_progress(&accumulator->clock, start[1]);
+    if (accumulator->first_timestamp == 0)
+        accumulator->first_timestamp =
+            gputop_u32_clock_get_time(&accumulator->clock);
 
-    gputop_u32_clock_progress(&query->accumulator_clock, end[1]);
-    query->accumulator_last_timestamp =
-        gputop_u32_clock_get_time(&query->accumulator_clock);
+    gputop_u32_clock_progress(&accumulator->clock, end[1]);
+    accumulator->last_timestamp =
+        gputop_u32_clock_get_time(&accumulator->clock);
 
 exit:
-    query->accumulator_last_ctx_id = end[2];
+    accumulator->last_ctx_id = end[2];
     return ret;
 }
 
 void
-gputop_oa_accumulator_clear(struct gputop_perf_query *query)
+gputop_oa_accumulator_clear(struct gputop_oa_accumulator *accumulator)
 {
-    memset(query->accumulator, 0, sizeof(query->accumulator));
-    query->accumulator_first_timestamp = 0;
-    query->accumulator_last_timestamp = 0;
-    query->accumulator_flags = 0;
+    memset(accumulator->deltas, 0, sizeof(accumulator->deltas));
+    accumulator->first_timestamp = 0;
+    accumulator->last_timestamp = 0;
+    accumulator->flags = 0;
 }
 
+void
+gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
+                           struct gputop_metric_set *metric_set)
+{
+    memset(accumulator, 0, sizeof(*accumulator));
+    accumulator->metric_set = metric_set;
+}

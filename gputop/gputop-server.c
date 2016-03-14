@@ -530,11 +530,6 @@ periodic_update_head_pointers(uv_timer_t *timer)
 
         hdr_buf = &stream->perf.header_buf;
 
-        if (stream->query) {
-            if (fsync(stream->fd) < 0)
-                dbg("Failed to flush i915_oa perf samples\n");
-        }
-
         gputop_perf_update_header_offsets(stream);
 
         if (!hdr_buf->full) {
@@ -549,7 +544,7 @@ periodic_update_head_pointers(uv_timer_t *timer)
             message.fill_notify = &notify;
 
             send_pb_message(h2o_conn, &message.base);
-            dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
+            //dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
         }
     }
 
@@ -563,7 +558,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
     Gputop__OAQueryInfo *oa_query_info = open_query->oa_query;
-    struct gputop_perf_query *perf_query = NULL;
+    struct gputop_metric_set *metric_set = NULL;
     struct gputop_hash_entry *entry = NULL;
     struct gputop_perf_stream *stream;
     char *error = NULL;
@@ -574,16 +569,16 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
     if (!gputop_perf_initialize()) {
         asprintf(&error, "Failed to initialize perf\n");
-        goto query_err;
+        goto err;
     }
-    dbg("handle_open_i915_oa_query\n");
+    dbg("handle_open_i915_perf_oa_query\n");
 
-    entry = gputop_hash_table_search(queries, oa_query_info->guid);
+    entry = gputop_hash_table_search(metrics, oa_query_info->guid);
     if (entry != NULL) {
-        perf_query = entry->data;
+        metric_set = entry->data;
     } else {
         asprintf(&error, "Guid is not available\n");
-        goto query_err;
+        goto err;
     }
 
     // TODO: (matt-auld)
@@ -594,15 +589,15 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     if (open_query->per_ctx_mode) {
         ctx = get_first_available_ctx(&error);
         if (!ctx)
-            goto query_err;
+            goto err;
     }
 
-    stream = gputop_open_i915_perf_oa_query(perf_query,
-                                            oa_query_info->period_exponent,
-                                            ctx,
-                                            NULL,
-                                            open_query->overwrite,
-                                            &error);
+    stream = gputop_open_i915_perf_oa_stream(metric_set,
+                                             oa_query_info->period_exponent,
+                                             ctx,
+                                             NULL,
+                                             open_query->overwrite,
+                                             &error);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
@@ -617,7 +612,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         dbg("Failed to open perf query set=%s period=%d: %s\n",
             oa_query_info->guid, oa_query_info->period_exponent,
             error);
-        goto query_err;
+        goto err;
     }
 
     message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
@@ -625,7 +620,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
     return;
 
-query_err:
+err:
     message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
     message.error = error;
     send_pb_message(conn, &message.base);
@@ -931,8 +926,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     features.kernel_release = kernel_release;
     features.kernel_build = kernel_version;
-    features.n_supported_oa_query_guids = perf_oa_supported_query_guids->len;
-    features.supported_oa_query_guids = perf_oa_supported_query_guids->data;
+    features.n_supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->len;
+    features.supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->data;
 
     message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;

@@ -159,7 +159,7 @@ def emit_fsub(tmp_id, args):
 
 def emit_read(tmp_id, args):
     type = args[1].lower()
-    c("uint64_t tmp" + str(tmp_id) + " = accumulator[query->" + type + "_offset + " + args[0] + "];")
+    c("uint64_t tmp" + str(tmp_id) + " = accumulator[metric_set->" + type + "_offset + " + args[0] + "];")
     return tmp_id + 1
 
 def emit_uadd(tmp_id, args):
@@ -262,7 +262,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                         operand = hw_vars[operand]
                     elif operand in counter_vars:
                         reference = counter_vars[operand]
-                        operand = read_funcs[operand[1:]] + "(devinfo, query, accumulator)"
+                        operand = read_funcs[operand[1:]] + "(devinfo, metric_set, accumulator)"
                     else:
                         raise Exception("Failed to resolve variable " + operand + " in equation " + equation + " for " + set.get('name') + " :: " + counter.get('name'));
                 args.append(operand)
@@ -328,7 +328,7 @@ def output_counter_read(set, counter, counter_vars):
     read_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__read"
     c(read_sym + "(struct gputop_devinfo *devinfo,\n")
     c_indent(len(read_sym) + 1)
-    c("const struct gputop_perf_query *query,\n")
+    c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
     c_outdent(len(read_sym) + 1)
 
@@ -358,7 +358,7 @@ def output_counter_max(set, counter, counter_vars):
     max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__max"
     c(max_sym + "(struct gputop_devinfo *devinfo,\n")
     c_indent(len(max_sym) + 1)
-    c("const struct gputop_perf_query *query,\n")
+    c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
     c_outdent(len(max_sym) + 1)
 
@@ -410,7 +410,7 @@ def output_counter_report(set, counter):
             c_outdent(4)
         c_indent(4)
 
-    c("counter = &query->counters[query->n_counters++];\n")
+    c("counter = &metric_set->counters[metric_set->n_counters++];\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
     c("counter->name = \"" + counter.get('name') + "\";\n")
     c("counter->symbol_name = \"" + counter.get('symbol_name') + "\";\n")
@@ -499,7 +499,7 @@ c(
 
 static uint64_t
 percentage_max_callback(struct gputop_devinfo *devinfo,
-                        const struct gputop_perf_query *query,
+                        const struct gputop_metric_set *metric_set,
                         uint64_t *accumulator)
 {
    return 100;
@@ -522,41 +522,41 @@ for set in tree.findall(".//set"):
         counter_vars["$" + counter.get('symbol_name')] = counter
 
     c("\nstatic void\n")
-    c("add_" + set.get('underscore_name') + "_counter_query(struct gputop_devinfo *devinfo)\n")
+    c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo)\n")
     c("{\n")
     c_indent(3)
 
-    c("struct gputop_perf_query *query;\n")
-    c("struct gputop_perf_query_counter *counter;\n\n")
+    c("struct gputop_metric_set *metric_set;\n")
+    c("struct gputop_metric_set_counter *counter;\n\n")
 
-    c("query = xmalloc0(sizeof(struct gputop_perf_query));\n")
-    c("query->name = \"" + set.get('name') + "\";\n")
-    c("query->symbol_name = \"" + set.get('symbol_name') + "\";\n")
-    c("query->guid = \"" + set.get('guid') + "\";\n")
-    c("gputop_hash_table_insert(queries, query->guid, query);\n")
-    c("query->counters = xmalloc0(sizeof(struct gputop_perf_query_counter) * " + str(len(counters)) + ");\n")
-    c("query->n_counters = 0;\n")
-    c("query->perf_oa_metrics_set = 0; // determined at runtime\n")
+    c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
+    c("metric_set->name = \"" + set.get('name') + "\";\n")
+    c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
+    c("metric_set->guid = \"" + set.get('guid') + "\";\n")
+    c("gputop_hash_table_insert(metrics, metric_set->guid, metric_set);\n")
+    c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
+    c("metric_set->n_counters = 0;\n")
+    c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
 
     if chipset == "hsw":
-        c("""query->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
+        c("""metric_set->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
 
-query->perf_raw_size = 256;
-query->gpu_time_offset = 0;
-query->a_offset = 1;
-query->b_offset = query->a_offset + 45;
-query->c_offset = query->b_offset + 8;
+metric_set->perf_raw_size = 256;
+metric_set->gpu_time_offset = 0;
+metric_set->a_offset = 1;
+metric_set->b_offset = metric_set->a_offset + 45;
+metric_set->c_offset = metric_set->b_offset + 8;
 
 """)
     else:
-        c("""query->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
+        c("""metric_set->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
 
-query->perf_raw_size = 256;
-query->gpu_time_offset = 0;
-query->gpu_clock_offset = 1;
-query->a_offset = 2;
-query->b_offset = query->a_offset + 36;
-query->c_offset = query->b_offset + 8;
+metric_set->perf_raw_size = 256;
+metric_set->gpu_time_offset = 0;
+metric_set->gpu_clock_offset = 1;
+metric_set->a_offset = 2;
+metric_set->b_offset = metric_set->a_offset + 36;
+metric_set->c_offset = metric_set->b_offset + 8;
 
 """)
 
@@ -569,15 +569,15 @@ query->c_offset = query->b_offset + 8;
 if args.xml_eq:
     tree.write(args.xml_eq)
 
-h("void gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo);\n")
+h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo);\n")
 
 c("\nvoid")
-c("gputop_oa_add_queries_" + chipset + "(struct gputop_devinfo *devinfo)")
+c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo)")
 c("{")
 c_indent(4)
 
 for set in tree.findall(".//set"):
-    c("add_" + set.get('underscore_name') + "_counter_query(devinfo);")
+    c("add_" + set.get('underscore_name') + "_metric_set(devinfo);")
 
 c_outdent(4)
 c("}")

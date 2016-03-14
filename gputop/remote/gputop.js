@@ -368,13 +368,13 @@ function gputop_read_metrics_set() {
     }
 } // read_metrics_set
 
-Gputop.prototype.query_update_counter = function (counterId,
-                                                  id,
-                                                  start_timestamp,
-                                                  end_timestamp,
-                                                  max,
-                                                  d_value,
-                                                  reason) {
+Gputop.prototype.stream_update_counter = function (counterId,
+                                                   id,
+                                                   start_timestamp,
+                                                   end_timestamp,
+                                                   max,
+                                                   d_value,
+                                                   reason) {
     var metric = this.query_metric_handles_[id];
     if (metric == undefined) {
         //TODO Close this query which is not being captured
@@ -409,10 +409,10 @@ Gputop.prototype.load_fake_metrics = function(architecture) {
     this.dispose();
     this.no_supported_metrics_ = true;
     this.fake_metrics = true;
-    this.load_oa_queries(architecture);
+    this.load_oa_metrics(architecture);
 }
 
-Gputop.prototype.load_oa_queries = function(architecture) {
+Gputop.prototype.load_oa_metrics = function(architecture) {
     this.config_.architecture = architecture;
     // read counters from xml file and populate the website
     gputop.xml_file_name_ = architecture +".xml";
@@ -423,7 +423,7 @@ Gputop.prototype.load_oa_queries = function(architecture) {
 Gputop.prototype.update_period = function(guid, period_ns) {
     var metric = this.map_metrics_[guid];
     metric.period_ns_ = period_ns;
-    _gputop_webworker_update_query_period(metric.oa_query_id_, period_ns);
+    _gputop_webworker_update_stream_period(metric.oa_query_id_, period_ns);
 }
 
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
@@ -499,7 +499,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     open.per_ctx_mode = metric.is_per_ctx_mode();
     open.oa_query = oa_query;
 
-    _gputop_webworker_on_open_oa_query(
+    _gputop_webworker_on_open_oa_metric_set(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
           open.per_ctx_mode,
@@ -546,7 +546,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
     var msg = new this.builder_.Request();
     msg.uuid = this.generate_uuid();
 
-    _gputop_webworker_on_close_oa_query(metric.oa_query_id_);
+    _gputop_webworker_on_close_oa_metric_set(metric.oa_query_id_);
 
     msg.close_query = metric.oa_query_id_;
     msg.encode();
