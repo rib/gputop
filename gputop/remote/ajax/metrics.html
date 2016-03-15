@@ -103,6 +103,12 @@
             unsupported = "hide_unsupported";
         }
 
+        if (gputop_is_website()) {
+            stripped_bar = "";
+            initial_progress = "0%";
+            unsupported = "supported";
+        }
+
         var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
 
         var div_id = 'div_counter_'+set_index + '_' + counter_index;
@@ -299,7 +305,7 @@
     function read_from_xml(xml_name) {
         $("#sidebar_right").html("");
         $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
-
+        set_array.splice(0,set_array.length);
         $(xml_name).find("set").each(read_metrics_set);
         if (set_array.length > 0)
         {
