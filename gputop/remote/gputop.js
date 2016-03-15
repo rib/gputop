@@ -425,7 +425,7 @@ Gputop.prototype.stream_update_counter = function (counterId,
                                 d_value, max, reason);
 }
 
-Gputop.prototype.load_xml_metrics = function(xml) {
+Gputop.prototype.parse_xml_metrics = function(xml) {
     gputop.metrics_xml_ = xml;
     $(xml).find("set").each(gputop_read_metrics_set);
 }
@@ -441,15 +441,11 @@ Gputop.prototype.load_fake_metrics = function(architecture) {
     this.dispose();
     this.no_supported_metrics_ = true;
     this.fake_metrics = true;
-    this.load_oa_metrics(architecture);
+    this.set_architecture(architecture);
 }
 
-Gputop.prototype.load_oa_metrics = function(architecture) {
+Gputop.prototype.set_architecture = function(architecture) {
     this.config_.architecture = architecture;
-    // read counters from xml file and populate the website
-    gputop.xml_file_name_ = architecture +".xml";
-    console.log(architecture);
-    $.get(gputop.xml_file_name_, this.load_xml_metrics);
 }
 
 Gputop.prototype.update_period = function(guid, period_ns) {
@@ -684,7 +680,12 @@ Gputop.prototype.process_features = function(features){
                                      di.gt_max_freq.toInt());
     }
 
-    gputop_ui.update_features(features);
+    gputop.xml_file_name_ = this.config_.architecture + ".xml";
+    console.log(this.config_.architecture);
+    $.get(gputop.xml_file_name_, function (xml) {
+        gputop.parse_xml_metrics(xml);
+        gputop_ui.update_features(features);
+    });
 }
 
 Gputop.prototype.load_emscripten = function() {

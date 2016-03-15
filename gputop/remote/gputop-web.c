@@ -308,19 +308,19 @@ gputop_webc_update_features(uint32_t devid,
 
     if (IS_HASWELL(devid)) {
         _gputop_web_console_log("Adding Haswell metrics\n");
-        emscripten_run_script("gputop.load_oa_metrics('hsw');");
+        emscripten_run_script("gputop.set_architecture('hsw');");
         gputop_oa_add_metrics_hsw(&gputop_devinfo);
     } else if (IS_BROADWELL(devid)) {
         _gputop_web_console_log("Adding Broadwell metrics\n");
-        emscripten_run_script("gputop.load_oa_metrics('bdw');");
+        emscripten_run_script("gputop.set_architecture('bdw');");
         gputop_oa_add_metrics_bdw(&gputop_devinfo);
     } else if (IS_CHERRYVIEW(devid)) {
         _gputop_web_console_log("Adding Cherryview metrics\n");
         gputop_oa_add_metrics_chv(&gputop_devinfo);
-        emscripten_run_script("gputop.load_oa_metrics('chv');");
+        emscripten_run_script("gputop.set_architecture('chv');");
     } else if (IS_SKYLAKE(devid)) {
         _gputop_web_console_log("Adding Skylake metrics\n");
-        emscripten_run_script("gputop.load_oa_metrics('skl');");
+        emscripten_run_script("gputop.set_architecture('skl');");
         gputop_oa_add_metrics_skl(&gputop_devinfo);
     } else
         assert_not_reached();
