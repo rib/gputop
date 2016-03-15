@@ -78,55 +78,6 @@ assert_not_reached(void)
     gputop_web_console_assert(0, "code should not be reached");
 }
 
-uint64_t
-read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *accumulator)
-{
-    return counter->oa_counter_read_uint64(&gputop_devinfo, metric_set, accumulator);
-}
-
-uint32_t
-read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *accumulator)
-{
-    assert_not_reached();
-    //return counter->oa_counter_read_uint32(&gputop_devinfo, metric_set, accumulator);
-}
-
-bool
-read_bool_oa_counter(const struct gputop_metric_set *metric_set,
-                     const struct gputop_metric_set_counter *counter,
-                     uint64_t *accumulator)
-{
-    assert_not_reached();
-    //return counter->oa_counter_read_bool(&gputop_devinfo, metric_set, accumulator);
-}
-
-double
-read_double_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *accumulator)
-{
-    assert_not_reached();
-    //return counter->oa_counter_read_double(&gputop_devinfo, metric_set, accumulator);
-}
-
-float
-read_float_oa_counter(const struct gputop_metric_set *metric_set,
-                      const struct gputop_metric_set_counter *counter,
-                      uint64_t *accumulator)
-{
-    return counter->oa_counter_read_float(&gputop_devinfo, metric_set, accumulator);
-}
-
-uint32_t
-read_report_raw_timestamp(const uint32_t *report)
-{
-    return report[1];
-}
-
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
 
 void
@@ -181,31 +132,26 @@ forward_stream_update(struct gputop_remote_stream *stream,
         }
 
         switch(counter->data_type) {
-            case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
-                d_value = read_uint32_oa_counter(oa_metric_set, counter,
-                                                 oa_accumulator->deltas);
-            break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
-                u53_check = read_uint64_oa_counter(oa_metric_set, counter,
-                                                   oa_accumulator->deltas);
+                u53_check = counter->oa_counter_read_uint64(&gputop_devinfo,
+                                                            oa_metric_set,
+                                                            oa_accumulator->deltas);
                 if (u53_check > JS_MAX_SAFE_INTEGER) {
                     gputop_web_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
                     u53_check = JS_MAX_SAFE_INTEGER;
                 }
                 d_value = u53_check;
-            break;
+                break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
-                d_value = read_float_oa_counter(oa_metric_set, counter,
-                                                oa_accumulator->deltas);
-            break;
+                d_value = counter->oa_counter_read_float(&gputop_devinfo,
+                                                         oa_metric_set,
+                                                         oa_accumulator->deltas);
+                break;
+            case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
             case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
-                d_value = read_double_oa_counter(oa_metric_set, counter,
-                                                 oa_accumulator->deltas);
-            break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-                d_value = read_bool_oa_counter(oa_metric_set, counter,
-                                               oa_accumulator->deltas);
-            break;
+                gputop_web_console_assert(0, "Unexpected counter data type");
+                break;
         }
 
         _gputop_stream_update_counter(i,
