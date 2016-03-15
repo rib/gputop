@@ -114,6 +114,8 @@ function Counter () {
     this.graph_markings = [];
     this.record_data = false;
     this.mathml_xml = "";
+
+    this.test_mode = false;
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp,
@@ -275,6 +277,35 @@ function Gputop () {
 
     // Process list map organized by PID
     this.map_processes_ = [];
+
+    if (is_nodejs) {
+        this.test_mode = false;
+    } else {
+        var test = getUrlParameter('test');
+        if (test === "true" || test === "1")
+            this.test_mode = true;
+        else
+            this.test_mode = false;
+    }
+    this.test_log_messages = [];
+
+    this.test_log("Global Gputop object constructed");
+}
+
+Gputop.prototype.test_log = function(message) {
+    if (this.test_mode) {
+        this.test_log_messages.push(message);
+        this.flush_test_log();
+    }
+}
+
+Gputop.prototype.flush_test_log = function() {
+    if (this.socket_) {
+        for (var i = 0; i < this.test_log_messages.length; i++) {
+            this.rpc_request('test_log', this.test_log_messages[i]);
+        }
+        this.test_log_messages = [];
+    }
 }
 
 Gputop.prototype.get_process_by_pid = function(pid) {
@@ -707,6 +738,7 @@ function gputop_socket_on_open() {
     gputop_ui.syslog("Connected");
     gputop_ui.show_alert("Succesfully connected to GPUTOP","alert-success");
     gputop.load_emscripten();
+    gputop.flush_test_log();
 }
 
 function gputop_socket_on_close() {

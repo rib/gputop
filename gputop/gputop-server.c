@@ -1002,6 +1002,9 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
             fprintf(stderr, "CloseQuery request received\n");
             handle_close_query(conn, request);
             break;
+        case GPUTOP__REQUEST__REQ_TEST_LOG:
+            fprintf(stderr, "TEST LOG: %s\n", request->test_log);
+            break;
         case GPUTOP__REQUEST__REQ__NOT_SET:
             assert(0);
         }
