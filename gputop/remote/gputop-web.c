@@ -383,12 +383,6 @@ update_features(uint32_t devid,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_test(const char *msg, float val, const char *req_uuid)
-{
-    gputop_web_console_log("test message from ui: (%s, %f)\n", msg, val);
-}
-
-void EMSCRIPTEN_KEEPALIVE
 gputop_webworker_on_open_oa_metric_set(uint32_t id,
                                        char *guid,
                                        bool per_ctx_mode,
