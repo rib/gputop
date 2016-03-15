@@ -42,17 +42,3 @@ void _gputop_web_console_assert(bool condition, const char *message) __attribute
 void gputop_web_console_assert(bool condition, const char *format, ...) __attribute__((noreturn));
 
 void _gputop_web_console_trace(void);
-
-void _gputop_web_worker_post(const char *message);
-
-const char *_gputop_web_get_location_host(void);
-
-int _gputop_web_socket_new(const char *url, const char *protocols);
-typedef void (*gputop_handle_func_t)(int id, void *user_data);
-void _gputop_web_socket_set_onopen(int id, gputop_handle_func_t onopen, void *user_data);
-void _gputop_web_socket_set_onerror(int id, gputop_handle_func_t onerror, void *user_data);
-void _gputop_web_socket_set_onclose(int id, gputop_handle_func_t onclose, void *user_data);
-typedef void (*gputop_message_func_t)(int id, uint8_t *buf, int len, void *user_data);
-void _gputop_web_socket_set_onmessage(int id, gputop_message_func_t onerror, void *user_data);
-void _gputop_web_socket_destroy(int id);
-void _gputop_web_socket_post(int id, uint8_t *data, int len);
