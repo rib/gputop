@@ -443,14 +443,3 @@ gputop_webworker_init(void)
     gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
 }
 
-void EMSCRIPTEN_KEEPALIVE
-myloop() {
-    //gputop_web_console_log("main run\n");
-}
-
-int
-main() {
-    emscripten_set_main_loop(myloop, 0, 1);
-    printf("emscripten_set_main_loop!\n");
-    return 0;
-}
