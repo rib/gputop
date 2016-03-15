@@ -702,7 +702,7 @@ Gputop.prototype.load_emscripten = function() {
             .done(function( script, textStatus ) {
                 gputop.request_features();
                 gputop.native_js_loaded_ = true;
-                console.log("gputop weqafrersrgrdfh\n");
+                console.log("GPUTop Emscripten code loaded\n");
             }).fail(function( jqxhr, settings, exception ) {
                 console.log( "Failed loading emscripten" );
                 setTimeout(function() {

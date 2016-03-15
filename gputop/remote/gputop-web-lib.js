@@ -25,6 +25,10 @@
  */
 
 var LibraryGpuTopWeb = {
+    $GPUTop: {
+        _guid_to_metric_set_map: {}
+    },
+
     _gputop_web_console_log: function (message) {
         console.log(Pointer_stringify(message));
     },
@@ -49,6 +53,17 @@ var LibraryGpuTopWeb = {
         console.trace();
     },
 
+    gputop_web_index_metric_set: function (guid, metric_set) {
+        GPUTop._guid_to_metric_set_map[Pointer_stringify(guid)] = metric_set;
+    },
+    gputop_web_lookup_metric_set: function (guid) {
+        var key = Pointer_stringify(guid);
+        if (key in GPUTop._guid_to_metric_set_map)
+            return GPUTop._guid_to_metric_set_map[key];
+        else
+            return 0;
+    },
+
     _gputop_stream_update_counter: function (counter, id, start_timestamp, end_timestamp, delta, max, d_value) {
         if (gputop != undefined)
             gputop.stream_update_counter(counter, id, start_timestamp, end_timestamp, delta, max, d_value);
@@ -58,4 +73,5 @@ var LibraryGpuTopWeb = {
 
 };
 
+autoAddDeps(LibraryGpuTopWeb, '$GPUTop');
 mergeInto(LibraryManager.library, LibraryGpuTopWeb);

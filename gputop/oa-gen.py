@@ -476,7 +476,6 @@ h(copyright)
 h("""#pragma once
 
 #include "gputop-perf.h"
-#include "gputop-hash-table.h"
 
 """)
 
@@ -496,6 +495,8 @@ c(
 """
 #include "gputop-util.h"
 #include "gputop-perf.h"
+
+extern void gputop_register_oa_metric_set(struct gputop_metric_set *metric_set);
 
 static uint64_t
 percentage_max_callback(struct gputop_devinfo *devinfo,
@@ -533,7 +534,7 @@ for set in tree.findall(".//set"):
     c("metric_set->name = \"" + set.get('name') + "\";\n")
     c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
     c("metric_set->guid = \"" + set.get('guid') + "\";\n")
-    c("gputop_hash_table_insert(metrics, metric_set->guid, metric_set);\n")
+    c("gputop_register_oa_metric_set(metric_set);\n")
     c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
     c("metric_set->n_counters = 0;\n")
     c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
