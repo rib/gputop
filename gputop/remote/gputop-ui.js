@@ -331,12 +331,18 @@ GputopUI.prototype.update_features = function(features) {
     if (features.get_fake_mode())
         $( "#metrics-tab-a" ).html("Metrics (Fake Mode) ");
 
-    gputop_ui.load_metrics_panel(function() {
-        var metric = gputop.get_map_metric(global_guid);
+    // read counters from xml file and populate the website
+    gputop.xml_file_name_ = gputop.config_.architecture +".xml";
+    console.log(gputop.config_.architecture);
+    $.get(gputop.xml_file_name_, function(xml) {
+        gputop.parse_xml_metrics(xml);
+        gputop_ui.load_metrics_panel(function() {
+            var metric = gputop.get_map_metric(global_guid);
 
-        update_metric_period_exponent_for_zoom(metric);
+            update_metric_period_exponent_for_zoom(metric);
 
-        gputop.open_oa_query_for_trace(global_guid);
+            gputop.open_oa_query_for_trace(global_guid);
+        });
     });
 }
 
