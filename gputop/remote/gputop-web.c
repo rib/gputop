@@ -48,7 +48,7 @@
 
 struct gputop_hash_table *metrics;
 
-struct gputop_remote_stream {
+struct gputop_webc_stream {
     int id;
     uint64_t aggregation_period;
     bool per_ctx_mode;
@@ -86,8 +86,8 @@ _gputop_stream_update_counter(int counter, int id,
                               double delta, double max, double ui64_value);
 
 /* Returns the ID for a counter_name using the symbol_name */
-static int EMSCRIPTEN_KEEPALIVE
-get_counter_id(const char *guid, const char *counter_symbol_name)
+int EMSCRIPTEN_KEEPALIVE
+gputop_webc_get_counter_id(const char *guid, const char *counter_symbol_name)
 {
     struct gputop_hash_entry *entry = gputop_hash_table_search(metrics, guid);
     if (entry == NULL)
@@ -110,7 +110,7 @@ enum update_reason {
 };
 
 static void
-forward_stream_update(struct gputop_remote_stream *stream,
+forward_stream_update(struct gputop_webc_stream *stream,
                       enum update_reason reason)
 {
     struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
@@ -164,10 +164,10 @@ forward_stream_update(struct gputop_remote_stream *stream,
     }
 }
 
-static void EMSCRIPTEN_KEEPALIVE
-handle_perf_message(int id, uint8_t *data, int len)
+void EMSCRIPTEN_KEEPALIVE
+gputop_webc_handle_perf_message(int id, uint8_t *data, int len)
 {
-    struct gputop_remote_stream *stream;
+    struct gputop_webc_stream *stream;
 
     gputop_list_for_each(stream, &open_metrics, link) {
 
@@ -179,9 +179,9 @@ handle_perf_message(int id, uint8_t *data, int len)
     gputop_web_console_log("received perf data for unknown stream id: %d", id);
 }
 
-void EMSCRIPTEN_KEEPALIVE
-handle_oa_metric_set_i915_perf_data(struct gputop_remote_stream *stream,
-                               uint8_t *data, int len)
+static void
+parse_i915_perf_records(struct gputop_webc_stream *stream,
+                        uint8_t *data, int len)
 {
     struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
     const struct i915_perf_record_header *header;
@@ -262,18 +262,16 @@ handle_oa_metric_set_i915_perf_data(struct gputop_remote_stream *stream,
     }
 }
 
-static void EMSCRIPTEN_KEEPALIVE
-handle_i915_perf_message(int id, uint8_t *data, int len)
+void EMSCRIPTEN_KEEPALIVE
+gputop_webc_handle_i915_perf_message(int id, uint8_t *data, int len)
 {
-    struct gputop_remote_stream *stream;
-
-    printf(" %x ", data[0]);
+    struct gputop_webc_stream *stream;
 
     gputop_list_for_each(stream, &open_metrics, link) {
 
         if (stream->id == id) {
             if (stream->oa_metric_set)
-                handle_oa_metric_set_i915_perf_data(stream, data, len);
+                parse_i915_perf_records(stream, data, len);
             return;
         }
     }
@@ -281,17 +279,17 @@ handle_i915_perf_message(int id, uint8_t *data, int len)
 }
 
 void EMSCRIPTEN_KEEPALIVE
-update_features(uint32_t devid,
-                uint32_t gen,
-                uint32_t timestamp_frequency,
-                uint32_t n_eus,
-                uint32_t n_eu_slices,
-                uint32_t n_eu_sub_slices,
-                uint32_t eu_threads_count,
-                uint32_t subslice_mask,
-                uint32_t slice_mask,
-                uint32_t gt_min_freq,
-                uint32_t gt_max_freq)
+gputop_webc_update_features(uint32_t devid,
+                            uint32_t gen,
+                            uint32_t timestamp_frequency,
+                            uint32_t n_eus,
+                            uint32_t n_eu_slices,
+                            uint32_t n_eu_sub_slices,
+                            uint32_t eu_threads_count,
+                            uint32_t subslice_mask,
+                            uint32_t slice_mask,
+                            uint32_t gt_min_freq,
+                            uint32_t gt_max_freq)
 {
     gputop_devinfo.devid = devid;
     gputop_devinfo.gen = gen;
@@ -329,12 +327,12 @@ update_features(uint32_t devid,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_open_oa_metric_set(uint32_t id,
-                                       char *guid,
-                                       bool per_ctx_mode,
-                                       uint32_t aggregation_period)
+gputop_webc_on_open_oa_metric_set(uint32_t id,
+                                  char *guid,
+                                  bool per_ctx_mode,
+                                  uint32_t aggregation_period)
 {
-    struct gputop_remote_stream *stream = malloc(sizeof(*stream));
+    struct gputop_webc_stream *stream = malloc(sizeof(*stream));
     memset(stream, 0, sizeof(*stream));
     stream->id = id;
     stream->aggregation_period = aggregation_period;
@@ -350,10 +348,10 @@ gputop_webworker_on_open_oa_metric_set(uint32_t id,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_update_stream_period(uint32_t id,
-                                      uint32_t aggregation_period)
+gputop_webc_update_stream_period(uint32_t id,
+                                 uint32_t aggregation_period)
 {
-    struct gputop_remote_stream *stream;
+    struct gputop_webc_stream *stream;
     gputop_list_for_each(stream, &open_metrics, link) {
         if (stream->id == id) {
             stream->aggregation_period = aggregation_period;
@@ -362,11 +360,10 @@ gputop_webworker_update_stream_period(uint32_t id,
 
 }
 
-
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_on_close_oa_metric_set(uint32_t id)
+gputop_webc_on_close_oa_metric_set(uint32_t id)
 {
-    struct gputop_remote_stream *stream;
+    struct gputop_webc_stream *stream;
 
     gputop_web_console_log("on_close_oa_metric_set(%d)\n", id);
 
@@ -379,11 +376,11 @@ gputop_webworker_on_close_oa_metric_set(uint32_t id)
         }
     }
 
-    gputop_web_console_warn("webworker: requested to close unknown stream ID: %d\n", id);
+    gputop_web_console_warn("webc: requested to close unknown stream ID: %d\n", id);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webworker_init(void)
+gputop_webc_init(void)
 {
     gputop_list_init(&open_metrics);
     gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");

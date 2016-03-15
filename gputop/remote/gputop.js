@@ -188,7 +188,7 @@ Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
 
     if (!gputop.fake_metrics) {
         var emc_symbol_name = emc_str_copy(symbol_name);
-        var counter_idx = _get_counter_id(emc_guid, emc_symbol_name);
+        var counter_idx = _gputop_webc_get_counter_id(emc_guid, emc_symbol_name);
         emc_str_free(emc_symbol_name);
 
         counter.emc_idx_ = counter_idx;
@@ -455,7 +455,7 @@ Gputop.prototype.load_oa_metrics = function(architecture) {
 Gputop.prototype.update_period = function(guid, period_ns) {
     var metric = this.map_metrics_[guid];
     metric.period_ns_ = period_ns;
-    _gputop_webworker_update_stream_period(metric.oa_query_id_, period_ns);
+    _gputop_webc_update_stream_period(metric.oa_query_id_, period_ns);
 }
 
 Gputop.prototype.open_oa_query_for_trace = function(guid) {
@@ -528,7 +528,7 @@ Gputop.prototype.open_oa_query_for_trace = function(guid) {
     open.per_ctx_mode = metric.is_per_ctx_mode();
     open.oa_query = oa_query;
 
-    _gputop_webworker_on_open_oa_metric_set(
+    _gputop_webc_on_open_oa_metric_set(
           metric.oa_query_id_,
           this.get_emc_guid(guid),
           open.per_ctx_mode,
@@ -568,7 +568,7 @@ Gputop.prototype.close_oa_query = function(id, callback) {
 
     gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
 
-    _gputop_webworker_on_close_oa_metric_set(metric.oa_query_id_);
+    _gputop_webc_on_close_oa_metric_set(metric.oa_query_id_);
 
     this.rpc_request('close_query', metric.oa_query_id_);
 }
@@ -671,17 +671,17 @@ Gputop.prototype.process_features = function(features){
      * state
      */
     if (!is_nodejs) {
-        _update_features(di.devid,
-                         di.gen,
-                         di.timestamp_frequency.toInt(),
-                         di.n_eus.toInt(),
-                         di.n_eu_slices.toInt(),
-                         di.n_eu_sub_slices.toInt(),
-                         di.eu_threads_count.toInt(),
-                         di.subslice_mask.toInt(),
-                         di.slice_mask.toInt(),
-                         di.gt_min_freq.toInt(),
-                         di.gt_max_freq.toInt());
+        _gputop_webc_update_features(di.devid,
+                                     di.gen,
+                                     di.timestamp_frequency.toInt(),
+                                     di.n_eus.toInt(),
+                                     di.n_eu_slices.toInt(),
+                                     di.n_eu_sub_slices.toInt(),
+                                     di.eu_threads_count.toInt(),
+                                     di.subslice_mask.toInt(),
+                                     di.slice_mask.toInt(),
+                                     di.gt_min_freq.toInt(),
+                                     di.gt_max_freq.toInt());
     }
 
     gputop_ui.update_features(features);
@@ -766,7 +766,7 @@ function gputop_socket_on_message(evt) {
         switch(msg_type) {
             case 1: /* WS_MESSAGE_PERF */
                 var id = dv.getUint16(4, true /* little endian */);
-                //handle_perf_message(id, data);
+                _gputop_webc_handle_perf_message(id, data);
             break;
             case 2: /* WS_MESSAGE_PROTOBUF */
                 var msg = gputop.builder_.Message.decode(data);
@@ -838,7 +838,7 @@ function gputop_socket_on_message(evt) {
                 var dataPtr = Module._malloc(data.length);
                 var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
                 dataHeap.set(data);
-                _handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
+                _gputop_webc_handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
                 Module._free(dataHeap.byteOffset);
             break;
         }

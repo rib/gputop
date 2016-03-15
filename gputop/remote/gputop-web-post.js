@@ -22,5 +22,5 @@
  * SOFTWARE.
  */
 
-_gputop_webworker_init();
+_gputop_webc_init();
 console.log("GPU Top Emscripten blob init");
