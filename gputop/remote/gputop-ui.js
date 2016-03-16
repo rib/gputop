@@ -66,6 +66,7 @@ function GputopUI () {
     this.start_timestamp = 0;
     this.start_gpu_timestamp = 0;
 
+    this.queue_redraw_ = false;
 }
 
 
@@ -138,11 +139,13 @@ GputopUI.prototype.set_zoom = function(zoom) {
     var metric = gputop.get_map_metric(global_guid);
 
     if (update_metric_period_exponent_for_zoom(metric))
-        gputop.open_oa_query_for_trace(global_guid);
+        gputop.open_oa_metric_set({guid:global_guid});
+
+    this.queue_redraw();
 }
 
 
-GputopUI.prototype.display_graph = function(timestamp) {
+GputopUI.prototype.update_graphs = function(timestamp) {
     var metric = gputop.get_map_metric(global_guid);
 
     for (var i = 0; i < this.graph_array.length; ++i) {
@@ -219,7 +222,7 @@ GputopUI.prototype.display_graph = function(timestamp) {
 }
 
 
-GputopUI.prototype.display_counter = function(counter) {
+GputopUI.prototype.update_counter = function(counter) {
     var bar_value = counter.latest_value;
     var text_value = counter.latest_value;
     var max = counter.latest_max;
@@ -282,25 +285,33 @@ GputopUI.prototype.display_counter = function(counter) {
     }
 }
 
-GputopUI.prototype.render_bars = function() {
-    window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
-    // add support for render graphs as well
-}
-
-GputopUI.prototype.window_render_animation_bars = function(timestamp) {
-    var metric = gputop.query_active_;
+GputopUI.prototype.update = function(timestamp) {
+    var metric = gputop.active_oa_metric_;
     if (metric == undefined)
         return;
 
-    gputop_ui.display_graph(timestamp);
+    this.update_graphs(timestamp);
 
-    window.requestAnimationFrame(gputop_ui.window_render_animation_bars);
-
-    /* TODO: defer updating the bar graphs to the animation callback */
     for (var i = 0, l = metric.emc_counters_.length; i < l; i++) {
         var counter = metric.emc_counters_[i];
-        gputop_ui.display_counter(counter);
+        this.update_counter(counter);
     }
+
+    /* We want smooth graph panning and bar graph updates while we have
+     * an active stream of metrics, so keep queuing redraws... */
+    this.queue_redraw();
+}
+
+GputopUI.prototype.queue_redraw = function() {
+    if (this.redraw_queued_)
+        return;
+
+    window.requestAnimationFrame(function (timestamp) {
+        gputop_ui.redraw_queued_ = false;
+        gputop_ui.update(timestamp);
+    });
+
+    this.redraw_queued_ = true;
 }
 
 GputopUI.prototype.metric_not_supported = function(metric) {
@@ -336,7 +347,7 @@ GputopUI.prototype.update_features = function(features) {
 
         update_metric_period_exponent_for_zoom(metric);
 
-        gputop.open_oa_query_for_trace(global_guid);
+        gputop.open_oa_metric_set({guid:global_guid});
     });
 }
 
@@ -393,13 +404,13 @@ GputopUI.prototype.load_metrics_panel = function(callback_success) {
 var gputop_ui = new GputopUI();
 
 GputopUI.prototype.btn_close_current_query = function() {
-    var active_query = gputop.query_active_;
-    if (active_query==undefined) {
+    var active_metric = gputop.active_oa_metric_;
+    if (active_metric == undefined) {
         gputop_ui.show_alert(" No Active Query","alert-info");
         return;
     }
 
-    gputop.close_oa_query(active_query.oa_query_id_, function() {
+    gputop.close_oa_metric_set(active_metric, function() {
        gputop_ui.show_alert(" Success closing query","alert-info");
     });
 }

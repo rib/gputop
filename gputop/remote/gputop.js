@@ -147,7 +147,6 @@ function Metric () {
     this.name_ = "not loaded";
     this.chipset_ = "not loaded";
 
-    this.set_id_ = 0;
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
@@ -156,7 +155,8 @@ function Metric () {
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
 
-    this.oa_query_id_ = -1; // if there is an active query it will be >0
+    this.server_handle = 0;
+    this.webc_stream_ptr_ = 0;
 
     this.per_ctx_mode_ = false;
 
@@ -182,14 +182,17 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
     return this.counters_map_[symbol_name];
 }
 
-Metric.prototype.add_new_counter = function(emc_guid, symbol_name, counter) {
+Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
     counter.idx_ = this.n_total_counters_++;
     counter.symbol_name = symbol_name;
 
     if (!gputop.fake_metrics) {
-        var emc_symbol_name = emc_str_copy(symbol_name);
-        var counter_idx = _gputop_webc_get_counter_id(emc_guid, emc_symbol_name);
-        emc_str_free(emc_symbol_name);
+        var sp = Runtime.stackSave();
+
+        var counter_idx = _gputop_webc_get_counter_id(String_pointerify_on_stack(guid),
+                                                      String_pointerify_on_stack(symbol_name));
+
+        Runtime.stackRestore(sp);
 
         counter.emc_idx_ = counter_idx;
         if (counter_idx != -1) {
@@ -260,13 +263,21 @@ function Gputop () {
     // Initialize protobuffers
     this.builder_ = proto_builder.build("gputop");
 
-    // Next query ID
-    this.query_id_next_ = 1;
+    /* When we send a request to open a stream of metrics we send
+     * the server a handle that will be attached to subsequent data
+     * for the stream. We use these handles to lookup the metric
+     * set that the data corresponds to.
+     */
+    this.next_server_handle = 1;
+    this.server_handle_to_metric_map = [];
 
-    // Current active query sets
-    // Indexes by query_id_next_
-    this.query_metric_handles_ = [];
-    this.query_active_ = undefined;
+    /* When we open a stream of metrics we also call into the
+     * Emscripten compiled webc code to allocate a corresponding
+     * struct gputop_webc_stream. This map lets us look up a
+     * Metric object given a sputop_webc_stream pointer.
+     */
+    this.webc_stream_ptr_to_metric_map = [];
+    this.active_oa_metric_ = undefined;
 
     // Current metric on display
     this.metric_visible_ = undefined;
@@ -321,21 +332,10 @@ Gputop.prototype.get_metrics_xml = function() {
     return this.metrics_xml_;
 }
 
-// Remember to free this tring
-function emc_str_copy(string_to_convert) {
-    var buf = Module._malloc(string_to_convert.length+1); // Zero terminated
-    Module.stringToAscii(string_to_convert, buf);
-    return buf;
-}
-
-function emc_str_free(buf) {
-    Module._free(buf);
-}
-
 var params = [ ];
 Gputop.prototype.read_counter_xml = function() {
     var metric = params[0];
-    var emc_guid = params[1];
+    var guid = params[1];
 
     try {
         var $cnt = $(this);
@@ -346,7 +346,7 @@ Gputop.prototype.read_counter_xml = function() {
         counter.mathml_xml = ($cnt.find("mathml_equation"));
         counter.xml_ = $cnt;
         counter.units = units;
-        metric.add_new_counter(emc_guid, symbol_name, counter);
+        metric.add_new_counter(guid, symbol_name, counter);
     } catch (e) {
         gputop_ui.syslog("Catch parsing counter " + e);
     }
@@ -393,7 +393,7 @@ function gputop_read_metrics_set() {
         metric.metric_set_ = Object.keys(gputop.metrics_).length;
         gputop.metrics_[metric.metric_set_] = metric;
 
-        params = [ metric, gputop.get_emc_guid(guid) ];
+        params = [ metric, guid ];
         $set.find("counter").each(gputop.read_counter_xml, params);
     } catch (e) {
         gputop_ui.syslog("Catch parsing metric " + e);
@@ -401,17 +401,16 @@ function gputop_read_metrics_set() {
 } // read_metrics_set
 
 Gputop.prototype.stream_update_counter = function (counterId,
-                                                   id,
+                                                   stream_ptr,
                                                    start_timestamp,
                                                    end_timestamp,
                                                    max,
                                                    d_value,
                                                    reason) {
-    var metric = this.query_metric_handles_[id];
+    var metric = this.webc_stream_ptr_to_metric_map[stream_ptr];
     if (metric == undefined) {
-        //TODO Close this query which is not being captured
         if (counterId == 0)
-            gputop_ui.show_alert("No query active for data from "+ id +" ","alert-danger");
+            gputop_ui.show_alert("No query active for data from "+ stream_ptr +" ","alert-danger");
         return;
     }
 
@@ -423,6 +422,8 @@ Gputop.prototype.stream_update_counter = function (counterId,
 
     counter.append_counter_data(start_timestamp, end_timestamp,
                                 d_value, max, reason);
+
+    gputop_ui.queue_redraw();
 }
 
 Gputop.prototype.parse_xml_metrics = function(xml) {
@@ -431,8 +432,8 @@ Gputop.prototype.parse_xml_metrics = function(xml) {
 }
 
 Gputop.prototype.load_fake_metrics = function(architecture) {
-    if (this.query_active_) {
-        gputop.close_oa_query(this.query_active_.oa_query_id_,
+    if (this.active_oa_metric_) {
+        gputop.close_oa_metric_set(this.active_oa_metric_,
             function() {
                 gputop_ui.show_alert(" Success closing query","alert-info");
             });
@@ -451,136 +452,129 @@ Gputop.prototype.set_architecture = function(architecture) {
 Gputop.prototype.update_period = function(guid, period_ns) {
     var metric = this.map_metrics_[guid];
     metric.period_ns_ = period_ns;
-    _gputop_webc_update_stream_period(metric.oa_query_id_, period_ns);
+    _gputop_webc_update_stream_period(metric.webc_stream_ptr_, period_ns);
 }
 
-Gputop.prototype.open_oa_query_for_trace = function(guid) {
+Gputop.prototype.open_oa_metric_set = function(config, callback) {
+
+    function _real_open_oa_metric_set(config, callback) {
+        var metric = this.get_map_metric(config.guid);
+        var oa_exponent = metric.exponent;
+        var per_ctx_mode = metric.per_ctx_mode_;
+
+        if ('oa_exponent' in config)
+            oa_exponent = config.oa_exponent;
+        if ('per_ctx_mode' in config)
+            per_ctx_mode = config.per_ctx_mode;
+
+        var oa_query = new this.builder_.OAQueryInfo();
+
+        oa_query.guid = config.guid;
+        oa_query.period_exponent = oa_exponent;
+
+        var open = new this.builder_.OpenQuery();
+
+        metric.server_handle = gputop.next_server_handle++;
+
+        open.id = metric.server_handle;
+        open.oa_query = oa_query;
+        open.overwrite = false;   /* don't overwrite old samples */
+        open.live_updates = true; /* send live updates */
+        open.per_ctx_mode = per_ctx_mode;
+
+        this.server_handle_to_metric_map[open.id] = metric;
+
+        var self = this;
+        this.rpc_request('open_query', open, function () {
+            gputop_ui.syslog("Opened OA metric set " + metric.name_);
+
+            metric.exponent = oa_exponent;
+            metric.per_ctx_mode_ = per_ctx_mode;
+
+            var sp = Runtime.stackSave();
+
+            metric.webc_stream_ptr_ =
+                _gputop_webc_stream_new(String_pointerify_on_stack(config.guid),
+                                        per_ctx_mode,
+                                        metric.period_ns_);
+
+            Runtime.stackRestore(sp);
+
+            self.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_] = metric;
+
+            if (callback != undefined)
+                callback(metric);
+        });
+
+        this.active_oa_metric_ = metric;
+
+        if (open.per_ctx_mode)
+            gputop_ui.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
+        else
+            gputop_ui.show_alert("Opening metric set " + metric.name_, "alert-info");
+
+        gputop_ui.queue_redraw();
+    }
+
     if (this.no_supported_metrics_ == true) {
         return;
     }
 
-    if (guid == undefined) {
-        gputop_ui.show_alert("GUID missing while trying to opening query","alert-danger");
-        return;
-    }
-
-    var metric = this.get_map_metric(guid);
-
-    // Check if we have to close the old query before opening this one
-    var active_metric = this.query_active_;
-    if (active_metric != undefined) {
-        if (active_metric.on_close_callback_ != undefined) {
-            gputop_ui.show_alert("Closing in progress","alert-info");
-            active_metric.on_close_callback_ = function() {
-                gputop.open_oa_query_for_trace(guid);
-            }
-            return;
-        } else
-        this.close_oa_query(this.query_active_.oa_query_id_, function() {
-            console.log("Success! Opening new query "+guid);
-            gputop.open_oa_query_for_trace(guid);
-        });
+    var metric = this.get_map_metric(config.guid);
+    if (metric == undefined) {
+        console.error('Error: failed to lookup OA metric set with guid = "' + config.guid + '"');
         return;
     }
 
     if (metric.supported_ == false) {
-        gputop_ui.show_alert(guid+" "+metric.name_ +" not supported on this kernel","alert-danger");
+        gputop_ui.show_alert(config.guid + " " + metric.name_ + " not supported on this kernel", "alert-danger");
         return;
     }
-    gputop_ui.syslog("Launch query GUID " + guid);
 
-    var oa_query = new this.builder_.OAQueryInfo();
-    oa_query.guid = guid;
-    oa_query.metric_set = metric.metric_set_;
+    if (metric.closing_) {
+        gputop_ui.show_alert("Ignoring attempt to open OA metrics while waiting for close ACK", "alert-danger");
+        return;
+    }
 
-    /* The timestamp for HSW+ increments every 80ns
-     *
-     * The period_exponent gives a sampling period as follows:
-     *   sample_period = 80ns * 2^(period_exponent + 1)
-     *
-     * The overflow period for Haswell can be calculated as:
-     *
-     * 2^32 / (n_eus * max_gen_freq * 2)
-     * (E.g. 40 EUs @ 1GHz = ~53ms)
-     *
-     * We currently sample ~ every 10 milliseconds...
-     */
-
-    metric.oa_query_ = oa_query;
-    metric.oa_query_id_ = this.query_id_next_++;
-
-    var open = new this.builder_.OpenQuery();
-
-    oa_query.period_exponent = metric.exponent;
-
-    open.id = metric.oa_query_id_; // oa_query ID
-    open.overwrite = false;   /* don't overwrite old samples */
-    open.live_updates = true; /* send live updates */
-                              /* nanoseconds of aggregation
-                               * i.e. request updates from the worker
-                               * as values that have been aggregated
-                               * over this duration */
-
-    open.per_ctx_mode = metric.is_per_ctx_mode();
-    open.oa_query = oa_query;
-
-    _gputop_webc_on_open_oa_metric_set(
-          metric.oa_query_id_,
-          this.get_emc_guid(guid),
-          open.per_ctx_mode,
-          metric.period_ns_
-          ); //100000000
-
-    this.rpc_request('open_query', open);
-
-    this.query_metric_handles_[metric.oa_query_id_] = metric;
-    this.query_active_ = metric;
-    metric.waiting_ack_ = true;
-
-    console.log(" Render animation bars ");
-
-    if (open.per_ctx_mode)
-        gputop_ui.show_alert("Opening per context query "+ metric.name_, "alert-info");
-    else
-        gputop_ui.show_alert("Opening query "+ metric.name_, "alert-info");
-
-    gputop_ui.render_bars();
+    if (this.active_oa_metric_ != undefined) {
+        var self = this;
+        this.close_oa_metric_set(this.active_oa_metric_, function () {
+            _real_open_oa_metric_set.call(self, config, callback);
+        });
+    } else
+        _real_open_oa_metric_set.call(this, config, callback);
 }
 
-Gputop.prototype.close_oa_query = function(id, callback) {
-    var metric = this.query_metric_handles_[id];
+Gputop.prototype.close_oa_metric_set = function(metric, callback) {
 
-    if ( metric.waiting_ack_ == true ) {
-        gputop_ui.show_alert("Waiting ACK","alert-danger");
+    if (metric.closing_ == true ) {
+        gputop_ui.syslog("Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)");
         return;
     }
 
-    if (metric == undefined) {
-        gputop_ui.show_alert("Cannot close query "+id+", which does not exist ","alert-danger");
-        return;
-    }
+    gputop_ui.show_alert("Closing query " + metric.name_, "alert-info");
 
-    metric.on_close_callback_ = callback;
+    this.rpc_request('close_query', metric.server_handle, function (msg) {
+        _gputop_webc_stream_destroy(metric.webc_stream_ptr_);
+        delete gputop.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_];
+        delete gputop.server_handle_to_metric_map[metric.server_handle];
 
-    gputop_ui.show_alert("Closing query "+ metric.name_, "alert-info");
+        metric.webc_stream_ptr_ = 0;
+        metric.server_handle = 0;
 
-    _gputop_webc_on_close_oa_metric_set(metric.oa_query_id_);
+        metric.closing_ = false;
 
-    this.rpc_request('close_query', metric.oa_query_id_);
+        if (callback != undefined)
+            callback();
+    });
+
+    metric.closing_ = true;
+
+    this.active_oa_metric_ = undefined;
 }
 
-// Moves the guid into the emscripten HEAP and returns a ptr to it
-Gputop.prototype.get_emc_guid = function(guid) {
-    if (this.fake_metrics == true) {
-        return guid;
-    }
-    // Allocate a temporal buffer for the IDs in gputop, we will reuse this buffer.
-    // This string will be free on dispose.
-    if (gputop.buffer_guid_ == undefined)
-        gputop.buffer_guid_ = Module._malloc(guid.length+1); // Zero terminated
-
-    Module.stringToAscii(guid,  gputop.buffer_guid_);
-    return gputop.buffer_guid_;
+function String_pointerify_on_stack(js_string) {
+    return allocate(intArrayFromString(js_string), 'i8', ALLOC_STACK);
 }
 
 Gputop.prototype.get_server_url = function() {
@@ -724,18 +718,15 @@ Gputop.prototype.dispose = function() {
     gputop.map_metrics_ = {}; // Map of metrics by GUID
 
     gputop.is_connected_ = false;
-    gputop.query_id_next_ = 1;
 
-    gputop.query_metric_handles_.forEach(function(metric) {
+    gputop.webc_stream_ptr_to_metric_map.forEach(function(metric) {
         // the query stopped being tracked
         metric.oa_query = undefined;
-        metric.oa_query_id_ = undefined;
+        metric.webc_stream_ptr_ = undefined;
     });
 
-    // Current active query sets
-    // Indexes by query_id_next_
-    gputop.query_metric_handles_ = [];
-    gputop.query_active_ = undefined;
+    gputop.webc_stream_ptr_to_metric_map = [];
+    gputop.active_oa_metric_ = undefined;
 }
 
 function gputop_socket_on_open() {
@@ -777,13 +768,6 @@ function gputop_socket_on_message(evt) {
             gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
             gputop.process_features(msg.features);
         }
-        if (msg.ack != undefined) {
-            //gputop_ui.log(0, "Ack");
-            gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
-            if (gputop.query_active_!=undefined) {
-                gputop.query_active_.waiting_ack_ = false;
-            }
-        }
         if (msg.error != undefined) {
             gputop_ui.show_alert(msg.error,"alert-danger");
             gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
@@ -802,46 +786,34 @@ function gputop_socket_on_message(evt) {
             process.update(msg.process_info);
             gputop_ui.syslog(msg.reply_uuid + " recv: Console process info "+pid);
         }
-        if (msg.close_notify != undefined) {
-            var id = msg.close_notify.id;
-            gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
-            gputop.query_metric_handles_.forEach(function(metric) {
-                if (metric.oa_query_id_ == id) {
-                    if (gputop.query_active_ == metric) {
-                        gputop.query_active_ = undefined;
-                    } else {
-                        gputop_ui.syslog("* Query was NOT active "+id);
-                    }
-
-                    delete gputop.query_metric_handles_[id];
-                    // the query stopped being tracked
-                    metric.oa_query = undefined;
-                    metric.oa_query_id_ = undefined;
-
-                    var callback = metric.on_close_callback_;
-                    if (callback != undefined) {
-                        gputop_ui.syslog("* Callback! ");
-                        metric.on_close_callback_ = undefined;
-                        callback();
-                    }
-
-                }
-            });
-        }
 
         if (msg.reply_uuid in gputop.rpc_closures_) {
             var closure = gputop.rpc_closures_[msg.reply_uuid];
             closure(msg);
             delete gputop.rpc_closures_[msg.reply_uuid];
         }
+
         break;
     case 3: /* WS_MESSAGE_I915_PERF */
-        var id = dv.getUint16(4, true /* little endian */);
-        var dataPtr = Module._malloc(data.length);
-        var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
-        dataHeap.set(data);
-        _gputop_webc_handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
-        Module._free(dataHeap.byteOffset);
+        var server_handle = dv.getUint16(4, true /* little endian */);
+
+        if (server_handle in gputop.server_handle_to_metric_map) {
+            gputop_ui.queue_redraw();
+
+            var sp = Runtime.stackSave();
+
+            var stack_data = allocate(data, 'i8', ALLOC_STACK);
+
+            var metric = gputop.server_handle_to_metric_map[server_handle];
+
+            _gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
+                                                  stack_data,
+                                                  data.length);
+
+            Runtime.stackRestore(sp);
+        } else {
+            console.log("Ignoring i915 perf data for unknown Metric object")
+        }
         break;
     }
 }

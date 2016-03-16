@@ -47,7 +47,7 @@
         } else {
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
-            gputop.open_oa_query_for_trace(global_guid);
+            gputop.open_oa_metric_set({guid:global_guid});
         }
     }
 
@@ -176,7 +176,7 @@
             global_guid = guid;
             console.log("click "+e.target.id);
 
-            gputop.open_oa_query_for_trace(e.target.id);
+            gputop.open_oa_metric_set({guid:e.target.id});
         });
 
         // display of metrics tab-pane
@@ -403,7 +403,7 @@
             console.log("Switching Off "+metric.name_+" per context");
         }
 
-        gputop.open_oa_query_for_trace(global_guid);
+        gputop.open_oa_metric_set({guid:global_guid});
     });
 
     $('#hide_metrics').click(function() {
