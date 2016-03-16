@@ -699,17 +699,20 @@ Gputop.prototype.load_emscripten = function() {
     }
 
     if (!is_nodejs) {
-        $.getScript( gputop.get_gputop_native_js() )
-            .done(function( script, textStatus ) {
-                gputop.request_features();
-                gputop.native_js_loaded_ = true;
-                console.log("GPUTop Emscripten code loaded\n");
-            }).fail(function( jqxhr, settings, exception ) {
-                console.log( "Failed loading emscripten" );
-                setTimeout(function() {
-                    gputop.connect();
-                }, 5000);
-        });
+        var req = new XMLHttpRequest();
+        req.open('GET', gputop.get_gputop_native_js());
+        req.onload = function () {
+            $('<script type="text/javascript">').text(this.responseText + '\n' +
+                              '//# sourceURL=gputop-web.js\n'
+                             ).appendTo(document.body);
+            gputop.request_features();
+            gputop.native_js_loaded_ = true;
+            console.log("GPUTop Emscripten code loaded\n");
+        };
+        req.onerror = function () {
+            console.log( "Failed loading emscripten" );
+        };
+        req.send();
     } else {
         gputop.request_features();
         gputop.native_js_loaded_ = true;
