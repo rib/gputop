@@ -534,7 +534,6 @@ for set in tree.findall(".//set"):
     c("metric_set->name = \"" + set.get('name') + "\";\n")
     c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
     c("metric_set->guid = \"" + set.get('guid') + "\";\n")
-    c("gputop_register_oa_metric_set(metric_set);\n")
     c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
     c("metric_set->n_counters = 0;\n")
     c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
@@ -563,6 +562,8 @@ metric_set->c_offset = metric_set->b_offset + 8;
 
     for counter in counters:
         output_counter_report(set, counter)
+
+    c("\n\ngputop_register_oa_metric_set(metric_set);\n")
 
     c_outdent(3)
     c("}\n")
