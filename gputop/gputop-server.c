@@ -571,7 +571,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         asprintf(&error, "Failed to initialize perf\n");
         goto err;
     }
-    dbg("handle_open_i915_perf_oa_query\n");
+    dbg("handle_open_i915_perf_oa_query: id = %d\n", id);
 
     entry = gputop_hash_table_search(metrics, oa_query_info->guid);
     if (entry != NULL) {
@@ -807,7 +807,7 @@ handle_close_query(h2o_websocket_conn_t *conn,
     struct gputop_perf_stream *stream;
     uint32_t id = request->close_query;
 
-    dbg("handle_close_query: uuid=%s\n", request->uuid);
+    dbg("handle_close_query: id=%d, request_uuid=%s\n", id, request->uuid);
 
     gputop_list_for_each(stream, &streams, user.link) {
         if (stream->user.id == id) {
