@@ -759,93 +759,87 @@ function gputop_socket_on_close() {
 }
 
 function gputop_socket_on_message(evt) {
-    try {
-        var dv = new DataView(evt.data, 0);
-        var data = new Uint8Array(evt.data, 8);
-        var msg_type = dv.getUint8(0);
+    var dv = new DataView(evt.data, 0);
+    var data = new Uint8Array(evt.data, 8);
+    var msg_type = dv.getUint8(0);
 
-        switch(msg_type) {
-            case 1: /* WS_MESSAGE_PERF */
-                var id = dv.getUint16(4, true /* little endian */);
-                _gputop_webc_handle_perf_message(id, data);
-            break;
-            case 2: /* WS_MESSAGE_PROTOBUF */
-                var msg = gputop.builder_.Message.decode(data);
-                if (msg.features != undefined) {
-                    gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
-                    gputop.process_features(msg.features);
-                }
-                if (msg.ack != undefined) {
-                    //gputop_ui.log(0, "Ack");
-                    gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
-                    if (gputop.query_active_!=undefined) {
-                        gputop.query_active_.waiting_ack_ = false;
-                    }
-                }
-                if (msg.error != undefined) {
-                    gputop_ui.show_alert(msg.error,"alert-danger");
-                    gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
-                    gputop_ui.log(4, msg.error);
-                }
-                if (msg.log != undefined) {
-                    var entries = msg.log.entries;
-                    entries.forEach(function(entry) {
-                        gputop_ui.log(entry.log_level, entry.log_message);
-                    });
-                }
-                if (msg.process_info != undefined) {
-                    var pid = msg.process_info.pid;
-                    var process = gputop.get_process_by_pid(pid);
-
-                    process.update(msg.process_info);
-                    gputop_ui.syslog(msg.reply_uuid + " recv: Console process info "+pid);
-                }
-                if (msg.close_notify != undefined) {
-                    var id = msg.close_notify.id;
-                    gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
-                    gputop.query_metric_handles_.forEach(function(metric) {
-                        if (metric.oa_query_id_ == id) {
-                            if (gputop.query_active_ == metric) {
-                                gputop.query_active_ = undefined;
-                            } else {
-                                gputop_ui.syslog("* Query was NOT active "+id);
-                            }
-
-                            delete gputop.query_metric_handles_[id];
-                            // the query stopped being tracked
-                            metric.oa_query = undefined;
-                            metric.oa_query_id_ = undefined;
-
-                            var callback = metric.on_close_callback_;
-                            if (callback != undefined) {
-                                gputop_ui.syslog("* Callback! ");
-                                metric.on_close_callback_ = undefined;
-                                callback();
-                            }
-
-                        }
-                    });
-                }
-
-                if (msg.reply_uuid in gputop.rpc_closures_) {
-                    var closure = gputop.rpc_closures_[msg.reply_uuid];
-                    closure(msg);
-                    delete gputop.rpc_closures_[msg.reply_uuid];
-                }
-
-            break;
-            case 3: /* WS_MESSAGE_I915_PERF */
-                var id = dv.getUint16(4, true /* little endian */);
-                var dataPtr = Module._malloc(data.length);
-                var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
-                dataHeap.set(data);
-                _gputop_webc_handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
-                Module._free(dataHeap.byteOffset);
-            break;
+    switch(msg_type) {
+    case 1: /* WS_MESSAGE_PERF */
+        var id = dv.getUint16(4, true /* little endian */);
+        _gputop_webc_handle_perf_message(id, data);
+        break;
+    case 2: /* WS_MESSAGE_PROTOBUF */
+        var msg = gputop.builder_.Message.decode(data);
+        if (msg.features != undefined) {
+            gputop_ui.syslog("Features: "+msg.features.get_cpu_model());
+            gputop.process_features(msg.features);
         }
-    } catch (err) {
-        console.log("Error: "+err);
-        gputop_ui.log(0, "Error: "+err+"\n");
+        if (msg.ack != undefined) {
+            //gputop_ui.log(0, "Ack");
+            gputop_ui.syslog(msg.reply_uuid + " recv: ACK ");
+            if (gputop.query_active_!=undefined) {
+                gputop.query_active_.waiting_ack_ = false;
+            }
+        }
+        if (msg.error != undefined) {
+            gputop_ui.show_alert(msg.error,"alert-danger");
+            gputop_ui.syslog(msg.reply_uuid + " recv: Error " + msg.error);
+            gputop_ui.log(4, msg.error);
+        }
+        if (msg.log != undefined) {
+            var entries = msg.log.entries;
+            entries.forEach(function(entry) {
+                gputop_ui.log(entry.log_level, entry.log_message);
+            });
+        }
+        if (msg.process_info != undefined) {
+            var pid = msg.process_info.pid;
+            var process = gputop.get_process_by_pid(pid);
+
+            process.update(msg.process_info);
+            gputop_ui.syslog(msg.reply_uuid + " recv: Console process info "+pid);
+        }
+        if (msg.close_notify != undefined) {
+            var id = msg.close_notify.id;
+            gputop_ui.syslog(msg.reply_uuid + " recv: Close notify "+id);
+            gputop.query_metric_handles_.forEach(function(metric) {
+                if (metric.oa_query_id_ == id) {
+                    if (gputop.query_active_ == metric) {
+                        gputop.query_active_ = undefined;
+                    } else {
+                        gputop_ui.syslog("* Query was NOT active "+id);
+                    }
+
+                    delete gputop.query_metric_handles_[id];
+                    // the query stopped being tracked
+                    metric.oa_query = undefined;
+                    metric.oa_query_id_ = undefined;
+
+                    var callback = metric.on_close_callback_;
+                    if (callback != undefined) {
+                        gputop_ui.syslog("* Callback! ");
+                        metric.on_close_callback_ = undefined;
+                        callback();
+                    }
+
+                }
+            });
+        }
+
+        if (msg.reply_uuid in gputop.rpc_closures_) {
+            var closure = gputop.rpc_closures_[msg.reply_uuid];
+            closure(msg);
+            delete gputop.rpc_closures_[msg.reply_uuid];
+        }
+        break;
+    case 3: /* WS_MESSAGE_I915_PERF */
+        var id = dv.getUint16(4, true /* little endian */);
+        var dataPtr = Module._malloc(data.length);
+        var dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, data.length);
+        dataHeap.set(data);
+        _gputop_webc_handle_i915_perf_message(id, dataHeap.byteOffset, data.length);
+        Module._free(dataHeap.byteOffset);
+        break;
     }
 }
 
