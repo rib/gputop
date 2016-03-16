@@ -428,6 +428,9 @@ Gputop.prototype.stream_update_counter = function (counterId,
 Gputop.prototype.load_xml_metrics = function(xml) {
     gputop.metrics_xml_ = xml;
     $(xml).find("set").each(gputop_read_metrics_set);
+    if (gputop_is_demo()) {
+        $('#pane2').load("ajax/metrics.html");
+    }
 }
 
 Gputop.prototype.load_fake_metrics = function(architecture) {
