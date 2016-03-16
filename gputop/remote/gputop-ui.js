@@ -369,6 +369,7 @@ GputopUI.prototype.log = function(log_level, log_message){
 
 GputopUI.prototype.syslog = function(message){
     gputop_ui.syslog_.value += message + "\n";
+    console.log(message);
 }
 
 GputopUI.prototype.weblog = function(message){
