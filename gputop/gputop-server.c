@@ -615,7 +615,9 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         goto err;
     }
 
+    message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+    message.ack = true;
     send_pb_message(conn, &message.base);
 
     return;
