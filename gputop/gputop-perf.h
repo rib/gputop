@@ -26,10 +26,8 @@
 
 #include <stdbool.h>
 
-#ifndef EMSCRIPTEN
 #include <uv.h>
 #include <time.h>
-#endif
 
 #include "gputop-list.h"
 #include "gputop-hash-table.h"
@@ -44,7 +42,6 @@ struct ctx_handle {
     int fd;
 };
 
-#ifndef EMSCRIPTEN
 /*
  * This structure tracks the offsets to the perf record headers in our
  * perf circular buffer so that we can enable perf's flight recorder
@@ -203,7 +200,6 @@ struct perf_oa_user {
 };
 
 extern struct perf_oa_user *gputop_perf_current_user;
-#endif
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
@@ -240,7 +236,6 @@ float read_float_oa_counter(const struct gputop_metric_set *metric_set,
                             const struct gputop_metric_set_counter *counter,
                             uint64_t *deltas);
 
-#ifndef EMSCRIPTEN
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
                                 int period_exponent,
@@ -286,4 +281,3 @@ void gputop_perf_stream_close(struct gputop_perf_stream *stream,
                               void (*on_close_cb)(struct gputop_perf_stream *stream));
 void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
 void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
-#endif
