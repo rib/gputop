@@ -247,6 +247,10 @@ void
 gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
                            struct gputop_metric_set *metric_set)
 {
+    assert(accumulator);
+    assert(metric_set);
+    assert(metric_set->perf_oa_format);
+
     memset(accumulator, 0, sizeof(*accumulator));
     accumulator->metric_set = metric_set;
 }
