@@ -451,6 +451,6 @@ $( document ).ready(function() {
     // Display tooltips
     $( '[data-toggle="tooltip"]' ).tooltip();
 
-    if (gputop_is_website())
+    if (gputop_is_demo())
         gputop_load_metric_set('skl');
 });

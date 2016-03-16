@@ -73,6 +73,6 @@ gputop_web_socket.on('message', function(proto_message) {
     }
 });
 
-function gputop_is_website() {
+/*function gputop_is_demo() {
     return false;
-}
+}*/

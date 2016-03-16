@@ -898,7 +898,7 @@ Gputop.prototype.get_socket = function(websocket_url) {
 
 // Connect to the socket for transactions
 Gputop.prototype.connect = function() {
-    if (!gputop_is_website()) {
+    if (!gputop_is_demo()) {
         var websocket_url = this.get_websocket_url();
         gputop_ui.syslog('Connecting to port ' + websocket_url);
         //----------------- Data transactions ----------------------

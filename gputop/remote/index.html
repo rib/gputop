@@ -39,7 +39,7 @@ var getUrlParameter = function(sParam) {
     }
 };
 
-function gputop_is_website() {
+function gputop_is_demo() {
 
     var demo = getUrlParameter('demo');
     if (demo == "true" || demo == "1" || window.location.hostname == "gputop.github.io"
@@ -174,7 +174,7 @@ function gputop_load_metric_set(metric_set) {
     <script src="gputop-ui.js"></script>
     <script src="gputop.js"></script>
 <script>
-    if (gputop_is_website()) {
+    if (gputop_is_demo()) {
         $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
                 console.log('Loaded welcome');
         });
