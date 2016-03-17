@@ -85,6 +85,6 @@ ws.onmessage = function(evt) {
     }
 };
 
-function gputop_is_website() {
+/*function gputop_is_demo() {
     return false;
-}
+}*/

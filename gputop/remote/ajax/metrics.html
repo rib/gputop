@@ -53,8 +53,9 @@
 
     var flag_order = ["Overview", "System", "Frame", "Batch", "Draw", "Indicate",
                       "Tier1", "Tier2", "Tier3", "Tier4"];
+    var metric_order = [];
     var selected_index;
-    var set_array = [];
+    var set_array = {};
 
     function count(name, underscore_name, flags)
     {
@@ -78,7 +79,8 @@
         var symbol_name = $counter.attr("symbol_name");
         var description = $counter.attr("description") + " (" + $counter.attr("mdapi_usage_flags") + ")";
         var flags = $counter.attr("mdapi_usage_flags").split(" ");
-        set_array[set_array.length - 1].counters.push(new count(name, symbol_name, flags));
+        selected_index = metric_order[metric_order.length - 1];
+        set_array[selected_index].counters.push(new count(name, symbol_name, flags));
 
         var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
         if (counter == undefined) {
@@ -103,6 +105,12 @@
             unsupported = "hide_unsupported";
         }
 
+        if (gputop_is_demo()) {
+            stripped_bar = "";
+            initial_progress = "0%";
+            unsupported = "supported";
+        }
+
         var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
 
         var div_id = 'div_counter_'+set_index + '_' + counter_index;
@@ -112,7 +120,7 @@
         // add transition: none to progress bar css for no animation.
         // display of counter bar metrics
         counter_bars = '\
-        <div id = "' + set_array[set_array.length - 1].underscore_name + '_' + symbol_name + '"> \
+        <div id = "' + set_array[selected_index].underscore_name + '_' + symbol_name + '"> \
             <div class = "metric_row ' + unsupported + '" id="' + div_id + '"> \
                 <div class = "counter_name ' +  symbol_name + '">' + counter_name + '</div> \
                 <div class="progress"> \
@@ -155,8 +163,8 @@
         var title = $set.attr("name");
         var guid = $set.attr("guid");
 
-        set_array.push(new set(title, $set.attr("underscore_name"), [], []));
-
+        set_array[title] = new set(title, $set.attr("underscore_name"), [], []);
+        metric_order.push(title);
         if (global_guid == "")
             global_guid = guid;
 
@@ -188,7 +196,7 @@
 
         set_index ++;
 
-        var last = set_array[set_array.length - 1];
+        var last = set_array[title];
         var counters = last.counters;
         for (i = 0; i < counters.length; i++)
         {
@@ -206,16 +214,12 @@
 
     function draw_filter_checkboxes()
     {
-        if (selected_index < 0)
-            return;
-
         var d1 = document.getElementById('flags_bar');
         d1.innerHTML = "";
         var current_drawn_flags = [];
 
         var set = set_array[selected_index];
         var flags = set.flags;
-
         for (i = 0; i < flag_order.length; i++)
         {
             if (flags.indexOf(flag_order[i]) > -1)
@@ -223,12 +227,10 @@
                 current_drawn_flags.push(flag_order[i]);
             }
         }
-
         for (i = 0; i < flags.length; i++)
         {
             if (current_drawn_flags.indexOf(flags[i]) > -1)
                 continue;
-
             current_drawn_flags.push(flags[i]);
         }
 
@@ -241,6 +243,7 @@
                            </label> \
                        </div>';
             d1.insertAdjacentHTML('beforeend', flags_c);
+
         }
 
         $('.checkbox_event').click(function() {
@@ -265,12 +268,8 @@
 
     function filter_counters()
     {
-        if (selected_index < 0)
-            return;
-
         var set = set_array[selected_index];
         var counters = set.counters;
-
         for (i = 0; i < counters.length; i++)
         {
             var display = false;
@@ -299,23 +298,22 @@
     function read_from_xml(xml_name) {
         $("#sidebar_right").html("");
         $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
-
+        for (var key in set_array) delete set_array[key];
+        metric_order.splice(0, metric_order.length);
         $(xml_name).find("set").each(read_metrics_set);
-        if (set_array.length > 0)
-        {
-            selected_index = 0;
-        } else {
-            selected_index = -1;
-        }
+        if (metric_order.length < 1)
+            return;
+        selected_index = metric_order[0];
         draw_filter_checkboxes();
 
-        for (i = 0; i < set_array.length; i++)
+        for (var key in set_array)
         {
-            set_array[i].checked_flags.splice(0, set_array[i].checked_flags.length);
-            set_array[i].checked_flags.push("Overview");
-            for (ii = 0; ii < set_array[i].flags.length; ii++)
-                $("#" + set_array[i].underscore_name + "_" + set_array[i].flags[ii]).prop('checked', false);
-            $("#" + set_array[i].underscore_name + "_Overview").prop('checked', true);
+            var set = set_array[key];
+            set.checked_flags.splice(0, set.checked_flags.length);
+            set.checked_flags.push("Overview");
+            for (ii = 0; ii < set.flags.length; ii++)
+                $("#" + set.underscore_name + "_" + set.flags[ii]).prop('checked', false);
+            $("#" + set.underscore_name + "_Overview").prop('checked', true);
         }
         filter_counters();
 
@@ -323,22 +321,16 @@
             e.target // newly activated tab
             e.relatedTarget // previous active tab
             $('#page-header-metrics').text(e.target.text);
-            for (i = 0; i < set_array.length; i++)
-            {
-                if (set_array[i].name == e.target.text) {
-                    selected_index = i;
-                    break;
-                }
-            }
+            selected_index = e.target.text;
             draw_filter_checkboxes();
-
             var set = set_array[selected_index];
-            for (i = 0; i < set.flags.length; i++)
+            var flags = set.flags;
+            for (i = 0; i < flags.length; i++)
             {
-                $("#" + set.underscore_name + "_" + set.flags[i]).prop('checked', false);
-                if (set.checked_flags.indexOf(set.flags[i]) > -1)
+                $("#" + set.underscore_name + "_" + flags[i]).prop('checked', false);
+                if (set.checked_flags.indexOf(flags[i]) > -1)
                 {
-                    $("#" + set.underscore_name + "_" + set.flags[i]).prop('checked', true);
+                    $("#" + set.underscore_name + "_" + flags[i]).prop('checked', true);
                 }
             }
             filter_counters();
@@ -383,9 +375,6 @@
 
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
 
-    /* FIXME: avoid having these global i + k variables */
-    //var i = 0;
-    //var k = 1;
     $('#documentation').hide(); // by default hide the equation container
 
     $('#per_ctx_mode').click(function() {

@@ -39,8 +39,7 @@ var getUrlParameter = function(sParam) {
     }
 };
 
-function gputop_is_website() {
-    console.log(" Location host "+window.location.hostname);
+function gputop_is_demo() {
 
     var demo = getUrlParameter('demo');
     if (demo == "true" || demo == "1" || window.location.hostname == "gputop.github.io"
@@ -175,13 +174,23 @@ function gputop_load_metric_set(metric_set) {
     <script src="gputop-ui.js"></script>
     <script src="gputop.js"></script>
 <script>
-    if (gputop_is_website()) {
+    if (gputop_is_demo()) {
         $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
                 console.log('Loaded welcome');
         });
-         
+
         $('#welcome-tab-a').trigger('click');
         $( ".gputop-connecting" ).hide();
+
+        $('#gputop-entries').prepend('<li class="dropdown" id="metric-menu"></li>');
+        $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Inspect metric set</a>');
+        $('#metric-menu').append('<ul id="demoMenu" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
+        var arch_map = {"hsw":"Haswell", "skl":"Skylake", "bdw":"Broadwell",
+                        "chv":"Cherryview"};
+        for (k in arch_map)
+        {
+            $("#demoMenu").append('<li><a href="#" onclick="gputop_load_metric_set(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
+        }
     } else {
         $( "#welcome" ).hide();
         $( "#build-instructions" ).hide();
