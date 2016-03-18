@@ -29,7 +29,7 @@ env:
     global:
         # GH_TOKEN scope=public_repo, for pushing to gh-pages demo site,
         # limited to builds of the rib/gputop repo
-        - secure: "AuIFOUWwEZq+SoBqnH/9CjGtAI3t2lfBLwKrA04ZqyTJ4Z9F/I0hHP4msSZAdRrwrWDf97pwjEYN4Ll4+W5c2+N95Nks+jCZnRAvQi4uC7mlF+5dRBwSYcyz49t3kK6r986jowfxvqELZsl/8Q2ZQvrOnpAekuQ1oWjGmdXr1bfqDJyvahRKaB5zsIVkPAguSR5f2IFBkOhTaDo24i/LFFMPx9yR7p3/mhRke+yfq7xJlGzV7/wIKqB5ZgP+q3C3BKumBCgsEKIdvW/H/Ff8GzanREx9vs5EjEI9OA/Mtt/mkHLJDviqTkjhIkMaDC/5hHDYk/z2wQEBR2FE5FJqvtrdAyr/5GjUL5EzWWGzBN0r4WDVcbmzWQDCaMp3CHJbn8GG5pk5JKzeMVX5Yc/t37J0y3ESYNaaR/jFwEJB/7chYVftvL2afU6m6ySCZ6J7pX3TWVjd449QSFJyQ9LSawFhaKPvoNJ07upCTBS2PpzFcxvGhkF6xt3lNnwxKyQBpORVXlPQ9oNvrUBS2to+NiNm1sT0Ba6EQT592V+tXppnIE8vD6R0D1pcOZvwqnCm1UxmTpIqYWHojvAAG0V8LW0hbBdmrEEY5sj6BqFHP8MOSTp032Z/DJOCUqVwrO/2Md59RuWcMIlMmiCs7Dmq9Ht9OLxKaGHHI/3ep0mIvc0="
+        - secure: "N+rXBsUsEjMW76oSdeq5nP1SNvdJ5FOI1VrD6Bw9MZzbZGaZkTG0EEkdPtDBbpiQgDHgc2QqqWNsveXnJkAwS/C8A7IaHordUQkHDyDEHmvzObjJ+ieo4QgzXrtxmIE6DGINueN4zlisSsjvQ/QJtg6d83V4oHKv9WigNUExMp7qa5AhE7kDMEB26+1tvAKXOKRLj/j3FXgx4TLKsg7iJDg0oYwQ9V+nKrLW+w8Yi3qLRYCTBLOEuvhGICRmmF/wXFr7tCddeRr5MWCzikEboVCfTtyRWswdHrdewol69umMyMD0Rg83cH0teJa+UEppj190nvFpbGkCD07Yain3t5TXCuAPT1UnmX6xr/Vcr9+3sj8aaO+7ESF875iZ0BS78eJoMibkJ2oTOJGxUGRSYmuo9Vcsx6O2jb1AfZ007DCTk+eI9SLylp/ekNkDZBkiuwbBj91V2P4eDQttoBJwfYiNCu5apNZmUizW4FvUbcl/W6l5Or5t3x6+eiDu6dU0zCTaMPWR7MIeQo/gvts69U8o7OG1WywnI7ZizNsidwRZgzPCtzsqZU/9hCkscsXrZoXRRYte9h7SmtmDlEoc3AmHdhnhrW/7bAQSAf/KNITqdlogi3Jybsx2jt+cSx4/UY17vhEI0JZPnGE1Plameo9LBnrwXKTeUmNLVbaTo1E="
     matrix:
         - CONFIG_OPTS="--enable-debug --enable-gl --disable-webui"
         - CONFIG_OPTS="--disable-debug --enable-gl --disable-webui"
