@@ -62,10 +62,6 @@ function gputop_reconnect() {
     gputop.connect();
 }
 
-function gputop_load_metric_set(metric_set) {
-    gputop.load_fake_metrics(metric_set);
-}
-
 </script>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
@@ -189,7 +185,7 @@ function gputop_load_metric_set(metric_set) {
                         "chv":"Cherryview"};
         for (k in arch_map)
         {
-            $("#demoMenu").append('<li><a href="#" onclick="gputop_load_metric_set(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
+            $("#demoMenu").append('<li><a href="#" onclick="gputop.set_demo_architecture(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
         }
     } else {
         $( "#welcome" ).hide();
