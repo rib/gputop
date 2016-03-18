@@ -30,6 +30,7 @@
 var is_nodejs = false;
 
 if (typeof module !== 'undefined' && module.exports) {
+    var http = require('http');
     is_nodejs = true;
 }
 
@@ -48,15 +49,36 @@ var proto_builder;
 var gputop;
 var $;
 
+function get_hostname() {
+    if (is_nodejs)
+        return 'localhost:7890' /* TODO: make this configurable somehow */
+    else
+        return window.location.hostname + ':7890';
+}
+
+function http_get(filename, load_callback, error_callback) {
+    if (is_nodejs) {
+        var data = "";
+        var req = http.get("http://" + get_hostname() + "/gputop.proto", function(response) {
+            response.setEncoding('utf8');
+            response.on('data', function (chunk) { data += chunk; });
+            response.on('end', function () { load_callback(data); });
+        }).on('error', error_callback);
+    } else {
+        var req = new XMLHttpRequest();
+        req.open('GET', filename);
+        req.onload = function () { load_callback(req.responseText); };
+        req.onerror = error_callback;
+        req.send();
+    }
+}
+
 function on_jquery_ready() {
-    http_request.get("http://localhost:7890/gputop.proto", function(response) {
-        response.setEncoding('utf8');
-        response.on('data', function(data) {
-            proto_builder = ProtoBuf.newBuilder();
-            ProtoBuf.protoFromString(data, proto_builder, "gputop.proto");
-            gputop = new Gputop();
-            gputop_ready(gputop);
-        });
+    http_get('gputop.proto', function (proto) {
+        proto_builder = ProtoBuf.newBuilder();
+        ProtoBuf.protoFromString(proto, proto_builder, "gputop.proto");
+        gputop = new Gputop();
+        gputop_ready(gputop);
     });
 }
 
@@ -69,20 +91,16 @@ if (!is_nodejs) {
     proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
     $ = window.jQuery;
 } else {
-    var http_request = require('http');
     ProtoBuf = require("protobufjs");
 
-    http_request.get("http://localhost:7890/index.html", function(response) {
-        response.setEncoding('utf8');
-        response.on('data', function(data) {
-            var jsdom = require('jsdom');
-            jsdom.env({html: data, scripts:
-                ['http://localhost:7890/jquery.min.js'],
+    http_get('index.html', function (index_html) {
+        var jsdom = require('jsdom');
+        jsdom.env({ html: index_data,
+                    scripts: ['http://' + get_hostname() + '/jquery.min.js'],
                     loaded: function (err, window) {
                         $ = require('jquery')(window);
                         on_jquery_ready();
                     }
-            });
         });
     });
 }
@@ -245,8 +263,6 @@ function Gputop () {
     this.is_connected_ = false;
     // Gputop generic configuration
     this.config_ = {
-        url_path: is_nodejs ? "localhost" : window.location.hostname,
-        uri_port: 7890,
         architecture: 'ukn'
     }
 
@@ -575,19 +591,6 @@ function String_pointerify_on_stack(js_string) {
     return allocate(intArrayFromString(js_string), 'i8', ALLOC_STACK);
 }
 
-Gputop.prototype.get_server_url = function() {
-    return this.config_.url_path+':'+this.config_.uri_port;
-}
-
-Gputop.prototype.get_websocket_url = function() {
-    return 'ws://'+this.get_server_url()+'/gputop/';
-}
-
-/* Native compiled Javascript from emscripten to process the counters data */
-Gputop.prototype.get_gputop_native_js = function() {
-    return 'http://'+this.get_server_url()+'/gputop-web.js';
-}
-
 Gputop.prototype.generate_uuid = function()
 {
     /* Concise uuid generator from:
@@ -769,20 +772,18 @@ Gputop.prototype.load_emscripten = function() {
     }
 
     if (!is_nodejs) {
-        var req = new XMLHttpRequest();
-        req.open('GET', gputop.get_gputop_native_js());
-        req.onload = function () {
-            $('<script type="text/javascript">').text(this.responseText + '\n' +
-                              '//# sourceURL=gputop-web.js\n'
-                             ).appendTo(document.body);
-            gputop.request_features();
-            gputop.native_js_loaded_ = true;
-            console.log("GPUTop Emscripten code loaded\n");
-        };
-        req.onerror = function () {
-            console.log( "Failed loading emscripten" );
-        };
-        req.send();
+        http_get('gputop-web.js',
+                 function (text) {
+                     $('<script type="text/javascript">').text(
+                             text + '\n' +
+                             '//# sourceURL=gputop-web.js\n').appendTo(document.body);
+                     gputop.request_features();
+                     gputop.native_js_loaded_ = true;
+                     console.log("GPUTop Emscripten code loaded\n");
+                 },
+                 function () {
+                     console.log( "Failed loading emscripten" );
+                 });
     } else {
         gputop.request_features();
         gputop.native_js_loaded_ = true;
@@ -932,7 +933,7 @@ Gputop.prototype.get_socket = function(websocket_url) {
 // Connect to the socket for transactions
 Gputop.prototype.connect = function() {
     if (!gputop_is_demo()) {
-        var websocket_url = this.get_websocket_url();
+        var websocket_url = 'ws://' + get_hostname() + '/gputop/';
         gputop_ui.syslog('Connecting to port ' + websocket_url);
         //----------------- Data transactions ----------------------
         this.socket_ = this.get_socket(websocket_url);
