@@ -101,6 +101,9 @@ function Counter () {
 
     this.latest_value =  0;
     this.latest_max =  0;
+    this.latest_duration = 0; /* how long where raw counters aggregated before
+                               * calculating latest_value. (so the value can
+                               * be scaled into a per-second value) */
 
     /* Not all counters have a constant or equation for the maximum
      * and so we simply derive a maximum based on the largest value
@@ -135,6 +138,7 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     {
         this.latest_value = d_value;
         this.latest_max = max;
+        this.latest_duration = end_timestamp - start_timestamp;
 
         if (d_value > this.inferred_max)
             this.inferred_max = d_value;

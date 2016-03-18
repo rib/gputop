@@ -226,49 +226,62 @@ GputopUI.prototype.update_counter = function(counter) {
     var bar_value = counter.latest_value;
     var text_value = counter.latest_value;
     var max = counter.latest_max;
-    var units = " " + counter.units;
-    var unit = units;
+    var units = counter.units;
+    var units_suffix = "";
     var dp = 0;
     var kilo = 1000;
     var mega = kilo * 1000;
     var giga = mega * 1000;
-    var scale = {" percent":["%"],
-                 " bytes":["B", "KB", "MB", "GB"],
-                 " ns":["ns", "μs", "ms", "s"],
-                 " hz":["Hz", "KHz", "MHz", "GHz"],
-                 " texels":[" texels", " K texels", " M texels", " G texels"],
-                 " pixels":[" pixels", " K pixels", " M pixels", " G pixels"]};
+    var scale = {"bytes":["B", "KB", "MB", "GB"],
+                 "ns":["ns", "μs", "ms", "s"],
+                 "hz":["Hz", "KHz", "MHz", "GHz"],
+                 "texels":[" texels", " K texels", " M texels", " G texels"],
+                 "pixels":[" pixels", " K pixels", " M pixels", " G pixels"],
+                 "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
+                 "threads":[" threads", " K threads", " M threads", " G threads"]};
+    var duration_dependent = true;
 
-    if (units == " messages")
-        unit = "";
-
-    if (units == " us") {
-        units = " ns";
-        unit = units;
+    if (units === "us") {
+        units = "ns";
         text_value *= 1000;
     }
 
-    if (units == " mhz") {
-        units = " hz";
-        unit = units;
+    if (units == "mhz") {
+        units = "hz";
         text_value *= 1000000;
+    }
+
+    if (units === 'hz' || units === 'percent')
+        duration_dependent = false;
+
+    if (duration_dependent) {
+        if (counter.latest_duration) {
+            var per_sec_scale = 1000000000 / counter.latest_duration;
+            text_value *= per_sec_scale;
+        } else
+            text_value = 0;
     }
 
     if ((units in scale)) {
         dp = 2;
         if (text_value >= giga) {
-            unit = scale[units][3];
+            units_suffix = scale[units][3];
             text_value /= 1000000000;
         } else if (text_value >= mega) {
-            unit = scale[units][2];
+            units_suffix = scale[units][2];
             text_value /= 1000000;
         } else if (text_value >= kilo) {
-            unit = scale[units][1];
+            units_suffix = scale[units][1];
             text_value /= 1000;
-        } else {
-            unit = scale[units][0];
-        }
+        } else
+            units_suffix = scale[units][0];
+    } else if (units === 'percent') {
+        units_suffix = '%';
+        dp = 2;
     }
+
+    if (duration_dependent)
+        units_suffix += '/s';
 
     if (counter.div_ == undefined)
         counter.div_ = $('#'+counter.div_bar_id_ );
@@ -278,10 +291,10 @@ GputopUI.prototype.update_counter = function(counter) {
 
     if (max != 0) {
         counter.div_.css("width", 100 * bar_value / max + "%");
-        counter.div_txt_.text(text_value.toFixed(dp) + unit);// + " " +counter.samples_);
+        counter.div_txt_.text(text_value.toFixed(dp) + units_suffix);
     } else {
-        counter.div_txt_.text(text_value.toFixed(dp) + unit);// + " " +counter.samples_);
         counter.div_.css("width", "0%");
+        counter.div_txt_.text(text_value.toFixed(dp) + units_suffix);
     }
 }
 
