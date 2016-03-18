@@ -17,21 +17,20 @@ VPATH=$(gputop_srcdir):$(gputop_builddir):$(web_srcdir):$(protobuf_c_srcdir):$(b
 
 W_FLAGS=-Wall -Wuninitialized -Wno-strict-aliasing -Wempty-body -Wformat -Wformat-security -Winit-self -Wdeclaration-after-statement -Wvla -Wpointer-arith
 
-#can be overriden by user...
-CFLAGS=-g -O0 $(W_FLAGS)
+CFLAGS=-Oz $(W_FLAGS)
 OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
-JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 
+JSFLAGS=-Oz --llvm-lto 1 -s NO_FILESYSTEM=1
 
 _OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
 _BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
 _JSFLAGS=$(JSFLAGS)
 
 
-gputop_web_SOURCE=gputop-web-lib.c gputop-string.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web.c gputop-oa-counters.c
+gputop_web_SOURCE=gputop-web-lib.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web.c gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
 
-all:: gputop-web.bc gputop-web.js
+all:: gputop-web.bc gputop-web.js gputop-web.js.gz gputop-web.js.mem.gz
 
 gputop-web.bc: $(gputop_web_OBJECTS)
 
@@ -50,8 +49,18 @@ gputop-web.bc: $(gputop_web_OBJECTS)
 %.js: %.bc | dirs
 	$(CC) $(_JSFLAGS) -o $@ $^
 
-gputop-web.js gputop-web.js.map: gputop-web.bc gputop-web-lib.js | dirs
-	$(CC) $(_JSFLAGS) --js-library $(web_srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=1
+gputop-web.js gputop-web.js.map gputop-web.js.mem: gputop-web.bc gputop-web-lib.js | dirs
+	$(E)echo "(JS)     gputop-web.js"
+	$(E)$(CC) $(_JSFLAGS) --js-library $(web_srcdir)/gputop-web-lib.js -o gputop-web.js gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0
+
+%.gz: %
+	$(E)if test ! -e $(@); then \
+		echo "(GZ)     $(@)"; \
+		gzip -k $(*); \
+	elif test "$(shell md5sum $(*)|cut -d' ' -f1)" != "$(shell gunzip -c $(@)|md5sum|cut -d' ' -f1)"; then \
+		echo "(GZ)     $(@)"; \
+		gzip -f -k $(*); \
+	fi
 
 -include .deps/*.rules
 
@@ -59,8 +68,8 @@ dirs:
 	$(E)mkdir -p $(builddirs) .deps
 
 clean:
-	-rm -f *.o *.bc *.js.map
-	-rm -f gputop-web.js
+	-rm -f *.o *.bc *.js.map *.md5
+	-rm -f gputop-web.js gputop-web.js.gz
 
 distclean:
 	-rm -rf .deps
