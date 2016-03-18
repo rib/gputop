@@ -1504,11 +1504,11 @@ gputop_perf_initialize(void)
 {
     if (gputop_devinfo.n_eus)
         return true;
+
     if (getenv("GPUTOP_FAKE_MODE") && strcmp(getenv("GPUTOP_FAKE_MODE"), "1") == 0) {
         gputop_fake_mode = true;
         intel_dev.device = 5654; // broadwell specific id
-    }
-    else {
+    } else {
         drm_fd = open_render_node(&intel_dev);
         if (drm_fd < 0) {
             gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to open render node", -1);
