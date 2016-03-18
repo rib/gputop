@@ -11,5 +11,4 @@ cp -r $TRAVIS_BUILD_DIR/install/share/remote/* .
 git add --all
 git status
 git commit -m "Deployed by Travis"
-git show
 git push origin master
