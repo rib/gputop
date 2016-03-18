@@ -695,7 +695,7 @@ init_dev_info(int drm_fd, uint32_t devid)
             } else if (IS_HSW_GT3(devid)) {
                 gputop_devinfo.n_eus = 40;
                 gputop_devinfo.n_eu_slices = 2;
-                gputop_devinfo.n_eu_sub_slices = 4;
+                gputop_devinfo.n_eu_sub_slices = 2;
                 gputop_devinfo.slice_mask = 0x3;
                 gputop_devinfo.subslice_mask = 0xf;
             }
