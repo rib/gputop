@@ -446,6 +446,10 @@ Gputop.prototype.load_fake_metrics = function(architecture) {
     this.no_supported_metrics_ = true;
     this.fake_metrics = true;
     this.set_architecture(architecture);
+    if (gputop_is_demo()) {
+        gputop.xml_file_name_ = architecture +".xml";
+        $.get(gputop.xml_file_name_, this.parse_xml_metrics);
+    }
 }
 
 Gputop.prototype.set_architecture = function(architecture) {
