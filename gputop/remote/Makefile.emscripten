@@ -51,7 +51,7 @@ gputop-web.bc: $(gputop_web_OBJECTS)
 	$(CC) $(_JSFLAGS) -o $@ $^
 
 gputop-web.js gputop-web.js.map: gputop-web.bc gputop-web-lib.js | dirs
-	$(CC) $(_JSFLAGS) --post-js $(web_srcdir)/gputop-web-post.js --js-library $(web_srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s ALLOW_MEMORY_GROWTH=1
+	$(CC) $(_JSFLAGS) --js-library $(web_srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=1
 
 -include .deps/*.rules
 

@@ -357,3 +357,9 @@ gputop_webc_init(void)
     gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
 }
 
+int
+main() {
+    gputop_webc_init();
+
+    return 0;
+}
