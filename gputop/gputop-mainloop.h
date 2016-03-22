@@ -22,21 +22,10 @@
  * SOFTWARE.
  */
 
-#ifndef _GPUTOP_UI_H_
-#define _GPUTOP_UI_H_
+#pragma once
 
-#include <stdio.h>
+#include <uv.h>
 
-#include "gputop-log.h"
+extern uv_loop_t *gputop_mainloop;
 
-#ifdef SUPPORT_WEBUI
-#include "gputop.pb-c.h"
-#endif
-
-extern uv_loop_t *gputop_ui_loop;
-
-void *gputop_ui_run(void *arg);
-
-void gputop_ui_quit_idle_cb(uv_idle_t *idle);
-
-#endif /* _GPUTOP_UI_H_ */
+void gputop_mainloop_quit_idle_cb(uv_idle_t *idle);

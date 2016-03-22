@@ -55,7 +55,8 @@
 
 #include "gputop-util.h"
 #include "gputop-list.h"
-#include "gputop-ui.h"
+#include "gputop-mainloop.h"
+#include "gputop-log.h"
 #include "gputop-perf.h"
 #include "gputop-oa-counters.h"
 
@@ -459,12 +460,12 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 
     if (gputop_fake_mode)
     {
-        uv_timer_init(gputop_ui_loop, &stream->fd_timer);
+        uv_timer_init(gputop_mainloop, &stream->fd_timer);
         uv_timer_start(&stream->fd_timer, perf_fake_ready_cb, 1000, 1000);
     }
     else
     {
-        uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+        uv_poll_init(gputop_mainloop, &stream->fd_poll, stream->fd);
         uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
     }
 
@@ -577,7 +578,7 @@ gputop_perf_open_trace(int pid,
     }
 
     stream->fd_poll.data = stream;
-    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+    uv_poll_init(gputop_mainloop, &stream->fd_poll, stream->fd);
     uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
 
     return stream;
@@ -655,7 +656,7 @@ gputop_perf_open_generic_counter(int pid,
     }
 
     stream->fd_poll.data = stream;
-    uv_poll_init(gputop_ui_loop, &stream->fd_poll, stream->fd);
+    uv_poll_init(gputop_mainloop, &stream->fd_poll, stream->fd);
     uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
 
     return stream;

@@ -39,8 +39,9 @@
 #include <uv.h>
 
 #include "gputop-gl.h"
-#include "gputop-ui.h"
+#include "gputop-mainloop.h"
 #include "gputop-util.h"
+#include "gputop-log.h"
 
 /* XXX: As a GL interposer we have to be extra paranoid about
  * generating GL errors that might trample on the error state that the
@@ -271,12 +272,12 @@ gputop_abort(const char *error) __attribute__((noreturn));
 static void
 gputop_abort(const char *error)
 {
-    if (gputop_ui_loop) {
+    if (gputop_mainloop) {
         uv_idle_t idle;
 
-        uv_idle_init(gputop_ui_loop, &idle);
+        uv_idle_init(gputop_mainloop, &idle);
         idle.data = (void *)error;
-        uv_idle_start(&idle, gputop_ui_quit_idle_cb);
+        uv_idle_start(&idle, gputop_mainloop_quit_idle_cb);
 
         for (;;)
             ;
