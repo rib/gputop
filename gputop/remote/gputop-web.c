@@ -359,7 +359,7 @@ dummy_mainloop_callback(void)
 void EMSCRIPTEN_KEEPALIVE
 gputop_webc_init(void)
 {
-    gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
+    gputop_web_console_log("GPUTOP WebC init");
 }
 
 int
