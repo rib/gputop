@@ -351,6 +351,11 @@ gputop_webc_stream_destroy(struct gputop_webc_stream *stream)
     free(stream);
 }
 
+static void
+dummy_mainloop_callback(void)
+{
+}
+
 void EMSCRIPTEN_KEEPALIVE
 gputop_webc_init(void)
 {
@@ -360,6 +365,11 @@ gputop_webc_init(void)
 int
 main() {
     gputop_webc_init();
+
+    /* XXX: this is a hack to ensure we leave the Runtime initialized
+     * even though we don't use the emscripten mainloop callback itself
+     */
+    emscripten_set_main_loop(dummy_mainloop_callback, 1, 1);
 
     return 0;
 }
