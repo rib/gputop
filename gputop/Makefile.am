@@ -50,8 +50,8 @@ libgputop_la_SOURCES = \
     gputop-list.c \
     gputop-log.h \
     gputop-log.c \
-    gputop-ui.h \
-    gputop-ui.c \
+    gputop-mainloop.h \
+    gputop-ncurses.c \
     gputop-oa-counters.h \
     gputop-oa-counters.c \
     gputop-cpu.h \

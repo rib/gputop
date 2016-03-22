@@ -39,7 +39,7 @@
 #include "stdatomic.h"
 
 #include "gputop-perf.h"
-#include "gputop-ui.h"
+#include "gputop-mainloop.h"
 #include "gputop-util.h"
 #include "gputop-server.h"
 #include "gputop-log.h"
@@ -120,9 +120,9 @@ static int gl_knobs_start_pos;
 
 static gputop_list_t tabs;
 
-static pthread_t gputop_ui_thread_id;
+static pthread_t ui_thread_id;
 
-uv_loop_t *gputop_ui_loop;
+uv_loop_t *gputop_mainloop;
 
 static void redraw_ui(void);
 
@@ -784,7 +784,7 @@ perf_oa_trace_redraw(WINDOW *win)
 static void
 perf_tab_enter(struct tab *owner_tab)
 {
-    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_init(gputop_mainloop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
     i915_perf_oa_overview_open(owner_tab->metric_set, false);
@@ -816,7 +816,7 @@ perf_3d_trace_tab_enter(struct tab *owner_tab)
     y_pos = 0;
     zoom = 1;
 
-    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_init(gputop_mainloop, &timer);
     uv_timer_start(&timer, timer_cb, 100, 100);
 
     gputop_i915_perf_oa_trace_open(owner_tab->metric_set, false);
@@ -1114,7 +1114,7 @@ gl_perf_query_tab_enter(struct tab *owner_tab)
      * from opening a conflicting query... */
     assert(atomic_load(&gputop_gl_n_queries) == 0);
 
-    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_init(gputop_mainloop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
@@ -1202,7 +1202,7 @@ static const struct key_func knobs[] = {
 static void
 gl_knobs_tab_enter(struct tab *owner_tab)
 {
-    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_init(gputop_mainloop, &timer);
     uv_timer_start(&timer, timer_cb, 1000, 1000);
 }
 
@@ -1536,7 +1536,7 @@ reset_terminal(void)
 }
 
 void
-gputop_ui_quit_idle_cb(uv_idle_t *idle)
+gputop_mainloop_quit_idle_cb(uv_idle_t *idle)
 {
     char clear_screen[] = { 0x1b, '[', 'H',
                             0x1b, '[', 'J',
@@ -1607,8 +1607,8 @@ exit_fake_mode_cb(uv_timer_t *timer)
     exit(0);
 }
 
-void *
-gputop_ui_run(void *arg)
+static void *
+run_ncurses_ui(void *arg)
 {
     struct tab *tab, *tmp;
 #ifdef SUPPORT_WEBUI
@@ -1623,7 +1623,7 @@ gputop_ui_run(void *arg)
     }
 #endif
 
-    gputop_ui_loop = uv_loop_new();
+    gputop_mainloop = uv_loop_new();
 
     if (!debug_disable_ncurses) {
         FILE *infile;
@@ -1669,7 +1669,7 @@ gputop_ui_run(void *arg)
 
         init_ncurses(infile, outfile);
 
-        uv_poll_init(gputop_ui_loop, &input_poll, real_stdin);
+        uv_poll_init(gputop_mainloop, &input_poll, real_stdin);
         uv_poll_start(&input_poll, UV_READABLE, input_read_cb);
 #endif
     } else {
@@ -1712,17 +1712,17 @@ gputop_ui_run(void *arg)
     } else
 #endif
     {
-        uv_idle_init(gputop_ui_loop, &redraw_idle);
+        uv_idle_init(gputop_mainloop, &redraw_idle);
 
         current_tab->enter(current_tab);
     }
 
     if (gputop_fake_mode && gputop_get_bool_env("GPUTOP_TRAVIS_MODE")) {
-        uv_timer_init(gputop_ui_loop, &fake_timer);
+        uv_timer_init(gputop_mainloop, &fake_timer);
         uv_timer_start(&fake_timer, exit_fake_mode_cb, 10000, 10000);
     }
 
-    uv_run(gputop_ui_loop, UV_RUN_DEFAULT);
+    uv_run(gputop_mainloop, UV_RUN_DEFAULT);
 
     gputop_perf_free();
 
@@ -1737,7 +1737,7 @@ gputop_ui_run(void *arg)
 }
 
 __attribute__((constructor)) void
-gputop_ui_init(void)
+gputop_ncurses_init(void)
 {
     int i;
     pthread_attr_t attrs;
@@ -1780,5 +1780,5 @@ gputop_ui_init(void)
     gputop_list_insert(tabs.prev, &tab_debug_log.link);
 
     pthread_attr_init(&attrs);
-    pthread_create(&gputop_ui_thread_id, &attrs, gputop_ui_run, NULL);
+    pthread_create(&ui_thread_id, &attrs, run_ncurses_ui, NULL);
 }

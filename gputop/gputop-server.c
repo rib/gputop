@@ -46,7 +46,8 @@
 #include "gputop-perf.h"
 #include "gputop-util.h"
 #include "gputop-cpu.h"
-#include "gputop-ui.h"
+#include "gputop-mainloop.h"
+#include "gputop-log.h"
 #include "gputop.pb-c.h"
 
 #ifdef SUPPORT_GL
@@ -1085,9 +1086,9 @@ bool gputop_server_run(void)
     gputop_list_init(&streams);
     gputop_list_init(&closing_streams);
 
-    loop = gputop_ui_loop;
+    loop = gputop_mainloop;
 
-    uv_timer_init(gputop_ui_loop, &timer);
+    uv_timer_init(gputop_mainloop, &timer);
 
     if ((r = uv_tcp_init(loop, &listener)) != 0) {
         dbg("uv_tcp_init:%s\n", uv_strerror(r));
