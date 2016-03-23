@@ -34,6 +34,8 @@
 <!-- Main pannel with the counter metrics -->
 <div class = "tab-content" id = "counter_metrics" style="width: 50%;"></div>
 <div class="well" id = "documentation" style = "min-width:400px; position:fixed; top: 370px; right: 2%">
+    <div id = "display_equation"/>
+    <div id = "display_max_equation"/>
 </div>
 
 <script>
@@ -423,12 +425,18 @@
         var symbol = $(this).parent().attr("class").split(' ')[1]
         var ctr = metric.find_counter_by_name(symbol);
         $('#documentation').hide();
-        $('#documentation').html("<math display='block'><mstyle mathsize='1.3em' mathcolor='#002080' mathvariant='italic'>"
-            + (ctr.mathml_xml).prop('innerHTML') + "</mstyle></math>");
-
+        $('#display_equation').html("<math display='block'><mstyle mathsize='1.3em' mathcolor='#002080' mathvariant='italic'>"
+            + (ctr.eq_xml).prop('innerHTML') + "</mstyle></math>");
         // First queue the mathjax processing, then queue the .show html,
         // so that there will not be artifacts when changing equation
-        MathJax.Hub.Queue(["Typeset",MathJax.Hub, "documentation"]);
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub, "display_equation"]);
+        if (ctr.max_eq_xml) {
+            $('#display_max_equation').show();
+            $('#display_max_equation').html("<math display='block'><mstyle mathsize='1.0em' mathcolor='#002080' mathvariant='italic'>"
+                + (ctr.max_eq_xml).prop('innerHTML') + "</mstyle></math>");
+            MathJax.Hub.Queue(["Typeset",MathJax.Hub, "display_max_equation"]);
+        }
+        else $('#display_max_equation').hide();
         MathJax.Hub.Queue(function () {
             $('#documentation').show();
         });

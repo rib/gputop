@@ -49,6 +49,10 @@ html, body {
     max-width: 1px;
 }
 
+#display_equation {
+    height: 100px;
+}
+
 #header-div {
     padding-right: 70px;
     width: 600px
