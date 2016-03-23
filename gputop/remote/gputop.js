@@ -134,7 +134,8 @@ function Counter () {
     this.units = '';
     this.graph_markings = [];
     this.record_data = false;
-    this.mathml_xml = "";
+    this.eq_xml = ""; // mathml equation
+    this.max_eq_xml = ""; // mathml max equation
 
     this.test_mode = false;
 }
@@ -359,7 +360,10 @@ Gputop.prototype.read_counter_xml = function() {
         var units = $cnt.attr("units");
 
         var counter = new Counter();
-        counter.mathml_xml = ($cnt.find("mathml_equation"));
+        counter.eq_xml = ($cnt.find("mathml_EQ"));
+        counter.max_eq_xml = ($cnt.find("mathml_MAX_EQ"));
+        if (counter.max_eq_xml.length == 0)
+            counter.max_eq_xml = undefined
         counter.xml_ = $cnt;
         counter.units = units;
         metric.add_new_counter(guid, symbol_name, counter);
