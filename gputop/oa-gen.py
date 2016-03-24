@@ -232,6 +232,9 @@ hw_vars["$EuSubslicesTotalCount"] = "devinfo->n_eu_sub_slices"
 hw_vars["$EuThreadsCount"] = "devinfo->eu_threads_count"
 hw_vars["$SliceMask"] = "devinfo->slice_mask"
 hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
+hw_vars["$GpuTimestampFrequency"] = "devinfo->timestamp_frequency"
+hw_vars["$GpuMinFrequencyMHz"] = "devinfo->gt_min_freq"
+hw_vars["$GpuMaxFrequencyMHz"] = "devinfo->gt_max_freq"
 
 counter_vars = {}
 
@@ -291,6 +294,10 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                 equation + "\"")
 
     value = stack.pop()
+
+    if value in hw_vars:
+        value = hw_vars[value]
+
     c("\nreturn " + value + ";")
 
 def splice_rpn_expression(set, counter, expression):
