@@ -530,10 +530,10 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
         this.active_oa_metric_ = metric;
 
-        if (open.per_ctx_mode)
-            gputop_ui.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
-        else
-            gputop_ui.show_alert("Opening metric set " + metric.name_, "alert-info");
+        // if (open.per_ctx_mode)
+        //     gputop_ui.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
+        // else
+        //     gputop_ui.show_alert("Opening metric set " + metric.name_, "alert-info");
 
         gputop_ui.queue_redraw();
     }
@@ -550,7 +550,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
     }
 
     if (metric.closing_) {
-        gputop_ui.show_alert("Ignoring attempt to open OA metrics while waiting for close ACK", "alert-danger");
+        //gputop_ui.show_alert("Ignoring attempt to open OA metrics while waiting for close ACK", "alert-danger");
         return;
     }
 
@@ -570,7 +570,7 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
         return;
     }
 
-    gputop_ui.show_alert("Closing query " + metric.name_, "alert-info");
+    //gputop_ui.show_alert("Closing query " + metric.name_, "alert-info");
 
     this.rpc_request('close_query', metric.server_handle, function (msg) {
         _gputop_webc_stream_destroy(metric.webc_stream_ptr_);
