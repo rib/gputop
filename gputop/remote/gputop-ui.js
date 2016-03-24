@@ -169,15 +169,19 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         x_max = this.start_gpu_timestamp + elapsed;
         x_min = x_max - time_range;
 
+        // data is saved in the graph for an interval of 20 seconds regardless
+        // of the zoom value
+        var max_graph_data = x_max - 20000000000;
+
         // remove the old samples from the graph data
         for (var j = 0; j < counter.graph_data.length &&
-            counter.graph_data[j][0] < x_min; j++) {}
+            counter.graph_data[j][0] < max_graph_data; j++) {}
         if (j > 0)
             counter.graph_data = counter.graph_data.slice(j);
 
         // remove old markings from the graph
         for (var j = 0; j < counter.graph_markings.length &&
-             counter.graph_markings[j].xaxis.from < x_min; j++) {}
+             counter.graph_markings[j].xaxis.from < max_graph_data; j++) {}
         if (j > 0)
             counter.graph_markings = counter.graph_markings.slice(j);
 
