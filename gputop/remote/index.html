@@ -42,7 +42,9 @@ var getUrlParameter = function(sParam) {
 function gputop_is_demo() {
 
     var demo = getUrlParameter('demo');
-    if (demo == "true" || demo == "1" || window.location.hostname == "gputop.github.io"
+    if (demo == "true" || demo == "1"
+        || window.location.hostname == "gputop.github.io"
+        || window.location.hostname == "www.gputop.com"
 //      || window.location.hostname == "localhost"
     ) {
            return true;

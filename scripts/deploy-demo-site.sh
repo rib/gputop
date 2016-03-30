@@ -8,6 +8,7 @@ git clone --quiet https://${GH_TOKEN}@github.com/gputop/gputop.github.io.git &> 
 cd gputop.github.io
 rm -rf *
 cp -r $TRAVIS_BUILD_DIR/install/share/remote/* .
+echo "www.gputop.com" >> CNAME
 git add --all
 git status
 git commit -m "Deployed by Travis"
