@@ -25,6 +25,16 @@ GPUTopNodeJSUI.prototype.display_features = function(message)
     console.log(message);
 }
 
+GPUTopNodeJSUI.prototype.include_pids = function()
+{
+    return false;
+}
+
+GPUTopNodeJSUI.prototype.include_ctx_ids = function()
+{
+    return false;
+}
+
 var gputop_ui = new GPUTopNodeJSUI();
 
 function gputop_ready(gputop)

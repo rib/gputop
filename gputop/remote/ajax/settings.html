@@ -1,0 +1,35 @@
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h2 class="modal-title">Settings</h2>
+</div>
+<div class="modal-body">
+    <div class="well" id="settings_bar">
+        <div class="checkbox" id="include_pids_checkbox" style="padding-left:25px;" data-toggle="tooltip" title="Include pids on samples (only with kernel support).">
+            <label>
+                <input type="checkbox" id="include_pids"><b>Include Pids</b><small>(experimental)</small></label>
+        </div>
+        </p>
+        <div class="checkbox" id="include_ctx_ids_checkbox" style="padding-left:25px;" data-toggle="tooltip" title="Include per context ids on samples (only with kernel support)">
+            <label>
+                <input type="checkbox" id="include_ctx_ids"><b>Include per context ids</b> <small>(experimental)</small></label>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+</div>
+
+<script>
+$('#include_pids').click(function () {
+    var value = $(this).is(':checked');
+    gputop.set_include_pids(value);
+});
+
+$('#include_ctx_ids').click(function () {
+    var value = $(this).is(':checked');
+    gputop.set_include_ctx_ids(value);
+});
+
+$('#include_pids').prop('checked', gputop.include_pids_);
+$('#include_ctx_ids').prop('checked', gputop.include_ctx_ids_);
+</script>

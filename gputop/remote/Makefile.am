@@ -5,6 +5,7 @@ third_party_files = \
 	bytebuffer.min.js \
 	long.min.js \
 	jquery.min.js \
+	jquery.cookie.js \
 	jquery-ui.js \
 	jquery.flot.js \
 	$(mathjax_files) \
@@ -29,10 +30,12 @@ nobase_dist_remote_DATA = \
 	gputop-web.js.map \
 	index.html \
 	gputop.js \
+	gputop-settings.js \
 	gputop-ui.js \
 	css/gputop.css \
 	css/custom.css \
 	css/bootstrap-slider.min.css \
+	ajax/settings.html \
 	ajax/metrics.html \
 	ajax/overview.html \
 	ajax/welcome.html \

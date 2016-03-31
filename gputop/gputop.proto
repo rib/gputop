@@ -67,7 +67,9 @@ message Features
     required string kernel_release = 7;
     required string kernel_build = 8;
     required bool fake_mode = 9;
-    repeated string supported_oa_query_guids = 10;
+    repeated string supported_oa_query_guids = 10;    
+    required bool supported_pids = 11;
+    required bool supported_ctx_ids = 12;    
 }
 
 message ProcessInfo
@@ -153,6 +155,10 @@ message OpenQuery
     required bool overwrite = 6;
     required bool live_updates = 7;
     required bool per_ctx_mode = 8;
+    
+    // Pids and context ids will be added to the sample
+    required bool include_pids = 9; 
+    required bool include_ctx_ids = 10; 
 }
 
 message Request

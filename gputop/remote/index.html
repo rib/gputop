@@ -22,7 +22,6 @@
 
   </head>
 
-  <body class="bb-js">
 <script>
 var getUrlParameter = function(sParam) {
     var sPageURL = decodeURIComponent(window.location.search.substring(1)),
@@ -37,10 +36,9 @@ var getUrlParameter = function(sParam) {
             return sParameterName[1] === undefined ? true : sParameterName[1];
         }
     }
-};
+}
 
 function gputop_is_demo() {
-
     var demo = getUrlParameter('demo');
     if (demo == "true" || demo == "1"
         || window.location.hostname == "gputop.github.io"
@@ -56,6 +54,7 @@ function gputop_is_demo() {
 function gputop_help() {
     alert("WIP Version");
 }
+
 function gputop_wip_error() {
     alert("Not implemented yet!");
 }
@@ -65,6 +64,8 @@ function gputop_reconnect() {
 }
 
 </script>
+
+  <body class="bb-js" onload="">
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <div class="navbar-header ">
@@ -79,7 +80,7 @@ function gputop_reconnect() {
         <div id="navbar" class="navbar-collapse collapse">
           <ul id="gputop-entries" class="nav navbar-nav navbar-right">
             <li><a href="#" onclick="gputop_wip_error()">Load session</a></li>
-            <li><a href="#" onclick="gputop_wip_error()">Settings</a></li>
+            <li><a data-toggle="modal" data-target="#myModal" href="ajax/settings.html" >Settings</a></li>
             <li id="wiki"><a href="https://github.com/rib/gputop/wiki" target="_blank">Wiki</a></li>
             <li id="build-instructions" ><a href="https://github.com/rib/gputop/wiki/Build-Instructions" target="_blank">Build Instructions</a></li>
           </ul>
@@ -161,6 +162,7 @@ function gputop_reconnect() {
     <!-- Placed at the end of the document so the pages load faster -->
 
     <script src="jquery.min.js"></script>
+    <script src="jquery.cookie.js"></script>
     <script src="jquery-ui.js"></script>
     <script src="jquery.flot.js"></script>
 
@@ -170,6 +172,7 @@ function gputop_reconnect() {
     <script src="bootbox.min.js"></script>
 
     <script src="gputop-ui.js"></script>
+    <script src="gputop-settings.js"></script>
     <script src="gputop.js"></script>
 <script>
     if (gputop_is_demo()) {

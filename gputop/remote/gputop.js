@@ -318,6 +318,10 @@ function Gputop () {
     this.test_log_messages = [];
 
     this.test_log("Global Gputop object constructed");
+
+    // Include kernel parameters on the query to get extra information
+    this.include_ctx_ids_ = false;
+    this.include_pids_ = false;
 }
 
 Gputop.prototype.test_log = function(message) {
@@ -372,7 +376,7 @@ Gputop.prototype.read_counter_xml = function() {
     }
 }
 
-Gputop.prototype.get_metric_by_id = function(idx){
+Gputop.prototype.get_metric_by_id = function(idx) {
     return this.metrics_[idx];
 }
 
@@ -382,7 +386,7 @@ Gputop.prototype.get_counter_by_absolute_id = function(metric_set, counter_idx){
     return counter;
 }
 
-Gputop.prototype.get_map_metric = function(guid){
+Gputop.prototype.get_map_metric = function(guid) {
     var metric;
     if (guid in this.map_metrics_) {
         metric = this.map_metrics_[guid];
@@ -471,14 +475,26 @@ Gputop.prototype.set_architecture = function(architecture) {
     this.config_.architecture = architecture;
 }
 
+Gputop.prototype.set_include_pids = function(value) {
+    if (gputop_settings != null)
+        gputop_settings.set_include_pids(value);
+    this.include_pids_ = value;
+}
+
+Gputop.prototype.set_include_ctx_ids = function(value) {
+    if (gputop_settings != null)
+        gputop_settings.set_include_ctx_ids(value);
+    this.include_ctx_ids_ = value;
+}
+
 Gputop.prototype.update_period = function(guid, period_ns) {
     var metric = this.map_metrics_[guid];
     metric.period_ns_ = period_ns;
     _gputop_webc_update_stream_period(metric.webc_stream_ptr_, period_ns);
 }
 
-Gputop.prototype.open_oa_metric_set = function(config, callback) {
-
+Gputop.prototype.open_oa_metric_set = function(config, callback)
+{
     function _real_open_oa_metric_set(config, callback) {
         var metric = this.get_map_metric(config.guid);
         var oa_exponent = metric.exponent;
@@ -503,6 +519,8 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         open.overwrite = false;   /* don't overwrite old samples */
         open.live_updates = true; /* send live updates */
         open.per_ctx_mode = per_ctx_mode;
+        open.include_pids = this.include_pids_;
+        open.include_ctx_ids = this.include_ctx_ids_;
 
         this.server_handle_to_metric_map[open.id] = metric;
 
@@ -564,7 +582,6 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 }
 
 Gputop.prototype.close_oa_metric_set = function(metric, callback) {
-
     if (metric.closing_ == true ) {
         gputop_ui.syslog("Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)");
         return;
@@ -595,11 +612,10 @@ function String_pointerify_on_stack(js_string) {
     return allocate(intArrayFromString(js_string), 'i8', ALLOC_STACK);
 }
 
-Gputop.prototype.generate_uuid = function()
-{
-    /* Concise uuid generator from:
-     * http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
-     */
+/* Concise uuid generator from:
+ * http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+ */
+Gputop.prototype.generate_uuid = function() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
         return v.toString(16);
@@ -608,7 +624,6 @@ Gputop.prototype.generate_uuid = function()
 
 /* TODO: maybe make @value unnecessary for methods that take no data. */
 Gputop.prototype.rpc_request = function(method, value, closure) {
-
     if (gputop_is_demo()) {
         if (closure != undefined)
             window.setTimeout(closure);
@@ -710,7 +725,7 @@ Gputop.prototype.request_features = function() {
     }
 }
 
-Gputop.prototype.process_features = function(features){
+Gputop.prototype.process_features = function(features) {
     var di = features.devinfo;
 
     gputop.devinfo = di;

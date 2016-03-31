@@ -910,6 +910,18 @@ handle_get_features(h2o_websocket_conn_t *conn,
     devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
     devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
 
+#ifdef DRM_I915_PERF_PROP_SAMPLE_PID
+    features.supported_pids = true;
+#else
+    features.supported_pids = false;
+#endif
+
+#ifdef DRM_I915_PERF_PROP_SAMPLE_CTX_ID
+    features.supported_ctx_ids = true;
+#else
+    features.supported_ctx_ids  = false;
+#endif
+
     features.fake_mode = gputop_fake_mode;
 
     features.devinfo = &devinfo;

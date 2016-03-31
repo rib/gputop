@@ -428,8 +428,8 @@ GputopUI.prototype.btn_close_current_query = function() {
     });
 }
 
-GputopUI.prototype.update_process = function(process) {
-
+GputopUI.prototype.update_process = function(process)
+{
     var pid = process.pid_;
     var name = process.process_name_;
 
@@ -441,7 +441,8 @@ GputopUI.prototype.update_process = function(process) {
     });
 }
 
-GputopUI.prototype.btn_get_process_info = function() {
+GputopUI.prototype.btn_get_process_info = function()
+{
     bootbox.prompt("Process Id?", function(result) {
         if (result === null) {
             gputop_ui.show_alert(" Cancelled","alert-info");
@@ -475,4 +476,7 @@ $( document ).ready(function() {
 
     // Display tooltips
     $( '[data-toggle="tooltip"]' ).tooltip();
+
+    // Load parameters from settings. Disk or cookies
+    gputop_settings.load();
 });
