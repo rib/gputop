@@ -28,32 +28,6 @@
 
 function GputopUI () {
     this.graph_array = [];
-    this.graph_options = {
-        grid: {
-            borderWidth: 1,
-            minBorderMargin: 20,
-            labelMargin: 10,
-            backgroundColor: {
-                colors: ["#fff", "#e4f4f4"]
-            },
-            margin: {
-                top: 8,
-                bottom: 20,
-                left: 20
-            },
-        },
-        xaxis: {
-            show: false,
-        },
-        yaxis: {
-            min: 0,
-            max: 110
-        },
-        legend: {
-            show: true
-        }
-    };// options
-
     this.zoom = 10; //seconds
 
     this.series = [{
@@ -169,15 +143,19 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         x_max = this.start_gpu_timestamp + elapsed;
         x_min = x_max - time_range;
 
+        // data is saved in the graph for an interval of 20 seconds regardless
+        // of the zoom value
+        var max_graph_data = x_max - 20000000000;
+
         // remove the old samples from the graph data
         for (var j = 0; j < counter.graph_data.length &&
-            counter.graph_data[j][0] < x_min; j++) {}
+            counter.graph_data[j][0] < max_graph_data; j++) {}
         if (j > 0)
             counter.graph_data = counter.graph_data.slice(j);
 
         // remove old markings from the graph
         for (var j = 0; j < counter.graph_markings.length &&
-             counter.graph_markings[j].xaxis.from < x_min; j++) {}
+             counter.graph_markings[j].xaxis.from < max_graph_data; j++) {}
         if (j > 0)
             counter.graph_markings = counter.graph_markings.slice(j);
 
@@ -187,14 +165,10 @@ GputopUI.prototype.update_graphs = function(timestamp) {
             var end = counter.updates[j][1];
             var val = counter.updates[j][2];
             var max = counter.updates[j][3];
-
             var mid = start + (end - start) / 2;
 
-            /* FIXME we should stop assuming all counters are a percentage */
-            var percent = 100 * val / max;
-
-            counter.graph_data.push([mid, percent]);
-
+            counter.graph_data.push([mid, val]);
+            counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
             save_index = j;
         }
 
@@ -206,15 +180,15 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         }
 
         // adjust the min and max (start and end of the graph)
-        this.graph_options.xaxis.min = x_min + margin;
-        this.graph_options.xaxis.max = x_max - margin;
-        this.graph_options.xaxis.label = this.zoom + ' seconds';
+        counter.graph_options.xaxis.min = x_min + margin;
+        counter.graph_options.xaxis.max = x_max - margin;
+        counter.graph_options.xaxis.label = this.zoom + ' seconds';
 
-        var default_markings = create_default_markings(this.graph_options.xaxis);
-        this.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
+        var default_markings = create_default_markings(counter.graph_options.xaxis);
+        counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
 
         this.series[0].data = counter.graph_data;
-        $.plot(container, this.series, this.graph_options);
+        $.plot(container, this.series, counter.graph_options);
 
         // remove all the samples from the updates array
         counter.updates.splice(0, counter.updates.length);
@@ -239,28 +213,8 @@ GputopUI.prototype.update_counter = function(counter) {
                  "pixels":[" pixels", " K pixels", " M pixels", " G pixels"],
                  "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
                  "threads":[" threads", " K threads", " M threads", " G threads"]};
-    var duration_dependent = true;
 
-    if (units === "us") {
-        units = "ns";
-        text_value *= 1000;
-    }
 
-    if (units == "mhz") {
-        units = "hz";
-        text_value *= 1000000;
-    }
-
-    if (units === 'hz' || units === 'percent')
-        duration_dependent = false;
-
-    if (duration_dependent) {
-        if (counter.latest_duration) {
-            var per_sec_scale = 1000000000 / counter.latest_duration;
-            text_value *= per_sec_scale;
-        } else
-            text_value = 0;
-    }
 
     if ((units in scale)) {
         dp = 2;
@@ -280,7 +234,7 @@ GputopUI.prototype.update_counter = function(counter) {
         dp = 2;
     }
 
-    if (duration_dependent)
+    if (counter.duration_dependent)
         units_suffix += '/s';
 
     if (counter.div_ == undefined)

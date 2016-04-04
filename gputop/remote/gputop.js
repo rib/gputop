@@ -119,7 +119,7 @@ function Counter () {
 
     this.latest_value =  0;
     this.latest_max =  0;
-    this.latest_duration = 0; /* how long where raw counters aggregated before
+    this.latest_duration = 0; /* how long were raw counters aggregated before
                                * calculating latest_value. (so the value can
                                * be scaled into a per-second value) */
 
@@ -131,36 +131,47 @@ function Counter () {
     this.samples_ = 0; // Number of samples processed
     this.updates = [];
     this.graph_data = [];
+    this.graph_options = []; /* each counter has its own graph options so that
+                              * we can adjust the Y axis for each of them */
     this.units = '';
     this.graph_markings = [];
     this.record_data = false;
     this.eq_xml = ""; // mathml equation
     this.max_eq_xml = ""; // mathml max equation
-
+    this.duration_dependent = true;
     this.test_mode = false;
+    this.units_scale = 1; // default value
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp,
                                                   d_value, max, reason) {
-     if (this.record_data && max != 0) {
+    var duration = end_timestamp - start_timestamp;
+    d_value *= this.units_scale;
+    max *= this.units_scale;
+    if (this.duration_dependent && (duration != 0)) {
+        var per_sec_scale = 1000000000 / duration;
+        d_value *= per_sec_scale;
+        max *= per_sec_scale;
+    }
+    if (this.record_data) {
         this.updates.push([start_timestamp, end_timestamp, d_value, max, reason]);
-
         if (this.updates.length > 2000) {
             this.updates.shift();
         }
     }
     this.samples_ ++;
 
-
     if (this.latest_value != d_value ||
         this.latest_max != max)
     {
         this.latest_value = d_value;
         this.latest_max = max;
-        this.latest_duration = end_timestamp - start_timestamp;
+        this.latest_duration = duration;
 
         if (d_value > this.inferred_max)
             this.inferred_max = d_value;
+        if (max > this.inferred_max)
+            this.inferred_max = max;
     }
 }
 
@@ -208,6 +219,31 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
 Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
     counter.idx_ = this.n_total_counters_++;
     counter.symbol_name = symbol_name;
+    counter.graph_options = {
+        grid: {
+            borderWidth: 1,
+            minBorderMargin: 20,
+            labelMargin: 10,
+            backgroundColor: {
+                colors: ["#fff", "#e4f4f4"]
+            },
+            margin: {
+                top: 8,
+                bottom: 20,
+                left: 20
+            },
+        },
+        xaxis: {
+            show: false,
+        },
+        yaxis: {
+            min: 0,
+            max: 110
+        },
+        legend: {
+            show: true
+        }
+    };// options
 
     var sp = Runtime.stackSave();
 
@@ -363,9 +399,21 @@ Gputop.prototype.read_counter_xml = function() {
         counter.eq_xml = ($cnt.find("mathml_EQ"));
         counter.max_eq_xml = ($cnt.find("mathml_MAX_EQ"));
         if (counter.max_eq_xml.length == 0)
-            counter.max_eq_xml = undefined
+            counter.max_eq_xml = undefined;
         counter.xml_ = $cnt;
+
+        if (units === "us") {
+            units = "ns";
+            counter.units_scale = 1000;
+        }
+        if (units === "mhz") {
+            units = "hz";
+            counter.units_scale *= 1000000;
+        }
         counter.units = units;
+
+         if (units === 'hz' || units === 'percent')
+             counter.duration_dependent = false;
         metric.add_new_counter(guid, symbol_name, counter);
     } catch (e) {
         gputop_ui.syslog("Catch parsing counter " + e);
@@ -530,10 +578,10 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
         this.active_oa_metric_ = metric;
 
-        if (open.per_ctx_mode)
-            gputop_ui.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
-        else
-            gputop_ui.show_alert("Opening metric set " + metric.name_, "alert-info");
+        // if (open.per_ctx_mode)
+        //     gputop_ui.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
+        // else
+        //     gputop_ui.show_alert("Opening metric set " + metric.name_, "alert-info");
 
         gputop_ui.queue_redraw();
     }
@@ -550,7 +598,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
     }
 
     if (metric.closing_) {
-        gputop_ui.show_alert("Ignoring attempt to open OA metrics while waiting for close ACK", "alert-danger");
+        //gputop_ui.show_alert("Ignoring attempt to open OA metrics while waiting for close ACK", "alert-danger");
         return;
     }
 
@@ -570,7 +618,7 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
         return;
     }
 
-    gputop_ui.show_alert("Closing query " + metric.name_, "alert-info");
+    //gputop_ui.show_alert("Closing query " + metric.name_, "alert-info");
 
     this.rpc_request('close_query', metric.server_handle, function (msg) {
         _gputop_webc_stream_destroy(metric.webc_stream_ptr_);
