@@ -143,6 +143,16 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         x_max = this.start_gpu_timestamp + elapsed;
         x_min = x_max - time_range;
 
+        // make sure the distance between points is proportional to the aggregation period,
+        // so that we don't clutter the graph when changing the zoom, which would lead to
+        // low performance.
+        var i = 1;
+        while (i < counter.graph_data.length) {
+            if (counter.graph_data[i][0] - counter.graph_data[i-1][0] < metric.period_ns_)
+                counter.graph_data.splice(i, 1);
+            else
+                i++;
+        }
         // data is saved in the graph for an interval of 20 seconds regardless
         // of the zoom value
         var max_graph_data = x_max - 20000000000;
