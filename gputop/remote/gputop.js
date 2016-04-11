@@ -969,7 +969,7 @@ function gputop_get_socket_nodejs(websocket_url) {
         //so manually convert evt.data to an ArrayBuffer...
         evt.data = new Uint8Array(evt.data).buffer;
 
-        gputop_socket_on_node_message(evt);
+        gputop_socket_on_message(evt);
     }
 
     return socket;
