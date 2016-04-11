@@ -35,6 +35,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <intel_chipset.h>
 
 #include <uv.h>
 
@@ -909,6 +910,16 @@ handle_get_features(h2o_websocket_conn_t *conn,
     devinfo.timestamp_frequency = gputop_devinfo.timestamp_frequency;
     devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
     devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
+
+    if (IS_HASWELL(devinfo.devid)) {
+        devinfo.devname = "hsw";
+    } else if (IS_BROADWELL(devinfo.devid)) {
+        devinfo.devname = "bdw";
+    } else if (IS_CHERRYVIEW(devinfo.devid)) {
+        devinfo.devname = "chv";
+    } else if (IS_SKYLAKE(devinfo.devid)) {
+        devinfo.devname = "skl";
+    }
 
     features.fake_mode = gputop_fake_mode;
 
