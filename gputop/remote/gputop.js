@@ -59,8 +59,7 @@ function get_hostname() {
 function http_get(filename, load_callback, error_callback) {
     if (is_nodejs) {
         var data = "";
-        var req = http.get("http://" + get_hostname() + "/gputop.proto", function(response) {
-            response.setEncoding('utf8');
+        http.get("http://" + get_hostname() + "/" + filename, function(response) {
             response.on('data', function (chunk) { data += chunk; });
             response.on('end', function () { load_callback(data); });
         }).on('error', error_callback);
