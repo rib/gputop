@@ -772,19 +772,17 @@ Gputop.prototype.process_features = function(features){
      * easy to forget to update this to forward new devinfo
      * state
      */
-    if (!is_nodejs) {
-        _gputop_webc_update_features(di.devid,
-                                     di.gen,
-                                     di.timestamp_frequency.toInt(),
-                                     di.n_eus.toInt(),
-                                     di.n_eu_slices.toInt(),
-                                     di.n_eu_sub_slices.toInt(),
-                                     di.eu_threads_count.toInt(),
-                                     di.subslice_mask.toInt(),
-                                     di.slice_mask.toInt(),
-                                     di.gt_min_freq.toInt(),
-                                     di.gt_max_freq.toInt());
-    }
+    _gputop_webc_update_features(di.devid,
+                                 di.gen,
+                                 di.timestamp_frequency.toInt(),
+                                 di.n_eus.toInt(),
+                                 di.n_eu_slices.toInt(),
+                                 di.n_eu_sub_slices.toInt(),
+                                 di.eu_threads_count.toInt(),
+                                 di.subslice_mask.toInt(),
+                                 di.slice_mask.toInt(),
+                                 di.gt_min_freq.toInt(),
+                                 di.gt_max_freq.toInt());
 
     gputop.xml_file_name_ = this.config_.architecture + ".xml";
     console.log(this.config_.architecture);
