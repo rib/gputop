@@ -94,7 +94,7 @@ if (!is_nodejs) {
 
     http_get('index.html', function (index_html) {
         var jsdom = require('jsdom');
-        jsdom.env({ html: index_data,
+        jsdom.env({ html: index_html,
                     scripts: ['http://' + get_hostname() + '/jquery.min.js'],
                     loaded: function (err, window) {
                         $ = require('jquery')(window);
