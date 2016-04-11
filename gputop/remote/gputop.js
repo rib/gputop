@@ -788,7 +788,8 @@ Gputop.prototype.process_features = function(features){
 
     gputop.xml_file_name_ = this.config_.architecture + ".xml";
     console.log(this.config_.architecture);
-    $.get(gputop.xml_file_name_, function (xml) {
+
+    http_get(gputop.xml_file_name_, function (xml) {
         gputop.parse_xml_metrics(xml);
 
         if (gputop_is_demo())
