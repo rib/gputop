@@ -78,7 +78,7 @@ function on_jquery_ready() {
         ProtoBuf.protoFromString(proto, proto_builder, "gputop.proto");
         gputop = new Gputop();
         gputop_ready(gputop);
-    });
+    }, function (error) { console.log(error); });
 }
 
 if (!is_nodejs) {
@@ -101,7 +101,7 @@ if (!is_nodejs) {
                         on_jquery_ready();
                     }
         });
-    });
+    }, function (error) { console.log(error); });
 }
 
 //----------------------------- COUNTER --------------------------------------
@@ -810,7 +810,7 @@ Gputop.prototype.process_features = function(features){
         }
 
         gputop_ui.update_features(features);
-    });
+    }, function (error) { console.log(error); });
 }
 
 Gputop.prototype.load_emscripten = function() {
