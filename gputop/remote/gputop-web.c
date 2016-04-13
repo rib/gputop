@@ -193,8 +193,8 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
 
         switch (header->type) {
 
-        case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-            gputop_web_console_log("i915_oa: OA buffer overflow\n");
+        case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+            gputop_web_console_log("i915_oa: OA buffer error - all records lost\n");
             break;
         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
             gputop_web_console_log("i915_oa: OA report lost\n");

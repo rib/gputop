@@ -1047,8 +1047,8 @@ gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
 
         switch (header->type) {
 
-        case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-            printf("- OA buffer overflow\n");
+        case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+            printf("- OA buffer error - all records lost\n");
             break;
         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
             printf("- OA report lost\n");
@@ -1203,8 +1203,8 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
 
             switch (header->type) {
 
-            case DRM_I915_PERF_RECORD_OA_BUFFER_OVERFLOW:
-                dbg("i915 perf: OA buffer overflow\n");
+            case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+                dbg("i915 perf: OA buffer error - all records lost\n");
                 break;
             case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
                 dbg("i915 perf: OA report lost\n");
