@@ -1313,6 +1313,7 @@ get_card_for_fd(int drm_fd)
     int entry_size;
     struct dirent *entry1, *entry2;
     int name_max;
+    int retval = -1;
 
     if (fstat(drm_fd, &sb)) {
         gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
@@ -1335,11 +1336,15 @@ get_card_for_fd(int drm_fd)
     entry_size = offsetof(struct dirent, d_name) + name_max + 1;
     entry1 = alloca(entry_size);
 
-    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL)
-        if (entry2->d_type == DT_DIR && strncmp(entry2->d_name, "card", 4) == 0)
-            return strtoull(entry2->d_name + 4, NULL, 10);
+    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL) {
+        if (entry2->d_type == DT_DIR && strncmp(entry2->d_name, "card", 4) == 0) {
+	    retval=strtoull(entry2->d_name + 4, NULL, 10);
+            break;
+        }
+    }
 
-    return -1;
+    closedir(drm_dir);
+    return retval;
 }
 
 static uint32_t
