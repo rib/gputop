@@ -59,8 +59,7 @@ function get_hostname() {
 function http_get(filename, load_callback, error_callback) {
     if (is_nodejs) {
         var data = "";
-        var req = http.get("http://" + get_hostname() + "/gputop.proto", function(response) {
-            response.setEncoding('utf8');
+        http.get("http://" + get_hostname() + "/" + filename, function(response) {
             response.on('data', function (chunk) { data += chunk; });
             response.on('end', function () { load_callback(data); });
         }).on('error', error_callback);
@@ -79,7 +78,7 @@ function on_jquery_ready() {
         ProtoBuf.protoFromString(proto, proto_builder, "gputop.proto");
         gputop = new Gputop();
         gputop_ready(gputop);
-    });
+    }, function (error) { console.log(error); });
 }
 
 if (!is_nodejs) {
@@ -95,14 +94,14 @@ if (!is_nodejs) {
 
     http_get('index.html', function (index_html) {
         var jsdom = require('jsdom');
-        jsdom.env({ html: index_data,
+        jsdom.env({ html: index_html,
                     scripts: ['http://' + get_hostname() + '/jquery.min.js'],
                     loaded: function (err, window) {
                         $ = require('jquery')(window);
                         on_jquery_ready();
                     }
         });
-    });
+    }, function (error) { console.log(error); });
 }
 
 //----------------------------- COUNTER --------------------------------------
@@ -773,33 +772,32 @@ Gputop.prototype.process_features = function(features){
      * easy to forget to update this to forward new devinfo
      * state
      */
-    if (!is_nodejs) {
-        _gputop_webc_update_features(di.devid,
-                                     di.gen,
-                                     di.timestamp_frequency.toInt(),
-                                     di.n_eus.toInt(),
-                                     di.n_eu_slices.toInt(),
-                                     di.n_eu_sub_slices.toInt(),
-                                     di.eu_threads_count.toInt(),
-                                     di.subslice_mask.toInt(),
-                                     di.slice_mask.toInt(),
-                                     di.gt_min_freq.toInt(),
-                                     di.gt_max_freq.toInt());
-    }
+    _gputop_webc_update_features(di.devid,
+                                 di.gen,
+                                 di.timestamp_frequency.toInt(),
+                                 di.n_eus.toInt(),
+                                 di.n_eu_slices.toInt(),
+                                 di.n_eu_sub_slices.toInt(),
+                                 di.eu_threads_count.toInt(),
+                                 di.subslice_mask.toInt(),
+                                 di.slice_mask.toInt(),
+                                 di.gt_min_freq.toInt(),
+                                 di.gt_max_freq.toInt());
 
+    this.set_architecture(di.devname);
     gputop.xml_file_name_ = this.config_.architecture + ".xml";
     console.log(this.config_.architecture);
-    $.get(gputop.xml_file_name_, function (xml) {
+
+    http_get(gputop.xml_file_name_, function (xml) {
         gputop.parse_xml_metrics(xml);
 
         if (gputop_is_demo())
             gputop.metrics_.forEach(function (metric) { metric.supported_ = true; });
         else {
-            gputop.metrics_.forEach(function (metric) { metric.supported_ = false; });
 
             if (features.supported_oa_query_guids.length == 0) {
                 gputop_ui.show_alert("No OA metrics are supported on this Kernel " +
-                                     features.get_kernel_release(), "alert-danger");
+                                    features.get_kernel_release(), "alert-danger");
             } else {
                 features.supported_oa_query_guids.forEach(function (guid, i, a) {
                     var metric = gputop.get_map_metric(guid);
@@ -810,7 +808,7 @@ Gputop.prototype.process_features = function(features){
         }
 
         gputop_ui.update_features(features);
-    });
+    }, function (error) { console.log(error); });
 }
 
 Gputop.prototype.load_emscripten = function() {
@@ -969,7 +967,7 @@ function gputop_get_socket_nodejs(websocket_url) {
         //so manually convert evt.data to an ArrayBuffer...
         evt.data = new Uint8Array(evt.data).buffer;
 
-        gputop_socket_on_node_message(evt);
+        gputop_socket_on_message(evt);
     }
 
     return socket;
