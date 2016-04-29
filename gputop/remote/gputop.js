@@ -202,6 +202,9 @@ function Metric () {
 
     // OA HW periodic timer exponent
     this.exponent = 14;
+    this.history = []; // buffer used when query is paused.
+    this.history_index = 0;
+    this.history_size = 0;
 }
 
 Metric.prototype.is_per_ctx_mode = function() {
@@ -537,25 +540,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         if ('per_ctx_mode' in config)
             per_ctx_mode = config.per_ctx_mode;
 
-        var oa_query = new this.builder_.OAQueryInfo();
-
-        oa_query.guid = config.guid;
-        oa_query.period_exponent = oa_exponent;
-
-        var open = new this.builder_.OpenQuery();
-
-        metric.server_handle = gputop.next_server_handle++;
-
-        open.id = metric.server_handle;
-        open.oa_query = oa_query;
-        open.overwrite = false;   /* don't overwrite old samples */
-        open.live_updates = true; /* send live updates */
-        open.per_ctx_mode = per_ctx_mode;
-
-        this.server_handle_to_metric_map[open.id] = metric;
-
-        var self = this;
-        this.rpc_request('open_query', open, function () {
+        function _finalize_open() {
             gputop_ui.syslog("Opened OA metric set " + metric.name_);
 
             metric.exponent = oa_exponent;
@@ -570,11 +555,35 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
             Runtime.stackRestore(sp);
 
-            self.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_] = metric;
+            gputop.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_] = metric;
 
             if (callback != undefined)
                 callback(metric);
-        });
+        }
+
+        if ('paused_state' in config) {
+            _finalize_open();
+        } else {
+            var oa_query = new this.builder_.OAQueryInfo();
+
+            oa_query.guid = config.guid;
+            oa_query.period_exponent = oa_exponent;
+
+            var open = new this.builder_.OpenQuery();
+
+            metric.server_handle = gputop.next_server_handle++;
+
+            open.id = metric.server_handle;
+            open.oa_query = oa_query;
+            open.overwrite = false;   /* don't overwrite old samples */
+            open.live_updates = true; /* send live updates */
+            open.per_ctx_mode = per_ctx_mode;
+
+            this.server_handle_to_metric_map[open.id] = metric;
+
+            var self = this;
+            this.rpc_request('open_query', open, _finalize_open);
+        }
 
         this.active_oa_metric_ = metric;
 
@@ -611,8 +620,19 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         _real_open_oa_metric_set.call(this, config, callback);
 }
 
-Gputop.prototype.close_oa_metric_set = function(metric, callback) {
+Gputop.prototype.close_stream_paused = function() {
+    var metric = gputop.get_map_metric(global_guid);
+    _gputop_webc_stream_destroy(metric.webc_stream_ptr_);
+    delete gputop.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_];
+    delete gputop.server_handle_to_metric_map[metric.server_handle];
+    metric.webc_stream_ptr_ = 0;
+    metric.server_handle = 0;
 
+    metric.closing_ = false;
+    this.active_oa_metric_ = undefined;
+}
+
+Gputop.prototype.close_oa_metric_set = function(metric, callback) {
     if (metric.closing_ == true ) {
         gputop_ui.syslog("Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)");
         return;
@@ -877,6 +897,52 @@ function gputop_socket_on_close() {
     gputop.is_connected_ = false;
 }
 
+Gputop.prototype.open_stream_paused = function () {
+    var metric = gputop.get_map_metric(global_guid);
+    if (metric.closing_)
+        setTimeout(this.open_stream_paused, 200);
+    else {
+        gputop.open_oa_metric_set({guid:global_guid, paused_state:1});
+    }
+}
+
+Gputop.prototype.clear_replay_buffer = function() {
+    var metric = gputop.get_map_metric(global_guid);
+    metric.history = [];
+    metric.history_size = 0;
+}
+
+Gputop.prototype.replay_buffer = function() {
+    // check if stream has been opened, if not recall this function after 200 ms
+    if (!gputop.active_oa_metric_) {
+        setTimeout(gputop.replay_buffer, 200);
+        return;
+    }
+
+    gputop.replay_queued = false;
+
+    var metric = gputop.get_map_metric(global_guid);
+    var data = metric.history[metric.history_index];
+
+    while (data != undefined) {
+        var sp = Runtime.stackSave();
+        var stack_data = allocate(data, 'i8', ALLOC_STACK);
+
+        _gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
+                                              stack_data,
+                                              data.length);
+        Runtime.stackRestore(sp);
+
+        metric.history_index++;
+        data = metric.history[metric.history_index];
+    }
+
+    if (data == undefined) {
+        metric.history_index = 0;
+        return;
+    }
+}
+
 function gputop_socket_on_message(evt) {
     var dv = new DataView(evt.data, 0);
     var data = new Uint8Array(evt.data, 8);
@@ -911,7 +977,6 @@ function gputop_socket_on_message(evt) {
             process.update(msg.process_info);
             gputop_ui.syslog(msg.reply_uuid + " recv: Console process info "+pid);
         }
-
         if (msg.reply_uuid in gputop.rpc_closures_) {
             var closure = gputop.rpc_closures_[msg.reply_uuid];
             closure(msg);
@@ -930,6 +995,12 @@ function gputop_socket_on_message(evt) {
             var stack_data = allocate(data, 'i8', ALLOC_STACK);
 
             var metric = gputop.server_handle_to_metric_map[server_handle];
+
+            // save messages in a buffer to replay when query is paused
+            metric.history.push(data);
+            metric.history_size += data.length;
+            if (metric.history_size > 1048576) // 1 MB of data
+                metric.history.shift();
 
             _gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
                                                   stack_data,
