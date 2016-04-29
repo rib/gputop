@@ -45,6 +45,8 @@ function GputopUI () {
     this.queue_redraw_ = false;
 
     this.syslog_ = document.getElementById("log");
+
+    this.previous_zoom = 0;
 }
 
 GputopUI.prototype = Object.create(Gputop.prototype);
@@ -118,14 +120,91 @@ GputopUI.prototype.set_zoom = function(zoom) {
 
     var metric = this.get_map_metric(global_guid);
 
-    if (this.update_metric_period_exponent_for_zoom(metric))
+    // First update metric period exponent, then check for paused query.
+    // The other way around would have not checked whether or not to update the
+    // exponent if the query was paused.
+    if (this.update_metric_period_exponent_for_zoom(metric) && !global_paused_query)
         this.open_oa_metric_set({guid:global_guid});
 
     this.queue_redraw();
 }
 
+// remove all the data from all opened graphs
+GputopUI.prototype.clear_graphs = function() {
+    var metric = this.get_map_metric(global_guid);
+
+    // reset the accumulator clock and continuation report
+    webc._gputop_webc_reset_accumulator(metric.webc_stream_ptr_);
+
+    // go through the list of opened graphs
+    for (var i = 0; i < this.graph_array.length; ++i) {
+        var container = "#" + this.graph_array[i];
+        var counter = $(container).data("counter");
+        counter.graph_data = [];
+        counter.updates = [];
+        this.start_timestamp = 0;
+    }
+}
+
+GputopUI.prototype.update_graphs_paused = function (timestamp) {
+    var metric = this.get_map_metric(global_guid);
+
+    for (var i = 0; i < this.graph_array.length; ++i) {
+        var container = "#" + this.graph_array[i];
+        var counter = $(container).data("counter");
+
+        var length = counter.updates.length;
+        var x_min = 0;
+        var x_max = 1;
+
+        if (length > 0) {
+                this.start_gpu_timestamp = counter.updates[0][0]; // end_timestamp
+                this.end_gpu_timestamp = counter.updates[length - 1][0]; // end_timestamp
+        }
+        if (length > 0 || this.previous_zoom != this.zoom) {
+            this.previous_zoom = this.zoom;
+            var time_range = this.zoom * 1000000000;
+            var margin = time_range * 0.1;
+
+            x_max = this.end_gpu_timestamp;
+            x_min = x_max - time_range;
+            var max_graph_data = x_max - 20000000000;
+
+            for (var j = 0; j < length; j++) {
+                var start = counter.updates[j][0];
+                var end = counter.updates[j][1];
+                var val = counter.updates[j][2];
+                var max = counter.updates[j][3];
+                var mid = start + (end - start) / 2;
+
+                counter.graph_data.push([mid, val]);
+                counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
+            }
+
+            // adjust the min and max (start and end of the graph)
+            counter.graph_options.xaxis.min = x_min + margin;
+            counter.graph_options.xaxis.max = x_max;
+            counter.graph_options.xaxis.label = this.zoom + ' seconds';
+
+            var default_markings = create_default_markings(counter.graph_options.xaxis);
+            counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
+
+            this.series[0].data = counter.graph_data;
+            $.plot(container, this.series, counter.graph_options);
+
+            // remove all the samples from the updates array
+            counter.updates.splice(0, counter.updates.length);
+        }
+    }
+}
 
 GputopUI.prototype.update_graphs = function(timestamp) {
+    this.timestamp = timestamp;
+    if (global_paused_query) {
+        this.update_graphs_paused(timestamp);
+        return;
+    }
+
     var metric = this.get_map_metric(global_guid);
 
     for (var i = 0; i < this.graph_array.length; ++i) {
@@ -144,7 +223,7 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         var elapsed = (timestamp - this.start_timestamp) * 1000000; // elapsed time from the very begining
 
         var time_range = this.zoom * 1000000000;
-        var margin = time_range * 0.1;
+        var margin = time_range * 0.05;
 
         x_max = this.start_gpu_timestamp + elapsed;
         x_min = x_max - time_range;
@@ -376,18 +455,6 @@ GputopUI.prototype.load_metrics_panel = function(callback_success) {
     $( '#gputop-metrics-panel' ).load( "ajax/metrics.html", () => {
         console.log('Metrics panel loaded');
         callback_success();
-    });
-}
-
-GputopUI.prototype.btn_close_current_query = function() {
-    var active_metric = this.active_oa_metric_;
-    if (active_metric == undefined) {
-        this.show_alert(" No Active Query","alert-info");
-        return;
-    }
-
-    this.close_oa_metric_set(active_metric, () => {
-       this.show_alert(" Success closing query","alert-info");
     });
 }
 

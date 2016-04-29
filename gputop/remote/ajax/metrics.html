@@ -38,17 +38,40 @@
 </div>
 
 <script>
-
     function buttonTogglePlay(){
         var iSelector = $("#toggle-query");
         if(iSelector.hasClass('glyphicon-pause')) {
             iSelector.removeClass('glyphicon-pause')
             iSelector.addClass('glyphicon-play')
-            gputop.btn_close_current_query();
+            slider.setAttribute('min', 0.1);
+            slider.setValue(slider.getValue()); // update the slider visual position
+
+            gputop.close_active_metric_set(() => {
+                gputop.show_alert("Closed metric set", "alert-info");
+
+                global_paused_query = true;
+
+                gputop.open_oa_metric_set({guid:global_guid, paused_state:1},
+                                          gputop.replay_buffer.bind(gputop));
+            });
         } else {
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
-            gputop.open_oa_metric_set({guid:global_guid});
+            slider.setAttribute('min', 1);
+            if (slider.getValue() < 1) {
+                slider.setValue(1);
+                gputop.set_zoom(slider.getValue());
+            }
+            else slider.setValue(slider.getValue());
+
+            gputop.close_active_metric_set(() => {
+                gputop.show_alert("Closed metric set", "alert-info");
+            
+                global_paused_query = false;
+
+                gputop.clear_graphs();
+                gputop.open_oa_metric_set({guid:global_guid});
+            });
         }
     }
 
@@ -56,6 +79,7 @@
                       "Tier1", "Tier2", "Tier3", "Tier4"];
     var metric_order = [];
     var selected_index;
+    var global_paused_query = false;
     var set_array = {};
 
     function count(name, underscore_name, flags)
@@ -408,11 +432,16 @@
     slider = new Slider('#zoom_slider', {
         formatter: function(value) {
             return 'Current value: ' + value;
-        }
+        },
+        min: 1
     });
 
     $("#zoom_slider").on("slide change", function(slideEvt) {
         gputop.set_zoom(slider.getValue());
+        if (global_paused_query == true) {
+            gputop.clear_graphs();
+            gputop.replay_buffer();
+        }
     });
 
     // read counters from xml file and populate the website

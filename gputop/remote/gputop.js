@@ -191,6 +191,9 @@ function Metric () {
 
     // OA HW periodic timer exponent
     this.exponent = 14;
+    this.history = []; // buffer used when query is paused.
+    this.history_index = 0;
+    this.history_size = 0;
 }
 
 Metric.prototype.is_per_ctx_mode = function() {
@@ -519,24 +522,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         if ('per_ctx_mode' in config)
             per_ctx_mode = config.per_ctx_mode;
 
-        var oa_query = new this.builder_.OAQueryInfo();
-
-        oa_query.guid = config.guid;
-        oa_query.period_exponent = oa_exponent;
-
-        var open = new this.builder_.OpenQuery();
-
-        metric.server_handle = this.next_server_handle++;
-
-        open.id = metric.server_handle;
-        open.oa_query = oa_query;
-        open.overwrite = false;   /* don't overwrite old samples */
-        open.live_updates = true; /* send live updates */
-        open.per_ctx_mode = per_ctx_mode;
-
-        this.server_handle_to_metric_map[open.id] = metric;
-
-        this.rpc_request('open_query', open, () => {
+        function _finalize_open() {
             this.syslog("Opened OA metric set " + metric.name_);
 
             metric.exponent = oa_exponent;
@@ -555,7 +541,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
             if (callback != undefined)
                 callback(metric);
-        });
+        }
 
         this.active_oa_metric_ = metric;
 
@@ -563,6 +549,34 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         //     this.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
         // else
         //     this.show_alert("Opening metric set " + metric.name_, "alert-info");
+
+
+        if ('paused_state' in config) {
+            _finalize_open.call(this);
+        } else {
+            var oa_query = new this.builder_.OAQueryInfo();
+
+            oa_query.guid = config.guid;
+            oa_query.period_exponent = oa_exponent;
+
+            var open = new this.builder_.OpenQuery();
+
+            metric.server_handle = this.next_server_handle++;
+
+            open.id = metric.server_handle;
+            open.oa_query = oa_query;
+            open.overwrite = false;   /* don't overwrite old samples */
+            open.live_updates = true; /* send live updates */
+            open.per_ctx_mode = per_ctx_mode;
+
+            this.server_handle_to_metric_map[open.id] = metric;
+
+            var self = this;
+            this.rpc_request('open_query', open, _finalize_open.bind(this));
+
+            metric.history = [];
+            metric.history_size = 0;
+        }
 
         this.queue_redraw();
     }
@@ -592,15 +606,12 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 }
 
 Gputop.prototype.close_oa_metric_set = function(metric, callback) {
-
     if (metric.closing_ == true ) {
         this.syslog("Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)");
         return;
     }
 
-    //this.show_alert("Closing query " + metric.name_, "alert-info");
-
-    this.rpc_request('close_query', metric.server_handle, (msg) => {
+    function _finish_close() {
         webc._gputop_webc_stream_destroy(metric.webc_stream_ptr_);
         delete this.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_];
         delete this.server_handle_to_metric_map[metric.server_handle];
@@ -612,12 +623,30 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
 
         if (callback != undefined)
             callback();
-    });
+    }
 
+    //this.show_alert("Closing query " + metric.name_, "alert-info");
     metric.closing_ = true;
-
     this.active_oa_metric_ = undefined;
+
+    if (global_paused_query) {
+        _finish_close.call(this);
+    } else {
+        this.rpc_request('close_query', metric.server_handle, (msg) => {
+            _finish_close.call(this);
+        });
+    }
 }
+
+Gputop.prototype.close_active_metric_set = function(callback) {
+    if (this.active_oa_metric_ == undefined) {
+        this.show_alert("No Active Metric Set", "alert-info");
+        return;
+    }
+
+    this.close_oa_metric_set(this.active_oa_metric_, callback);
+}
+
 
 function String_pointerify_on_stack(js_string) {
     return webc.allocate(webc.intArrayFromString(js_string), 'i8', webc.ALLOC_STACK);
@@ -866,11 +895,29 @@ function gputop_socket_on_close() {
 
     this.syslog("Disconnected");
     this.show_alert("Failed connecting to GPUTOP <p\>Retry in 5 seconds","alert-warning");
-    setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
-        this.connect();
-    }, 5000);
+    // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
+    setTimeout(this.connect.bind(this), 5000);
 
     this.is_connected_ = false;
+}
+
+Gputop.prototype.replay_buffer = function() {
+    var metric = this.active_oa_metric_;
+
+    this.clear_graphs();
+
+    for (var i = 0; i < metric.history.length; i++) {
+        var data = metric.history[i];
+
+        var sp = webc.Runtime.stackSave();
+
+        var stack_data = webc.allocate(data, 'i8', webc.ALLOC_STACK);
+
+        webc._gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
+                                                   stack_data,
+                                                   data.length);
+        webc.Runtime.stackRestore(sp);
+    }
 }
 
 function gputop_socket_on_message(evt) {
@@ -927,6 +974,12 @@ function gputop_socket_on_message(evt) {
             var stack_data = webc.allocate(data, 'i8', webc.ALLOC_STACK);
 
             var metric = this.server_handle_to_metric_map[server_handle];
+
+            // save messages in a buffer to replay when query is paused
+            metric.history.push(data);
+            metric.history_size += data.length;
+            if (metric.history_size > 1048576) // 1 MB of data
+                metric.history.shift();
 
             webc._gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
                                                        stack_data,
