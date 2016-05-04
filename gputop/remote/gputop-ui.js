@@ -178,6 +178,7 @@ GputopUI.prototype.update_graphs_paused = function (timestamp) {
             counter.graph_options.xaxis.min = x_min + margin;
             counter.graph_options.xaxis.max = x_max;
             counter.graph_options.xaxis.label = this.zoom + ' seconds';
+            counter.graph_options.xaxis.panRange = [max_graph_data, x_max];
 
             var default_markings = create_default_markings(counter.graph_options.xaxis);
             counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
