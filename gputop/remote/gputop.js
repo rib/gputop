@@ -236,13 +236,18 @@ Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
         },
         xaxis: {
             show: false,
+            panRange: null
         },
         yaxis: {
             min: 0,
-            max: 110
+            max: 110,
+            panRange: false
         },
         legend: {
             show: true
+        },
+        pan: {
+            interactive: true
         }
     };// options
 
