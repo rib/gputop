@@ -46,7 +46,14 @@
             iSelector.removeClass('glyphicon-pause')
             iSelector.addClass('glyphicon-play')
             gputop_ui.btn_close_current_query();
+            global_paused_query = true;
+            gputop_ui.clear_graphs();
+            stream_open();
+
         } else {
+            global_paused_query = false;
+            gputop.close_stream();
+            gputop_ui.clear_graphs();
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
             gputop.open_oa_metric_set({guid:global_guid});
@@ -57,6 +64,7 @@
                       "Tier1", "Tier2", "Tier3", "Tier4"];
     var metric_order = [];
     var selected_index;
+    var global_paused_query = false;
     var set_array = {};
 
     function count(name, underscore_name, flags)

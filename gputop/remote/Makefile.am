@@ -7,6 +7,7 @@ third_party_files = \
 	jquery.min.js \
 	jquery-ui.js \
 	jquery.flot.js \
+    jquery.flot.navigate.js \
 	$(mathjax_files) \
 	bootstrap-wysiwyg.min.js \
 	bootstrap-slider.min.js \
