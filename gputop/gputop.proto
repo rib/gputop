@@ -99,6 +99,26 @@ message BufferFillNotify
     required uint32 fill_percentage=2;
 }
 
+message CpuStats
+{
+    required uint64 timestamp = 1;
+    required uint32 user = 2;
+    required uint32 nice = 3;
+    required uint32 system = 4;
+    required uint32 idle = 5;
+    required uint32 iowait = 6;
+    required uint32 irq = 7;
+    required uint32 softirq = 8;
+    required uint32 steal = 9;
+    required uint32 guest = 10;
+    required uint32 guest_nice = 11;
+}
+
+message CpuStatsSet
+{
+    repeated CpuStats cpus = 1;
+}
+
 message Message
 {
     optional string reply_uuid = 1;
@@ -111,6 +131,7 @@ message Message
         CloseNotify close_notify = 6;
         BufferFillNotify fill_notify = 7;
         ProcessInfo process_info = 8;
+        CpuStatsSet cpu_stats = 9;
     }
 }
 
@@ -140,6 +161,11 @@ message GenericEventInfo
     required uint64 config = 4; //E.g _COUNT_SW_CONTEXT_SWITCHES
 }
 
+message CpuStatsInfo
+{
+    required uint32 sample_period_ms = 1;
+}
+
 message OpenQuery
 {
     required uint32 id = 1;
@@ -149,6 +175,7 @@ message OpenQuery
         OAQueryInfo oa_query = 3;
         TraceInfo trace = 4;
         GenericEventInfo generic = 5;
+        CpuStatsInfo cpu_stats = 9;
     }
     required bool overwrite = 6;
     required bool live_updates = 7;
