@@ -1193,6 +1193,8 @@ bool gputop_server_run(void)
     h2o_pathconf_t *root;
     const char *web_root;
     int r;
+    char *port_env;
+    unsigned long port;
 
     gputop_list_init(&streams);
     gputop_list_init(&closing_streams);
@@ -1205,7 +1207,12 @@ bool gputop_server_run(void)
         dbg("uv_tcp_init:%s\n", uv_strerror(r));
         goto error;
     }
-    uv_ip4_addr("0.0.0.0", 7890, &sockaddr);
+    port_env = getenv("GPUTOP_PORT");
+    if (!port_env)
+        port_env = "7890";
+    port = strtoul(port_env, NULL, 10);
+
+    uv_ip4_addr("0.0.0.0", port, &sockaddr);
     if ((r = uv_tcp_bind(&listener, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) != 0) {
         dbg("uv_tcp_bind:%s\n", uv_strerror(r));
         goto error;
@@ -1214,7 +1221,7 @@ bool gputop_server_run(void)
         dbg("uv_listen:%s\n", uv_strerror(r));
         goto error;
     }
-    printf("http://localhost:7890\n");
+    printf("Web server listening on port %lu\n", port);
 
 
     h2o_config_init(&config);
