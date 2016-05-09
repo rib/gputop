@@ -31,6 +31,7 @@ var is_nodejs = false;
 
 if (typeof module !== 'undefined' && module.exports) {
     var http = require('http');
+    var WebSocket = require('ws');
     is_nodejs = true;
 }
 
@@ -947,7 +948,7 @@ Gputop.prototype.get_process_info = function(pid, callback) {
     this.rpc_request('get_process_info', pid, callback);
 }
 
-function gputop_get_socket_web(websocket_url) {
+Gputop.prototype.get_socket = function(websocket_url) {
     var socket = new WebSocket(websocket_url, "binary");
     socket.binaryType = "arraybuffer";
 
@@ -956,30 +957,6 @@ function gputop_get_socket_web(websocket_url) {
     socket.onmessage = gputop_socket_on_message;
 
     return socket;
-}
-
-function gputop_get_socket_nodejs(websocket_url) {
-    var WebSocket = require('ws');
-    var socket = new WebSocket(websocket_url, "binary");
-
-    socket.onopen = gputop_socket_on_open;
-    socket.onclose = gputop_socket_on_close;
-    socket.onmessage = function (evt) {
-        //node.js ws api doesn't support .binaryType = "arraybuffer"
-        //so manually convert evt.data to an ArrayBuffer...
-        evt.data = new Uint8Array(evt.data).buffer;
-
-        gputop_socket_on_message(evt);
-    }
-
-    return socket;
-}
-
-Gputop.prototype.get_socket = function(websocket_url) {
-    if (!is_nodejs)
-        return gputop_get_socket_web(websocket_url);
-    else
-        return gputop_get_socket_nodejs(websocket_url);
 }
 
 // Connect to the socket for transactions
