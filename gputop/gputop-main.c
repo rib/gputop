@@ -191,6 +191,7 @@ main (int argc, char **argv)
 #define FAKE_OPT                (CHAR_MAX + 7)
 #define GPUTOP_SCISSOR_TEST     (CHAR_MAX + 8)
 #define NODEJS_OPT              (CHAR_MAX + 9)
+#define PORT_OPT                (CHAR_MAX + 10)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -208,6 +209,7 @@ main (int argc, char **argv)
 #endif
 #ifdef SUPPORT_WEBUI
         {"remote",          no_argument,        0, REMOTE_OPT},
+        {"port",            required_argument,  0, PORT_OPT},
         {"nodejs",          optional_argument,  0, NODEJS_OPT},
 #endif
         {0, 0, 0, 0}
@@ -255,6 +257,9 @@ main (int argc, char **argv)
 #ifdef SUPPORT_WEBUI
             case REMOTE_OPT:
                 setenv("GPUTOP_MODE", "remote", true);
+                break;
+            case PORT_OPT:
+                setenv("GPUTOP_PORT", optarg, true);
                 break;
             case NODEJS_OPT:
                 setenv("GPUTOP_MODE", "nodejs", true);
