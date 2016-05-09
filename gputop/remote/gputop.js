@@ -762,6 +762,8 @@ Gputop.prototype.process_features = function(features){
 
     gputop.devinfo = di;
 
+    this.set_architecture(di.devname);
+
     /* We convert the 64 bits protobuffer entry into 32 bits
      * to make it easier to call the emscripten native API.
      * DevInfo values should not overflow the native type,
