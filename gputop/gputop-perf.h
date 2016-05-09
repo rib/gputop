@@ -135,6 +135,7 @@ struct gputop_perf_header_buf
 enum gputop_perf_stream_type {
     GPUTOP_STREAM_PERF,
     GPUTOP_STREAM_I915_PERF,
+    GPUTOP_STREAM_CPU,
 };
 
 struct gputop_perf_stream
@@ -163,6 +164,15 @@ struct gputop_perf_stream
 
             struct gputop_perf_header_buf header_buf;
         } perf;
+        /* /proc/stat */
+        struct {
+            uv_timer_t sample_timer;
+
+            struct cpu_stat *stats_buf;
+            int stats_buf_len; /* N cpu_stat structures (multiple of n_cpus) */
+            int stats_buf_pos;
+            bool stats_buf_full;
+        } cpu;
     };
 
     int fd;
@@ -263,6 +273,9 @@ gputop_perf_open_generic_counter(int pid,
                                  void (*ready_cb)(uv_poll_t *poll, int status, int events),
                                  bool overwrite,
                                  char **error);
+
+struct gputop_perf_stream *
+gputop_perf_open_cpu_stats(bool overwrite, uint64_t sample_period_ms);
 
 bool gputop_stream_data_pending(struct gputop_perf_stream *stream);
 

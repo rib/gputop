@@ -22,8 +22,6 @@
  * SOFTWARE.
  */
 
-#define _GNU_SOURCE
-
 #include <config.h>
 
 #include <linux/perf_event.h>
@@ -59,6 +57,7 @@
 #include "gputop-log.h"
 #include "gputop-perf.h"
 #include "gputop-oa-counters.h"
+#include "gputop-cpu.h"
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"
@@ -302,6 +301,12 @@ finish_stream_close(struct gputop_perf_stream *stream)
         }
 
         break;
+    case GPUTOP_STREAM_CPU:
+        free(stream->cpu.stats_buf);
+        uv_timer_stop(&stream->cpu.sample_timer);
+        stream->cpu.stats_buf = NULL;
+        fprintf(stderr, "closed cpu stats stream\n");
+        break;
     }
 
     stream->closed = true;
@@ -343,6 +348,9 @@ gputop_perf_stream_close(struct gputop_perf_stream *stream,
             uv_close((uv_handle_t *)&stream->fd_poll, stream_handle_closed_cb);
             stream->n_closing_uv_handles++;
         }
+        break;
+    case GPUTOP_STREAM_CPU:
+        finish_stream_close(stream);
         break;
     }
 
@@ -663,6 +671,54 @@ gputop_perf_open_generic_counter(int pid,
 }
 
 static void
+log_cpu_stats_cb(uv_timer_t *timer)
+{
+    struct gputop_perf_stream *stream = timer->data;
+
+    if (stream->cpu.stats_buf_pos < stream->cpu.stats_buf_len) {
+        struct cpu_stat *stats = stream->cpu.stats_buf + stream->cpu.stats_buf_pos;
+        int n_cpus = gputop_cpu_count();
+
+        gputop_cpu_read_stats(stats, n_cpus);
+        stream->cpu.stats_buf_pos += n_cpus;
+    }
+
+    if (stream->cpu.stats_buf_pos >= stream->cpu.stats_buf_len) {
+        stream->cpu.stats_buf_full = true;
+        if (stream->overwrite)
+            stream->cpu.stats_buf_pos = 0;
+    }
+}
+
+struct gputop_perf_stream *
+gputop_perf_open_cpu_stats(bool overwrite, uint64_t sample_period_ms)
+{
+    struct gputop_perf_stream *stream;
+    int n_cpus = gputop_cpu_count();
+
+    stream = xmalloc0(sizeof(*stream));
+    stream->type = GPUTOP_STREAM_CPU;
+    stream->ref_count = 1;
+
+    stream->cpu.stats_buf_len = MAX(10, 1000 / sample_period_ms);
+    stream->cpu.stats_buf = xmalloc(stream->cpu.stats_buf_len *
+                                    sizeof(struct cpu_stat) * n_cpus);
+    stream->cpu.stats_buf_pos = 0;
+
+    stream->overwrite = overwrite;
+
+    stream->cpu.sample_timer.data = stream;
+    uv_timer_init(gputop_mainloop, &stream->cpu.sample_timer);
+
+    uv_timer_start(&stream->cpu.sample_timer,
+                   log_cpu_stats_cb,
+                   sample_period_ms,
+                   sample_period_ms);
+
+    return stream;
+}
+
+static void
 init_dev_info(int drm_fd, uint32_t devid)
 {
     int threads_per_eu = 7;
@@ -832,6 +888,8 @@ gputop_stream_data_pending(struct gputop_perf_stream *stream)
         return perf_stream_data_pending(stream);
     case GPUTOP_STREAM_I915_PERF:
         return i915_perf_stream_data_pending(stream);
+    case GPUTOP_STREAM_CPU:
+        assert(0);
     }
 
     assert(0);
@@ -1241,6 +1299,9 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
         return;
     case GPUTOP_STREAM_I915_PERF:
         read_i915_perf_samples(stream);
+        return;
+    case GPUTOP_STREAM_CPU:
+        assert(0);
         return;
     }
 

@@ -62,6 +62,8 @@ static uv_tcp_t listener;
 
 static uv_timer_t timer;
 
+
+
 enum {
     WS_MESSAGE_PERF = 1,
     WS_MESSAGE_PROTOBUF,
@@ -458,6 +460,66 @@ flush_i915_perf_stream_samples(struct gputop_perf_stream *stream)
 }
 
 static void
+flush_cpu_stats(struct gputop_perf_stream *stream)
+{
+    int n_cpus = gputop_cpu_count();
+    int n;
+    int pos;
+
+    if (stream->cpu.stats_buf_pos == 0 && !stream->cpu.stats_buf_full)
+        return;
+
+    if (stream->cpu.stats_buf_full) {
+        n = stream->cpu.stats_buf_len / n_cpus;
+        pos = stream->cpu.stats_buf_pos;
+    } else {
+        n = stream->cpu.stats_buf_pos / n_cpus;
+        pos = 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        Gputop__Message message = GPUTOP__MESSAGE__INIT;
+        Gputop__CpuStatsSet set = GPUTOP__CPU_STATS_SET__INIT;
+        Gputop__CpuStats *stats_vec[n_cpus];
+        Gputop__CpuStats stats[n_cpus];
+        struct cpu_stat *stat = stream->cpu.stats_buf + pos;
+
+        message.cmd_case = GPUTOP__MESSAGE__CMD_CPU_STATS;
+
+        message.cpu_stats = &set;
+
+        set.n_cpus = n_cpus;
+        set.cpus = stats_vec;
+
+        for (int i = 0; i < n_cpus; i++) {
+            gputop__cpu_stats__init(&stats[i]);
+            stats_vec[i] = &stats[i];
+
+            stats[i].timestamp = stat->timestamp;
+            stats[i].user = stat->user;
+            stats[i].nice = stat->nice;
+            stats[i].system = stat->system;
+            stats[i].idle = stat->idle;
+            stats[i].iowait = stat->iowait;
+            stats[i].irq = stat->irq;
+            stats[i].softirq = stat->softirq;
+            stats[i].steal = stat->steal;
+            stats[i].guest = stat->guest;
+            stats[i].guest_nice = stat->guest_nice;
+        }
+
+        send_pb_message(h2o_conn, &message.base);
+
+        pos += n_cpus;
+        if (pos >= stream->cpu.stats_buf_len)
+            pos = 0;
+    }
+
+    stream->cpu.stats_buf_pos = 0;
+    stream->cpu.stats_buf_full = false;
+}
+
+static void
 flush_stream_samples(struct gputop_perf_stream *stream)
 {
     if (stream->user.flushing) {
@@ -477,6 +539,9 @@ flush_stream_samples(struct gputop_perf_stream *stream)
         break;
     case GPUTOP_STREAM_I915_PERF:
         flush_i915_perf_stream_samples(stream);
+        break;
+    case GPUTOP_STREAM_CPU:
+        flush_cpu_stats(stream);
         break;
     }
 }
@@ -606,9 +671,6 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
         if (open_query->live_updates)
             uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-
-        if (open_query->overwrite)
-            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
         dbg("Failed to open perf query set=%s period=%d: %s\n",
             oa_query_info->guid, oa_query_info->period_exponent,
@@ -747,6 +809,41 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
 }
 
 static void
+handle_open_cpu_stats(h2o_websocket_conn_t *conn,
+                      Gputop__Request *request)
+{
+    Gputop__OpenQuery *open_query = request->open_query;
+    uint32_t id = open_query->id;
+    Gputop__CpuStatsInfo *stats_info = open_query->cpu_stats;
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+    struct gputop_perf_stream *stream;
+
+    if (!gputop_perf_initialize()) {
+        message.reply_uuid = request->uuid;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &message.base);
+        return;
+    }
+
+    stream = gputop_perf_open_cpu_stats(open_query->overwrite,
+                                        stats_info->sample_period_ms);
+    if (stream) {
+        stream->user.id = id;
+        gputop_list_init(&stream->user.link);
+        gputop_list_insert(streams.prev, &stream->user.link);
+
+        if (open_query->live_updates)
+            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+    }
+
+    message.reply_uuid = request->uuid;
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ACK;
+    message.ack = true;
+    send_pb_message(conn, &message.base);
+}
+
+static void
 handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
@@ -762,6 +859,9 @@ handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
         break;
     case GPUTOP__OPEN_QUERY__TYPE_GENERIC:
         handle_open_generic_query(conn, request);
+        break;
+    case GPUTOP__OPEN_QUERY__TYPE_CPU_STATS:
+        handle_open_cpu_stats(conn, request);
         break;
     default:
         message.reply_uuid = request->uuid;
