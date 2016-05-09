@@ -64,11 +64,9 @@ GPUTopNodeJSUI.prototype.log = function(level, message)
     console.log(message);
 }
 
-var gputop_ui = new GPUTopNodeJSUI();
-
-function gputop_ready(gputop_inst)
+function gputop_ready()
 {
-    gputop = gputop_inst;
+    gputop_ui = new GPUTopNodeJSUI();
     gputop.connect();
 }
 
