@@ -60,10 +60,6 @@ function gputop_wip_error() {
     alert("Not implemented yet!");
 }
 
-function gputop_reconnect() {
-    gputop.connect();
-}
-
 </script>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
@@ -77,6 +73,13 @@ function gputop_reconnect() {
           <img class="navbar-brand" src="/assets/gputop_logo_44.png" alt="Gputop Logo" >
         </div>
         <div id="navbar" class="navbar-collapse collapse">
+          <form class="navbar-form navbar-left" action="javascript:gputop.connect();">
+              <input type="text" class="form-control" id="target_address" value="localhost" required placeholder="Target Hostname or IP Address">
+              <input type="number" class="form-control" id="target_port" value="7890" step="0" required placeholder="Port">
+              <button type="submit" class="btn btn-sm" id="target_connect">
+                  <span class="glyphicon glyphicon-log-in"></span>
+              </button>
+          </form>
           <ul id="gputop-entries" class="nav navbar-nav navbar-right">
             <li><a href="#" onclick="gputop_wip_error()">Load session</a></li>
             <li><a href="#" onclick="gputop_wip_error()">Settings</a></li>
@@ -93,11 +96,13 @@ function gputop_reconnect() {
 
     <div class="container-fluid" >
       <div class="row" >
-        <div class="col-sm-2 sidebar" style="width:12%; margin-top:25px">
+
+        <!-- Side navigation pane -->
+        <div class="col-sm-2 sidebar" style="margin-top:1em">
           <ul class="nav nav-sidebar">
             <li id="welcome"><a href="#gputop-welcome-panel" data-toggle="tab" id="welcome-tab-a">Welcome</a></li>
             <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview</a></li>
-            <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#pane2" data-toggle="tab">Metrics</a>
+            <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#gputop-metrics-panel" data-toggle="tab">Metrics</a>
               <ul class="nav nav-stacked nav-pills navbar-custom" id="sidebar_right" data-toggle="tabs" style="list-style-type:none; padding-top:10px; padding-bottom:10px;">
               </ul>
             </li>
@@ -110,7 +115,9 @@ function gputop_reconnect() {
 
           </ul>
         </div>
-         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" style = "margin-left: 13%">
+
+        <!-- Main page content -->
+        <div class="col-sm-10 main">
           <div class="tab-content" id="gputop-panels">
             <div class="tab-pane" id="gputop-welcome-panel">
               <p>Welcome didn't load yet</p>
@@ -118,13 +125,7 @@ function gputop_reconnect() {
             <div class="tab-pane" id="gputop-overview-panel">
               <p>Overview didn't load yet</p>
             </div>
-            <div class="tab-pane active" id="pane2">
-            </div>
-            <div class="tab-pane" id="instructions">
-              <p>Installation FAQ</p>
-            </div>
-            <div class="tab-pane" id="pane4">
-              <p>Pane 4</p>
+            <div class="tab-pane active" id="gputop-metrics-panel">
             </div>
             <div class="tab-pane" id="log-panel">
                 <p/>
@@ -134,9 +135,8 @@ function gputop_reconnect() {
                 <textarea id="log" class="container" style="min-height:400px" ></textarea>
             </div>
           </div>
-          </p>
-          </div>
-      </div>
+        </div>
+      </div> <!-- /row -->
 
       <footer class="footer">
           <div class="container">
@@ -169,10 +169,11 @@ function gputop_reconnect() {
     <script src="bootstrap-wysiwyg.min.js"></script>
     <script src="bootbox.min.js"></script>
 
-    <script src="gputop-ui.js"></script>
-    <script src="gputop.js"></script>
-<script>
+    <script>
     if (gputop_is_demo()) {
+        $('#target_address').attr('value', "demo");
+        $('#target_port').attr('value', "0");
+
         $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
                 console.log('Loaded welcome');
         });
@@ -190,10 +191,15 @@ function gputop_reconnect() {
             $("#demoMenu").append('<li><a href="#" onclick="gputop.set_demo_architecture(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
         }
     } else {
-        $( "#welcome" ).hide();
-        $( "#build-instructions" ).hide();
-        $( "#wiki" ).hide();
+        $('#target_address').attr('value', window.location.hostname);
+        $('#target_port').attr('value', window.location.port);
+        $("#welcome" ).hide();
+        $("#build-instructions" ).hide();
+        $("#wiki" ).hide();
     }
- </script>
+    </script>
+
+    <script src="gputop.js"></script>
+    <script src="gputop-ui.js"></script>
   </body>
 </html>

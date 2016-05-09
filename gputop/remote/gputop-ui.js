@@ -362,7 +362,7 @@ GputopUI.prototype.init_interface = function(){
 }
 
 GputopUI.prototype.load_metrics_panel = function(callback_success) {
-    $( '#pane2' ).load( "ajax/metrics.html", function() {
+    $( '#gputop-metrics-panel' ).load( "ajax/metrics.html", function() {
         console.log('Metrics panel loaded');
         callback_success();
     });
