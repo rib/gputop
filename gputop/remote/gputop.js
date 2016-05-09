@@ -56,7 +56,7 @@ function get_hostname() {
     if (is_nodejs)
         return 'localhost:7890' /* TODO: make this configurable somehow */
     else
-        return window.location.hostname + ':7890';
+        return $('#target_address').val() + ':' + $('#target_port').val();
 }
 
 function http_get(filename, load_callback, error_callback) {
@@ -500,7 +500,7 @@ Gputop.prototype.parse_xml_metrics = function(xml) {
     gputop.metrics_xml_ = xml;
     $(xml).find("set").each(gputop_read_metrics_set);
     if (gputop_is_demo()) {
-        $('#pane2').load("ajax/metrics.html");
+        $('#gputop-metrics-panel').load("ajax/metrics.html");
     }
 }
 
