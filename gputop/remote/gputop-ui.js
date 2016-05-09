@@ -26,6 +26,8 @@
  * SOFTWARE.
  */
 
+var gputop_ui;
+
 function GputopUI () {
     this.graph_array = [];
     this.zoom = 10; //seconds
@@ -368,8 +370,6 @@ GputopUI.prototype.load_metrics_panel = function(callback_success) {
     });
 }
 
-var gputop_ui = new GputopUI();
-
 GputopUI.prototype.btn_close_current_query = function() {
     var active_metric = gputop.active_oa_metric_;
     if (active_metric == undefined) {
@@ -412,9 +412,9 @@ GputopUI.prototype.btn_get_process_info = function() {
     });
 }
 
-// jquery code
-$( document ).ready(function() {
-    //log = $( "#log" );
+function gputop_ready() {
+    gputop_ui = new GputopUI();
+
     gputop_ui.syslog_ = document.getElementById("log");
 
 /*
@@ -429,4 +429,4 @@ $( document ).ready(function() {
 
     // Display tooltips
     $( '[data-toggle="tooltip"]' ).tooltip();
-});
+}

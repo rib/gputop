@@ -2,6 +2,7 @@ const http = require('http');
 const pkill = require('pkill');
 
 var gputop;
+var gputop_ui;
 var supported_oa_query_guids;
 
 function GPUTopNodeJSUI()
@@ -64,11 +65,10 @@ GPUTopNodeJSUI.prototype.log = function(level, message)
     console.log(message);
 }
 
-var gputop_ui = new GPUTopNodeJSUI();
-
-function gputop_ready(gputop_inst)
+function gputop_ready(inst)
 {
-    gputop = gputop_inst;
+    gputop = inst;
+    gputop_ui = new GPUTopNodeJSUI();
     gputop.connect();
 }
 

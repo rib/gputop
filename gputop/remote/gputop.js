@@ -32,7 +32,11 @@ var is_nodejs = false;
 if (typeof module !== 'undefined' && module.exports) {
     var http = require('http');
     var WebSocket = require('ws');
+    var ProtoBuf = require("protobufjs");
     is_nodejs = true;
+} else {
+    ProtoBuf = dcodeIO.ProtoBuf;
+    var $ = window.jQuery;
 }
 
 Object.size = function(obj) {
@@ -45,10 +49,8 @@ Object.size = function(obj) {
 
 //------------------------------ Protobuffer Init ----------------------------
 
-var ProtoBuf;
 var proto_builder;
 var gputop;
-var $;
 
 function get_hostname() {
     if (is_nodejs)
@@ -73,33 +75,33 @@ function http_get(filename, load_callback, error_callback) {
     }
 }
 
-function on_jquery_ready() {
+function load_gputop_proto(onload) {
     http_get('gputop.proto', function (proto) {
         proto_builder = ProtoBuf.newBuilder();
         ProtoBuf.protoFromString(proto, proto_builder, "gputop.proto");
-        gputop = new Gputop();
-        gputop_ready(gputop);
-    }, function (error) { console.log(error); });
+        onload();
+    },
+    function (error) { console.log(error); });
 }
 
 if (!is_nodejs) {
-    if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-        throw(new Error("ProtoBuf.js is not present."));
-    }
-    // Initialize ProtoBuf.js
-    ProtoBuf = dcodeIO.ProtoBuf;
-    proto_builder = ProtoBuf.loadProtoFile("gputop.proto");
-    $ = window.jQuery;
+    $( document ).ready(function() {
+        load_gputop_proto(() => {
+            gputop = new Gputop();
+            gputop_ready();
+        });
+    });
 } else {
-    ProtoBuf = require("protobufjs");
-
     http_get('index.html', function (index_html) {
         var jsdom = require('jsdom');
         jsdom.env({ html: index_html,
                     scripts: ['http://' + get_hostname() + '/jquery.min.js'],
                     loaded: function (err, window) {
                         $ = require('jquery')(window);
-                        on_jquery_ready();
+                        load_gputop_proto(() => {
+                            gputop = new Gputop();
+                            gputop_ready(gputop);
+                        });
                     }
         });
     }, function (error) { console.log(error); });
@@ -948,7 +950,7 @@ Gputop.prototype.get_process_info = function(pid, callback) {
     this.rpc_request('get_process_info', pid, callback);
 }
 
-Gputop.prototype.get_socket = function(websocket_url) {
+Gputop.prototype.connect_web_socket = function(websocket_url, onopen) {
     var socket = new WebSocket(websocket_url, "binary");
     socket.binaryType = "arraybuffer";
 
@@ -959,16 +961,13 @@ Gputop.prototype.get_socket = function(websocket_url) {
     return socket;
 }
 
-// Connect to the socket for transactions
 Gputop.prototype.connect = function() {
+    gputop.dispose();
+
     if (!gputop_is_demo()) {
         var websocket_url = 'ws://' + get_hostname() + '/gputop/';
         gputop_ui.syslog('Connecting to port ' + websocket_url);
-        //----------------- Data transactions ----------------------
-        this.socket_ = this.get_socket(websocket_url);
+        this.socket_ = this.connect_web_socket(websocket_url);
     } else
         this.load_emscripten();
 }
-
-if (!is_nodejs)
-    gputop = new Gputop();
