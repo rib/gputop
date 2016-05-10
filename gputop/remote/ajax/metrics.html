@@ -44,7 +44,7 @@
         if(iSelector.hasClass('glyphicon-pause')) {
             iSelector.removeClass('glyphicon-pause')
             iSelector.addClass('glyphicon-play')
-            gputop_ui.btn_close_current_query();
+            gputop.btn_close_current_query();
         } else {
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
@@ -86,12 +86,12 @@
         var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
         if (counter == undefined) {
             console.log(" Failed to load counter "+ set_index +" "+ counter_index);
-            gputop_ui.show_alert("Counter missing, forgot to compile?","alert-danger");
+            gputop.show_alert("Counter missing, forgot to compile?","alert-danger");
             return;
         }
 
         if (symbol_name.localeCompare(counter.symbol_name)) {
-            gputop_ui.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
+            gputop.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
             return;
         }
 
@@ -348,7 +348,7 @@
             var container = "#" + counter_id;
             var counter = $(container).data("counter");
             counter.record_data = true;
-            gputop_ui.graph_array.push(counter_id);
+            gputop.graph_array.push(counter_id);
         });
 
         $('.collapse').on('hidden.bs.collapse', function(e) {
@@ -358,12 +358,12 @@
 
             $glyphicon.attr("class", glyphicon_class);
             var id = $(e.target).find(".well");
-            var index = gputop_ui.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
-            var container = "#" + gputop_ui.graph_array[index];
+            var index = gputop.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
+            var container = "#" + gputop.graph_array[index];
             var counter = $(container).data("counter");
             counter.record_data = false;
             counter.graph_data = [];
-            gputop_ui.graph_array.splice(index, 1); // remove element from the graph array
+            gputop.graph_array.splice(index, 1); // remove element from the graph array
         })
 
     } // read_from_xml
@@ -412,7 +412,7 @@
     });
 
     $("#zoom_slider").on("slide change", function(slideEvt) {
-        gputop_ui.set_zoom(slider.getValue());
+        gputop.set_zoom(slider.getValue());
     });
 
     // read counters from xml file and populate the website

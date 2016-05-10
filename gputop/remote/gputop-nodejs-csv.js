@@ -1,14 +1,16 @@
-const http = require('http');
+const Gputop = require('gputop');
 const pkill = require('pkill');
-
-var gputop;
-var gputop_ui;
-var supported_oa_query_guids;
+const fs = require('fs');
 
 function GPUTopNodeJSUI()
 {
+    Gputop.Gputop.call(this);
+
     this.type = "dummy_ui";
+    this.supported_oa_query_guids = undefined;
 }
+
+GPUTopNodeJSUI.prototype = Object.create(Gputop.Gputop.prototype);
 
 GPUTopNodeJSUI.prototype.syslog = function(message)
 {
@@ -29,21 +31,21 @@ GPUTopNodeJSUI.prototype.update_features = function(features)
 {
     console.log(features);
 
-    features.supported_oa_query_guids.forEach(function (guid, i, a) {
-        var metric = gputop.get_map_metric(guid);
+    features.supported_oa_query_guids.forEach((guid, i, a) => {
+        var metric = this.get_map_metric(guid);
         metric.counters_.forEach(function (i, j, k) {
             metric.counters_[j].record_data = true;
         });
     });
 
     gputop.open_oa_metric_set({guid: features.supported_oa_query_guids[0]});
-    supported_oa_query_guids = features.supported_oa_query_guids;
+    this.supported_oa_query_guids = features.supported_oa_query_guids;
 }
 
 GPUTopNodeJSUI.prototype.queue_redraw = function()
 {
-    if (supported_oa_query_guids !== undefined)
-        var metric = gputop.get_map_metric(supported_oa_query_guids[0]);
+    if (this.supported_oa_query_guids !== undefined)
+        var metric = this.get_map_metric(this.supported_oa_query_guids[0]);
 }
 
 GPUTopNodeJSUI.prototype.load_metrics_panel = function(open_query)
@@ -65,49 +67,13 @@ GPUTopNodeJSUI.prototype.log = function(level, message)
     console.log(message);
 }
 
-function gputop_ready(inst)
-{
-    gputop = inst;
-    gputop_ui = new GPUTopNodeJSUI();
-    gputop.connect();
-}
-
-function gputop_is_demo () {
-    return false;
-}
-
-function on_gputop_web_ready(gputop_web) {
-    http.get("http://localhost:7890/gputop.js", function(response) {
-        var gputopjs = "";
-        response.setEncoding('utf8');
-        response.on('data', function(data) {
-            gputopjs += data;
-        });
-        response.on('end', function () {
-            eval(gputop_web);
-            eval(gputopjs);
-        });
-    });
-}
-
-http.get("http://localhost:7890/gputop-web.js", function(response) {
-    var gputop_web = "";
-    response.setEncoding('utf8');
-    response.on('data', function(data) {
-        gputop_web += data;
-    });
-    response.on('end', function () {
-        on_gputop_web_ready(gputop_web);
-    });
-});
-
-function gputop_clean_exit()
-{
-    if (gputop !== undefined && supported_oa_query_guids !== undefined) {
-        var metric = gputop.get_map_metric(supported_oa_query_guids[0]);
-        var fs = require('fs');
+GPUTopNodeJSUI.prototype.clean_exit = function () {
+    console.log("Writting CSV file...");
+    if (this.supported_oa_query_guids !== undefined) {
+        var metric = this.get_map_metric(this.supported_oa_query_guids[0]);
         var stream = fs.createWriteStream("my_file.csv");
-        stream.once('open', function(fd) {
+
+        stream.once('open', (fd) => {
             var csv_file = "Metric,Counter,Start,End,Value,Maximum,Reason\n";
 
             for (j = 0; j < metric.counters_.length; j++) {
@@ -143,5 +109,9 @@ function gputop_clean_exit()
     }
 }
 
-process.on('SIGINT', gputop_clean_exit);
-process.on('SIGTERM', gputop_clean_exit);
+var gputop = new GPUTopNodeJSUI();
+gputop.connect();
+
+process.on('SIGINT', gputop.clean_exit.bind(gputop));
+process.on('SIGTERM', gputop.clean_exit.bind(gputop));
+

@@ -39,20 +39,6 @@ var getUrlParameter = function(sParam) {
     }
 };
 
-function gputop_is_demo() {
-
-    var demo = getUrlParameter('demo');
-    if (demo == "true" || demo == "1"
-        || window.location.hostname == "gputop.github.io"
-        || window.location.hostname == "www.gputop.com"
-//      || window.location.hostname == "localhost"
-    ) {
-           return true;
-    }
-
-    return false;
-}
-
 function gputop_help() {
     alert("WIP Version");
 }
@@ -169,37 +155,44 @@ function gputop_wip_error() {
     <script src="bootstrap-wysiwyg.min.js"></script>
     <script src="bootbox.min.js"></script>
 
-    <script>
-    if (gputop_is_demo()) {
-        $('#target_address').attr('value', "demo");
-        $('#target_port').attr('value', "0");
-
-        $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
-                console.log('Loaded welcome');
-        });
-
-        $('#welcome-tab-a').trigger('click');
-        $( ".gputop-connecting" ).hide();
-
-        $('#gputop-entries').prepend('<li class="dropdown" id="metric-menu"></li>');
-        $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Inspect metric set</a>');
-        $('#metric-menu').append('<ul id="demoMenu" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
-        var arch_map = {"hsw":"Haswell", "skl":"Skylake", "bdw":"Broadwell",
-                        "chv":"Cherryview"};
-        for (k in arch_map)
-        {
-            $("#demoMenu").append('<li><a href="#" onclick="gputop.set_demo_architecture(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
-        }
-    } else {
-        $('#target_address').attr('value', window.location.hostname);
-        $('#target_port').attr('value', window.location.port);
-        $("#welcome" ).hide();
-        $("#build-instructions" ).hide();
-        $("#wiki" ).hide();
-    }
-    </script>
-
     <script src="gputop.js"></script>
     <script src="gputop-ui.js"></script>
+
+    <script>
+        if (gputop_is_demo()) {
+            $('#target_address').attr('value', "demo");
+            $('#target_port').attr('value', "0");
+
+            $( '#gputop-welcome-panel' ).load( "ajax/welcome.html", function() {
+                    console.log('Loaded welcome');
+            });
+
+            $('#welcome-tab-a').trigger('click');
+            $( ".gputop-connecting" ).hide();
+
+            $('#gputop-entries').prepend('<li class="dropdown" id="metric-menu"></li>');
+            $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Inspect metric set</a>');
+            $('#metric-menu').append('<ul id="demoMenu" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
+            var arch_map = {"hsw":"Haswell", "skl":"Skylake", "bdw":"Broadwell",
+                            "chv":"Cherryview"};
+            for (k in arch_map)
+            {
+                $("#demoMenu").append('<li><a href="#" onclick="gputop.set_demo_architecture(\'' + k + '\')">'+ arch_map[k] + '</a></li>');
+            }
+        } else {
+            $('#target_address').attr('value', window.location.hostname);
+            $('#target_port').attr('value', window.location.port);
+            $("#welcome" ).hide();
+            $("#build-instructions" ).hide();
+            $("#wiki" ).hide();
+        }
+
+        var gputop;
+
+        $( document ).ready(function() {
+            gputop = new GputopUI();
+            gputop.init_interface();
+        });
+    </script>
   </body>
 </html>

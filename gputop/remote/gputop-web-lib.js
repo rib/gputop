@@ -26,7 +26,7 @@
 
 var LibraryGpuTopWeb = {
     $GPUTop: {
-        _guid_to_metric_set_map: {}
+        _guid_to_metric_set_map: {},
     },
 
     _gputop_web_console_log: function (message) {
@@ -67,10 +67,11 @@ var LibraryGpuTopWeb = {
     },
 
     _gputop_stream_update_counter: function (counter, stream_ptr, start_timestamp, end_timestamp, delta, max, d_value) {
-        if (gputop != undefined)
-            gputop.stream_update_counter(counter, stream_ptr, start_timestamp, end_timestamp, delta, max, d_value);
+        var gputop = Module['gputop_singleton'];
+        if (gputop !== undefined)
+            gputop.stream_update_counter.call(gputop, counter, stream_ptr, start_timestamp, end_timestamp, delta, max, d_value);
         else
-            console.log(" Missing GPUTOP to process " + counter + " COUNTER ["+start_timestamp+":"+ end_timestamp +"]:"+delta+" = "+ d_value);
+            console.error("Gputop singleton not initialized");
     },
 
 };
