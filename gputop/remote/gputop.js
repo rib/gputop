@@ -87,7 +87,6 @@ function load_gputop_proto(onload) {
 if (!is_nodejs) {
     $( document ).ready(function() {
         load_gputop_proto(() => {
-            gputop = new Gputop();
             gputop_ready();
         });
     });

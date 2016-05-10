@@ -29,6 +29,8 @@
 var gputop_ui;
 
 function GputopUI () {
+    Gputop.call(this);
+
     this.graph_array = [];
     this.zoom = 10; //seconds
 
@@ -45,6 +47,7 @@ function GputopUI () {
     this.queue_redraw_ = false;
 }
 
+GputopUI.prototype = Object.create(Gputop.prototype);
 
 function create_default_markings(xaxis) {
     var markings = [];
@@ -413,7 +416,7 @@ GputopUI.prototype.btn_get_process_info = function() {
 }
 
 function gputop_ready() {
-    gputop_ui = new GputopUI();
+    gputop = gputop_ui = new GputopUI();
 
     gputop_ui.syslog_ = document.getElementById("log");
 
