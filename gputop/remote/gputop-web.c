@@ -161,6 +161,14 @@ gputop_webc_handle_perf_message(struct gputop_webc_stream *stream,
     gputop_web_console_log("FIXME: parse perf data");
 }
 
+// function that resets the accumulator clock and the continuation_report
+void EMSCRIPTEN_KEEPALIVE
+gputop_webc_reset_accumulator(struct gputop_webc_stream *stream)
+{
+    stream->continuation_report = NULL;
+    (&stream->oa_accumulator)->clock.initialized = false;
+}
+
 void EMSCRIPTEN_KEEPALIVE
 gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
                                      uint8_t *data, int len)

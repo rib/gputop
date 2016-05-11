@@ -39,14 +39,35 @@
 </div>
 
 <script>
-
     function buttonTogglePlay(){
         var iSelector = $("#toggle-query");
         if(iSelector.hasClass('glyphicon-pause')) {
             iSelector.removeClass('glyphicon-pause')
             iSelector.addClass('glyphicon-play')
-            gputop_ui.btn_close_current_query();
+
+            gputop_ui.btn_close_current_query(); // close current query
+            global_paused_query = true;
+            gputop_ui.clear_graphs();
+
+            gputop.open_stream_paused();
+            gputop.replay_buffer();
+
+            slider.setAttribute('min', 0.1);
+            slider.setValue(slider.getValue()); // update the slider visual position
+
         } else {
+            gputop.clear_replay_buffer();
+
+            slider.setAttribute('min', 1);
+            if (slider.getValue() < 1) {
+                slider.setValue(1);
+                gputop_ui.set_zoom(slider.getValue());
+            }
+            else slider.setValue(slider.getValue());
+
+            global_paused_query = false;
+            gputop.close_stream_paused();
+            gputop_ui.clear_graphs();
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
             gputop.open_oa_metric_set({guid:global_guid});
@@ -57,6 +78,7 @@
                       "Tier1", "Tier2", "Tier3", "Tier4"];
     var metric_order = [];
     var selected_index;
+    var global_paused_query = false;
     var set_array = {};
 
     function count(name, underscore_name, flags)
@@ -409,11 +431,16 @@
     slider = new Slider('#zoom_slider', {
         formatter: function(value) {
             return 'Current value: ' + value;
-        }
+        },
+        min: 1
     });
 
     $("#zoom_slider").on("slide change", function(slideEvt) {
         gputop_ui.set_zoom(slider.getValue());
+        if (global_paused_query == true) {
+            gputop_ui.clear_graphs();
+            gputop.replay_buffer();
+        }
     });
 
     // read counters from xml file and populate the website
