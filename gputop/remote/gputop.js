@@ -849,7 +849,6 @@ Gputop.prototype.load_emscripten = function(callback) {
                      */
                     webc.gputop_singleton = this;
 
-                    this.request_features();
                     this.native_js_loaded_ = true;
                     console.log("GPUTop Emscripten code loaded\n");
                     callback();
@@ -858,7 +857,9 @@ Gputop.prototype.load_emscripten = function(callback) {
                     console.log( "Failed loading emscripten" );
                 });
     } else {
-        this.request_features();
+        /* In the case of node.js we use require('./gputop-web.js') to
+         * load the Emscripten code so this is mostly a NOP...
+         */
         this.native_js_loaded_ = true;
 
         /* Tell gputop-web-lib.js about this object so that the webc
@@ -883,13 +884,6 @@ Gputop.prototype.dispose = function() {
     this.webc_stream_ptr_to_metric_map = {};
     this.server_handle_to_metric_map = {};
     this.active_oa_metric_ = undefined;
-}
-
-function gputop_socket_on_open() {
-    this.syslog("Connected");
-    this.show_alert("Succesfully connected to GPUTOP","alert-success");
-    this.load_emscripten();
-    this.flush_test_log();
 }
 
 function gputop_socket_on_close() {
@@ -1003,7 +997,12 @@ Gputop.prototype.connect_web_socket = function(websocket_url, onopen) {
     var socket = new WebSocket(websocket_url, "binary");
     socket.binaryType = "arraybuffer";
 
-    socket.onopen = gputop_socket_on_open.bind(this)
+    socket.onopen = () => {
+        this.syslog("Connected");
+        this.show_alert("Succesfully connected to GPUTOP", "alert-success");
+        this.flush_test_log();
+        onopen();
+    }
     socket.onclose = gputop_socket_on_close.bind(this);
     socket.onmessage = gputop_socket_on_message.bind(this);
 
@@ -1023,19 +1022,27 @@ Gputop.prototype.load_gputop_proto = function(onload) {
     function (error) { console.log(error); });
 }
 
-function do_connect() {
-    if (!gputop_is_demo()) {
-        var websocket_url = 'ws://' + get_hostname() + '/gputop/';
-        this.syslog('Connecting to port ' + websocket_url);
-        this.socket_ = this.connect_web_socket(websocket_url);
-    } else
-        this.load_emscripten();
-}
-
-Gputop.prototype.connect = function() {
+Gputop.prototype.connect = function(callback) {
     this.dispose();
 
-    this.load_gputop_proto(do_connect.bind(this));
+    this.load_emscripten(() => {
+        if (!gputop_is_demo()) {
+                this.load_gputop_proto(() => {
+                    var websocket_url = 'ws://' + get_hostname() + '/gputop/';
+                    this.syslog('Connecting to port ' + websocket_url);
+                    this.socket_ = this.connect_web_socket(websocket_url, () => {
+                        this.is_connected_ = true;
+                        this.request_features();
+                        if (callback !== undefined)
+                            callback();
+                    });
+                });
+        } else {
+            this.is_connected_ = true;
+            if (callback !== undefined)
+                callback();
+        }
+    });
 }
 
 if (is_nodejs) {
