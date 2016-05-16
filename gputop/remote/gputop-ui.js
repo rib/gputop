@@ -42,7 +42,7 @@ function GputopUI () {
     this.start_timestamp = 0;
     this.start_gpu_timestamp = 0;
 
-    this.queue_redraw_ = false;
+    this.redraw_queued_ = false;
 
     this.syslog_ = document.getElementById("log");
 
