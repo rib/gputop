@@ -829,13 +829,9 @@ Gputop.prototype.process_features = function(features){
     }, function (error) { console.log(error); });
 }
 
-Gputop.prototype.load_emscripten = function() {
-    if (this.is_connected_)
-        return;
-
-    this.is_connected_ = true;
-    if (this.native_js_loaded_ == true) {
-        this.request_features();
+Gputop.prototype.load_emscripten = function(callback) {
+    if (this.native_js_loaded_) {
+        callback();
         return;
     }
 
@@ -856,6 +852,7 @@ Gputop.prototype.load_emscripten = function() {
                     this.request_features();
                     this.native_js_loaded_ = true;
                     console.log("GPUTop Emscripten code loaded\n");
+                    callback();
                 },
                 function () {
                     console.log( "Failed loading emscripten" );
@@ -868,8 +865,7 @@ Gputop.prototype.load_emscripten = function() {
          * code can call methods on it...
          */
         webc.gputop_singleton = this;
-
-        console.log("GPUTop Emscripten code loaded\n");
+        callback();
     }
 }
 
