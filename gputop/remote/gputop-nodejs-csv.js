@@ -1,13 +1,17 @@
+#!/usr/bin/env node
+'use strict';
+
 const Gputop = require('gputop');
-const pkill = require('pkill');
 const fs = require('fs');
 
 function GPUTopNodeJSUI()
 {
     Gputop.Gputop.call(this);
 
-    this.type = "dummy_ui";
-    this.supported_oa_query_guids = undefined;
+    this.stream = undefined;
+    this.metric = undefined;
+
+    this.write_queued_ = false;
 }
 
 GPUTopNodeJSUI.prototype = Object.create(Gputop.Gputop.prototype);
@@ -31,34 +35,94 @@ GPUTopNodeJSUI.prototype.update_features = function(features)
 {
     console.log(features);
 
-    features.supported_oa_query_guids.forEach((guid, i, a) => {
-        var metric = this.get_map_metric(guid);
-        metric.counters_.forEach(function (i, j, k) {
-            metric.counters_[j].record_data = true;
+    if (features.supported_oa_query_guids.length === 0) {
+        console.error("No OA metrics supported");
+    } else {
+        var guid = features.supported_oa_query_guids[0];
+        this.metric = this.get_map_metric(guid);
+
+        if (this.metric === undefined) {
+            console.error("Failed to look up metric " + guid);
+            return;
+        }
+        var columns = "Timestamp";
+
+        this.metric.emc_counters_.forEach((counter, i, arr) => {
+            columns += ",\"" + counter.symbol_name + "\"";
+            counter.record_data = true;
         });
-    });
 
-    gputop.open_oa_metric_set({guid: features.supported_oa_query_guids[0]});
-    this.supported_oa_query_guids = features.supported_oa_query_guids;
+        /* RFC 4180 says to use DOS style \r\n line endings and we
+         * ignore that because... reasons... */
+        this.stream.write(columns + "\n");
+
+        this.open_oa_metric_set({guid: this.metric.guid_});
+    }
 }
 
-GPUTopNodeJSUI.prototype.queue_redraw = function()
+function write_rows()
 {
-    if (this.supported_oa_query_guids !== undefined)
-        var metric = this.get_map_metric(this.supported_oa_query_guids[0]);
+    var metric = this.metric;
+
+    if (metric === undefined)
+        return;
+
+    var first_counter = metric.emc_counters_[0];
+    var n_rows = first_counter.updates.length;
+
+    if (n_rows <= 1)
+        return;
+
+    /* Ignore the latest updates in case we haven't received an update
+     * for all counter yet... */
+    n_rows -= 1;
+
+    for (var r = 0; r < n_rows; r++) {
+
+        //console.log("start row " + r);
+        var start = first_counter.updates[r][0];
+        var end = first_counter.updates[r][1];
+        var row_timestamp = start + (end - start) / 2;
+
+        var row = "" + row_timestamp;
+
+        for (var c = 0; c < metric.emc_counters_.length; c++) {
+            //console.log("c = " + c);
+            var counter = metric.emc_counters_[c];
+
+            start = counter.updates[r][0];
+            end = counter.updates[r][1];
+            var val = counter.updates[r][2];
+            var max = counter.updates[r][3];
+            var mid = start + (end - start) / 2;
+
+            console.assert(mid === row_timestamp, "Inconsistent row timestamp");
+
+            row += "," + val;
+        }
+
+        /* RFC 4180 says to use DOS style \r\n line endings and we
+         * ignore that because... reasons... */
+        this.stream.write(row + "\n");
+        console.log("wrote row " + r + ": " + row);
+    }
+
+    for (var c = 0; c < metric.emc_counters_.length; c++) {
+        var counter = metric.emc_counters_[c];
+        counter.updates.splice(0, n_rows);
+    }
 }
 
-GPUTopNodeJSUI.prototype.load_metrics_panel = function(open_query)
-{
-    open_query();
-}
+GPUTopNodeJSUI.prototype.queue_redraw = function() {
+    if (this.write_queued_)
+        return;
 
-GPUTopNodeJSUI.prototype.update_slider_period = function(period)
-{
-}
+    setTimeout(() => {
+        this.write_queued_ = false;
+        write_rows.call(this);
+    }, 0.2);
 
-GPUTopNodeJSUI.prototype.render_bars = function()
-{
+    this.write_queued_ = true;
 }
 
 GPUTopNodeJSUI.prototype.log = function(level, message)
@@ -67,51 +131,28 @@ GPUTopNodeJSUI.prototype.log = function(level, message)
     console.log(message);
 }
 
-GPUTopNodeJSUI.prototype.clean_exit = function () {
-    console.log("Writting CSV file...");
-    if (this.supported_oa_query_guids !== undefined) {
-        var metric = this.get_map_metric(this.supported_oa_query_guids[0]);
-        var stream = fs.createWriteStream("my_file.csv");
+var gputop;
 
-        stream.once('open', (fd) => {
-            var csv_file = "Metric,Counter,Start,End,Value,Maximum,Reason\n";
+var stream = fs.createWriteStream("my_file.csv");
 
-            for (j = 0; j < metric.counters_.length; j++) {
-                for (i = 0; i < metric.counters_[j].updates.length; i++) {
-                    csv_file += "" + metric.name_ + "," +
-                        metric.counters_[j].symbol_name + "," +
-                        metric.counters_[j].updates[i][0] + "," +
-                        metric.counters_[j].updates[i][1] + "," +
-                        metric.counters_[j].updates[i][2] + "," +
-                        metric.counters_[j].updates[i][3] + "," +
-                        metric.counters_[j].updates[i][4] + "," + "\n";
-                }
-            }
+stream.once('open', (fd) => {
+    console.log("opened file");
 
-            stream.write(csv_file);
-            stream.end();
-            pkill('gputop', function(error, valid_pid) {
-                if (error)
-                    console.log(error);
-                console.log(valid_pid);
-            });
+    gputop = new GPUTopNodeJSUI();
 
-            process.exit();
-        });
-    } else {
-        pkill('gputop', function(error, valid_pid) {
-            if (error)
-                console.log(error);
-            console.log(valid_pid);
-        });
+    gputop.stream = stream;
 
-        process.exit();
-    }
+    gputop.connect(() => {
+        console.log("connected");
+    });
+});
+
+function close_and_exit(signo) {
+    console.log("Closing...");
+    stream.end();
+    process.exit(128 + signo);
 }
 
-var gputop = new GPUTopNodeJSUI();
-gputop.connect();
-
-process.on('SIGINT', gputop.clean_exit.bind(gputop));
-process.on('SIGTERM', gputop.clean_exit.bind(gputop));
+process.on('SIGINT', () => { close_and_exit(2); });
+process.on('SIGTERM', () => { close_and_exit(15); });
 
