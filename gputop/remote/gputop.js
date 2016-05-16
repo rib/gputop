@@ -145,6 +145,7 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     if (this.record_data) {
         this.updates.push([start_timestamp, end_timestamp, d_value, max, reason]);
         if (this.updates.length > 2000) {
+            console.warn("Discarding old counter update (> 2000 updates old)");
             this.updates.shift();
         }
     }
