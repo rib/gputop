@@ -5,7 +5,7 @@ const Gputop = require('gputop');
 const fs = require('fs');
 const ArgumentParser = require('argparse');
 
-function GPUTopNodeJSUI()
+function GputopCSV()
 {
     Gputop.Gputop.call(this);
 
@@ -15,9 +15,9 @@ function GPUTopNodeJSUI()
     this.write_queued_ = false;
 }
 
-GPUTopNodeJSUI.prototype = Object.create(Gputop.Gputop.prototype);
+GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
-GPUTopNodeJSUI.prototype.update_features = function(features)
+GputopCSV.prototype.update_features = function(features)
 {
     console.log(features);
 
@@ -99,7 +99,7 @@ function write_rows()
     }
 }
 
-GPUTopNodeJSUI.prototype.queue_redraw = function() {
+GputopCSV.prototype.queue_redraw = function() {
     if (this.write_queued_)
         return;
 
@@ -111,7 +111,7 @@ GPUTopNodeJSUI.prototype.queue_redraw = function() {
     this.write_queued_ = true;
 }
 
-GPUTopNodeJSUI.prototype.log = function(level, message)
+GputopCSV.prototype.log = function(level, message)
 {
     console.log(level);
     console.log(message);
@@ -124,7 +124,7 @@ var stream = fs.createWriteStream("my_file.csv");
 stream.once('open', (fd) => {
     console.log("opened file");
 
-    gputop = new GPUTopNodeJSUI();
+    gputop = new GputopCSV();
 
     gputop.stream = stream;
 
