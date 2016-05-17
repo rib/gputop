@@ -87,7 +87,6 @@ function write_rows()
 
     for (var r = 0; r < n_rows; r++) {
 
-        //console.log("start row " + r);
         var start = first_counter.updates[r][0];
         var end = first_counter.updates[r][1];
         var row_timestamp = start + (end - start) / 2;
@@ -95,7 +94,6 @@ function write_rows()
         var row = "" + row_timestamp;
 
         for (var c = 0; c < metric.emc_counters_.length; c++) {
-            //console.log("c = " + c);
             var counter = metric.emc_counters_[c];
 
             start = counter.updates[r][0];
@@ -112,7 +110,6 @@ function write_rows()
         /* RFC 4180 says to use DOS style \r\n line endings and we
          * ignore that because... reasons... */
         this.stream.write(row + "\n");
-        console.log("wrote row " + r + ": " + row);
     }
 
     for (var c = 0; c < metric.emc_counters_.length; c++) {
