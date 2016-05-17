@@ -5,7 +5,7 @@
     "version": "0.0.1",
     "license": "MIT",
     "dependencies": {
-        "gputop": "../gputop",
+        "gputop": "file:../gputop",
         "argparse": "^1.0.7"
     },
     "bin": {
