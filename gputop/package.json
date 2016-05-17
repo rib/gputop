@@ -7,7 +7,6 @@
     "os": [ "linux" ],
     "devDependencies": {
         "bootstrap": "^3.3.6",
-        "bootstrap-wysiwyg": "^1.0.4",
         "bootstrap-slider": "^6.0.16",
         "bootbox": "4.4.0",
         "jqueryui-browser": "^1.10.2-1",

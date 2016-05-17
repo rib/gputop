@@ -17,21 +17,6 @@ function GPUTopNodeJSUI()
 
 GPUTopNodeJSUI.prototype = Object.create(Gputop.Gputop.prototype);
 
-GPUTopNodeJSUI.prototype.syslog = function(message)
-{
-    console.log(message);
-}
-
-GPUTopNodeJSUI.prototype.show_alert = function(message, type)
-{
-    console.log(message);
-}
-
-GPUTopNodeJSUI.prototype.weblog = function(message)
-{
-    console.log(message);
-}
-
 GPUTopNodeJSUI.prototype.update_features = function(features)
 {
     console.log(features);

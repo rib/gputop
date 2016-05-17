@@ -44,8 +44,6 @@ function GputopUI () {
 
     this.redraw_queued_ = false;
 
-    this.syslog_ = document.getElementById("log");
-
     this.previous_zoom = 0;
 }
 
@@ -428,23 +426,17 @@ GputopUI.prototype.log = function(log_level, log_message){
         case 3: color = "blue"; break;
         case 4: color = "black"; break;
     }
-    $('#editor').append("<font color='"+color+"'>"+log_message+"<br/></font>");
+    $('#log').append('<font color="' + color + '">' + log_message + '</font></br>');
 }
 
 GputopUI.prototype.syslog = function(message){
-    this.syslog_.value += message + "\n";
     console.log(message);
-}
-
-GputopUI.prototype.weblog = function(message){
-    //this.weblog.value += message + "\n";
 }
 
 GputopUI.prototype.init_interface = function(){
     $( "#gputop-overview-panel" ).load( "ajax/overview.html", () => {
         console.log('gputop-overview-panel loaded');
         $( '#process-tab-a' ).click(this.btn_get_process_info);
-        $( '#editor' ).wysiwyg();
 
         // Display tooltips
         $( '[data-toggle="tooltip"]' ).tooltip();

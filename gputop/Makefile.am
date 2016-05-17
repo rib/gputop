@@ -113,7 +113,6 @@ third_party_files = \
 	jquery.flot.js \
 	jquery.flot.navigate.js \
 	$(mathjax_files) \
-	bootstrap-wysiwyg.min.js \
 	bootstrap-slider.min.js \
 	bootstrap/css/bootstrap.min.css \
 	bootstrap/css/bootstrap.min.css.map \

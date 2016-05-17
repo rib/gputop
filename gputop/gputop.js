@@ -350,6 +350,25 @@ function Gputop () {
     this.test_log("Global Gputop object constructed");
 }
 
+/* Application log messages */
+Gputop.prototype.log = function(level, message)
+{
+    console.log("APP LOG: (" + level + ") " + message);
+}
+
+/* Internal console.log wrapper in case we want to forward/redirect */
+Gputop.prototype.syslog = function(message)
+{
+    console.log(message);
+}
+
+/* User directed messages */
+Gputop.prototype.show_alert = function(message, type)
+{
+    console.log(message);
+}
+
+/* For unit test feedback, sent back to server in test mode */
 Gputop.prototype.test_log = function(message) {
     if (this.test_mode) {
         this.test_log_messages.push(message);
@@ -440,7 +459,7 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
         metric.name_ = $(xml_elem).attr("name");
         metric.chipset_ = $(xml_elem).attr("chipset");
 
-        this.weblog(guid + '\n Found metric ' + metric.name_);
+        this.syslog(guid + '\n Found metric ' + metric.name_);
 
         // We populate our array with metrics in the same order as the XML
         // The metric will already be defined when the features query finishes

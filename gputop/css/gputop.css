@@ -94,3 +94,8 @@ body {
 .progress_text {
     width: 30em;
 }
+
+#log {
+    overflow: scroll;
+    height: 90%;
+}
