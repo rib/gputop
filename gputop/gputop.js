@@ -30,7 +30,6 @@
 var is_nodejs = false;
 
 if (typeof module !== 'undefined' && module.exports) {
-    var http = require('http');
     var WebSocket = require('ws');
     var ProtoBuf = require("protobufjs");
     var fs = require('fs');

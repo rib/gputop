@@ -1,0 +1,17 @@
+{
+    "name": "gputop-csv",
+    "description": "GPU Top CSV Dump Tool",
+    "repository": "https://github.com/rib/gputop",
+    "version": "0.0.1",
+    "license": "MIT",
+    "dependencies": {
+        "gputop": "../gputop",
+        "argparse": "^1.0.7"
+    },
+    "bin": {
+        "gputop-csv": "gputop-csv.js"
+    },
+    "engines": {
+        "node": ">=0.8.0"
+    }
+}

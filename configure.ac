@@ -169,7 +169,7 @@ protobuf-c/Makefile
 protoc-c/Makefile
 gputop/Makefile
 gputop/registry/Makefile
-gputop/remote/Makefile
+gputop-csv/Makefile
 )
 
 echo ""

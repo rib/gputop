@@ -3,6 +3,7 @@
 
 const Gputop = require('gputop');
 const fs = require('fs');
+const ArgumentParser = require('argparse');
 
 function GPUTopNodeJSUI()
 {

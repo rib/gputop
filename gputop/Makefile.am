@@ -1,3 +1,5 @@
+include Makefile.mathjax
+
 SUBDIRS =
 
 if SUPPORT_GL
@@ -10,7 +12,7 @@ endif
 SUBDIRS += .
 
 if SUPPORT_WEBUI
-SUBDIRS += remote
+
 endif
 
 bin_PROGRAMS = gputop gputop-system
@@ -102,11 +104,64 @@ libgputop_la_LIBADD += \
     $(PROTOBUF_DEP_LIBS) \
     -lssl -lcrypto -lyaml
 
+third_party_files = \
+	protobuf.min.js \
+	bytebuffer.min.js \
+	long.min.js \
+	jquery.min.js \
+	jquery-ui.js \
+	jquery.flot.js \
+	jquery.flot.navigate.js \
+	$(mathjax_files) \
+	bootstrap-wysiwyg.min.js \
+	bootstrap-slider.min.js \
+	bootstrap/css/bootstrap.min.css \
+	bootstrap/css/bootstrap.min.css.map \
+	bootstrap/css/bootstrap-theme.min.css \
+	bootstrap/css/bootstrap.css \
+	bootstrap/css/bootstrap-theme.min.css.map \
+	bootstrap/js/bootstrap.min.js \
+	bootstrap/fonts/glyphicons-halflings-regular.woff \
+	bootstrap/fonts/glyphicons-halflings-regular.ttf \
+	bootstrap/fonts/glyphicons-halflings-regular.eot \
+	bootstrap/fonts/glyphicons-halflings-regular.woff2 \
+	bootstrap/fonts/glyphicons-halflings-regular.svg \
+	bootbox.min.js
+
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
-    gputop.proto \
-    $(oa_xml_files) \
-    $(built_oa_xml_files)
+	gputop.proto \
+	gputop-web.js \
+	gputop-web.js.map \
+	index.html \
+	gputop.js \
+	gputop-ui.js \
+	css/gputop.css \
+	css/custom.css \
+	css/bootstrap-slider.min.css \
+	ajax/metrics.html \
+	ajax/overview.html \
+	ajax/welcome.html \
+	assets/gputop_logo.png \
+	assets/gputop_logo_44.png \
+	$(oa_xml_files) \
+	$(built_oa_xml_files) \
+	$(third_party_files)
+
+nodejsdir = $(libdir)/nodejs/gputop
+nobase_dist_nodejs_DATA = \
+gputop-nodejs-ui.js \
+gputop-nodejs-toolkit.js
+
+#nodemodulesdir = $(libdir)/nodejs/gputop
+#nobase_dist_nodemodules_DATA := \
+    #$(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options,jquery} -type f -name '*.js' -o -name '*.json' -o -name '*.node') \
+    #$(shell find ./node_modules/{jsdom,acorn,acorn-globals,browser-request,contextify,cssom,cssstyle,escodegen,htmlparser2,nwmatcher,parse5,request,xml-name-validator,xmlhttprequest,entities,domhandler,domelementtype,bindings} -type f -name '*.js' -o -name '*.json' -o -name '*.node') \
+    #./node_modules/gputop/index.js \
+    #./node_modules/gputop/gputop-web.js
+
+BUILT_SOURCE = gputop-web.js node_modules
+
 endif
 
 if SUPPORT_GL
@@ -198,6 +253,38 @@ oa-skl.h oa-skl.c skl.xml: oa-skl.xml oa-gen.py
 
 %.pb-c.c %.pb-c.h: %.proto
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop -I$(srcdir) $(srcdir)/$(*F).proto
+
+node_modules: $(srcdir)/package.json
+	npm install
+
+bootstrap% %.js: | node_modules ;
+
+# Automake seems awkward to use for running the emscripten toolchain so
+# we have a plain GNU Makefile that we proxy too instead...
+EMCC_PROXY_MAKEFLAGS=-f $(srcdir)/Makefile.emscripten $(AM_MAKEFLAGS) top_srcdir=$(top_srcdir)
+
+gputop-web.js.map:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
+gputop-web.js:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
+
+all-local: | node_modules
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) all
+#check-local:
+#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) check
+clean-local:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) clean
+distclean-local:
+	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) distclean
+	rm -fr node_modules
+install-data-local: | node_modules ;
+	npm install -g --prefix=$(prefix) --production
+
+#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-data
+#install-exec-local:
+#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-exec
+#uninstall-local:
+#	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) uninstall
 
 EXTRA_DIST = gputop.proto
 CLEANFILES = $(BUILT_SOURCES)
