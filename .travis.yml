@@ -82,6 +82,7 @@ before_install:
     - sleep 3
 
 before_script:
+    - npm install -g npm@latest
     - NOCONFIGURE=1 ./autogen.sh
 
 script:
