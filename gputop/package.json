@@ -9,6 +9,7 @@
         "bootstrap": "^3.3.6",
         "bootstrap-wysiwyg": "^1.0.4",
         "bootstrap-slider": "^6.0.16",
+        "bootbox": "4.4.0",
         "jqueryui-browser": "^1.10.2-1",
         "jquery-flot": "^0.8.3",
         "mathjax": "^2.6.1"
@@ -18,7 +19,6 @@
         "bytebuffer": "^5.0.0",
         "long": "^3.0.3",
         "jquery": "^2.2.0",
-        "bootbox": "4.4.0",
         "ws": "^1.1.0",
         "jsdom": "^3.0.0"
     },
