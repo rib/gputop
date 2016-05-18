@@ -25,7 +25,7 @@
 
 const Gputop = require('gputop');
 const fs = require('fs');
-const ArgumentParser = require('argparse');
+const ArgumentParser = require('argparse').ArgumentParser;
 
 function GputopCSV()
 {
@@ -34,7 +34,22 @@ function GputopCSV()
     this.stream = undefined;
     this.metric = undefined;
 
+    this.requested_columns_ = [];
+    this.counters_ = [];
+
+    this.dummy_timestamp_counter = {
+        symbol_name: "Timestamp"
+    };
+
+    /* It's possible some columns will not correspond to
+     * available counters but we need to know at least
+     * one column with real data to check how many updates
+     * we've received.
+     */
+    this.reference_column = -1;
+
     this.write_queued_ = false;
+    this.endl = process.platform === "win32" ? "\r\n" : "\n";
 }
 
 GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
@@ -45,26 +60,58 @@ GputopCSV.prototype.update_features = function(features)
 
     if (features.supported_oa_query_guids.length === 0) {
         console.error("No OA metrics supported");
-    } else {
-        var guid = features.supported_oa_query_guids[0];
-        this.metric = this.get_map_metric(guid);
+        process.exit(1);
+        return;
+    }
 
-        if (this.metric === undefined) {
-            console.error("Failed to look up metric " + guid);
-            return;
+    for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
+        var guid = features.supported_oa_query_guids[i];
+        var metric = this.get_map_metric(guid);
+
+        if (metric.symbol_name === args.metrics) {
+            this.metric = metric;
+            break;
         }
-        var columns = "Timestamp";
+    }
 
-        this.metric.emc_counters_.forEach((counter, i, arr) => {
+    if (this.metric === undefined) {
+        console.error('Failed to look up metric set "' + args.metrics + '"');
+        process.exit(1);
+        return;
+    }
+
+    var counter_index = {};
+    this.metric.emc_counters_.forEach((counter, idx, arr) => {
+        counter_index[counter.symbol_name] = counter;
+    });
+
+    for (var i = 0; i < this.requested_columns_.length; i++) {
+        var name = this.requested_columns_[i];
+
+        if (name === "Timestamp") {
+            this.counters_.push(this.dummy_timestamp_counter);
+        } else if (name in counter_index) {
+            var counter = counter_index[name]
+                counter.record_data = true;
+            this.reference_column = this.counters_.length;
+            this.counters_.push(counter);
+        } else {
+            var skip = { symbol_name: name, record_data: false };
+            this.counters_.push(skip);
+        }
+    }
+
+    if (this.reference_column > 0) {
+        var columns = this.counters_[0].symbol_name;
+
+        for (var i = 1; i < this.counters_.length; i++)
             columns += ",\"" + counter.symbol_name + "\"";
-            counter.record_data = true;
-        });
 
-        /* RFC 4180 says to use DOS style \r\n line endings and we
-         * ignore that because... reasons... */
-        this.stream.write(columns + "\n");
+        this.stream.write(columns + this.endl);
 
         this.open_oa_metric_set({guid: this.metric.guid_});
+    } else {
+        console.error("Failed to find counters matching requested columns");
     }
 }
 
@@ -75,8 +122,8 @@ function write_rows()
     if (metric === undefined)
         return;
 
-    var first_counter = metric.emc_counters_[0];
-    var n_rows = first_counter.updates.length;
+    var ref_counter = this.counters_[this.reference_column];
+    var n_rows = ref_counter.updates.length;
 
     if (n_rows <= 1)
         return;
@@ -87,38 +134,46 @@ function write_rows()
 
     for (var r = 0; r < n_rows; r++) {
 
-        var start = first_counter.updates[r][0];
-        var end = first_counter.updates[r][1];
+        var start = ref_counter.updates[r][0];
+        var end = ref_counter.updates[r][1];
         var row_timestamp = start + (end - start) / 2;
 
-        var row = "" + row_timestamp;
+        var row = "";
 
-        for (var c = 0; c < metric.emc_counters_.length; c++) {
-            var counter = metric.emc_counters_[c];
+        for (var c = 0; c < this.counters_.length; c++) {
+            var counter = this.counters_[c];
+            var val = 0;
 
-            start = counter.updates[r][0];
-            end = counter.updates[r][1];
-            var val = counter.updates[r][2];
-            var max = counter.updates[r][3];
-            var mid = start + (end - start) / 2;
+            if (counter === this.dummy_timestamp_counter) {
+                val = row_timestamp;
+            } else if (counter.record_data === true) {
+                start = counter.updates[r][0];
+                end = counter.updates[r][1];
+                var max = counter.updates[r][3];
+                var timestamp = start + (end - start) / 2;
 
-            console.assert(mid === row_timestamp, "Inconsistent row timestamp");
+                console.assert(timestamp === row_timestamp, "Inconsistent row timestamp");
 
-            row += "," + val;
+                val = counter.updates[r][2];
+            }
+            /* NB: some columns may have placeholder counter objects (with
+             * .record_data == false) if they aren't available on this
+             * system */
+
+            row += val + ",";
         }
 
-        /* RFC 4180 says to use DOS style \r\n line endings and we
-         * ignore that because... reasons... */
-        this.stream.write(row + "\n");
+        this.stream.write(row.slice(0, -1) + this.endl);
     }
 
-    for (var c = 0; c < metric.emc_counters_.length; c++) {
-        var counter = metric.emc_counters_[c];
-        counter.updates.splice(0, n_rows);
+    for (var c = 0; c < this.counters_.length; c++) {
+        var counter = this.counters_[c];
+        if (counter.record_data === true)
+            counter.updates.splice(0, n_rows);
     }
 }
 
-GputopCSV.prototype.queue_redraw = function() {
+GputopCSV.prototype.notify_metric_updated = function(metric) {
     if (this.write_queued_)
         return;
 
@@ -132,13 +187,52 @@ GputopCSV.prototype.queue_redraw = function() {
 
 GputopCSV.prototype.log = function(level, message)
 {
-    console.log(level);
-    console.log(message);
+    console.log(message.trim());
 }
+
+var parser = new ArgumentParser({
+    version: '0.0.1',
+    addHelp: true,
+    description: "GPU Top CSV Dump Tool"
+});
+
+parser.addArgument(
+    [ '-a', '--address' ],
+    {
+        help: 'host:port to connect to (default localhost:7890)',
+        defaultValue: 'localhost:7890'
+    }
+);
+
+parser.addArgument(
+    [ '-m', '--metrics' ],
+    {
+        help: 'Metric set to capture',
+        required: true
+    }
+);
+
+parser.addArgument(
+    [ '-c', '--columns' ],
+    {
+        help: 'Comma separated counter symbol names for columns',
+        required: true
+    }
+);
+
+parser.addArgument(
+    [ '-f', '--file' ],
+    {
+        help: "CSV file to write",
+        required: true
+    }
+);
+
+var args = parser.parseArgs();
 
 var gputop;
 
-var stream = fs.createWriteStream("my_file.csv");
+var stream = fs.createWriteStream(args.file);
 
 stream.once('open', (fd) => {
     console.log("opened file");
@@ -146,8 +240,9 @@ stream.once('open', (fd) => {
     gputop = new GputopCSV();
 
     gputop.stream = stream;
+    gputop.requested_columns_ = args.columns.split(",");
 
-    gputop.connect(() => {
+    gputop.connect(args.address, () => {
         console.log("connected");
     });
 });
