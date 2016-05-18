@@ -88,11 +88,7 @@ function gputop_is_demo() {
 
 
 function Counter () {
-    // Real index number counting with not available ones
-    this.idx_ = 0;
-
-    // Index to query inside the C code.
-    // -1 Means it is not available or supported
+    /* Index into metric.webc_counters_, understood by gputop-web.c code */
     this.webc_counter_id_ = -1;
     this.symbol_name = '';
     this.supported_ = false;
@@ -199,7 +195,6 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
 }
 
 Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
-    counter.idx_ = this.n_total_counters_++;
     counter.symbol_name = symbol_name;
     counter.graph_options = {
         grid: {
@@ -249,7 +244,7 @@ Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
     }
 
     this.counters_map_[symbol_name] = counter;
-    this.counters_[counter.idx_] = counter;
+    this.counters_.push(counter);
 }
 
 //----------------------------- PID --------------------------------------
