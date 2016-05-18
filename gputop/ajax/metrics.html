@@ -20,9 +20,6 @@
     <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle"  data-toggle="tooltip" title="Filter by context using the kernel. For userspace metrics without root access">
         <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b> <small>(experimental)</small></label>
     </div>
-    <div class="checkbox" id="unsupported_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle" data-toggle="tooltip" title="Hide unsupported metrics, you will not be able to see the documentation for them.">
-        <label><input type = "checkbox" id = "hide_metrics"><b>Show unsupported</b></label>
-    </div>
 
 </div>
 
@@ -111,20 +108,7 @@
 
         var stripped_bar = "";
         var initial_progress = "0%";
-        var unsupported = "supported";
         var flot_id = "flotcontainer_" + set_index + "_" + underscore_name;
-
-        if (!counter.supported_) {
-            stripped_bar = "-striped";
-            initial_progress = "100%";
-            unsupported = "hide_unsupported";
-        }
-
-        if (gputop_is_demo()) {
-            stripped_bar = "";
-            initial_progress = "0%";
-            unsupported = "supported";
-        }
 
         var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
 
@@ -136,7 +120,7 @@
         // display of counter bar metrics
         counter_bars = '\
         <div id = "' + set_array[selected_index].underscore_name + '_' + symbol_name + '"> \
-            <div class = "metric_row ' + unsupported + '" id="' + div_id + '"> \
+            <div class = "metric_row" id="' + div_id + '"> \
                 <div class = "counter_name ' +  symbol_name + '">' + counter_name + '</div> \
                 <div class="progress"> \
                     <div id = "'+ counter_bar_id +'" class = "progress-bar progress-bar' + stripped_bar + ' active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left"></div> \
@@ -159,9 +143,6 @@
         $('#' + counter_bar_id).css("width", "100%");
         $('#' + div_id).data("counter", counter);
         $('#' + flot_id).data("counter", counter);
-
-        if (!counter.supported_)
-            $('#'+counter_bar_id).css("background-color", "#999999");
 
         counter.div_id_ = div_id;
         counter.div_bar_id_ = counter_bar_id;
@@ -293,16 +274,9 @@
                 }
             }
             if (display)
-            {
                 $("#" + set.underscore_name + "_" + counters[i].underscore_name).show();
-                if ($("#hide_metrics").is(':checked')) {
-                    $(".hide_unsupported").show();
-                } else {
-                    $(".hide_unsupported").hide();
-                }
-            } else {
+            else
                 $("#" + set.underscore_name + "_" + counters[i].underscore_name).hide();
-            }
         }
     }
 
@@ -410,15 +384,6 @@
         }
 
         gputop.open_oa_metric_set({guid:global_guid});
-    });
-
-    $('#hide_metrics').click(function() {
-        var $this = $(this);
-        if ($this.is(':checked')) {
-            $(".hide_unsupported").show();
-        } else {
-            $(".hide_unsupported").hide();
-        }
     });
 
     slider = new Slider('#zoom_slider', {
