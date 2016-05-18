@@ -632,8 +632,6 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
             metric.history = [];
             metric.history_size = 0;
         }
-
-        this.queue_redraw();
     }
 
     var metric = this.get_map_metric(config.guid);
@@ -1012,8 +1010,6 @@ function gputop_socket_on_message(evt) {
         var server_handle = dv.getUint16(4, true /* little endian */);
 
         if (server_handle in this.server_handle_to_metric_map) {
-            this.queue_redraw();
-
             var sp = webc.Runtime.stackSave();
 
             var stack_data = webc.allocate(data, 'i8', webc.ALLOC_STACK);
