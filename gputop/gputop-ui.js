@@ -365,6 +365,10 @@ GputopUI.prototype.queue_redraw = function() {
     this.redraw_queued_ = true;
 }
 
+GputopUI.prototype.notify_metric_updated = function() {
+    this.queue_redraw();
+}
+
 GputopUI.prototype.metric_not_supported = function(metric) {
     alert(" Metric not supported " + metric.title_)
 }

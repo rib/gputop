@@ -132,17 +132,17 @@ function Counter () {
 }
 
 Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp,
-                                                  d_value, max, reason) {
+                                                  max, value, reason) {
     var duration = end_timestamp - start_timestamp;
-    d_value *= this.units_scale;
+    value *= this.units_scale;
     max *= this.units_scale;
     if (this.duration_dependent && (duration != 0)) {
         var per_sec_scale = 1000000000 / duration;
-        d_value *= per_sec_scale;
+        value *= per_sec_scale;
         max *= per_sec_scale;
     }
     if (this.record_data) {
-        this.updates.push([start_timestamp, end_timestamp, d_value, max, reason]);
+        this.updates.push([start_timestamp, end_timestamp, value, max, reason]);
         if (this.updates.length > 2000) {
             console.warn("Discarding old counter update (> 2000 updates old)");
             this.updates.shift();
@@ -150,15 +150,15 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     }
     this.samples_ ++;
 
-    if (this.latest_value != d_value ||
+    if (this.latest_value != value ||
         this.latest_max != max)
     {
-        this.latest_value = d_value;
+        this.latest_value = value;
         this.latest_max = max;
         this.latest_duration = duration;
 
-        if (d_value > this.inferred_max)
-            this.inferred_max = d_value;
+        if (value > this.inferred_max)
+            this.inferred_max = value;
         if (max > this.inferred_max)
             this.inferred_max = max;
     }
@@ -326,6 +326,8 @@ function Gputop () {
     this.webc_stream_ptr_to_metric_map = {};
     this.active_oa_metric_ = undefined;
 
+    this.current_update_ = { metric: null };
+
     // Current metric on display
     this.metric_visible_ = undefined;
 
@@ -474,30 +476,64 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
     }
 }
 
-Gputop.prototype.stream_update_counter = function (counterId,
-                                                   stream_ptr,
-                                                   start_timestamp,
-                                                   end_timestamp,
+Gputop.prototype.stream_start_update = function (stream_ptr,
+                                                 start_timestamp,
+                                                 end_timestamp,
+                                                 reason) {
+    var update = this.current_update_;
+
+    if (!(stream_ptr in this.webc_stream_ptr_to_metric_map)) {
+        console.error("Ignoring spurious update for unknown stream");
+        update.metric = null;
+        return;
+    }
+
+    update.metric = this.webc_stream_ptr_to_metric_map[stream_ptr];
+    update.start_timestamp = start_timestamp;
+    update.end_timestamp = end_timestamp;
+    update.reason = reason;
+}
+
+Gputop.prototype.stream_update_counter = function (stream_ptr,
+                                                   counter_id,
                                                    max,
-                                                   d_value,
-                                                   reason) {
-    var metric = this.webc_stream_ptr_to_metric_map[stream_ptr];
-    if (metric == undefined) {
-        if (counterId == 0)
-            this.show_alert("No query active for data from "+ stream_ptr +" ","alert-danger");
+                                                   value) {
+    var update = this.current_update_;
+
+    var metric = update.metric;
+    if (metric === null) {
+        /* Will have already logged an error when starting the update */
         return;
     }
 
-    var counter = metric.emc_counters_[counterId];
-    if (counter == null) {
-        this.show_alert("Counter missing in set "+ metric.name_ +" ","alert-danger");
+    if (counter_id >= metric.emc_counters_.length) {
+        console.error("Ignoring spurious counter update for out-of-range counter index");
         return;
     }
 
-    counter.append_counter_data(start_timestamp, end_timestamp,
-                                d_value, max, reason);
+    var counter = metric.emc_counters_[counter_id];
+    counter.append_counter_data(update.start_timestamp,
+                                update.end_timestamp,
+                                max, value,
+                                update.reason);
+}
 
-    this.queue_redraw();
+Gputop.prototype.stream_end_update = function (stream_ptr) {
+    var update = this.current_update_;
+
+    var metric = update.metric;
+    if (metric === null) {
+        /* Will have already logged an error when starting the update */
+        return;
+    }
+
+    update.metric = null;
+
+    this.notify_metric_updated(metric);
+}
+
+Gputop.prototype.notify_metric_updated = function (metric) {
+    /* NOP */
 }
 
 Gputop.prototype.parse_xml_metrics = function(xml) {

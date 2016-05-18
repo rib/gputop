@@ -66,14 +66,27 @@ var LibraryGpuTopWeb = {
         }
     },
 
-    _gputop_stream_update_counter: function (counter, stream_ptr, start_timestamp, end_timestamp, delta, max, d_value) {
+    _gputop_stream_start_update: function (stream_ptr, start_timestamp, end_timestamp, reason) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
-            gputop.stream_update_counter.call(gputop, counter, stream_ptr, start_timestamp, end_timestamp, delta, max, d_value);
+            gputop.stream_start_update.call(gputop, stream_ptr, start_timestamp, end_timestamp, reason);
         else
             console.error("Gputop singleton not initialized");
     },
-
+    _gputop_stream_update_counter: function (stream_ptr, counter_idx, max, value) {
+        var gputop = Module['gputop_singleton'];
+        if (gputop !== undefined)
+            gputop.stream_update_counter.call(gputop, stream_ptr, counter_idx, max, value);
+        else
+            console.error("Gputop singleton not initialized");
+    },
+    _gputop_stream_end_update: function (stream_ptr) {
+        var gputop = Module['gputop_singleton'];
+        if (gputop !== undefined)
+            gputop.stream_end_update.call(gputop, stream_ptr);
+        else
+            console.error("Gputop singleton not initialized");
+    },
 };
 
 autoAddDeps(LibraryGpuTopWeb, '$GPUTop');

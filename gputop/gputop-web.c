@@ -73,11 +73,6 @@ assert_not_reached(void)
 
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
 
-void
-_gputop_stream_update_counter(int counter, struct gputop_webc_stream *stream,
-                              double start_timestamp, double end_timestamp,
-                              double delta, double max, double ui64_value);
-
 /* Returns the ID for a counter_name using the symbol_name */
 int EMSCRIPTEN_KEEPALIVE
 gputop_webc_get_counter_id(const char *guid, const char *counter_symbol_name)
@@ -98,6 +93,17 @@ enum update_reason {
     UPDATE_REASON_CTX_SWITCH_AWAY   = 4
 };
 
+void
+_gputop_stream_start_update(struct gputop_webc_stream *stream,
+                            double start_timestamp, double end_timestamp,
+                            int reason);
+void
+_gputop_stream_update_counter(struct gputop_webc_stream *stream,
+                              int counter,
+                              double max, double value);
+void
+_gputop_stream_end_update(struct gputop_webc_stream *stream);
+
 static void
 forward_stream_update(struct gputop_webc_stream *stream,
                       enum update_reason reason)
@@ -108,6 +114,11 @@ forward_stream_update(struct gputop_webc_stream *stream,
 
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
     //        stream->start_timestamp, stream->end_timestamp, stream->aggregation_period);
+
+    _gputop_stream_start_update(stream,
+                                oa_accumulator->first_timestamp,
+                                oa_accumulator->last_timestamp,
+                                reason);
 
     for (i = 0; i < oa_metric_set->n_counters; i++) {
         uint64_t u53_check;
@@ -143,14 +154,10 @@ forward_stream_update(struct gputop_webc_stream *stream,
                 break;
         }
 
-        _gputop_stream_update_counter(i,
-                                      stream,
-                                      oa_accumulator->first_timestamp,
-                                      oa_accumulator->last_timestamp,
-                                      max,
-                                      d_value,
-                                      reason);
+        _gputop_stream_update_counter(stream, i, max, d_value);
     }
+
+    _gputop_stream_end_update(stream);
 }
 
 void EMSCRIPTEN_KEEPALIVE
