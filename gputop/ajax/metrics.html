@@ -405,7 +405,7 @@
     $('#per_ctx_mode').click(function() {
         var $this = $(this);
 
-        var metric = gputop.get_map_metric(global_guid);
+        var metric = gputop.lookup_metric_for_guid(global_guid);
         if (metric == undefined)
             return;
 
@@ -449,7 +449,7 @@
 
     // display the new equation
     $('.equation').click(function() {
-        var metric = gputop.get_map_metric(global_guid);
+        var metric = gputop.lookup_metric_for_guid(global_guid);
         var symbol = $(this).parent().attr("class").split(' ')[1]
         var ctr = metric.find_counter_by_name(symbol);
         $('#documentation').hide();

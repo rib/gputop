@@ -435,7 +435,7 @@ Gputop.prototype.get_counter_by_absolute_id = function(metric_set, counter_idx){
     return counter;
 }
 
-Gputop.prototype.get_map_metric = function(guid){
+Gputop.prototype.lookup_metric_for_guid = function(guid){
     var metric;
     if (guid in this.map_metrics_) {
         metric = this.map_metrics_[guid];
@@ -450,7 +450,7 @@ Gputop.prototype.get_map_metric = function(guid){
 Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
     try {
         var guid = $(xml_elem).attr("guid");
-        var metric = this.get_map_metric(guid);
+        var metric = this.lookup_metric_for_guid(guid);
         metric.xml_ = $(xml_elem);
         metric.name = $(xml_elem).attr("name");
         metric.symbol_name = $(xml_elem).attr("symbol_name");
@@ -568,7 +568,7 @@ Gputop.prototype.update_period = function(guid, period_ns) {
 Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
     function _real_open_oa_metric_set(config, callback) {
-        var metric = this.get_map_metric(config.guid);
+        var metric = this.lookup_metric_for_guid(config.guid);
         var oa_exponent = metric.exponent;
         var per_ctx_mode = metric.per_ctx_mode_;
 
@@ -634,7 +634,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         }
     }
 
-    var metric = this.get_map_metric(config.guid);
+    var metric = this.lookup_metric_for_guid(config.guid);
     if (metric == undefined) {
         console.error('Error: failed to lookup OA metric set with guid = "' + config.guid + '"');
         return;
@@ -865,7 +865,7 @@ Gputop.prototype.process_features = function(features){
                                 features.get_kernel_release(), "alert-danger");
             } else {
                 features.supported_oa_query_guids.forEach((guid, i, a) => {
-                    var metric = this.get_map_metric(guid);
+                    var metric = this.lookup_metric_for_guid(guid);
                     metric.supported_ = true;
                     this.syslog(guid);
                 });

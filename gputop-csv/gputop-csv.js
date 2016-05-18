@@ -66,7 +66,7 @@ GputopCSV.prototype.update_features = function(features)
 
     for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
         var guid = features.supported_oa_query_guids[i];
-        var metric = this.get_map_metric(guid);
+        var metric = this.lookup_metric_for_guid(guid);
 
         if (metric.symbol_name === args.metrics) {
             this.metric = metric;

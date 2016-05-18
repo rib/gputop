@@ -116,7 +116,7 @@ GputopUI.prototype.update_metric_period_exponent_for_zoom = function (metric) {
 GputopUI.prototype.set_zoom = function(zoom) {
     this.zoom = zoom;
 
-    var metric = this.get_map_metric(global_guid);
+    var metric = this.lookup_metric_for_guid(global_guid);
 
     // First update metric period exponent, then check for paused query.
     // The other way around would have not checked whether or not to update the
@@ -129,7 +129,7 @@ GputopUI.prototype.set_zoom = function(zoom) {
 
 // remove all the data from all opened graphs
 GputopUI.prototype.clear_graphs = function() {
-    var metric = this.get_map_metric(global_guid);
+    var metric = this.lookup_metric_for_guid(global_guid);
 
     // reset the accumulator clock and continuation report
     webc._gputop_webc_reset_accumulator(metric.webc_stream_ptr_);
@@ -145,7 +145,7 @@ GputopUI.prototype.clear_graphs = function() {
 }
 
 GputopUI.prototype.update_graphs_paused = function (timestamp) {
-    var metric = this.get_map_metric(global_guid);
+    var metric = this.lookup_metric_for_guid(global_guid);
 
     for (var i = 0; i < this.graph_array.length; ++i) {
         var container = "#" + this.graph_array[i];
@@ -204,7 +204,7 @@ GputopUI.prototype.update_graphs = function(timestamp) {
         return;
     }
 
-    var metric = this.get_map_metric(global_guid);
+    var metric = this.lookup_metric_for_guid(global_guid);
 
     for (var i = 0; i < this.graph_array.length; ++i) {
         var container = "#" + this.graph_array[i];
@@ -398,7 +398,7 @@ GputopUI.prototype.update_features = function(features) {
         $( "#metrics-tab-a" ).html("Metrics (Fake Mode) ");
 
     this.load_metrics_panel(() => {
-        var metric = this.get_map_metric(global_guid);
+        var metric = this.lookup_metric_for_guid(global_guid);
 
         this.update_metric_period_exponent_for_zoom(metric);
 
