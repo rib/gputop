@@ -155,7 +155,6 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
     }
 }
 
-//------------------------------ METRIC --------------------------------------
 function Metric () {
     this.name = "not loaded";
     this.symbol_name = "UnInitialized";
@@ -251,7 +250,6 @@ Metric.prototype.add_new_counter = function(counter) {
     this.counters_.push(counter);
 }
 
-//----------------------------- PID --------------------------------------
 function Process_info () {
     this.pid_ = 0;
     this.process_name_ = "empty";
@@ -278,14 +276,12 @@ Process_info.prototype.update = function(process) {
     this.update_process(this);
 }
 
-//------------------------------ GPUTOP --------------------------------------
 function Gputop () {
 
     this.metrics_ = [];
     this.map_metrics_ = {}; // Map of metrics by GUID
 
     this.is_connected_ = false;
-    // Gputop generic configuration
     this.config_ = {
         architecture: 'ukn'
     }
@@ -300,7 +296,6 @@ function Gputop () {
         return this.config_.architecture;
     }
 
-    // Initialize protobuffers
     this.builder_ = undefined;
 
     /* When we send a request to open a stream of metrics we send
@@ -320,9 +315,6 @@ function Gputop () {
     this.active_oa_metric_ = undefined;
 
     this.current_update_ = { metric: null };
-
-    // Current metric on display
-    this.metric_visible_ = undefined;
 
     // Pending RPC request closures, indexed by request uuid,
     // to be called once we receive a reply.
