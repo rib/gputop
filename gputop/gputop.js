@@ -53,13 +53,6 @@ if (typeof module !== 'undefined' && module.exports) {
     var $ = window.jQuery;
 }
 
-function get_hostname() {
-    if (is_nodejs)
-        return 'localhost:7890' /* TODO: make this configurable somehow */
-    else
-        return $('#target_address').val() + ':' + $('#target_port').val();
-}
-
 function get_file(filename, load_callback, error_callback) {
     if (is_nodejs) {
         fs.readFile(path.join(install_prefix, filename), 'utf8', (err, data) => {
@@ -1078,13 +1071,13 @@ Gputop.prototype.load_gputop_proto = function(onload) {
     function (error) { console.log(error); });
 }
 
-Gputop.prototype.connect = function(callback) {
+Gputop.prototype.connect = function(address, callback) {
     this.dispose();
 
     this.load_emscripten(() => {
         if (!gputop_is_demo()) {
                 this.load_gputop_proto(() => {
-                    var websocket_url = 'ws://' + get_hostname() + '/gputop/';
+                    var websocket_url = 'ws://' + address + '/gputop/';
                     this.syslog('Connecting to port ' + websocket_url);
                     this.socket_ = this.connect_web_socket(websocket_url, () => {
                         this.is_connected_ = true;

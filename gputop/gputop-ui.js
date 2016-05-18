@@ -444,7 +444,7 @@ GputopUI.prototype.init_interface = function(){
 
         // Display tooltips
         $( '[data-toggle="tooltip"]' ).tooltip();
-        this.connect();
+        this.reconnect();
     });
 }
 
@@ -483,4 +483,9 @@ GputopUI.prototype.btn_get_process_info = function() {
             }
         }
     });
+}
+
+GputopUI.prototype.reconnect = function(callback) {
+    var address = $('#target_address').val() + ':' + $('#target_port').val();
+    this.connect(address, callback);
 }
