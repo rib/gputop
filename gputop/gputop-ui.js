@@ -343,8 +343,8 @@ GputopUI.prototype.update = function(timestamp) {
 
     this.update_graphs(timestamp);
 
-    for (var i = 0, l = metric.emc_counters_.length; i < l; i++) {
-        var counter = metric.emc_counters_[i];
+    for (var i = 0, l = metric.webc_counters.length; i < l; i++) {
+        var counter = metric.webc_counters[i];
         this.update_counter(counter);
     }
 

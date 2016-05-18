@@ -81,7 +81,7 @@ GputopCSV.prototype.update_features = function(features)
     }
 
     var counter_index = {};
-    this.metric.emc_counters_.forEach((counter, idx, arr) => {
+    this.metric.webc_counters.forEach((counter, idx, arr) => {
         counter_index[counter.symbol_name] = counter;
     });
 

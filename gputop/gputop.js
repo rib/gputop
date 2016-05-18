@@ -93,7 +93,7 @@ function Counter () {
 
     // Index to query inside the C code.
     // -1 Means it is not available or supported
-    this.emc_idx_ = -1;
+    this.webc_counter_id_ = -1;
     this.symbol_name = '';
     this.supported_ = false;
     this.xml_ = "<xml/>";
@@ -167,7 +167,7 @@ function Metric () {
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.emc_counters_ = []; // Array containing only available counters
+    this.webc_counters = []; // Array containing only available counters
     this.counters_ = [];     // Array containing all counters
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
@@ -239,11 +239,11 @@ Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
 
     webc.Runtime.stackRestore(sp);
 
-    counter.emc_idx_ = counter_idx;
+    counter.webc_counter_id_ = counter_idx;
     if (counter_idx != -1) {
         counter.supported_ = true;
         console.log('Counter ' + counter_idx + " " + symbol_name);
-        this.emc_counters_[counter_idx] = counter;
+        this.webc_counters[counter_idx] = counter;
     } else {
         console.log('Counter not available ' + symbol_name);
     }
@@ -501,12 +501,12 @@ Gputop.prototype.stream_update_counter = function (stream_ptr,
         return;
     }
 
-    if (counter_id >= metric.emc_counters_.length) {
+    if (counter_id >= metric.webc_counters.length) {
         console.error("Ignoring spurious counter update for out-of-range counter index");
         return;
     }
 
-    var counter = metric.emc_counters_[counter_id];
+    var counter = metric.webc_counters[counter_id];
     counter.append_counter_data(update.start_timestamp,
                                 update.end_timestamp,
                                 max, value,
