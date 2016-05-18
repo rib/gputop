@@ -90,6 +90,7 @@ function gputop_is_demo() {
 function Counter () {
     /* Index into metric.webc_counters_, understood by gputop-web.c code */
     this.webc_counter_id_ = -1;
+    this.name = '';
     this.symbol_name = '';
     this.supported_ = false;
     this.xml_ = "<xml/>";
@@ -105,14 +106,16 @@ function Counter () {
      * we've seen */
     this.inferred_max = 0;
 
-    this.samples_ = 0; // Number of samples processed
     this.updates = [];
     this.graph_data = [];
     this.graph_options = []; /* each counter has its own graph options so that
                               * we can adjust the Y axis for each of them */
     this.units = '';
     this.graph_markings = [];
+
+    /* whether append_counter_data() should really append to counter.updates[] */
     this.record_data = false;
+
     this.eq_xml = ""; // mathml equation
     this.max_eq_xml = ""; // mathml max equation
     this.duration_dependent = true;
@@ -137,7 +140,6 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
             this.updates.shift();
         }
     }
-    this.samples_ ++;
 
     if (this.latest_value != value ||
         this.latest_max != max)
@@ -155,7 +157,6 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
 
 //------------------------------ METRIC --------------------------------------
 function Metric () {
-    // Id for the interface to know on click
     this.name = "not loaded";
     this.symbol_name = "UnInitialized";
     this.chipset_ = "not loaded";
@@ -163,8 +164,11 @@ function Metric () {
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.webc_counters = []; // Array containing only available counters
-    this.counters_ = [];     // Array containing all counters
+    this.webc_counters = []; /* Counters applicable to this system, supported via
+                              * gputop-web.c */
+    this.counters_ = [];     /* All possible counters associated with this metric
+                              * set (not necessarily all supported by the current
+                              * system */
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
 
@@ -172,9 +176,6 @@ function Metric () {
     this.webc_stream_ptr_ = 0;
 
     this.per_ctx_mode_ = false;
-
-    // Real counter number including not available ones
-    this.n_total_counters_ = 0;
 
     // Aggregation period
     this.period_ns_ = 1000000000;
@@ -194,8 +195,11 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
     return this.counters_map_[symbol_name];
 }
 
-Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
-    counter.symbol_name = symbol_name;
+/* FIXME: some of this should be handled in the Counter constructor */
+Metric.prototype.add_new_counter = function(counter) {
+    var symbol_name = counter.symbol_name;
+
+    /* FIXME: this should be handled by gputop-ui.js somehow! */
     counter.graph_options = {
         grid: {
             borderWidth: 1,
@@ -229,7 +233,7 @@ Metric.prototype.add_new_counter = function(guid, symbol_name, counter) {
 
     var sp = webc.Runtime.stackSave();
 
-    var counter_idx = webc._gputop_webc_get_counter_id(String_pointerify_on_stack(guid),
+    var counter_idx = webc._gputop_webc_get_counter_id(String_pointerify_on_stack(this.guid_),
                                                        String_pointerify_on_stack(symbol_name));
 
     webc.Runtime.stackRestore(sp);
@@ -389,19 +393,22 @@ Gputop.prototype.get_metrics_xml = function() {
     return this.metrics_xml_;
 }
 
-Gputop.prototype.parse_counter_xml = function(guid, metric, xml_elem) {
+Gputop.prototype.parse_counter_xml = function(metric, xml_elem) {
     try {
         var $cnt = $(xml_elem);
-        var symbol_name = $cnt.attr("symbol_name");
-        var units = $cnt.attr("units");
 
         var counter = new Counter();
+        counter.name = $cnt.attr("name");
+        counter.symbol_name = $cnt.attr("symbol_name");
+        counter.underscore_name = $cnt.attr("underscore_name");
+        counter.description = $cnt.attr("description");
         counter.eq_xml = ($cnt.find("mathml_EQ"));
         counter.max_eq_xml = ($cnt.find("mathml_MAX_EQ"));
         if (counter.max_eq_xml.length == 0)
             counter.max_eq_xml = undefined;
         counter.xml_ = $cnt;
 
+        var units = $cnt.attr("units");
         if (units === "us") {
             units = "ns";
             counter.units_scale = 1000;
@@ -414,7 +421,8 @@ Gputop.prototype.parse_counter_xml = function(guid, metric, xml_elem) {
 
          if (units === 'hz' || units === 'percent')
              counter.duration_dependent = false;
-        metric.add_new_counter(guid, symbol_name, counter);
+
+        metric.add_new_counter.call(metric, counter);
     } catch (e) {
         this.syslog("Failed to parse counter: " + e);
     }
@@ -422,12 +430,6 @@ Gputop.prototype.parse_counter_xml = function(guid, metric, xml_elem) {
 
 Gputop.prototype.get_metric_by_id = function(idx){
     return this.metrics_[idx];
-}
-
-Gputop.prototype.get_counter_by_absolute_id = function(metric_set, counter_idx){
-    //console.log(" Counter from metric [" + this.metrics_[metric_set].name_ + "]");
-    var counter = this.metrics_[metric_set].counters_[counter_idx];
-    return counter;
 }
 
 Gputop.prototype.lookup_metric_for_guid = function(guid){
@@ -449,6 +451,7 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
         metric.xml_ = $(xml_elem);
         metric.name = $(xml_elem).attr("name");
         metric.symbol_name = $(xml_elem).attr("symbol_name");
+        metric.underscore_name = $(xml_elem).attr("underscore_name");
         metric.chipset_ = $(xml_elem).attr("chipset");
 
         this.syslog(guid + '\n Found metric ' + metric.name);
@@ -459,7 +462,7 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
         this.metrics_[metric.metric_set_] = metric;
 
         $(xml_elem).find("counter").each((i, elem) => {
-            this.parse_counter_xml(guid, metric, elem);
+            this.parse_counter_xml(metric, elem);
         });
     } catch (e) {
         this.syslog("Failed to parse metrics set: " + e);
@@ -629,14 +632,19 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         }
     }
 
+    if (config.guid === undefined) {
+        console.error("No GUID given when opening OA metric set");
+        return;
+    }
+
     var metric = this.lookup_metric_for_guid(config.guid);
-    if (metric == undefined) {
+    if (metric === undefined) {
         console.error('Error: failed to lookup OA metric set with guid = "' + config.guid + '"');
         return;
     }
 
     if (metric.supported_ == false) {
-        this.show_alert(config.guid + " " + metric.name + " not supported on this kernel", "alert-danger");
+        this.show_alert(config.guid + " " + metric.name + " not supported on this kernel (guid=" + config.guid + ")", "alert-danger");
         return;
     }
 

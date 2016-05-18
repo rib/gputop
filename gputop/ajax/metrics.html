@@ -98,31 +98,21 @@
         this.counters = counters;
     }
 
-    function read_metrics_counter() {
-        var $counter = $(this);
-        var name = $counter.attr("name");
-        var symbol_name = $counter.attr("symbol_name");
-        var description = $counter.attr("description") + " (" + $counter.attr("mdapi_usage_flags") + ")";
+    function add_counter(metric, counter) {
+        var $counter = counter.xml_;
+        var name = counter.name;
+        var symbol_name = counter.symbol_name;
+        var underscore_name = counter.underscore_name;
+        var description = counter.description;
         var flags = $counter.attr("mdapi_usage_flags").split(" ");
+
         selected_index = metric_order[metric_order.length - 1];
         set_array[selected_index].counters.push(new count(name, symbol_name, flags));
-
-        var counter = gputop.get_counter_by_absolute_id(set_index, counter_index);
-        if (counter == undefined) {
-            console.log(" Failed to load counter "+ set_index +" "+ counter_index);
-            gputop.show_alert("Counter missing, forgot to compile?","alert-danger");
-            return;
-        }
-
-        if (symbol_name.localeCompare(counter.symbol_name)) {
-            gputop.show_alert("Wrong counter mapping, wrong XML vs source code?","alert-danger");
-            return;
-        }
 
         var stripped_bar = "";
         var initial_progress = "0%";
         var unsupported = "supported";
-        var flot_id = "flotcontainer_" + set_index + "_" + counter_index;
+        var flot_id = "flotcontainer_" + set_index + "_" + underscore_name;
 
         if (!counter.supported_) {
             stripped_bar = "-striped";
@@ -138,9 +128,9 @@
 
         var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
 
-        var div_id = 'div_counter_'+set_index + '_' + counter_index;
-        var counter_bar_id = 'div_bar_counter_'+set_index + '_' + counter_index;
-        var counter_text_bar_id = 'div_txt_'+set_index + '_' + counter_index;
+        var div_id = 'div_counter_'+set_index + '_' + underscore_name;
+        var counter_bar_id = 'div_bar_counter_'+set_index + '_' + underscore_name;
+        var counter_text_bar_id = 'div_txt_'+set_index + '_' + underscore_name;
 
         // add transition: none to progress bar css for no animation.
         // display of counter bar metrics
@@ -153,14 +143,14 @@
                 </div> \
                 <div class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</div> \
                 <div class = "live_trace_dropdown">&nbsp\
-                    <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + counter_index + '" aria-expanded="false" aria-controls="collapseExample"> \
-                        <div id = "graph_button_' + set_index + '_' + counter_index + '" class = "glyphicon expand_graph glyphicon-collapse-down"  data-toggle="tooltip" title="Show the time graph"></div> \
+                    <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + underscore_name + '" aria-expanded="false" aria-controls="collapseExample"> \
+                        <div id = "graph_button_' + set_index + '_' + underscore_name + '" class = "glyphicon expand_graph glyphicon-collapse-down"  data-toggle="tooltip" title="Show the time graph"></div> \
                     </a> \
                 </div> \
                 <div class = "handle glyphicon glyphicon-move" data-toggle="tooltip" title="Reorder by drag and drop of the counters"></div> \
             </div> \
-            <div class="collapse" id="collapse_graph_' + set_index + '_' + counter_index + '"> \
-                <div class="well graph_container" id="flotcontainer_' + set_index + '_' + counter_index + '"></div> \
+            <div class="collapse" id="collapse_graph_' + set_index + '_' + underscore_name + '"> \
+                <div class="well graph_container" id="' + flot_id + '"></div> \
             </div> \
         </div>';
 
@@ -170,39 +160,33 @@
         $('#' + div_id).data("counter", counter);
         $('#' + flot_id).data("counter", counter);
 
-        counter.my_first_world_problem = true;
-
         if (!counter.supported_)
             $('#'+counter_bar_id).css("background-color", "#999999");
 
         counter.div_id_ = div_id;
         counter.div_bar_id_ = counter_bar_id;
         counter.div_txt_id_ = counter_text_bar_id;
+    } // add_counter
 
-        counter_index ++;
+    function add_metric(metric) {
 
-    } // read_metrics_counter
+        var name = metric.name;
+        var guid = metric.guid_;
+        var underscore_name = metric.underscore_name;
 
-    function read_metrics_set() {
-        var $set = $(this);
-        var title = $set.attr("name");
-        var guid = $set.attr("guid");
-
-        set_array[title] = new set(title, $set.attr("underscore_name"), [], []);
-        metric_order.push(title);
+        set_array[name] = new set(name, underscore_name, [], []);
+        metric_order.push(name);
         if (global_guid == "")
             global_guid = guid;
 
         var active = "";
         if (set_index == 0) {
             active = " active";
-            $('#page-header-metrics').text(title);
+            $('#page-header-metrics').text(name);
         }
 
-        counter_index = 0;
-
         // contents of the sidebar menu
-        $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + title + '</a></li>');
+        $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + name + '</a></li>');
         $('#'+guid).click(function (e) {
             $('#metrics-tab-a').trigger('click');
 
@@ -215,13 +199,15 @@
         // display of metrics tab-pane
         $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
 
-        $set.find("counter").each(read_metrics_counter);
+        for (var i = 0; i < metric.webc_counters.length; i++) {
+            add_counter(metric, metric.webc_counters[i]);
+        }
 
         $("#counter_metrics").append("</div");
 
-        set_index ++;
+        set_index++;
 
-        var last = set_array[title];
+        var last = set_array[name];
         var counters = last.counters;
         for (i = 0; i < counters.length; i++)
         {
@@ -320,14 +306,21 @@
         }
     }
 
-    function read_from_xml(xml_name) {
+    function add_metrics() {
         $("#sidebar_right").html("");
         $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
-        for (var key in set_array) delete set_array[key];
+
+        for (var key in set_array)
+            delete set_array[key];
+
         metric_order.splice(0, metric_order.length);
-        $(xml_name).find("set").each(read_metrics_set);
+
+        for (var i = 0; i < gputop.metrics_.length; i++) {
+            add_metric(gputop.metrics_[i]);
+        }
         if (metric_order.length < 1)
             return;
+
         selected_index = metric_order[0];
         draw_filter_checkboxes();
 
@@ -390,13 +383,12 @@
             gputop.graph_array.splice(index, 1); // remove element from the graph array
         })
 
-    } // read_from_xml
+    } // add_metrics
 
     // index of set + index of active counter forms an unique id for all counters
     var global_guid = ""; // variable to keep track of the active metric set
     var set_index = 0;
     var slider;
-    var counter_index = 0;
 
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
 
@@ -445,7 +437,7 @@
     });
 
     // read counters from xml file and populate the website
-    read_from_xml(gputop.get_metrics_xml());
+    add_metrics();
 
     // display the new equation
     $('.equation').click(function() {
