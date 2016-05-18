@@ -411,10 +411,10 @@
 
         if ($this.is(':checked')) {
             metric.per_ctx_mode_ = true;
-            console.log("Switching On "+metric.name_+" per context");
+            console.log("Switching On "+metric.name+" per context");
         } else {
             metric.per_ctx_mode_ = false;
-            console.log("Switching Off "+metric.name_+" per context");
+            console.log("Switching Off "+metric.name+" per context");
         }
 
         gputop.open_oa_metric_set({guid:global_guid});

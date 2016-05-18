@@ -167,7 +167,8 @@ Counter.prototype.append_counter_data = function (start_timestamp, end_timestamp
 //------------------------------ METRIC --------------------------------------
 function Metric () {
     // Id for the interface to know on click
-    this.name_ = "not loaded";
+    this.name = "not loaded";
+    this.symbol_name = "UnInitialized";
     this.chipset_ = "not loaded";
 
     this.guid_ = "undefined";
@@ -458,10 +459,11 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
         var guid = $(xml_elem).attr("guid");
         var metric = this.get_map_metric(guid);
         metric.xml_ = $(xml_elem);
-        metric.name_ = $(xml_elem).attr("name");
+        metric.name = $(xml_elem).attr("name");
+        metric.symbol_name = $(xml_elem).attr("symbol_name");
         metric.chipset_ = $(xml_elem).attr("chipset");
 
-        this.syslog(guid + '\n Found metric ' + metric.name_);
+        this.syslog(guid + '\n Found metric ' + metric.name);
 
         // We populate our array with metrics in the same order as the XML
         // The metric will already be defined when the features query finishes
@@ -583,7 +585,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
             per_ctx_mode = config.per_ctx_mode;
 
         function _finalize_open() {
-            this.syslog("Opened OA metric set " + metric.name_);
+            this.syslog("Opened OA metric set " + metric.name);
 
             metric.exponent = oa_exponent;
             metric.per_ctx_mode_ = per_ctx_mode;
@@ -606,9 +608,9 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         this.active_oa_metric_ = metric;
 
         // if (open.per_ctx_mode)
-        //     this.show_alert("Opening metric set " + metric.name_ + " in per context mode", "alert-info");
+        //     this.show_alert("Opening metric set " + metric.name + " in per context mode", "alert-info");
         // else
-        //     this.show_alert("Opening metric set " + metric.name_, "alert-info");
+        //     this.show_alert("Opening metric set " + metric.name, "alert-info");
 
 
         if ('paused_state' in config) {
@@ -648,7 +650,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
     }
 
     if (metric.supported_ == false) {
-        this.show_alert(config.guid + " " + metric.name_ + " not supported on this kernel", "alert-danger");
+        this.show_alert(config.guid + " " + metric.name + " not supported on this kernel", "alert-danger");
         return;
     }
 
@@ -685,7 +687,7 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
             callback();
     }
 
-    //this.show_alert("Closing query " + metric.name_, "alert-info");
+    //this.show_alert("Closing query " + metric.name, "alert-info");
     metric.closing_ = true;
     this.active_oa_metric_ = undefined;
 
