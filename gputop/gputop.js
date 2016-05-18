@@ -349,7 +349,7 @@ function Gputop () {
 /* Application log messages */
 Gputop.prototype.log = function(level, message)
 {
-    console.log("APP LOG: (" + level + ") " + message);
+    console.log("APP LOG: (" + level + ") " + message.trim());
 }
 
 /* Internal console.log wrapper in case we want to forward/redirect */
