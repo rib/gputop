@@ -616,7 +616,6 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
             this.server_handle_to_metric_map[open.id] = metric;
 
-            var self = this;
             this.rpc_request('open_query', open, _finalize_open.bind(this));
 
             metric.history = [];
