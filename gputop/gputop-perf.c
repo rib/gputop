@@ -888,7 +888,10 @@ gputop_stream_data_pending(struct gputop_perf_stream *stream)
     case GPUTOP_STREAM_I915_PERF:
         return i915_perf_stream_data_pending(stream);
     case GPUTOP_STREAM_CPU:
-        assert(0);
+        if (stream->cpu.stats_buf_pos == 0 && !stream->cpu.stats_buf_full)
+            return false;
+        else
+            return true;
     }
 
     assert(0);
