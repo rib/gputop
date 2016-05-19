@@ -172,6 +172,8 @@ print_gputop_env_vars(void)
 #ifdef SUPPORT_WEBUI
     if (getenv("GPUTOP_MODE"))
         fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
+    if (getenv("GPUTOP_WEB_ROOT"))
+        fprintf(stderr, "GPUTOP_WEB_ROOT=%s \\\n", getenv("GPUTOP_WEB_ROOT"));
 #endif
 }
 
