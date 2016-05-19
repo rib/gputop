@@ -350,7 +350,6 @@ gputop_perf_stream_close(struct gputop_perf_stream *stream,
         }
         break;
     case GPUTOP_STREAM_CPU:
-        finish_stream_close(stream);
         break;
     }
 
