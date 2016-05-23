@@ -282,9 +282,11 @@ function Gputop () {
     this.map_metrics_ = {}; // Map of metrics by GUID
 
     this.is_connected_ = false;
+
     this.config_ = {
         architecture: 'ukn'
     }
+    this.demo_architecture =  "hsw";
 
     this.get_arch_pretty_name = function() {
         switch (this.config_.architecture) {
@@ -533,15 +535,10 @@ Gputop.prototype.parse_xml_metrics = function(xml) {
 }
 
 Gputop.prototype.set_demo_architecture = function(architecture) {
-    if (this.active_oa_metric_) {
-        this.close_oa_metric_set(this.active_oa_metric_,
-            function() {
-                this.show_alert(" Success closing query", "alert-info");
-            });
-    }
-
     this.dispose();
-    this.set_architecture(architecture);
+
+    this.demo_architecture = architecture;
+    this.is_connected_ = true;
     this.request_features();
 }
 
@@ -824,12 +821,14 @@ Gputop.prototype.request_features = function() {
     } else {
         var demo_devinfo = new this.builder_.DevInfo();
 
+        demo_devinfo.set('devname', this.demo_architecture);
+
         demo_devinfo.set('timestamp_frequency', 12500000);
 
         var n_eus = 0;
         var threads_per_eu = 7;
 
-        switch (this.config_.architecture) {
+        switch (this.demo_architecture) {
         case 'hsw':
             demo_devinfo.set('devid', 0x0422);
             demo_devinfo.set('gen', 7);
@@ -857,7 +856,6 @@ Gputop.prototype.request_features = function() {
             demo_devinfo.set('slice_mask', 0x1);
             demo_devinfo.set('subslice_mask', 0x3);
             break;
-        case 'ukn':
         case 'skl':
             demo_devinfo.set('devid', 0x1926);
             demo_devinfo.set('gen', 9);
@@ -868,6 +866,8 @@ Gputop.prototype.request_features = function() {
             demo_devinfo.set('subslice_mask', 0x1ff);
             demo_devinfo.set('timestamp_frequency', 12000000);
             break;
+        default:
+            console.error("Unknown architecture to demo");
         }
 
         demo_devinfo.set('n_eus', n_eus);
@@ -1147,22 +1147,23 @@ Gputop.prototype.connect = function(address, callback) {
     this.dispose();
 
     this.load_emscripten(() => {
-        if (!gputop_is_demo()) {
-                this.load_gputop_proto(() => {
-                    var websocket_url = 'ws://' + address + '/gputop/';
-                    this.syslog('Connecting to port ' + websocket_url);
-                    this.socket_ = this.connect_web_socket(websocket_url, () => {
-                        this.is_connected_ = true;
-                        this.request_features();
-                        if (callback !== undefined)
-                            callback();
-                    });
+        this.load_gputop_proto(() => {
+            if (!gputop_is_demo()) {
+                var websocket_url = 'ws://' + address + '/gputop/';
+                this.syslog('Connecting to port ' + websocket_url);
+                this.socket_ = this.connect_web_socket(websocket_url, () => {
+                    this.is_connected_ = true;
+                    this.request_features();
+                    if (callback !== undefined)
+                        callback();
                 });
-        } else {
-            this.is_connected_ = true;
-            if (callback !== undefined)
-                callback();
-        }
+            } else {
+                this.is_connected_ = true;
+                this.request_features();
+                if (callback !== undefined)
+                    callback();
+            }
+        });
     });
 }
 
