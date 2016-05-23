@@ -244,6 +244,10 @@ stream.once('open', (fd) => {
 
     gputop.connect(args.address, () => {
         console.log("connected");
+
+        gputop.open_cpu_stats({}, () => {
+            console.log("cpu stats open");
+        });
     });
 });
 

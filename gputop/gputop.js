@@ -685,6 +685,82 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
     }
 }
 
+var EventTarget = function() {
+    this.listeners = {};
+};
+
+EventTarget.prototype.listeners = null;
+EventTarget.prototype.addEventListener = function(type, callback) {
+    if(!(type in this.listeners)) {
+        this.listeners[type] = [];
+    }
+    this.listeners[type].push(callback);
+};
+
+EventTarget.prototype.removeEventListener = function(type, callback) {
+    if(!(type in this.listeners)) {
+        return;
+    }
+    var stack = this.listeners[type];
+    for(var i = 0, l = stack.length; i < l; i++){
+        if(stack[i] === callback){
+            stack.splice(i, 1);
+            return this.removeEventListener(type, callback);
+        }
+    }
+};
+
+EventTarget.prototype.dispatchEvent = function(event){
+    if(!(event.type in this.listeners)) {
+        return;
+    }
+    var stack = this.listeners[event.type];
+    event.target = this;
+    for(var i = 0, l = stack.length; i < l; i++) {
+        stack[i].call(this, event);
+    }
+};
+
+EventTarget.prototype.on = function(type, callback) {
+    this.addEventListener(type, callback);
+}
+
+var Stream = function(server_handle) {
+    EventTarget.call(this);
+
+    this.server_handle = server_handle
+}
+
+Stream.prototype = Object.create(EventTarget.prototype);
+
+Gputop.prototype.open_cpu_stats = function(config, callback) {
+    var stream = new Stream(this.next_server_handle++);
+
+    var cpu_stats = new this.builder_.CpuStatsInfo();
+    if ('sample_period_ms' in config)
+        cpu_stats.set('sample_period_ms', config.sample_period_ms);
+    else
+        cpu_stats.set('sample_period_ms', 10);
+
+    var open = new this.builder_.OpenQuery();
+    open.set('id', stream.server_handle);
+    open.set('cpu_stats', cpu_stats);
+    open.set('overwrite', false);   /* don't overwrite old samples */
+    open.set('live_updates', true); /* send live updates */
+
+    /* FIXME: remove from OpenQuery - not relevent to opening cpu stats */
+    open.set('per_ctx_mode', false);
+
+    this.rpc_request('open_query', open, () => {
+        var ev = { type: "open" };
+        stream.dispatchEvent(ev);
+    });
+
+    this.cpu_stats_stream = stream;
+
+    return stream;
+}
+
 Gputop.prototype.close_active_metric_set = function(callback) {
     if (this.active_oa_metric_ == undefined) {
         this.show_alert("No Active Metric Set", "alert-info");
@@ -991,6 +1067,12 @@ function gputop_socket_on_message(evt) {
 
             process.update(msg.process_info);
             this.syslog(msg.reply_uuid + " recv: Console process info "+pid);
+        }
+        if (msg.cpu_stats != undefined) {
+            console.log("cpu stats:" + msg.cpu_stats.cpus[0]);
+            for (var i = 0; i < msg.cpu_stats.cpus.length; i++) {
+                console.log("> " + i + ") " + msg.cpu_stats.cpus[i]);
+            }
         }
 
         if (msg.reply_uuid in this.rpc_closures_) {
