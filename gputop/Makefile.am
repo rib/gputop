@@ -277,7 +277,7 @@ distclean-local:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) distclean
 	rm -fr node_modules
 install-data-local: | node_modules ;
-	npm install -g --prefix=$(prefix) --production
+	npm install -g --prefix=$(prefix) --production --cache-min 999999999
 
 #	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) install-data
 #install-exec-local:
