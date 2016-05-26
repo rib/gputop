@@ -105,9 +105,12 @@ gputop_cpu_read_stats(struct cpu_stat *stats, int n_cpus)
     char *line = NULL;
     size_t line_len = 0;
     uint64_t timestamp = gputop_get_time();
+    int n_read = 0;
 
-    if (!fp)
+    if (!fp) {
+        dbg("Failed to open /proc/stat\n");
         return false;
+    }
 
     while (getline(&line, &line_len, fp) > 0) {
         struct cpu_stat st = { 0 };
@@ -122,10 +125,18 @@ gputop_cpu_read_stats(struct cpu_stat *stats, int n_cpus)
             }
             st.timestamp = timestamp;
             stats[st.cpu] = st;
+            n_read++;
         }
     }
 
+
     free(line);
+    fclose(fp);
+
+    if (n_read != n_cpus) {
+        dbg("Failed to read all cpu stats\n");
+        return false;
+    }
 
     return true;
 }
