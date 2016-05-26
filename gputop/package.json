@@ -10,6 +10,7 @@
         "bootstrap-slider": "^6.0.16",
         "bootbox": "4.4.0",
         "jqueryui-browser": "^1.10.2-1",
+        "plotly.js": "^1.11.0",
         "jquery-flot": "^0.8.3",
         "mathjax": "^2.6.1"
     },

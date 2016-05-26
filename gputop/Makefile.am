@@ -124,7 +124,8 @@ third_party_files = \
 	bootstrap/fonts/glyphicons-halflings-regular.eot \
 	bootstrap/fonts/glyphicons-halflings-regular.woff2 \
 	bootstrap/fonts/glyphicons-halflings-regular.svg \
-	bootbox.min.js
+	bootbox.min.js \
+	plotly/plotly.min.js
 
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
