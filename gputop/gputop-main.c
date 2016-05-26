@@ -27,6 +27,7 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <getopt.h>
@@ -35,6 +36,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
 static void
@@ -135,10 +138,106 @@ resolve_lib_path_for_env(const char *lib, const char *sym_name, const char *env)
 }
 #endif
 
-static void
-env_append_path(const char *var, const char *path)
+
+static const char *
+get_bin_dir(void)
 {
+    static const char *bin_dir = NULL;
+    pid_t pid = getpid();
+    char *exe_link = NULL;
+    char exe_path[1024];
+
+    if (bin_dir)
+        return bin_dir;
+
+    if (asprintf(&exe_link, "/proc/%d/exe", (int)pid) < 0) {
+        perror(NULL);
+        exit(1);
+    }
+
+    if (readlink(exe_link, exe_path, sizeof(exe_path)) < 0) {
+        perror("Failed to resolve path of executable");
+        exit(1);
+    }
+
+    free(exe_link);
+    exe_link = NULL;
+
+    bin_dir = strdup(dirname(exe_path));
+
+    return bin_dir;
+}
+
+/* To help with running gputop from a build directory we search in a number of
+ * different locations for different helper libraries to try and avoid muddling
+ * a mixture of installed and build directory binaries.
+ *
+ * This also makes gputop binaries relocatable.
+ */
+static const char * const *
+get_lib_dirs(void)
+{
+    static char *lib_dirs[4] = { 0 };
+    const char *bin_dir = get_bin_dir();
+    const char *prefix;
+    char dir[1024];
+
+    if (lib_dirs[0] != NULL)
+        return (const char * const *)lib_dirs;
+
+    if (asprintf(&lib_dirs[0], "%s/.libs", bin_dir) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+
+    strncpy(dir, bin_dir, sizeof(dir));
+    prefix = dirname(dir);
+
+    if (asprintf(&lib_dirs[1], "%s/lib", prefix) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+    if (asprintf(&lib_dirs[2], "%s/lib/wrappers", prefix) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+
+    return (const char * const *)lib_dirs;
+}
+
+static char *
+resolve_gputop_lib(const char *lib)
+{
+    const char * const *lib_dirs = get_lib_dirs();
+
+    for (int i = 0; lib_dirs[i]; i++) {
+        char *path = NULL;
+        struct stat sb;
+
+        if (asprintf(&path, "%s/%s", lib_dirs[i], lib) < 0) {
+            perror("Failed to format path to libary");
+            exit(1);
+        }
+
+        if (stat(path, &sb) == 0)
+            return path;
+
+        free(path);
+    }
+
+    fprintf(stderr, "Failed to find %s", lib);
+    exit(1);
+
+    return NULL;
+}
+
+static void
+env_resolve_append_lib_path(const char *var, const char *lib)
+{
+    char *path = resolve_gputop_lib(lib);
     const char *cur = getenv(var);
+
+    fprintf(stderr, "Using %s at %s\n", lib, path);
 
     if (cur) {
         char *val;
@@ -175,6 +274,61 @@ print_gputop_env_vars(void)
     if (getenv("GPUTOP_WEB_ROOT"))
         fprintf(stderr, "GPUTOP_WEB_ROOT=%s \\\n", getenv("GPUTOP_WEB_ROOT"));
 #endif
+}
+
+static char *
+get_gputop_system_path(void)
+{
+    const char *bin_dir = get_bin_dir();
+    const char *options[] = {
+        ".libs/lt-gputop-system",
+        ".libs/gputop-system",
+        "gputop-system",
+        NULL
+    };
+
+    for (int i; options[i]; i++) {
+        struct stat sb;
+        char *path = NULL;
+
+        if (asprintf(&path, "%s/%s", bin_dir, options[i]) < 0) {
+            perror("Failed to format gputop-system path");
+            exit(1);
+        }
+
+        if (stat(path, &sb) == 0)
+            return path;
+
+        free(path);
+    }
+
+    fprintf(stderr, "Failed to find gputop-system program\n");
+    exit(1);
+}
+
+/* See if gputop is being run from a source/build directory and set
+ * the GPUTOP_WEB_ROOT environment accordingly if so, to avoid
+ * neeing to run make install during development/testing...
+ */
+static void
+setup_web_root_env(void)
+{
+    const char *bin_dir = get_bin_dir();
+    char *index_path = NULL;
+    struct stat sb;
+
+    if (getenv("GPUTOP_WEB_ROOT"))
+        return;
+
+    if (asprintf(&index_path, "%s/gputop.js", bin_dir) < 0) {
+        fprintf(stderr, "Failed to format index.html path\n");
+        exit(1);
+    }
+
+    if (stat(index_path, &sb) == 0)
+        setenv("GPUTOP_WEB_ROOT", bin_dir, 1);
+
+    free(index_path);
 }
 
 int
@@ -218,7 +372,7 @@ main (int argc, char **argv)
     };
     char *ld_preload_path;
     char *gputop_system_args[] = {
-        "gputop-system",
+        get_gputop_system_path(),
         NULL
     };
     char **args = argv;
@@ -271,8 +425,8 @@ main (int argc, char **argv)
                 break;
 #endif
             default:
-                fprintf (stderr, "Internal error: "
-                         "unexpected getopt value: %d\n", opt);
+                fprintf(stderr, "Internal error: "
+                        "unexpected getopt value: %d\n", opt);
                 exit (1);
         }
     }
@@ -287,31 +441,33 @@ main (int argc, char **argv)
     }
 
     if (!disable_ioctl)
-        env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/libgputop.so");
+        env_resolve_append_lib_path("LD_PRELOAD", "libgputop.so");
 
 #ifdef SUPPORT_GL
-    env_append_path("LD_PRELOAD", GPUTOP_LIB_DIR "/wrappers/libfakeGL.so");
+    env_resolve_append_lib_path("LD_PRELOAD", "libfakeGL.so");
 
     if (!getenv("GPUTOP_GL_LIBRARY")) {
         bool found = resolve_lib_path_for_env("libGL.so.1", "glClear", "GPUTOP_GL_LIBRARY");
-            if (!found)
-            {
-                fprintf(stderr, "Could not resolve a path for the system libGL.so library\n");
-                exit(0);
-            }
+        if (!found) {
+            fprintf(stderr, "Could not resolve a path for the system libGL.so library\n");
+            exit(0);
+        }
     }
 
     if (!getenv("GPUTOP_EGL_LIBRARY"))
         resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
 #endif
 
+#ifdef SUPPORT_WEBUI
+    setup_web_root_env();
+#endif
 
     /*
      * Print out the environment that we are setting up...
      */
 
     if (dry_run)
-        fprintf(stderr, "Would run:\n\n");
+        fprintf(stderr, "\nWould run:\n\n");
     else
         fprintf(stderr, "Running:\n\n");
 
