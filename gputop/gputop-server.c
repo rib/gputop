@@ -489,24 +489,24 @@ flush_cpu_stats(struct gputop_perf_stream *stream)
 
         message.cpu_stats = &set;
 
+        set.id = stream->user.id;
         set.n_cpus = n_cpus;
         set.cpus = stats_vec;
 
         for (int i = 0; i < n_cpus; i++) {
             gputop__cpu_stats__init(&stats[i]);
             stats_vec[i] = &stats[i];
-
-            stats[i].timestamp = stat->timestamp;
-            stats[i].user = stat->user;
-            stats[i].nice = stat->nice;
-            stats[i].system = stat->system;
-            stats[i].idle = stat->idle;
-            stats[i].iowait = stat->iowait;
-            stats[i].irq = stat->irq;
-            stats[i].softirq = stat->softirq;
-            stats[i].steal = stat->steal;
-            stats[i].guest = stat->guest;
-            stats[i].guest_nice = stat->guest_nice;
+            stats[i].timestamp = stat[i].timestamp;
+            stats[i].user = stat[i].user;
+            stats[i].nice = stat[i].nice;
+            stats[i].system = stat[i].system;
+            stats[i].idle = stat[i].idle;
+            stats[i].iowait = stat[i].iowait;
+            stats[i].irq = stat[i].irq;
+            stats[i].softirq = stat[i].softirq;
+            stats[i].steal = stat[i].steal;
+            stats[i].guest = stat[i].guest;
+            stats[i].guest_nice = stat[i].guest_nice;
         }
 
         send_pb_message(h2o_conn, &message.base);

@@ -117,7 +117,8 @@ message CpuStats
 
 message CpuStatsSet
 {
-    repeated CpuStats cpus = 1;
+    required uint32 id = 1; /* handle used to open stream */
+    repeated CpuStats cpus = 2;
 }
 
 message Message
