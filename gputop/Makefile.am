@@ -28,8 +28,7 @@ gputop_CFLAGS = \
     -std=gnu99
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
-    -I$(srcdir) \
-    -DGPUTOP_LIB_DIR=\"$(libdir)\"
+    -I$(srcdir)
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
