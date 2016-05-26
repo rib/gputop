@@ -307,6 +307,7 @@ function Gputop () {
      */
     this.next_server_handle = 1;
     this.server_handle_to_metric_map = {};
+    this.server_handle_to_stream_map = {};
 
     /* When we open a stream of metrics we also call into the
      * Emscripten compiled webc code to allocate a corresponding
@@ -745,15 +746,17 @@ Gputop.prototype.open_cpu_stats = function(config, callback) {
     open.set('overwrite', false);   /* don't overwrite old samples */
     open.set('live_updates', true); /* send live updates */
 
-    /* FIXME: remove from OpenQuery - not relevent to opening cpu stats */
+    /* FIXME: remove from OpenQuery - not relevant to opening cpu stats */
     open.set('per_ctx_mode', false);
 
+    stream.on('open', callback);
+
     this.rpc_request('open_query', open, () => {
+        this.server_handle_to_stream_map[open.id] = stream;
+
         var ev = { type: "open" };
         stream.dispatchEvent(ev);
     });
-
-    this.cpu_stats_stream = stream;
 
     return stream;
 }
@@ -1000,6 +1003,7 @@ Gputop.prototype.dispose = function() {
 
     this.webc_stream_ptr_to_metric_map = {};
     this.server_handle_to_metric_map = {};
+    this.server_handle_to_stream_map = {};
     this.active_oa_metric_ = undefined;
 }
 
@@ -1038,7 +1042,6 @@ function gputop_socket_on_message(evt) {
     var data = new Uint8Array(evt.data, 8);
     var msg_type = dv.getUint8(0);
 
-    data.length
     switch(msg_type) {
     case 1: /* WS_MESSAGE_PERF */
         var id = dv.getUint16(4, true /* little endian */);
@@ -1046,33 +1049,40 @@ function gputop_socket_on_message(evt) {
         break;
     case 2: /* WS_MESSAGE_PROTOBUF */
         var msg = this.builder_.Message.decode(data);
-        if (msg.features != undefined) {
+
+        switch (msg.cmd) {
+        case 'features':
             this.syslog("Features: "+msg.features.get_cpu_model());
             this.process_features(msg.features);
-        }
-        if (msg.error != undefined) {
+            break;
+        case 'error':
             this.show_alert(msg.error,"alert-danger");
             this.syslog(msg.reply_uuid + " recv: Error " + msg.error);
             this.log(4, msg.error);
-        }
-        if (msg.log != undefined) {
+            break;
+        case 'log':
             var entries = msg.log.entries;
             entries.forEach((entry) => {
                 this.log(entry.log_level, entry.log_message);
             });
-        }
-        if (msg.process_info != undefined) {
+            break;
+        case 'process_info':
             var pid = msg.process_info.pid;
             var process = this.get_process_by_pid(pid);
 
             process.update(msg.process_info);
             this.syslog(msg.reply_uuid + " recv: Console process info "+pid);
-        }
-        if (msg.cpu_stats != undefined) {
-            console.log("cpu stats:" + msg.cpu_stats.cpus[0]);
-            for (var i = 0; i < msg.cpu_stats.cpus.length; i++) {
-                console.log("> " + i + ") " + msg.cpu_stats.cpus[i]);
+            break;
+        case 'cpu_stats':
+            var server_handle = msg.cpu_stats.id;
+
+            if (server_handle in this.server_handle_to_stream_map) {
+                var stream = this.server_handle_to_stream_map[server_handle];
+
+                var ev = { type: "update", stats: msg.cpu_stats };
+                stream.dispatchEvent(ev);
             }
+            break;
         }
 
         if (msg.reply_uuid in this.rpc_closures_) {
