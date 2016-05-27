@@ -100,7 +100,6 @@ static struct gputop_oa_accumulator current_oa_accumulator;
 
 #ifdef SUPPORT_WEBUI
 static bool web_ui = false;
-static bool nodejs_ui = false;
 #endif
 
 static int y_pos;
@@ -1617,9 +1616,6 @@ run_ncurses_ui(void *arg)
     if (mode && strcmp(mode, "remote") == 0) {
         debug_disable_ncurses = true;
         web_ui = true;
-    } else if (mode && strcmp(mode, "nodejs") == 0) {
-        debug_disable_ncurses = true;
-        nodejs_ui = true;
     }
 #endif
 
@@ -1684,31 +1680,6 @@ run_ncurses_ui(void *arg)
     if (web_ui) {
         gputop_server_run();
 
-    } else if (nodejs_ui) {
-        pid_t pid;
-        char *tool = getenv("GPUTOP_NODEJS_TOOL");
-
-        if (!tool)
-            tool = "features";
-
-        gputop_server_run();
-        pid = fork();
-
-        if (pid != 0) {
-            char *exec_args[] = { "node",
-                GPUTOP_NODEJS_ROOT "/gputop-nodejs-toolkit.js", tool, NULL };
-            int i, err;
-
-            unsetenv("LD_PRELOAD");
-            execvp(exec_args[0], exec_args);
-            err = errno;
-
-            fprintf(stderr, "gputop: Failed to run Node.js application: \n\n"
-                "  ");
-            for (i = 0; i < 2; i++)
-                fprintf(stderr, "%s ", exec_args[i]);
-            fprintf(stderr, "\n\n%s\n", strerror(err));
-        }
     } else
 #endif
     {

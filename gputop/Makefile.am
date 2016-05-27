@@ -11,10 +11,6 @@ endif
 # code
 SUBDIRS += .
 
-if SUPPORT_WEBUI
-
-endif
-
 bin_PROGRAMS = gputop gputop-system
 
 gputop_SOURCES = gputop-main.c
@@ -66,7 +62,6 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
-    -DGPUTOP_NODEJS_ROOT=\"$(libdir)/nodejs/gputop\" \
     -std=gnu99
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
@@ -146,18 +141,6 @@ nobase_dist_remote_DATA = \
 	$(oa_xml_files) \
 	$(built_oa_xml_files) \
 	$(third_party_files)
-
-nodejsdir = $(libdir)/nodejs/gputop
-nobase_dist_nodejs_DATA = \
-gputop-nodejs-ui.js \
-gputop-nodejs-toolkit.js
-
-#nodemodulesdir = $(libdir)/nodejs/gputop
-#nobase_dist_nodemodules_DATA := \
-    #$(shell find ./node_modules/{protobufjs,bytebuffer,long,uuid,ws,http,string_decoder,pkill,ultron,options,jquery} -type f -name '*.js' -o -name '*.json' -o -name '*.node') \
-    #$(shell find ./node_modules/{jsdom,acorn,acorn-globals,browser-request,contextify,cssom,cssstyle,escodegen,htmlparser2,nwmatcher,parse5,request,xml-name-validator,xmlhttprequest,entities,domhandler,domelementtype,bindings} -type f -name '*.js' -o -name '*.json' -o -name '*.node') \
-    #./node_modules/gputop/index.js \
-    #./node_modules/gputop/gputop-web.js
 
 BUILT_SOURCE = gputop-web.js node_modules
 
