@@ -98,9 +98,7 @@ static bool debug_disable_ncurses = false;
 static struct gputop_perf_stream *current_oa_stream;
 static struct gputop_oa_accumulator current_oa_accumulator;
 
-#ifdef SUPPORT_WEBUI
-static bool web_ui = false;
-#endif
+static bool remote_ui = false;
 
 static int y_pos;
 static double zoom = 1;
@@ -1610,14 +1608,15 @@ static void *
 run_ncurses_ui(void *arg)
 {
     struct tab *tab, *tmp;
-#ifdef SUPPORT_WEBUI
-    const char *mode = getenv("GPUTOP_MODE");
 
-    if (mode && strcmp(mode, "remote") == 0) {
+    const char *mode = getenv("GPUTOP_MODE");
+    if (!mode)
+        mode = "remote";
+
+    if (strcmp(mode, "remote") == 0) {
         debug_disable_ncurses = true;
-        web_ui = true;
+        remote_ui = true;
     }
-#endif
 
     gputop_mainloop = uv_loop_new();
 
@@ -1676,13 +1675,9 @@ run_ncurses_ui(void *arg)
 
     atexit(atexit_cb);
 
-#ifdef SUPPORT_WEBUI
-    if (web_ui) {
+    if (remote_ui)
         gputop_server_run();
-
-    } else
-#endif
-    {
+    else {
         uv_idle_init(gputop_mainloop, &redraw_idle);
 
         current_tab->enter(current_tab);

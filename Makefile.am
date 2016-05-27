@@ -1,12 +1,10 @@
 SUBDIRS = libuv
 
-if SUPPORT_WEBUI
 SUBDIRS += protobuf-c protoc-c h2o
-endif
 
 SUBDIRS += gputop
 
-if SUPPORT_WEBUI
+if ENABLE_REMOTE_CLIENTS
 SUBDIRS += gputop-csv
 endif
 

@@ -137,20 +137,19 @@ AC_CHECK_PROGS([PYTHON2], [python2 python])
 AC_CHECK_PROGS([EMCC], [emcc])
 
 have_emcc=no
-AS_IF([test -n "$EMCC"],
-      [ have_emcc="yes" ])
+AS_IF([test -n "$EMCC"], [ have_emcc="yes" ])
 AC_ARG_ENABLE(
-  [webui],
-  [AC_HELP_STRING([--enable-webui=@<:@no/yes@:>@],
-                  [Enable Web UI @<:@default=auto@:>@])],
-  [enable_webui="$enableval"],
-  [enable_webui="$have_emcc"]
+  [remote-clients],
+  [AC_HELP_STRING([--enable-remote-clients=@<:@no/yes@:>@],
+                  [Build remote clients (web/node.js) @<:@default=auto@:>@])],
+  [enable_remote_clients="$enableval"],
+  [enable_remote_clients="$have_emcc"]
 )
-AS_IF([test "$enable_webui" = "yes"],
+AS_IF([test "$enable_remote_clients" = "yes"],
       [
-        AC_DEFINE([SUPPORT_WEBUI], [1], [Support web based user interface])
+        AC_DEFINE([ENABLE_REMOTE_CLIENTS], [1], [Build remote clients (web/node.js)])
       ])
-AM_CONDITIONAL(SUPPORT_WEBUI, [test "$enable_webui" = "yes"])
+AM_CONDITIONAL(ENABLE_REMOTE_CLIENTS, [test "$enable_remote_clients" = "yes"])
 
 dnl ================================================================
 dnl What needs to be substituted in other files
@@ -177,9 +176,12 @@ echo "GPU Top configured:"
 echo ""
 echo " • Optional Features: ${FEATURES}"
 echo "        GL Intercept: ${enable_gl}"
-echo "              Web UI: ${enable_webui}"
+echo "              Web UI: ${enable_remote_clients}"
+echo "     Node.js Clients: ${enable_remote_clients}"
 echo ""
-
+echo "Note: The UI hosted at gputop.github.io can be used if the web"
+echo "      UI isn't built here."
+echo ""
 echo " • Compiler options:"
 echo "        Debug: ${enable_debug}"
 echo "        Compiler flags: ${CFLAGS} ${GPUTOP_EXTRA_CFLAGS}"

@@ -84,7 +84,6 @@ built_oa_xml_files = \
     chv.xml \
     skl.xml
 
-if SUPPORT_WEBUI
 libgputop_la_SOURCES += \
     gputop.pb-c.h \
     gputop.pb-c.c \
@@ -98,6 +97,7 @@ libgputop_la_LIBADD += \
     $(PROTOBUF_DEP_LIBS) \
     -lssl -lcrypto -lyaml
 
+if ENABLE_REMOTE_CLIENTS
 third_party_files = \
 	protobuf.min.js \
 	bytebuffer.min.js \
@@ -144,7 +144,7 @@ nobase_dist_remote_DATA = \
 
 BUILT_SOURCE = gputop-web.js node_modules
 
-endif
+endif #ENABLE_REMOTE_CLIENTS
 
 if SUPPORT_GL
 libgputop_la_SOURCES += \
@@ -199,11 +199,9 @@ BUILT_SOURCES = \
     oa-skl.c \
     $(built_oa_xml_files)
 
-if SUPPORT_WEBUI
 BUILT_SOURCES += \
     gputop.pb-c.h \
     gputop.pb-c.c
-endif
 
 oa-hsw.h oa-hsw.c hsw.xml: oa-hsw.xml oa-gen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/oa-gen.py \

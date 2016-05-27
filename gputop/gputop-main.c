@@ -61,9 +61,8 @@ usage(void)
            "     --enable-gl-scissor-test      Enable 1x1 scissor test\n"
            "                                   glScissor(0, 0, 1, 1);\n");
 #endif
-#ifdef SUPPORT_WEBUI
-    printf("     --remote                      Enable remote web-based interface\n\n");
-#endif
+    printf("     --ncurses                     Enable ncurses view of metrics\n");
+    printf("                                   (deprecated)\n\n");
     printf(" -h, --help                        Display this help\n\n"
            "\n"
            " Note: gputop is only a wrapper for setting environment variables\n"
@@ -73,10 +72,8 @@ usage(void)
            "\n"
            " Environment:\n"
            "\n"
-#ifdef SUPPORT_WEBUI
-           "     GPUTOP_MODE={remote,ncurses}  The mode of visualizing metrics\n"
-           "                                   (defaults to ncurses)\n\n"
-#endif
+           "     GPUTOP_MODE={remote,ncurses}  The mode of accessing metrics\n"
+           "                                   (defaults to remote)\n\n"
 #ifdef SUPPORT_GL
            "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
            "                                   The gputop libGL.so and syscall\n"
@@ -267,12 +264,10 @@ print_gputop_env_vars(void)
         fprintf(stderr, "GPUTOP_GL_SCISSOR_TEST=%s \\\n", getenv("GPUTOP_GL_SCISSOR_TEST"));
 #endif
 
-#ifdef SUPPORT_WEBUI
     if (getenv("GPUTOP_MODE"))
         fprintf(stderr, "GPUTOP_MODE=%s \\\n", getenv("GPUTOP_MODE"));
     if (getenv("GPUTOP_WEB_ROOT"))
         fprintf(stderr, "GPUTOP_WEB_ROOT=%s \\\n", getenv("GPUTOP_WEB_ROOT"));
-#endif
 }
 
 static char *
@@ -340,7 +335,7 @@ main (int argc, char **argv)
 #define LIB_GL_OPT              (CHAR_MAX + 1)
 #define LIB_EGL_OPT             (CHAR_MAX + 2)
 #define DEBUG_CTX_OPT           (CHAR_MAX + 3)
-#define REMOTE_OPT              (CHAR_MAX + 4)
+#define NCURSES_OPT             (CHAR_MAX + 4)
 #define DRY_RUN_OPT             (CHAR_MAX + 5)
 #define DISABLE_IOCTL_OPT       (CHAR_MAX + 6)
 #define FAKE_OPT                (CHAR_MAX + 7)
@@ -361,10 +356,8 @@ main (int argc, char **argv)
         {"debug-gl-context",        no_argument,        0, DEBUG_CTX_OPT},
         {"enable-gl-scissor-test",  optional_argument,  0, GPUTOP_SCISSOR_TEST},
 #endif
-#ifdef SUPPORT_WEBUI
-        {"remote",          no_argument,        0, REMOTE_OPT},
+        {"ncurses",         no_argument,        0, NCURSES_OPT},
         {"port",            required_argument,  0, PORT_OPT},
-#endif
         {0, 0, 0, 0}
     };
     char *ld_preload_path;
@@ -407,14 +400,12 @@ main (int argc, char **argv)
                 setenv("GPUTOP_GL_SCISSOR_TEST", "1", true);
                 break;
 #endif
-#ifdef SUPPORT_WEBUI
-            case REMOTE_OPT:
-                setenv("GPUTOP_MODE", "remote", true);
+            case NCURSES_OPT:
+                setenv("GPUTOP_MODE", "ncurses", true);
                 break;
             case PORT_OPT:
                 setenv("GPUTOP_PORT", optarg, true);
                 break;
-#endif
             default:
                 fprintf(stderr, "Internal error: "
                         "unexpected getopt value: %d\n", opt);
@@ -449,9 +440,7 @@ main (int argc, char **argv)
         resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
 #endif
 
-#ifdef SUPPORT_WEBUI
     setup_web_root_env();
-#endif
 
     /*
      * Print out the environment that we are setting up...
