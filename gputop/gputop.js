@@ -70,22 +70,9 @@ function get_file(filename, load_callback, error_callback) {
     }
 }
 
-function gputop_is_demo() {
-
-    if (!is_nodejs) {
-        var demo = getUrlParameter('demo');
-        if (demo == "true" || demo == "1"
-                || window.location.hostname == "gputop.github.io"
-                || window.location.hostname == "www.gputop.com"
-                //      || window.location.hostname == "localhost"
-           ) {
-            return true;
-        }
-    }
-
+Gputop.prototype.is_demo = function() {
     return false;
 }
-
 
 function Counter () {
     /* Index into metric.webc_counters_, understood by gputop-web.c code */
@@ -299,6 +286,8 @@ function Gputop () {
     }
 
     this.builder_ = undefined;
+
+    this.socket_ = undefined;
 
     /* When we send a request to open a stream of metrics we send
      * the server a handle that will be attached to subsequent data
@@ -530,9 +519,8 @@ Gputop.prototype.parse_xml_metrics = function(xml) {
     $(xml).find("set").each((i, elem) => {
         this.parse_metrics_set_xml(elem);
     });
-    if (gputop_is_demo()) {
+    if (this.is_demo())
         $('#gputop-metrics-panel').load("ajax/metrics.html");
-    }
 }
 
 Gputop.prototype.set_demo_architecture = function(architecture) {
@@ -789,7 +777,7 @@ Gputop.prototype.generate_uuid = function()
 /* TODO: maybe make @value unnecessary for methods that take no data. */
 Gputop.prototype.rpc_request = function(method, value, closure) {
 
-    if (gputop_is_demo()) {
+    if (this.is_demo()) {
         if (closure != undefined)
             window.setTimeout(closure);
         return;
@@ -815,7 +803,7 @@ Gputop.prototype.rpc_request = function(method, value, closure) {
 }
 
 Gputop.prototype.request_features = function() {
-    if (!gputop_is_demo()) {
+    if (!this.is_demo()) {
         if (this.socket_.readyState == is_nodejs ? 1 : WebSocket.OPEN) {
             this.rpc_request('get_features', true);
         } else {
@@ -928,7 +916,7 @@ Gputop.prototype.process_features = function(features){
     get_file(this.xml_file_name_, (xml) => {
         this.parse_xml_metrics(xml);
 
-        if (gputop_is_demo())
+        if (this.is_demo())
             this.metrics_.forEach(function (metric) { metric.supported_ = true; });
         else {
             this.metrics_.forEach(function (metric) { metric.supported_ = false; });
@@ -991,6 +979,10 @@ Gputop.prototype.load_emscripten = function(callback) {
 }
 
 Gputop.prototype.dispose = function() {
+    if (this.socket_ !== undefined)
+        this.socket_.close();
+    this.socket_ = undefined;
+
     this.is_connected_ = false;
 
     this.metrics_.forEach(function (metric) {
@@ -1158,7 +1150,7 @@ Gputop.prototype.connect = function(address, callback) {
 
     this.load_emscripten(() => {
         this.load_gputop_proto(() => {
-            if (!gputop_is_demo()) {
+            if (!this.is_demo()) {
                 var websocket_url = 'ws://' + address + '/gputop/';
                 this.syslog('Connecting to port ' + websocket_url);
                 this.socket_ = this.connect_web_socket(websocket_url, () => {
