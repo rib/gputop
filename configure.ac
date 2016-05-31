@@ -169,6 +169,7 @@ protoc-c/Makefile
 gputop/Makefile
 gputop/registry/Makefile
 gputop-csv/Makefile
+gputop-tracepoints/Makefile
 )
 
 echo ""

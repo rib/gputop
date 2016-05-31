@@ -1,0 +1,17 @@
+{
+    "name": "gputop-tracepoints",
+    "description": "GPU Top Tracepoints Test Tool",
+    "repository": "https://github.com/rib/gputop",
+    "version": "0.0.1",
+    "license": "MIT",
+    "dependencies": {
+        "gputop": "file:../gputop",
+        "argparse": "^1.0.7"
+    },
+    "bin": {
+        "gputop-tracepoints": "gputop-tracepoints.js"
+    },
+    "engines": {
+        "node": ">=0.8.0"
+    }
+}
