@@ -50,6 +50,7 @@
 #include "gputop-mainloop.h"
 #include "gputop-log.h"
 #include "gputop.pb-c.h"
+#include "gputop-debugfs.h"
 
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
@@ -481,9 +482,12 @@ flush_cpu_stats(struct gputop_perf_stream *stream)
     for (int i = 0; i < n; i++) {
         Gputop__Message message = GPUTOP__MESSAGE__INIT;
         Gputop__CpuStatsSet set = GPUTOP__CPU_STATS_SET__INIT;
-        Gputop__CpuStats *stats_vec[n_cpus];
-        Gputop__CpuStats stats[n_cpus];
+        Gputop__CpuStats **stats_vec;
+        Gputop__CpuStats *stats;
         struct cpu_stat *stat = stream->cpu.stats_buf + pos;
+
+        stats_vec = alloca(sizeof(void *) * n_cpus);
+        stats = alloca(sizeof(Gputop__CpuStats) * n_cpus);
 
         message.cmd_case = GPUTOP__MESSAGE__CMD_CPU_STATS;
 
@@ -954,7 +958,8 @@ gputop_get_cmd_line_pid(uint32_t pid, char *buf, int len)
 
 static void
 handle_get_process_info(h2o_websocket_conn_t *conn,
-                    Gputop__Request *request) {
+                    Gputop__Request *request)
+{
 
     char cmdline[128];
     uint32_t pid = request->get_process_info;
@@ -978,6 +983,41 @@ handle_get_process_info(h2o_websocket_conn_t *conn,
     message.error = "Failed to find process\n";
     send_pb_message(conn, &message.base);
     dbg("Failed to find process %d\n", pid);
+}
+
+static void
+handle_get_tracepoint_info(h2o_websocket_conn_t *conn,
+                           Gputop__Request *request)
+{
+
+    char *name = request->get_tracepoint_info;
+    char filename[1024];
+    int len = 0;
+
+    Gputop__Message message = GPUTOP__MESSAGE__INIT;
+    Gputop__TracepointInfo tracepoint_info = GPUTOP__TRACEPOINT_INFO__INIT;
+
+    message.reply_uuid = request->uuid;
+
+    snprintf(filename, sizeof(filename), "tracing/events/%s/format", name);
+    tracepoint_info.sample_format = gputop_debugfs_read(filename, &len);
+    if (!tracepoint_info.sample_format)
+        goto error;
+
+    snprintf(filename, sizeof(filename), "tracing/events/%s/id", name);
+    tracepoint_info.event_id = gputop_debugfs_read_uint64(filename);
+
+    message.cmd_case = GPUTOP__MESSAGE__CMD_TRACEPOINT_INFO;
+    message.tracepoint_info = &tracepoint_info;
+    send_pb_message(conn, &message.base);
+
+    free(tracepoint_info.sample_format);
+
+    return;
+
+error:
+    message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+    send_pb_message(conn, &message.base);
 }
 
 static void
@@ -1036,6 +1076,14 @@ handle_get_features(h2o_websocket_conn_t *conn,
     gputop_cpu_model(cpu_model, sizeof(cpu_model));
     features.cpu_model = cpu_model;
 
+    features.tracepoints = gputop_debugfs_get_tracepoint_names();
+    if (features.tracepoints) {
+        for (features.n_tracepoints = 0;
+             features.tracepoints[features.n_tracepoints];
+             features.n_tracepoints++) {
+        }
+    }
+
     gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     features.kernel_release = kernel_release;
@@ -1070,6 +1118,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     dbg("  Kernel Build = %s\n", features.kernel_build);
 
     send_pb_message(conn, &message.base);
+
+    gputop_debugfs_free_tracepoint_names(features.tracepoints);
 }
 
 static void on_ws_message(h2o_websocket_conn_t *conn,
@@ -1100,8 +1150,12 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
         }
 
         switch (request->req_case) {
+        case GPUTOP__REQUEST__REQ_GET_TRACEPOINT_INFO:
+            fprintf(stderr, "GetTracepointInfo request received\n");
+            handle_get_tracepoint_info(conn, request);
+            break;
         case GPUTOP__REQUEST__REQ_GET_PROCESS_INFO:
-            fprintf(stderr, "GetFeatures request received\n");
+            fprintf(stderr, "GetProcessInfo request received\n");
             handle_get_process_info(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_GET_FEATURES:
