@@ -53,6 +53,8 @@ libgputop_la_SOURCES = \
     gputop-oa-counters.c \
     gputop-cpu.h \
     gputop-cpu.c \
+    gputop-debugfs.h \
+    gputop-debugfs.c \
     gputop-ioctl.c
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \

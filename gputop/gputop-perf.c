@@ -128,31 +128,13 @@ static gputop_list_t ctx_handles_list = {
 /******************************************************************************/
 
 static uint64_t
-read_file_uint64(const char *file)
-{
-    char buf[32];
-    int fd, n;
-
-    fd = open(file, 0);
-    if (fd < 0)
-        return 0;
-    n = read(fd, buf, sizeof (buf) - 1);
-    close(fd);
-    if (n < 0)
-        return 0;
-
-    buf[n] = '\0';
-    return strtoull(buf, 0, 0);
-}
-
-static uint64_t
 sysfs_card_read(const char *file)
 {
         char buf[512];
 
         snprintf(buf, sizeof(buf), "/sys/class/drm/card%d/%s", drm_card, file);
 
-        return read_file_uint64(buf);
+        return gputop_read_file_uint64(buf);
 }
 
 
@@ -524,7 +506,7 @@ gputop_perf_open_trace(int pid,
         }
     }
 
-    id = read_file_uint64(filename);
+    id = gputop_read_file_uint64(filename);
     free(filename);
     filename = NULL;
 
@@ -1419,7 +1401,7 @@ read_device_param(const char *stem, int id, const char *param)
 
     assert(ret != -1);
 
-    value = read_file_uint64(name);
+    value = gputop_read_file_uint64(name);
     free(name);
 
     return value;
@@ -1509,7 +1491,7 @@ gputop_enumerate_metrics_via_sysfs(void)
                  "/sys/class/drm/card%d/metrics/%s/id",
                  drm_card, entry2->d_name);
 
-        metric_set->perf_oa_metrics_set = read_file_uint64(buffer);
+        metric_set->perf_oa_metrics_set = gputop_read_file_uint64(buffer);
         array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->guid);
     }
     closedir(metrics_dir);

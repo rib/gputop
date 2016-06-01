@@ -24,10 +24,14 @@
 
 #pragma once
 
+#include <sys/types.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define unlikely(x) __builtin_expect(x, 0)
 
@@ -144,3 +148,23 @@ gputop_get_time(void);
 
 bool
 gputop_read_file(const char *filename, void *buf, int max);
+
+static uint64_t __attribute__((unused))
+gputop_read_file_uint64(const char *file)
+{
+    char buf[32];
+    int fd, n;
+
+    fd = open(file, 0);
+    if (fd < 0)
+        return 0;
+    n = read(fd, buf, sizeof (buf) - 1);
+    close(fd);
+    if (n < 0)
+        return 0;
+
+    buf[n] = '\0';
+    return strtoull(buf, 0, 0);
+}
+
+
