@@ -69,6 +69,7 @@ message Features
     required string kernel_build = 8;
     required bool fake_mode = 9;
     repeated string supported_oa_query_guids = 10;
+    repeated string tracepoints = 11;
 }
 
 message ProcessInfo
@@ -121,6 +122,13 @@ message CpuStatsSet
     repeated CpuStats cpus = 2;
 }
 
+message TracepointInfo
+{
+    required uint32 event_id = 1;
+    required string sample_format = 2;
+}
+
+
 message Message
 {
     optional string reply_uuid = 1;
@@ -134,6 +142,7 @@ message Message
         BufferFillNotify fill_notify = 7;
         ProcessInfo process_info = 8;
         CpuStatsSet cpu_stats = 9;
+        TracepointInfo tracepoint_info = 10;
     }
 }
 
@@ -194,5 +203,6 @@ message Request
         uint32 close_query = 4;
         uint32 get_process_info = 5;
         string test_log=6;
+        string get_tracepoint_info = 7;
     }
 }
