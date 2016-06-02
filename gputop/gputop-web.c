@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -69,6 +68,7 @@ static void __attribute__((noreturn))
 assert_not_reached(void)
 {
     gputop_web_console_assert(0, "code should not be reached");
+    assert(0); /* just to hide compiler warning about noreturn */
 }
 
 #define JS_MAX_SAFE_INTEGER (((uint64_t)1<<53) - 1)
