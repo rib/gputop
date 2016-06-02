@@ -64,7 +64,7 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
-    -std=gnu99
+    -std=gnu11
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(NCURSES_DEP_LIBS) \

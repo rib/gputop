@@ -18,7 +18,7 @@ VPATH=$(gputop_srcdir):$(gputop_builddir):$(web_srcdir):$(protobuf_c_srcdir):$(b
 W_FLAGS=-Wall -Wuninitialized -Wno-strict-aliasing -Wempty-body -Wformat -Wformat-security -Winit-self -Wdeclaration-after-statement -Wvla -Wpointer-arith
 
 #can be overriden by user...
-CFLAGS=-g -O0 $(W_FLAGS)
+CFLAGS=-std=c11 -g -O0 $(W_FLAGS)
 OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
 JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 
