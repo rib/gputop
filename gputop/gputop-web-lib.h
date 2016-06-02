@@ -40,8 +40,8 @@ void gputop_web_console_warn(const char *format, ...);
 void _gputop_web_console_error(const char *message);
 void gputop_web_console_error(const char *format, ...);
 
-void _gputop_web_console_assert(bool condition, const char *message) __attribute__((noreturn));
-void gputop_web_console_assert(bool condition, const char *format, ...) __attribute__((noreturn));
+void _gputop_web_console_assert(bool condition, const char *message);
+void gputop_web_console_assert(bool condition, const char *format, ...);
 
 void _gputop_web_console_trace(void);
 
