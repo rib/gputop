@@ -90,21 +90,6 @@ function create_default_markings(xaxis) {
     return markings;
 }
 
-
-/* FIXME: this isn't a good place for code relating to fiddly OA exponent details
- */
-function max_exponent_below(nsec, timestamp_frequency) {
-    for (var i = 0; i < 64; i++) {
-        var period = (1<<i) * 1000000000 / timestamp_frequency;
-
-        if (period > nsec)
-            return Math.max(0, i - 1);
-    }
-
-    return i;
-}
-
-
 /* returns true if the exponent changed and therefore the metric
  * stream needs to be re-opened, else false.
  */
@@ -134,9 +119,8 @@ GputopUI.prototype.update_metric_period_exponent_for_zoom = function (metric) {
      * new, pending configuration shouldn't have any affect on any currently
      * open stream.
      */
-    this.update_period(global_guid, ns_per_pixel);
-    var exponent = max_exponent_below(ns_per_pixel,
-                                      this.devinfo.get_timestamp_frequency());
+    metric.set_aggregation_period(ns_per_pixel);
+    var exponent = this.calculate_max_exponent_for_period(ns_per_pixel);
 
     if (metric.exponent != exponent) {
         metric.exponent = exponent;
@@ -144,7 +128,6 @@ GputopUI.prototype.update_metric_period_exponent_for_zoom = function (metric) {
     } else
         return false;
 }
-
 
 GputopUI.prototype.set_zoom = function(zoom) {
     this.zoom = zoom;
