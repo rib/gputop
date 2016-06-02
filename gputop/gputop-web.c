@@ -122,7 +122,7 @@ forward_stream_update(struct gputop_webc_stream *stream,
 
     for (i = 0; i < oa_metric_set->n_counters; i++) {
         uint64_t u53_check;
-        double   d_value;
+        double d_value = 0;
         uint64_t max = 0;
 
         struct gputop_metric_set_counter *counter = &oa_metric_set->counters[i];
