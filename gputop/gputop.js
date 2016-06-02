@@ -237,6 +237,11 @@ Metric.prototype.add_new_counter = function(counter) {
     this.counters_.push(counter);
 }
 
+Metric.prototype.set_aggregation_period = function(period_ns) {
+    this.period_ns_ = period_ns;
+    webc._gputop_webc_update_stream_period(this.webc_stream_ptr_, period_ns);
+}
+
 function Process_info () {
     this.pid_ = 0;
     this.process_name_ = "empty";
@@ -535,12 +540,6 @@ Gputop.prototype.set_architecture = function(architecture) {
     this.config_.architecture = architecture;
 }
 
-Gputop.prototype.update_period = function(guid, period_ns) {
-    var metric = this.map_metrics_[guid];
-    metric.period_ns_ = period_ns;
-    webc._gputop_webc_update_stream_period(metric.webc_stream_ptr_, period_ns);
-}
-
 Gputop.prototype.open_oa_metric_set = function(config, callback) {
 
     function _real_open_oa_metric_set(config, callback) {
@@ -669,6 +668,17 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
             _finish_close.call(this);
         });
     }
+}
+
+Gputop.prototype.calculate_max_exponent_for_period = function(nsec) {
+    for (var i = 0; i < 64; i++) {
+        var period = (1<<i) * 1000000000 / this.system_properties.timestamp_frequency;
+
+        if (period > nsec)
+            return Math.max(0, i - 1);
+    }
+
+    return i;
 }
 
 var EventTarget = function() {

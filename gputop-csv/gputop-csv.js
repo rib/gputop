@@ -56,12 +56,20 @@ GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
 GputopCSV.prototype.update_features = function(features)
 {
-    console.log(features);
-
     if (features.supported_oa_query_guids.length === 0) {
         console.error("No OA metrics supported");
         process.exit(1);
         return;
+    }
+
+    if (args.metrics === 'list') {
+        console.log("\nList of metric sets selectable with --metrics=...");
+        for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
+            var guid = features.supported_oa_query_guids[i];
+            var metric = this.lookup_metric_for_guid(guid);
+            console.log("" + metric.symbol_name + ": " + metric.name + ", hw-config-guid=" + guid);
+        }
+        process.exit(1);
     }
 
     for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
@@ -78,6 +86,35 @@ GputopCSV.prototype.update_features = function(features)
         console.error('Failed to look up metric set "' + args.metrics + '"');
         process.exit(1);
         return;
+    }
+
+    if (args.period < 0 || args.period > 1000000000) {
+        console.error('Sampling period out of range [0, 1000000000]');
+        process.exit(1);
+        return;
+    }
+    var closest_oa_exponent = gputop.calculate_max_exponent_for_period(args.period);
+    console.warn("DEBUG: OA exponent = " + closest_oa_exponent);
+
+    if (args.period > 40000000)
+        console.warn("WARNING: EU counters may overflow 32 bits with a long sampling period (recommend < 40 millisecond period)");
+
+    if (args.aggregation_period < args.period) {
+        console.error("Counter aggregation period (" + args.aggregation_period + ") should be >= requested hardware sampling period (" + args.period + ")");
+        process.exit(1);
+    }
+    this.metric.set_aggregation_period(args.aggregation_period);
+
+    if (args.columns === 'list') {
+        var all = "Timestamp"
+        console.log("\nList of counters selectable with --columns=... (comma separated)");
+        console.log("Timestamp: Sample timestamp");
+        this.metric.webc_counters.forEach((counter, idx, arr) => {
+            console.log("" + counter.symbol_name + ": " + counter.name + " - " + counter.description);
+            all += "," + counter.symbol_name;
+        });
+        console.log("\nALL: " + all);
+        process.exit(1);
     }
 
     var counter_index = {};
@@ -105,11 +142,12 @@ GputopCSV.prototype.update_features = function(features)
         var columns = this.counters_[0].symbol_name;
 
         for (var i = 1; i < this.counters_.length; i++)
-            columns += ",\"" + counter.symbol_name + "\"";
+            columns += ",\"" + this.counters_[i].symbol_name + "\"";
 
         this.stream.write(columns + this.endl);
 
-        this.open_oa_metric_set({guid: this.metric.guid_});
+        this.open_oa_metric_set({guid: this.metric.guid_,
+                                 oa_exponent: closest_oa_exponent });
     } else {
         console.error("Failed to find counters matching requested columns");
     }
@@ -207,16 +245,34 @@ parser.addArgument(
 parser.addArgument(
     [ '-m', '--metrics' ],
     {
-        help: 'Metric set to capture',
-        required: true
+        help: "Metric set to capture (default 'list')",
+        defaultValue: 'list'
     }
 );
 
 parser.addArgument(
     [ '-c', '--columns' ],
     {
-        help: 'Comma separated counter symbol names for columns',
-        required: true
+        help: "Comma separated counter symbol names for columns (default = 'list')",
+        defaultValue: 'list'
+    }
+);
+
+parser.addArgument(
+    [ '-p', '--period' ],
+    {
+        help: 'Maximum hardware sampling period, in nanoseconds - actual period may be shorter (default 40 milliseconds)',
+        type: 'int',
+        defaultValue: 40000000
+    }
+);
+
+parser.addArgument(
+    [ '-g', '--accumulation-period' ],
+    {
+        help: 'Accumulate HW samples over this period before calculating a CSV row sample (real period will be >= closest multiple of the hardware sampling period)',
+        type: 'int',
+        defaultValue: 1000000000
     }
 );
 
@@ -224,19 +280,15 @@ parser.addArgument(
     [ '-f', '--file' ],
     {
         help: "CSV file to write",
-        required: true
     }
 );
 
 var args = parser.parseArgs();
 
 var gputop;
+var stream = null;
 
-var stream = fs.createWriteStream(args.file);
-
-stream.once('open', (fd) => {
-    console.log("opened file");
-
+function init() {
     gputop = new GputopCSV();
 
     gputop.stream = stream;
@@ -244,17 +296,28 @@ stream.once('open', (fd) => {
 
     gputop.connect(args.address, () => {
         console.log("connected");
-
-        gputop.open_cpu_stats({}, () => {
-            console.log("cpu stats open");
-        });
     });
-});
+
+}
+
+if (args.file) {
+    stream = fs.createWriteStream(args.file);
+    stream.once('open', (fd) => {
+        init();
+    });
+} else{
+    stream = process.stdout;
+    init();
+}
 
 function close_and_exit(signo) {
-    console.log("Closing...");
-    stream.end();
-    process.exit(128 + signo);
+    if (args.file) {
+        console.log("Closing CSV file...");
+        stream.end(() => {
+            process.exit(128 + signo);
+        });
+    } else
+        process.exit(128 + signo);
 }
 
 process.on('SIGINT', () => { close_and_exit(2); });
