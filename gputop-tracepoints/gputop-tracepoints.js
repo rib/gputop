@@ -24,7 +24,6 @@
  */
 
 const Gputop = require('gputop');
-const fs = require('fs');
 const ArgumentParser = require('argparse').ArgumentParser;
 
 function GputopTool()
@@ -42,17 +41,15 @@ GputopTool.prototype = Object.create(Gputop.Gputop.prototype);
 
 GputopTool.prototype.update_features = function(features)
 {
-    console.log(features);
-
     if (features.tracepoints.length === 0) {
         console.error("No tracepoints supported");
         process.exit(1);
         return;
     }
 
-    for (var i = 0; i < features.tracepoints.length; i++) {
-        console.log("Tracepoint: " + features.tracepoints[i]);
-    }
+    //for (var i = 0; i < features.tracepoints.length; i++) {
+    //    console.log("Tracepoint: " + features.tracepoints[i]);
+    //}
 
 
     function parse_field(str) {
@@ -151,15 +148,7 @@ var args = parser.parseArgs();
 var gputop = new GputopTool();
 
 gputop.connect(args.address, () => {
-    console.log("Connected");
+    //console.log("Connected");
 });
 
-function close_and_exit(signo) {
-    console.log("Closing...");
-    stream.end();
-    process.exit(128 + signo);
-}
-
-process.on('SIGINT', () => { close_and_exit(2); });
-process.on('SIGTERM', () => { close_and_exit(15); });
 
