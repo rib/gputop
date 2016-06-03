@@ -124,11 +124,6 @@ GputopTool.prototype.update_features = function(features)
 }
 
 
-GputopTool.prototype.log = function(level, message)
-{
-    console.log(message.trim());
-}
-
 var parser = new ArgumentParser({
     version: '0.0.1',
     addHelp: true,

@@ -31,9 +31,6 @@
 void _gputop_web_console_log(const char *message);
 void gputop_web_console_log(const char *format, ...);
 
-void _gputop_web_console_info(const char *message);
-void gputop_web_console_info(const char *format, ...);
-
 void _gputop_web_console_warn(const char *message);
 void gputop_web_console_warn(const char *format, ...);
 
@@ -42,8 +39,6 @@ void gputop_web_console_error(const char *format, ...);
 
 void _gputop_web_console_assert(bool condition, const char *message);
 void gputop_web_console_assert(bool condition, const char *format, ...);
-
-void _gputop_web_console_trace(void);
 
 void gputop_web_index_metric_set(const char *guid, struct gputop_metric_set *metric_set);
 struct gputop_metric_set *gputop_web_lookup_metric_set(const char *guid);

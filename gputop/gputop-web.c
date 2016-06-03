@@ -268,9 +268,6 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
 void
 gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 {
-    gputop_web_console_log("register %s metric set with guid = %s\n",
-                           metric_set->name,
-                           metric_set->guid);
     gputop_web_index_metric_set(metric_set->guid, metric_set);
 }
 
@@ -302,18 +299,14 @@ gputop_webc_update_features(uint32_t devid,
     if (IS_HASWELL(devid)) {
         _gputop_web_console_log("Adding Haswell metrics\n");
         gputop_oa_add_metrics_hsw(&gputop_devinfo);
-    } else if (IS_BROADWELL(devid)) {
-        _gputop_web_console_log("Adding Broadwell metrics\n");
+    else if (IS_BROADWELL(devid))
         gputop_oa_add_metrics_bdw(&gputop_devinfo);
-    } else if (IS_CHERRYVIEW(devid)) {
-        _gputop_web_console_log("Adding Cherryview metrics\n");
+    else if (IS_CHERRYVIEW(devid))
         gputop_oa_add_metrics_chv(&gputop_devinfo);
-    } else if (IS_SKYLAKE(devid)) {
-        _gputop_web_console_log("Adding Skylake metrics\n");
+    else if (IS_SKYLAKE(devid))
         gputop_oa_add_metrics_skl(&gputop_devinfo);
-    } else
+    else
         assert_not_reached();
-
 }
 
 struct gputop_webc_stream * EMSCRIPTEN_KEEPALIVE
@@ -359,16 +352,8 @@ dummy_mainloop_callback(void)
 {
 }
 
-void EMSCRIPTEN_KEEPALIVE
-gputop_webc_init(void)
-{
-    gputop_web_console_log("EMSCRIPTEN Init Compilation (" __TIME__ " " __DATE__ ")");
-}
-
 int
 main() {
-    gputop_webc_init();
-
     /* XXX: this is a hack to ensure we leave the Runtime initialized
      * even though we don't use the emscripten mainloop callback itself
      */

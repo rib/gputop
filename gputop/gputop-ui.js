@@ -565,22 +565,37 @@ GputopUI.prototype.update_features = function(features) {
     });
 }
 
-// types of alerts: alert-success alert-info alert-warning alert-danger
-GputopUI.prototype.show_alert = function(message,alerttype){
+GputopUI.prototype.user_msg = function(message, level){
+    if (level === undefined)
+        level = this.LOG;
 
-    var dimiss_time = 5000;
-    if (alerttype == "alert-success") dimiss_time = 2500; else
-    if (alerttype == "alert-info") dimiss_time = 3500; else
-    if (alerttype == "alert-danger") dimiss_time = 30000;
+    // types of bootstrap alerts: alert-success alert-info alert-warning alert-danger
+    switch (level) {
+    case this.LOG:
+        var alerttype = "alert-success";
+        var dismiss_time = 2500;
+        break;
+    case this.WARN:
+        var alerttype = "alert-warning";
+        var dismiss_time = 3500;
+        break;
+    case this.ERROR:
+        var alerttype = "alert-danger";
+        var dismiss_time = 5000;
+        break;
+    default:
+        console.error("User message given with unknown level " + level + ": " + message);
+        return;
+    }
 
     $('#alert_placeholder').append('<div id="alertdiv" class="alert ' +
         alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
         setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
             $("#alertdiv").remove();
-        }, dimiss_time);
+        }, dismiss_time);
 }
 
-GputopUI.prototype.log = function(log_level, log_message){
+GputopUI.prototype.application_log = function(log_level, log_message){
     var color = "red";
     switch(log_level) {
         case 0: color = "orange"; break;
@@ -592,8 +607,24 @@ GputopUI.prototype.log = function(log_level, log_message){
     $('#log').append('<font color="' + color + '">' + log_message + '</font></br>');
 }
 
-GputopUI.prototype.syslog = function(message){
-    console.log(message);
+Gputop.prototype.log = function(message, level)
+{
+    if (level === undefined)
+        level = this.LOG;
+
+    switch (level) {
+        case this.LOG:
+            console.log(message);
+            break;
+        case this.WARN:
+            console.warn(message);
+            break;
+        case this.ERROR:
+            console.error(message);
+            break;
+        default:
+            console.error("Unknown log level " + level + ": " + message);
+    }
 }
 
 GputopUI.prototype.init_interface = function(callback) {

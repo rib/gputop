@@ -47,21 +47,6 @@ gputop_web_console_log(const char *format, ...)
 }
 
 void
-gputop_web_console_info(const char *format, ...)
-{
-    va_list ap;
-    char *str = NULL;
-
-    va_start(ap, format);
-    vasprintf(&str, format, ap);
-    va_end(ap);
-
-    _gputop_web_console_info(str);
-
-    free(str);
-}
-
-void
 gputop_web_console_warn(const char *format, ...)
 {
     va_list ap;
