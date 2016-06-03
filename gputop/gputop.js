@@ -72,7 +72,10 @@ Gputop.prototype.is_demo = function() {
     return false;
 }
 
-function Counter () {
+function Counter (metricParent) {
+
+    this.metric = metricParent;
+
     /* Index into metric.webc_counters_, understood by gputop-web.c code */
     this.webc_counter_id_ = -1;
     this.name = '';
