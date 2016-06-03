@@ -39,8 +39,7 @@ env:
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-remote-clients"
 
 before_install:
-    # We don't want to depend on a special version of gcc for building gputop but building
-    # llvm-fastcomp depends on a more recent toolchain :-/
+    # Use a more recent toolchain so we can rely on C11
     - export CC=gcc-4.9 CXX=g++-4.9
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
     - (if test -f cmake-2.8.12.2/bin/cmake; then echo OK; else
@@ -64,8 +63,6 @@ before_install:
     - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
     - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
     - emcc -v
-    # Try not to depend on a special version of gcc/clang for anything else...
-    - export CC=gcc CXX=g++
     - (if test -d protobuf/lib; then echo OK; else
             git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
             cd protobuf-src &&
