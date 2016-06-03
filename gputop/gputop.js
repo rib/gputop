@@ -241,8 +241,12 @@ Metric.prototype.add_new_counter = function(counter) {
 }
 
 Metric.prototype.set_aggregation_period = function(period_ns) {
+    console.assert(typeof period_ns === 'number', "Need to pass Number to set_aggregation_period");
+
     this.period_ns_ = period_ns;
-    webc._gputop_webc_update_stream_period(this.webc_stream_ptr_, period_ns);
+
+    if (this.webc_stream_ptr_)
+        webc._gputop_webc_update_stream_period(this.webc_stream_ptr_, period_ns);
 }
 
 function Process_info () {
