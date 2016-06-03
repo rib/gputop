@@ -300,8 +300,10 @@ function Gputop () {
         }
         return this.config_.architecture;
     }
+    this.system_properties = {};
 
     this.builder_ = undefined;
+    this.gputop_proto_ = undefined;
 
     this.socket_ = undefined;
 
@@ -601,12 +603,12 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         if ('paused_state' in config) {
             _finalize_open.call(this);
         } else {
-            var oa_query = new this.builder_.OAQueryInfo();
+            var oa_query = new this.gputop_proto_.OAQueryInfo();
 
             oa_query.guid = config.guid;
             oa_query.period_exponent = oa_exponent;
 
-            var open = new this.builder_.OpenQuery();
+            var open = new this.gputop_proto_.OpenQuery();
 
             metric.server_handle = this.next_server_handle++;
 
@@ -749,13 +751,13 @@ Stream.prototype = Object.create(EventTarget.prototype);
 Gputop.prototype.open_cpu_stats = function(config, callback) {
     var stream = new Stream(this.next_server_handle++);
 
-    var cpu_stats = new this.builder_.CpuStatsInfo();
+    var cpu_stats = new this.gputop_proto_.CpuStatsInfo();
     if ('sample_period_ms' in config)
         cpu_stats.set('sample_period_ms', config.sample_period_ms);
     else
         cpu_stats.set('sample_period_ms', 10);
 
-    var open = new this.builder_.OpenQuery();
+    var open = new this.gputop_proto_.OpenQuery();
     open.set('id', stream.server_handle);
     open.set('cpu_stats', cpu_stats);
     open.set('overwrite', false);   /* don't overwrite old samples */
@@ -810,7 +812,7 @@ Gputop.prototype.rpc_request = function(method, value, closure) {
         return;
     }
 
-    var msg = new this.builder_.Request();
+    var msg = new this.gputop_proto_.Request();
 
     msg.uuid = this.generate_uuid();
 
@@ -837,7 +839,7 @@ Gputop.prototype.request_features = function() {
             this.log("Can't request features while not connected", this.ERROR);
         }
     } else {
-        var demo_devinfo = new this.builder_.DevInfo();
+        var demo_devinfo = new this.gputop_proto_.DevInfo();
 
         demo_devinfo.set('devname', this.demo_architecture);
 
@@ -893,7 +895,7 @@ Gputop.prototype.request_features = function() {
         demo_devinfo.set('gt_min_freq', 500);
         demo_devinfo.set('gt_max_freq', 1100);
 
-        var demo_features = new this.builder_.Features();
+        var demo_features = new this.gputop_proto_.Features();
 
         demo_features.set('devinfo', demo_devinfo);
         demo_features.set('has_gl_performance_query', false);
@@ -909,33 +911,52 @@ Gputop.prototype.request_features = function() {
 }
 
 Gputop.prototype.process_features = function(features){
-    var di = features.devinfo;
 
-    this.devinfo = di;
+    this.devinfo = features.devinfo;
 
-    this.set_architecture(di.devname);
+    this.log("Features: ");
+    this.log("CPU: " + features.get_cpu_model());
+    this.log("Architecture: " + features.devinfo.devname);
+    this.set_architecture(features.devinfo.devname);
 
-    /* We convert the 64 bits protobuffer entry into 32 bits
-     * to make it easier to call the emscripten native API.
-     * DevInfo values should not overflow the native type,
-     * but stay in 64b internally to help native processing in C.
-     *
-     * XXX: it would be good if there were a more maintainable
-     * way of forwarding this info, since it's currently too
-     * easy to forget to update this to forward new devinfo
-     * state
-     */
-    webc._gputop_webc_update_features(di.devid,
-                                      di.gen,
-                                      di.timestamp_frequency.toInt(),
-                                      di.n_eus.toInt(),
-                                      di.n_eu_slices.toInt(),
-                                      di.n_eu_sub_slices.toInt(),
-                                      di.eu_threads_count.toInt(),
-                                      di.subslice_mask.toInt(),
-                                      di.slice_mask.toInt(),
-                                      di.gt_min_freq.toInt(),
-                                      di.gt_max_freq.toInt());
+    this.system_properties = {};
+    webc._gputop_webc_reset_system_properties();
+
+    var DevInfo = this.builder_.lookup("gputop.DevInfo");
+    var fields = DevInfo.getChildren(ProtoBuf.Reflect.Message.Field);
+    fields.forEach((field) => {
+        var val = 0;
+        var name_c_string = String_pointerify_on_stack(field.name);
+
+        switch (field.type.name) {
+        case "uint64":
+            /* NB uint64 types are handled via long.js and we're being lazy
+             * for now and casting to a Number when forwarding to the webc
+             * api. Later we could add a set_system_property_u64() api if
+             * necessary */
+            val = features.devinfo[field.name].toInt();
+            webc._gputop_webc_set_system_property(name_c_string, val);
+            break;
+        case "uint32":
+            val = features.devinfo[field.name];
+            webc._gputop_webc_set_system_property(name_c_string, val);
+            break;
+        case "string":
+            val = features.devinfo[field.name];
+            /* FIXME: allow forwarding string properties to webc via
+             * a _set_system_property_string() api */
+            break;
+        default:
+            console.error("Unexpected DevInfo " + field.name + " field type");
+            val = features.devinfo[field.name];
+            break;
+        }
+
+        this.system_properties[field.name] = val;
+    });
+
+
+    webc._gputop_webc_update_system_metrics();
 
     this.xml_file_name_ = this.config_.architecture + ".xml";
 
@@ -1067,7 +1088,7 @@ function gputop_socket_on_message(evt) {
         webc._gputop_webc_handle_perf_message(id, data);
         break;
     case 2: /* WS_MESSAGE_PROTOBUF */
-        var msg = this.builder_.Message.decode(data);
+        var msg = this.gputop_proto_.Message.decode(data);
 
         switch (msg.cmd) {
         case 'features':
@@ -1158,11 +1179,11 @@ Gputop.prototype.connect_web_socket = function(websocket_url, onopen) {
 
 Gputop.prototype.load_gputop_proto = function(onload) {
     get_file('gputop.proto', (proto) => {
-        var proto_builder = ProtoBuf.newBuilder();
+        this.builder_ = ProtoBuf.newBuilder();
 
-        ProtoBuf.protoFromString(proto, proto_builder, "gputop.proto");
+        ProtoBuf.protoFromString(proto, this.builder_, "gputop.proto");
 
-        this.builder_ = proto_builder.build("gputop");
+        this.gputop_proto_ = this.builder_.build("gputop");
 
         onload();
     },

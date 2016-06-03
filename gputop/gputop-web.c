@@ -272,32 +272,77 @@ gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_update_features(uint32_t devid,
-                            uint32_t gen,
-                            uint32_t timestamp_frequency,
-                            uint32_t n_eus,
-                            uint32_t n_eu_slices,
-                            uint32_t n_eu_sub_slices,
-                            uint32_t eu_threads_count,
-                            uint32_t subslice_mask,
-                            uint32_t slice_mask,
-                            uint32_t gt_min_freq,
-                            uint32_t gt_max_freq)
+gputop_webc_reset_system_properties(void)
 {
-    gputop_devinfo.devid = devid;
-    gputop_devinfo.gen = gen;
-    gputop_devinfo.timestamp_frequency = timestamp_frequency;
-    gputop_devinfo.n_eus = n_eus;
-    gputop_devinfo.n_eu_slices = n_eu_slices;
-    gputop_devinfo.n_eu_sub_slices = n_eu_sub_slices;
-    gputop_devinfo.eu_threads_count = eu_threads_count;
-    gputop_devinfo.subslice_mask = subslice_mask;
-    gputop_devinfo.slice_mask = slice_mask;
-    gputop_devinfo.gt_min_freq = gt_min_freq;
-    gputop_devinfo.gt_max_freq = gt_max_freq;
+    memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
+}
 
-    if (IS_HASWELL(devid)) {
-        _gputop_web_console_log("Adding Haswell metrics\n");
+void EMSCRIPTEN_KEEPALIVE
+gputop_webc_set_system_property(const char *name, double value)
+{
+    /* Use _Generic so we don't get caught out by a silent error if
+     * we mess with struct gputop_devinfo...
+     */
+#define PROP(NAME) { #NAME, _Generic(gputop_devinfo.NAME, \
+                                     uint32_t: TYPE_U32, \
+                                     uint64_t: TYPE_U64, \
+                                     default: TYPE_UNKNOWN), \
+                    &gputop_devinfo.NAME }
+    static const struct {
+        const char *name;
+        enum {
+            TYPE_UNKNOWN,
+            TYPE_U32,
+            TYPE_U64,
+        } type;
+        void *symbol;
+    } table[] = {
+        PROP(devid),
+        PROP(gen),
+        PROP(timestamp_frequency),
+        PROP(n_eus),
+        PROP(n_eu_slices),
+        PROP(n_eu_sub_slices),
+        PROP(eu_threads_count),
+        PROP(subslice_mask),
+        PROP(slice_mask),
+        PROP(gt_min_freq),
+        PROP(gt_max_freq),
+        { 0 },
+    };
+#undef PROP
+
+    for (int i = 0; table[i].name; i++) {
+        if (strcmp(name, table[i].name) == 0) {
+            switch (table[i].type) {
+            case TYPE_U32:
+                gputop_web_console_assert(value >= 0 && value <= UINT32_MAX,
+                                          "Value for uint32 property out of range");
+                *((uint32_t *)table[i].symbol) = (uint32_t)value;
+                return;
+            case TYPE_U64:
+                gputop_web_console_assert(value >= 0,
+                                          "Value for uint64 property out of range");
+                *((uint64_t *)table[i].symbol) = (uint64_t)value;
+                return;
+            case TYPE_UNKNOWN:
+                gputop_web_console_assert(0, "Unexpected struct gputop_devinfo %s member type",
+                                          table[i].name);
+            }
+        }
+    }
+
+    gputop_web_console_error("Unknown system property %s\n", name);
+}
+
+void EMSCRIPTEN_KEEPALIVE
+gputop_webc_update_system_metrics(void)
+{
+    uint32_t devid = gputop_devinfo.devid;
+
+    gputop_web_console_assert(devid != 0, "Device ID not initialized before trying to update system metrics");
+
+    if (IS_HASWELL(devid))
         gputop_oa_add_metrics_hsw(&gputop_devinfo);
     else if (IS_BROADWELL(devid))
         gputop_oa_add_metrics_bdw(&gputop_devinfo);
