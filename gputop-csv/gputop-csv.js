@@ -108,7 +108,7 @@ GputopCSV.prototype.update_features = function(features)
         var all = "Timestamp"
         log.log("\nList of counters selectable with --columns=... (comma separated)");
         log.log("Timestamp: Sample timestamp");
-        this.metric.webc_counters.forEach((counter, idx, arr) => {
+        this.metric.cc_counters.forEach((counter, idx, arr) => {
             log.log("" + counter.symbol_name + ": " + counter.name + " - " + counter.description);
             all += "," + counter.symbol_name;
         });
@@ -117,7 +117,7 @@ GputopCSV.prototype.update_features = function(features)
     }
 
     var counter_index = {};
-    this.metric.webc_counters.forEach((counter, idx, arr) => {
+    this.metric.cc_counters.forEach((counter, idx, arr) => {
         counter_index[counter.symbol_name] = counter;
     });
 

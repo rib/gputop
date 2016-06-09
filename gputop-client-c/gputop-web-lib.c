@@ -32,7 +32,7 @@
 #include "gputop-web-lib.h"
 
 void
-gputop_web_console_log(const char *format, ...)
+gputop_cr_console_log(const char *format, ...)
 {
     va_list ap;
     char *str = NULL;
@@ -41,13 +41,13 @@ gputop_web_console_log(const char *format, ...)
     vasprintf(&str, format, ap);
     va_end(ap);
 
-    _gputop_web_console_log(str);
+    _gputop_cr_console_log(str);
 
     free(str);
 }
 
 void
-gputop_web_console_warn(const char *format, ...)
+gputop_cr_console_warn(const char *format, ...)
 {
     va_list ap;
     char *str = NULL;
@@ -56,13 +56,13 @@ gputop_web_console_warn(const char *format, ...)
     vasprintf(&str, format, ap);
     va_end(ap);
 
-    _gputop_web_console_warn(str);
+    _gputop_cr_console_warn(str);
 
     free(str);
 }
 
 void
-gputop_web_console_error(const char *format, ...)
+gputop_cr_console_error(const char *format, ...)
 {
     va_list ap;
     char *str = NULL;
@@ -71,13 +71,13 @@ gputop_web_console_error(const char *format, ...)
     vasprintf(&str, format, ap);
     va_end(ap);
 
-    _gputop_web_console_error(str);
+    _gputop_cr_console_error(str);
 
     free(str);
 }
 
 void
-gputop_web_console_assert(bool condition, const char *format, ...)
+gputop_cr_console_assert(bool condition, const char *format, ...)
 {
     va_list ap;
     char *str = NULL;
@@ -86,7 +86,7 @@ gputop_web_console_assert(bool condition, const char *format, ...)
     vasprintf(&str, format, ap);
     va_end(ap);
 
-    _gputop_web_console_assert(condition, str);
+    _gputop_cr_console_assert(condition, str);
 
     free(str);
 }

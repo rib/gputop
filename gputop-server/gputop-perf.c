@@ -56,7 +56,7 @@
 #include "gputop-mainloop.h"
 #include "gputop-log.h"
 #include "gputop-perf.h"
-#include "gputop-oa-counters.h"
+#include "gputop-oa-metrics.h"
 #include "gputop-cpu.h"
 
 #include "oa-hsw.h"
@@ -116,6 +116,7 @@ static unsigned int page_size;
 struct gputop_hash_table *metrics;
 struct array *gputop_perf_oa_supported_metric_set_guids;
 struct perf_oa_user *gputop_perf_current_user;
+struct gputop_devinfo gputop_devinfo;
 
 static int drm_fd = -1;
 static int drm_card = -1;
@@ -1290,62 +1291,6 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
     }
 
     assert(0);
-}
-
-/******************************************************************************/
-
-uint64_t
-read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *deltas)
-{
-    return counter->oa_counter_read_uint64(&gputop_devinfo, metric_set, deltas);
-}
-
-uint32_t
-read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *deltas)
-{
-    assert(0);
-    //return counter->oa_counter_read_uint32(&gputop_devinfo, metric_set, deltas);
-}
-
-bool
-read_bool_oa_counter(const struct gputop_metric_set *metric_set,
-                     const struct gputop_metric_set_counter *counter,
-                     uint64_t *deltas)
-{
-    assert(0);
-    //return counter->oa_counter_read_bool(&gputop_devinfo, metric_set, deltas);
-}
-
-double
-read_double_oa_counter(const struct gputop_metric_set *metric_set,
-                       const struct gputop_metric_set_counter *counter,
-                       uint64_t *deltas)
-{
-    assert(0);
-    //return counter->oa_counter_read_double(&gputop_devinfo, metric_set, deltas);
-}
-
-float
-read_float_oa_counter(const struct gputop_metric_set *metric_set,
-                      const struct gputop_metric_set_counter *counter,
-                      uint64_t *deltas)
-{
-    return counter->oa_counter_read_float(&gputop_devinfo, metric_set, deltas);
-}
-
-uint64_t
-read_report_timestamp(const uint32_t *report)
-{
-   uint64_t timestamp = report[1];
-
-   /* The least significant timestamp bit represents 80ns */
-   timestamp *= 80;
-
-   return timestamp;
 }
 
 static int

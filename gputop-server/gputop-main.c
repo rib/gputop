@@ -271,6 +271,27 @@ print_gputop_env_vars(void)
 }
 
 static char *
+find(const char *parent, const char * const *options)
+{
+    for (int i = 0; options[i]; i++) {
+        struct stat sb;
+        char *path = NULL;
+
+        if (asprintf(&path, "%s/%s", parent, options[i]) < 0) {
+            perror("Failed to format gputop-system path");
+            exit(1);
+        }
+
+        if (stat(path, &sb) == 0)
+            return path;
+
+        free(path);
+    }
+
+    return NULL;
+}
+
+static char *
 get_gputop_system_path(void)
 {
     const char *bin_dir = get_bin_dir();
@@ -281,20 +302,13 @@ get_gputop_system_path(void)
         NULL
     };
 
-    for (int i; options[i]; i++) {
-        struct stat sb;
-        char *path = NULL;
-
-        if (asprintf(&path, "%s/%s", bin_dir, options[i]) < 0) {
-            perror("Failed to format gputop-system path");
-            exit(1);
-        }
-
-        if (stat(path, &sb) == 0)
-            return path;
-
-        free(path);
+    char *path = find(bin_dir, options);
+    if (!path) {
+        fprintf(stderr, "Failed to find gputop-system program\n");
+        exit(1);
     }
+
+    return path;
 
     fprintf(stderr, "Failed to find gputop-system program\n");
     exit(1);
@@ -308,21 +322,33 @@ static void
 setup_web_root_env(void)
 {
     const char *bin_dir = get_bin_dir();
-    char *index_path = NULL;
-    struct stat sb;
+    char dir[1024];
+    char *prefix;
+    const char *options[] = {
+        "gputop-client/gputop.js",
+        "share/remote/gputop.js",
+        NULL
+    };
+    char *path;
+    char *root;
 
     if (getenv("GPUTOP_WEB_ROOT"))
         return;
 
-    if (asprintf(&index_path, "%s/gputop.js", bin_dir) < 0) {
-        fprintf(stderr, "Failed to format index.html path\n");
+    strncpy(dir, bin_dir, sizeof(dir));
+    prefix = dirname(dir);
+
+    path = find(prefix, options);
+    if (!path) {
+        fprintf(stderr, "Failed to find web assets root path\n");
         exit(1);
     }
 
-    if (stat(index_path, &sb) == 0)
-        setenv("GPUTOP_WEB_ROOT", bin_dir, 1);
+    root = dirname(path);
+    setenv("GPUTOP_WEB_ROOT", root, 1);
+    fprintf(stderr, "Serving web ui from %s\n", root);
 
-    free(index_path);
+    free(path);
 }
 
 int

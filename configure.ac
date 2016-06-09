@@ -13,7 +13,7 @@ dnl Required versions for dependencies
 dnl ================================================================
 
 AC_INIT(gputop, [0.1.0])
-AC_CONFIG_SRCDIR(gputop/gputop-main.c)
+AC_CONFIG_SRCDIR(gputop-server/gputop-main.c)
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([build/autotools])
 AC_CONFIG_HEADERS(config.h)
@@ -166,8 +166,11 @@ libuv/Makefile
 h2o/Makefile
 protobuf-c/Makefile
 protoc-c/Makefile
-gputop/Makefile
-gputop/registry/Makefile
+gputop-data/Makefile
+gputop-server/Makefile
+gputop-server/registry/Makefile
+gputop-client/Makefile
+gputop-client-c/Makefile
 gputop-csv/Makefile
 gputop-tracepoints/Makefile
 )

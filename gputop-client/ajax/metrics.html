@@ -178,8 +178,8 @@
         // display of metrics tab-pane
         $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
 
-        for (var i = 0; i < metric.webc_counters.length; i++) {
-            add_counter(metric, metric.webc_counters[i]);
+        for (var i = 0; i < metric.cc_counters.length; i++) {
+            add_counter(metric, metric.cc_counters[i]);
         }
 
         $("#counter_metrics").append("</div");

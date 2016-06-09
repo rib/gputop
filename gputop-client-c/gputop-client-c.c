@@ -22,6 +22,12 @@
  * SOFTWARE.
  */
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -30,33 +36,20 @@
 #include <sys/types.h>
 
 #include <uuid/uuid.h>
-#include <emscripten.h>
 
 #include <intel_chipset.h>
 #include <i915_oa_drm.h>
 
-#include <gputop-string.h>
-#include <gputop-oa-counters.h>
+#include "gputop-client-c.h"
+#include "gputop-client-c-runtime.h"
 
-#include "gputop-web-lib.h"
+#include "gputop-oa-counters.h"
 
 #include "oa-hsw.h"
 #include "oa-bdw.h"
 #include "oa-chv.h"
 #include "oa-skl.h"
 
-struct gputop_webc_stream {
-    uint64_t aggregation_period;
-    bool per_ctx_mode;
-
-    struct gputop_metric_set *oa_metric_set;
-    struct gputop_oa_accumulator oa_accumulator;
-
-    /* Aggregation may happen accross multiple perf data messages
-     * so we may need to copy the last report so that aggregation
-     * can continue with the next message... */
-    uint8_t *continuation_report;
-};
 
 struct oa_sample {
    struct i915_perf_record_header header;
@@ -67,7 +60,7 @@ struct oa_sample {
 static void __attribute__((noreturn))
 assert_not_reached(void)
 {
-    gputop_web_console_assert(0, "code should not be reached");
+    gputop_cr_console_assert(0, "code should not be reached");
     assert(0); /* just to hide compiler warning about noreturn */
 }
 
@@ -75,9 +68,9 @@ assert_not_reached(void)
 
 /* Returns the ID for a counter_name using the symbol_name */
 int EMSCRIPTEN_KEEPALIVE
-gputop_webc_get_counter_id(const char *guid, const char *counter_symbol_name)
+gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name)
 {
-    struct gputop_metric_set *metric_set = gputop_web_lookup_metric_set(guid);
+    struct gputop_metric_set *metric_set = gputop_cr_lookup_metric_set(guid);
 
     for (int t=0; t<metric_set->n_counters; t++) {
         struct gputop_metric_set_counter *counter = &metric_set->counters[t];
@@ -87,25 +80,8 @@ gputop_webc_get_counter_id(const char *guid, const char *counter_symbol_name)
     return -1;
 }
 
-enum update_reason {
-    UPDATE_REASON_PERIOD            = 1,
-    UPDATE_REASON_CTX_SWITCH_TO     = 2,
-    UPDATE_REASON_CTX_SWITCH_AWAY   = 4
-};
-
-void
-_gputop_stream_start_update(struct gputop_webc_stream *stream,
-                            double start_timestamp, double end_timestamp,
-                            int reason);
-void
-_gputop_stream_update_counter(struct gputop_webc_stream *stream,
-                              int counter,
-                              double max, double value);
-void
-_gputop_stream_end_update(struct gputop_webc_stream *stream);
-
 static void
-forward_stream_update(struct gputop_webc_stream *stream,
+forward_stream_update(struct gputop_cc_stream *stream,
                       enum update_reason reason)
 {
     struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
@@ -115,10 +91,10 @@ forward_stream_update(struct gputop_webc_stream *stream,
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
     //        stream->start_timestamp, stream->end_timestamp, stream->aggregation_period);
 
-    _gputop_stream_start_update(stream,
-                                oa_accumulator->first_timestamp,
-                                oa_accumulator->last_timestamp,
-                                reason);
+    _gputop_cr_stream_start_update(stream,
+                                   oa_accumulator->first_timestamp,
+                                   oa_accumulator->last_timestamp,
+                                   reason);
 
     for (i = 0; i < oa_metric_set->n_counters; i++) {
         uint64_t u53_check;
@@ -137,7 +113,7 @@ forward_stream_update(struct gputop_webc_stream *stream,
                                                             oa_metric_set,
                                                             oa_accumulator->deltas);
                 if (u53_check > JS_MAX_SAFE_INTEGER) {
-                    gputop_web_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
+                    gputop_cr_console_error("Clamping counter to large to represent in JavaScript %s ", counter->symbol_name);
                     u53_check = JS_MAX_SAFE_INTEGER;
                 }
                 d_value = u53_check;
@@ -150,34 +126,34 @@ forward_stream_update(struct gputop_webc_stream *stream,
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
             case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
             case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
-                gputop_web_console_assert(0, "Unexpected counter data type");
+                gputop_cr_console_assert(0, "Unexpected counter data type");
                 break;
         }
 
-        _gputop_stream_update_counter(stream, i, max, d_value);
+        _gputop_cr_stream_update_counter(stream, i, max, d_value);
     }
 
-    _gputop_stream_end_update(stream);
+    _gputop_cr_stream_end_update(stream);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_handle_perf_message(struct gputop_webc_stream *stream,
+gputop_cc_handle_perf_message(struct gputop_cc_stream *stream,
                                 uint8_t *data,
                                 int len)
 {
-    gputop_web_console_log("FIXME: parse perf data");
+    gputop_cr_console_log("FIXME: parse perf data");
 }
 
 // function that resets the accumulator clock and the continuation_report
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_reset_accumulator(struct gputop_webc_stream *stream)
+gputop_cc_reset_accumulator(struct gputop_cc_stream *stream)
 {
     stream->continuation_report = NULL;
     (&stream->oa_accumulator)->clock.initialized = false;
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
+gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                                      uint8_t *data, int len)
 {
     struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
@@ -197,11 +173,11 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
          header = (void *)(((uint8_t *)header) + header->size))
     {
 #if 0
-        gputop_web_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
+        gputop_cr_console_log("header[%d] = %p size=%d type = %d", i, header, header->size, header->type);
 
         i++;
         if (i > 200) {
-            gputop_web_console_log("perf message too large!\n");
+            gputop_cr_console_log("perf message too large!\n");
             return;
         }
 #endif
@@ -209,10 +185,10 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
         switch (header->type) {
 
         case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
-            gputop_web_console_log("i915_oa: OA buffer error - all records lost\n");
+            gputop_cr_console_log("i915_oa: OA buffer error - all records lost\n");
             break;
         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-            gputop_web_console_log("i915_oa: OA report lost\n");
+            gputop_cr_console_log("i915_oa: OA report lost\n");
             break;
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
@@ -247,7 +223,7 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
         }
 
         default:
-            gputop_web_console_log("i915 perf: Spurious header type = %d\n", header->type);
+            gputop_cr_console_log("i915 perf: Spurious header type = %d\n", header->type);
             return;
         }
     }
@@ -268,17 +244,17 @@ gputop_webc_handle_i915_perf_message(struct gputop_webc_stream *stream,
 void
 gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 {
-    gputop_web_index_metric_set(metric_set->guid, metric_set);
+    gputop_cr_index_metric_set(metric_set->guid, metric_set);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_reset_system_properties(void)
+gputop_cc_reset_system_properties(void)
 {
     memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_set_system_property(const char *name, double value)
+gputop_cc_set_system_property(const char *name, double value)
 {
     /* Use _Generic so we don't get caught out by a silent error if
      * we mess with struct gputop_devinfo...
@@ -316,31 +292,31 @@ gputop_webc_set_system_property(const char *name, double value)
         if (strcmp(name, table[i].name) == 0) {
             switch (table[i].type) {
             case TYPE_U32:
-                gputop_web_console_assert(value >= 0 && value <= UINT32_MAX,
-                                          "Value for uint32 property out of range");
+                gputop_cr_console_assert(value >= 0 && value <= UINT32_MAX,
+                                         "Value for uint32 property out of range");
                 *((uint32_t *)table[i].symbol) = (uint32_t)value;
                 return;
             case TYPE_U64:
-                gputop_web_console_assert(value >= 0,
-                                          "Value for uint64 property out of range");
+                gputop_cr_console_assert(value >= 0,
+                                         "Value for uint64 property out of range");
                 *((uint64_t *)table[i].symbol) = (uint64_t)value;
                 return;
             case TYPE_UNKNOWN:
-                gputop_web_console_assert(0, "Unexpected struct gputop_devinfo %s member type",
-                                          table[i].name);
+                gputop_cr_console_assert(0, "Unexpected struct gputop_devinfo %s member type",
+                                         table[i].name);
             }
         }
     }
 
-    gputop_web_console_error("Unknown system property %s\n", name);
+    gputop_cr_console_error("Unknown system property %s\n", name);
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_update_system_metrics(void)
+gputop_cc_update_system_metrics(void)
 {
     uint32_t devid = gputop_devinfo.devid;
 
-    gputop_web_console_assert(devid != 0, "Device ID not initialized before trying to update system metrics");
+    gputop_cr_console_assert(devid != 0, "Device ID not initialized before trying to update system metrics");
 
     if (IS_HASWELL(devid))
         gputop_oa_add_metrics_hsw(&gputop_devinfo);
@@ -354,12 +330,12 @@ gputop_webc_update_system_metrics(void)
         assert_not_reached();
 }
 
-struct gputop_webc_stream * EMSCRIPTEN_KEEPALIVE
-gputop_webc_stream_new(const char *guid,
+struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
+gputop_cc_stream_new(const char *guid,
                        bool per_ctx_mode,
                        uint32_t aggregation_period)
 {
-    struct gputop_webc_stream *stream = malloc(sizeof(*stream));
+    struct gputop_cc_stream *stream = malloc(sizeof(*stream));
 
     assert(stream);
 
@@ -367,7 +343,7 @@ gputop_webc_stream_new(const char *guid,
     stream->aggregation_period = aggregation_period;
     stream->per_ctx_mode = per_ctx_mode;
 
-    stream->oa_metric_set = gputop_web_lookup_metric_set(guid);
+    stream->oa_metric_set = gputop_cr_lookup_metric_set(guid);
     assert(stream->oa_metric_set);
     assert(stream->oa_metric_set->perf_oa_format);
 
@@ -377,21 +353,22 @@ gputop_webc_stream_new(const char *guid,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_update_stream_period(struct gputop_webc_stream *stream,
+gputop_cc_update_stream_period(struct gputop_cc_stream *stream,
                                  uint32_t aggregation_period)
 {
     stream->aggregation_period = aggregation_period;
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_webc_stream_destroy(struct gputop_webc_stream *stream)
+gputop_cc_stream_destroy(struct gputop_cc_stream *stream)
 {
-    gputop_web_console_log("Freeing webc stream %p\n", stream);
+    gputop_cr_console_log("Freeing client-c stream %p\n", stream);
 
     free(stream->continuation_report);
     free(stream);
 }
 
+#ifdef EMSCRIPTEN
 static void
 dummy_mainloop_callback(void)
 {
@@ -406,3 +383,4 @@ main() {
 
     return 0;
 }
+#endif

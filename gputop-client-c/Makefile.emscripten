@@ -6,29 +6,29 @@ CXX=em++
 
 CC=emcc
 top_srcdir=../..
-gputop_srcdir=$(top_srcdir)/gputop
-gputop_builddir=$(top_builddir)/gputop
-web_srcdir=$(gputop_srcdir)
-protobuf_c_srcdir=$(top_srcdir)/protobuf-c
+srcdir=$(top_srcdir)/gputop-client-c
+gputop_datadir=$(top_srcdir)/gputop-data
+gputop_serverdir=$(top_srcdir)/gputop-server
 top_builddir=../..
 builddir=.
+client_c_srcdir=$(gputop_datadir)/gputop-client-c
 
-VPATH=$(gputop_srcdir):$(gputop_builddir):$(web_srcdir):$(protobuf_c_srcdir):$(builddir)
+VPATH=$(gputop_datadir):$(client_c_srcdir):$(builddir)
 
 W_FLAGS=-Wall -Wuninitialized -Wno-strict-aliasing -Wempty-body -Wformat -Wformat-security -Winit-self -Wdeclaration-after-statement -Wvla -Wpointer-arith
 
 #can be overriden by user...
-CFLAGS=-std=c11 -g -O0 $(W_FLAGS)
+CFLAGS=-std=c11 -g -O0 $(W_FLAGS) -DGPUTOP_CLIENT
 OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
-JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 
+JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1
 
-_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
-_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_srcdir) -I$(gputop_builddir) -I$(web_srcdir) 
+_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_datadir) -I$(gputop_serverdir) -I$(client_c_srcdir)
+_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_datadir) -I$(gputop_serverdir) -I$(client_c_srcdir)
 _JSFLAGS=$(JSFLAGS)
 
 
-gputop_web_SOURCE=gputop-web-lib.c gputop-string.c gputop-list.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-web.c gputop-oa-counters.c
+gputop_web_SOURCE=gputop-web-lib.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-client-c.c gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
 
 all:: gputop-web.bc gputop-web.js
@@ -42,7 +42,7 @@ gputop-web.bc: $(gputop_web_OBJECTS)
 %.o: %.cc Makefile.emscripten | dirs
 	$(E)echo "(CXX)     $(@)"
 	$(E)$(CXX) $(filter %.cc,$(^)) -o $@ -MMD -MF .deps/$(@).rules $(_OBJ_CFLAGS)
-	
+
 %.bc: | dirs
 	$(E)echo "(BC)     $(@)"
 	$(E)$(CC) $(_BC_CFLAGS) $(filter %.o %.c,$(^)) -o $@
@@ -51,7 +51,7 @@ gputop-web.bc: $(gputop_web_OBJECTS)
 	$(CC) $(_JSFLAGS) -o $@ $^
 
 gputop-web.js gputop-web.js.map: gputop-web.bc gputop-web-lib.js | dirs
-	$(CC) $(_JSFLAGS) --js-library $(web_srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=1
+	$(CC) $(_JSFLAGS) --js-library $(srcdir)/gputop-web-lib.js -o $@ gputop-web.bc -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=1
 
 -include .deps/*.rules
 

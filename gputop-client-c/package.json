@@ -1,0 +1,32 @@
+{
+    "name": "gputop-client-c",
+    "description": "GPU Top Client C Code/Bindings",
+    "repository": "https://github.com/rib/gputop",
+    "version": "0.0.1",
+    "license": "MIT",
+    "os": [ "linux" ],
+    "gypfile": true,
+    "dependencies": {
+        "gputop-data": "file:../gputop-data"
+    },
+    "files": [
+        "binding.gyp",
+        "gputop-client-c-runtime.h",
+        "gputop-client-c.h",
+        "gputop-client-c.c",
+        "gputop-oa-counters.c",
+        "gputop-oa-counters.h",
+        "gputop-client-c-bindings.cc",
+        "oa-hsw.h",
+        "oa-hsw.c",
+        "oa-bdw.h",
+        "oa-bdw.c",
+        "oa-chv.h",
+        "oa-chv.c",
+        "oa-skl.h",
+        "oa-skl.c"
+    ],
+    "engines": {
+        "node": ">=0.8.0"
+    }
+}

@@ -28,9 +28,9 @@
 
 #include "gputop-oa-counters.h"
 
-#ifdef EMSCRIPTEN
-#include "gputop-web-lib.h"
-#define dbg gputop_web_console_log
+#ifdef GPUTOP_CLIENT
+#include "gputop-client-c-runtime.h"
+#define dbg gputop_cr_console_log
 #else
 #include "gputop-log.h"
 #endif

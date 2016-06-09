@@ -30,22 +30,22 @@
 var is_nodejs = false;
 
 if (typeof module !== 'undefined' && module.exports) {
+
     var WebSocket = require('ws');
     var ProtoBuf = require("protobufjs");
     var fs = require('fs');
     var jsdom = require('jsdom');
     var $ = require('jquery')(jsdom.jsdom().defaultView);
-
-    var webc = require("./gputop-web.js");
-    webc.gputop_singleton = undefined;
-
-    var install_prefix = require.resolve("./gputop-web.js");
     var path = require('path');
-    install_prefix = path.resolve(install_prefix, '..');
+
+    var cc = require("./gputop-web.js");
+    cc.gputop_singleton = undefined;
+
+    var install_prefix = __dirname;
 
     is_nodejs = true;
 } else {
-    var webc = undefined;
+    var cc = undefined;
 
     ProtoBuf = dcodeIO.ProtoBuf;
     var $ = window.jQuery;
@@ -76,8 +76,8 @@ function Counter (metricParent) {
 
     this.metric = metricParent;
 
-    /* Index into metric.webc_counters_, understood by gputop-web.c code */
-    this.webc_counter_id_ = -1;
+    /* Index into metric.cc_counters_, understood by gputop-web.c code */
+    this.cc_counter_id_ = -1;
     this.name = '';
     this.symbol_name = '';
     this.supported_ = false;
@@ -153,7 +153,7 @@ function Metric (gputopParent) {
     this.guid_ = "undefined";
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.webc_counters = []; /* Counters applicable to this system, supported via
+    this.cc_counters = []; /* Counters applicable to this system, supported via
                               * gputop-web.c */
     this.counters_ = [];     /* All possible counters associated with this metric
                               * set (not necessarily all supported by the current
@@ -162,7 +162,7 @@ function Metric (gputopParent) {
     this.metric_set_ = 0;
 
     this.server_handle = 0;
-    this.webc_stream_ptr_ = 0;
+    this.cc_stream_ptr_ = 0;
 
     this.per_ctx_mode_ = false;
 
@@ -220,18 +220,18 @@ Metric.prototype.add_new_counter = function(counter) {
         }
     };// options
 
-    var sp = webc.Runtime.stackSave();
+    var sp = cc.Runtime.stackSave();
 
-    var counter_idx = webc._gputop_webc_get_counter_id(String_pointerify_on_stack(this.guid_),
-                                                       String_pointerify_on_stack(symbol_name));
+    var counter_idx = cc._gputop_cc_get_counter_id(String_pointerify_on_stack(this.guid_),
+                                                   String_pointerify_on_stack(symbol_name));
 
-    webc.Runtime.stackRestore(sp);
+    cc.Runtime.stackRestore(sp);
 
-    counter.webc_counter_id_ = counter_idx;
+    counter.cc_counter_id_ = counter_idx;
     if (counter_idx != -1) {
         counter.supported_ = true;
         this.gputop.log('  Added available counter ' + counter_idx + ": " + symbol_name);
-        this.webc_counters[counter_idx] = counter;
+        this.cc_counters[counter_idx] = counter;
     } else {
         this.gputop.log('  Not adding unavailable counter:' + symbol_name);
     }
@@ -245,8 +245,8 @@ Metric.prototype.set_aggregation_period = function(period_ns) {
 
     this.period_ns_ = period_ns;
 
-    if (this.webc_stream_ptr_)
-        webc._gputop_webc_update_stream_period(this.webc_stream_ptr_, period_ns);
+    if (this.cc_stream_ptr_)
+        cc._gputop_cc_update_stream_period(this.cc_stream_ptr_, period_ns);
 }
 
 function Process_info () {
@@ -324,11 +324,11 @@ function Gputop () {
     this.server_handle_to_stream_map = {};
 
     /* When we open a stream of metrics we also call into the
-     * Emscripten compiled webc code to allocate a corresponding
-     * struct gputop_webc_stream. This map lets us look up a
-     * Metric object given a sputop_webc_stream pointer.
+     * Emscripten compiled cc code to allocate a corresponding
+     * struct gputop_cc_stream. This map lets us look up a
+     * Metric object given a gputop_cc_stream pointer.
      */
-    this.webc_stream_ptr_to_metric_map = {};
+    this.cc_stream_ptr_to_metric_map = {};
     this.active_oa_metric_ = undefined;
 
     this.current_update_ = { metric: null };
@@ -490,13 +490,13 @@ Gputop.prototype.stream_start_update = function (stream_ptr,
                                                  reason) {
     var update = this.current_update_;
 
-    if (!(stream_ptr in this.webc_stream_ptr_to_metric_map)) {
+    if (!(stream_ptr in this.cc_stream_ptr_to_metric_map)) {
         console.error("Ignoring spurious update for unknown stream");
         update.metric = null;
         return;
     }
 
-    update.metric = this.webc_stream_ptr_to_metric_map[stream_ptr];
+    update.metric = this.cc_stream_ptr_to_metric_map[stream_ptr];
     update.start_timestamp = start_timestamp;
     update.end_timestamp = end_timestamp;
     update.reason = reason;
@@ -514,12 +514,12 @@ Gputop.prototype.stream_update_counter = function (stream_ptr,
         return;
     }
 
-    if (counter_id >= metric.webc_counters.length) {
+    if (counter_id >= metric.cc_counters.length) {
         console.error("Ignoring spurious counter update for out-of-range counter index");
         return;
     }
 
-    var counter = metric.webc_counters[counter_id];
+    var counter = metric.cc_counters[counter_id];
     counter.append_counter_data(update.start_timestamp,
                                 update.end_timestamp,
                                 max, value,
@@ -584,16 +584,16 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
             metric.exponent = oa_exponent;
             metric.per_ctx_mode_ = per_ctx_mode;
 
-            var sp = webc.Runtime.stackSave();
+            var sp = cc.Runtime.stackSave();
 
-            metric.webc_stream_ptr_ =
-                webc._gputop_webc_stream_new(String_pointerify_on_stack(config.guid),
-                                             per_ctx_mode,
-                                             metric.period_ns_);
+            metric.cc_stream_ptr_ =
+                cc._gputop_cc_stream_new(String_pointerify_on_stack(config.guid),
+                                         per_ctx_mode,
+                                         metric.period_ns_);
 
-            webc.Runtime.stackRestore(sp);
+            cc.Runtime.stackRestore(sp);
 
-            this.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_] = metric;
+            this.cc_stream_ptr_to_metric_map[metric.cc_stream_ptr_] = metric;
 
             if (callback != undefined)
                 callback(metric);
@@ -670,11 +670,11 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
     }
 
     function _finish_close() {
-        webc._gputop_webc_stream_destroy(metric.webc_stream_ptr_);
-        delete this.webc_stream_ptr_to_metric_map[metric.webc_stream_ptr_];
+        cc._gputop_cc_stream_destroy(metric.cc_stream_ptr_);
+        delete this.cc_stream_ptr_to_metric_map[metric.cc_stream_ptr_];
         delete this.server_handle_to_metric_map[metric.server_handle];
 
-        metric.webc_stream_ptr_ = 0;
+        metric.cc_stream_ptr_ = 0;
         metric.server_handle = 0;
 
         metric.closing_ = false;
@@ -796,7 +796,7 @@ Gputop.prototype.close_active_metric_set = function(callback) {
 
 
 function String_pointerify_on_stack(js_string) {
-    return webc.allocate(webc.intArrayFromString(js_string), 'i8', webc.ALLOC_STACK);
+    return cc.allocate(cc.intArrayFromString(js_string), 'i8', cc.ALLOC_STACK);
 }
 
 Gputop.prototype.generate_uuid = function()
@@ -927,7 +927,7 @@ Gputop.prototype.process_features = function(features){
     this.set_architecture(features.devinfo.devname);
 
     this.system_properties = {};
-    webc._gputop_webc_reset_system_properties();
+    cc._gputop_cc_reset_system_properties();
 
     var DevInfo = this.builder_.lookup("gputop.DevInfo");
     var fields = DevInfo.getChildren(ProtoBuf.Reflect.Message.Field);
@@ -938,19 +938,19 @@ Gputop.prototype.process_features = function(features){
         switch (field.type.name) {
         case "uint64":
             /* NB uint64 types are handled via long.js and we're being lazy
-             * for now and casting to a Number when forwarding to the webc
+             * for now and casting to a Number when forwarding to the cc
              * api. Later we could add a set_system_property_u64() api if
              * necessary */
             val = features.devinfo[field.name].toInt();
-            webc._gputop_webc_set_system_property(name_c_string, val);
+            cc._gputop_cc_set_system_property(name_c_string, val);
             break;
         case "uint32":
             val = features.devinfo[field.name];
-            webc._gputop_webc_set_system_property(name_c_string, val);
+            cc._gputop_cc_set_system_property(name_c_string, val);
             break;
         case "string":
             val = features.devinfo[field.name];
-            /* FIXME: allow forwarding string properties to webc via
+            /* FIXME: allow forwarding string properties to cc via
              * a _set_system_property_string() api */
             break;
         default:
@@ -963,7 +963,7 @@ Gputop.prototype.process_features = function(features){
     });
 
 
-    webc._gputop_webc_update_system_metrics();
+    cc._gputop_cc_update_system_metrics();
 
     this.xml_file_name_ = this.config_.architecture + ".xml";
 
@@ -1005,12 +1005,12 @@ Gputop.prototype.load_emscripten = function(callback) {
 
                     $('<script type="text/javascript">').text(src).appendTo(document.body);
 
-                    webc = Module;
+                    cc = Module;
 
                     /* Tell gputop-web-lib.js about this object so
-                     * that the webc code can call methods on it...
+                     * that the cc code can call methods on it...
                      */
-                    webc.gputop_singleton = this;
+                    cc.gputop_singleton = this;
 
                     this.native_js_loaded_ = true;
                     this.log("GPUTop Emscripten code loaded\n");
@@ -1025,10 +1025,10 @@ Gputop.prototype.load_emscripten = function(callback) {
          */
         this.native_js_loaded_ = true;
 
-        /* Tell gputop-web-lib.js about this object so that the webc
+        /* Tell gputop-web-lib.js about this object so that the cc
          * code can call methods on it...
          */
-        webc.gputop_singleton = this;
+        cc.gputop_singleton = this;
         callback();
     }
 }
@@ -1041,14 +1041,14 @@ Gputop.prototype.dispose = function() {
     this.is_connected_ = false;
 
     this.metrics_.forEach(function (metric) {
-        if (!metric.closing_ && metric.webc_stream_ptr_)
-            _gputop_webc_stream_destroy(metric.webc_stream_ptr_);
+        if (!metric.closing_ && metric.cc_stream_ptr_)
+            _gputop_cc_stream_destroy(metric.cc_stream_ptr_);
     });
 
     this.metrics_ = [];
     this.map_metrics_ = {}; // Map of metrics by GUID
 
-    this.webc_stream_ptr_to_metric_map = {};
+    this.cc_stream_ptr_to_metric_map = {};
     this.server_handle_to_metric_map = {};
     this.server_handle_to_stream_map = {};
     this.active_oa_metric_ = undefined;
@@ -1073,14 +1073,14 @@ Gputop.prototype.replay_buffer = function() {
     for (var i = 0; i < metric.history.length; i++) {
         var data = metric.history[i];
 
-        var sp = webc.Runtime.stackSave();
+        var sp = cc.Runtime.stackSave();
 
-        var stack_data = webc.allocate(data, 'i8', webc.ALLOC_STACK);
+        var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
-        webc._gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
-                                                   stack_data,
-                                                   data.length);
-        webc.Runtime.stackRestore(sp);
+        cc._gputop_cc_handle_i915_perf_message(metric.cc_stream_ptr_,
+                                               stack_data,
+                                               data.length);
+        cc.Runtime.stackRestore(sp);
     }
 }
 
@@ -1092,7 +1092,7 @@ function gputop_socket_on_message(evt) {
     switch(msg_type) {
     case 1: /* WS_MESSAGE_PERF */
         var id = dv.getUint16(4, true /* little endian */);
-        webc._gputop_webc_handle_perf_message(id, data);
+        cc._gputop_cc_handle_perf_message(id, data);
         break;
     case 2: /* WS_MESSAGE_PROTOBUF */
         var msg = this.gputop_proto_.Message.decode(data);
@@ -1141,9 +1141,9 @@ function gputop_socket_on_message(evt) {
         var server_handle = dv.getUint16(4, true /* little endian */);
 
         if (server_handle in this.server_handle_to_metric_map) {
-            var sp = webc.Runtime.stackSave();
+            var sp = cc.Runtime.stackSave();
 
-            var stack_data = webc.allocate(data, 'i8', webc.ALLOC_STACK);
+            var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
             var metric = this.server_handle_to_metric_map[server_handle];
 
@@ -1153,11 +1153,11 @@ function gputop_socket_on_message(evt) {
             if (metric.history_size > 1048576) // 1 MB of data
                 metric.history.shift();
 
-            webc._gputop_webc_handle_i915_perf_message(metric.webc_stream_ptr_,
-                                                       stack_data,
-                                                       data.length);
+            cc._gputop_cc_handle_i915_perf_message(metric.cc_stream_ptr_,
+                                                   stack_data,
+                                                   data.length);
 
-            webc.Runtime.stackRestore(sp);
+            cc.Runtime.stackRestore(sp);
         } else {
             console.log("Ignoring i915 perf data for unknown Metric object")
         }

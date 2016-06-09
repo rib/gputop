@@ -31,7 +31,7 @@
 
 #include "gputop-list.h"
 #include "gputop-hash-table.h"
-#include "gputop-oa-counters.h"
+#include "gputop-oa-metrics.h"
 
 uint64_t get_time(void);
 
@@ -228,23 +228,6 @@ extern bool gputop_perf_trace_full;
 extern uint8_t *gputop_perf_trace_head;
 extern int gputop_perf_n_samples;
 extern bool gputop_fake_mode;
-
-uint64_t read_report_timestamp(const uint32_t *report);
-uint64_t read_uint64_oa_counter(const struct gputop_metric_set *metric_set,
-                                const struct gputop_metric_set_counter *counter,
-                                uint64_t *deltas);
-uint32_t read_uint32_oa_counter(const struct gputop_metric_set *metric_set,
-                                const struct gputop_metric_set_counter *counter,
-                                uint64_t *deltas);
-bool read_bool_oa_counter(const struct gputop_metric_set *metric_set,
-                          const struct gputop_metric_set_counter *counter,
-                          uint64_t *deltas);
-double read_double_oa_counter(const struct gputop_metric_set *metric_set,
-                              const struct gputop_metric_set_counter *counter,
-                              uint64_t *deltas);
-float read_float_oa_counter(const struct gputop_metric_set *metric_set,
-                            const struct gputop_metric_set_counter *counter,
-                            uint64_t *deltas);
 
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,

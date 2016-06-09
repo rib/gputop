@@ -148,7 +148,7 @@ GputopUI.prototype.clear_graphs = function() {
     var metric = this.lookup_metric_for_guid(global_guid);
 
     // reset the accumulator clock and continuation report
-    webc._gputop_webc_reset_accumulator(metric.webc_stream_ptr_);
+    cc._gputop_cc_reset_accumulator(metric.cc_stream_ptr_);
 
     // go through the list of opened graphs
     for (var i = 0; i < this.graph_array.length; ++i) {
@@ -452,8 +452,8 @@ GputopUI.prototype.update = function(timestamp) {
 
     this.update_cpu_stats(timestamp);
 
-    for (var i = 0, l = metric.webc_counters.length; i < l; i++) {
-        var counter = metric.webc_counters[i];
+    for (var i = 0, l = metric.cc_counters.length; i < l; i++) {
+        var counter = metric.cc_counters[i];
         this.update_counter(counter);
     }
 

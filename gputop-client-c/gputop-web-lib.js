@@ -29,7 +29,7 @@ var LibraryGpuTopWeb = {
         _guid_to_metric_set_map: {},
     },
 
-    _gputop_web_console_log: function (message) {
+    _gputop_cr_console_log: function (message) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.log(message);
@@ -37,7 +37,7 @@ var LibraryGpuTopWeb = {
             console.log(Pointer_stringify(message));
     },
 
-    _gputop_web_console_warn: function (message) {
+    _gputop_cr_console_warn: function (message) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.log(message, gputop.WARN);
@@ -45,7 +45,7 @@ var LibraryGpuTopWeb = {
             console.warn(Pointer_stringify(message));
     },
 
-    _gputop_web_console_error: function (message) {
+    _gputop_cr_console_error: function (message) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.log(message, gputop.ERROR);
@@ -53,14 +53,14 @@ var LibraryGpuTopWeb = {
             console.error(Pointer_stringify(message));
     },
 
-    _gputop_web_console_assert: function (condition, message) {
+    _gputop_cr_console_assert: function (condition, message) {
         console.assert(condition, Pointer_stringify(message));
     },
 
-    gputop_web_index_metric_set: function (guid, metric_set) {
+    gputop_cr_index_metric_set: function (guid, metric_set) {
         GPUTop._guid_to_metric_set_map[Pointer_stringify(guid)] = metric_set;
     },
-    gputop_web_lookup_metric_set: function (guid) {
+    gputop_cr_lookup_metric_set: function (guid) {
         var key = Pointer_stringify(guid);
         if (key in GPUTop._guid_to_metric_set_map)
             return GPUTop._guid_to_metric_set_map[key];
@@ -70,21 +70,21 @@ var LibraryGpuTopWeb = {
         }
     },
 
-    _gputop_stream_start_update: function (stream_ptr, start_timestamp, end_timestamp, reason) {
+    _gputop_cr_stream_start_update: function (stream_ptr, start_timestamp, end_timestamp, reason) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.stream_start_update.call(gputop, stream_ptr, start_timestamp, end_timestamp, reason);
         else
             console.error("Gputop singleton not initialized");
     },
-    _gputop_stream_update_counter: function (stream_ptr, counter_idx, max, value) {
+    _gputop_cr_stream_update_counter: function (stream_ptr, counter_idx, max, value) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.stream_update_counter.call(gputop, stream_ptr, counter_idx, max, value);
         else
             console.error("Gputop singleton not initialized");
     },
-    _gputop_stream_end_update: function (stream_ptr) {
+    _gputop_cr_stream_end_update: function (stream_ptr) {
         var gputop = Module['gputop_singleton'];
         if (gputop !== undefined)
             gputop.stream_end_update.call(gputop, stream_ptr);

@@ -15,6 +15,7 @@
         "mathjax": "^2.6.1"
     },
     "dependencies": {
+        "bindings": "^1.2.1",
         "protobufjs": "^5.0.1",
         "bytebuffer": "^5.0.0",
         "long": "^3.0.3",
@@ -24,18 +25,8 @@
     },
     "main": "gputop.js",
     "files": [
-        "oa-hsw.xml",
-        "oa-bdw.xml",
-        "oa-chv.xml",
-        "oa-skl.xml",
-        "hsw.xml",
-        "bdw.xml",
-        "chv.xml",
-        "skl.xml",
         "gputop.proto",
-        "gputop.js",
-        "gputop-web.js",
-        "gputop-web-lib.js"
+        "gputop.js"
     ],
     "engines": {
         "node": ">=0.8.0"
