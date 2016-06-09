@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gputop-web-lib.h"
+#include "gputop-client-c-runtime.h"
 
 void
 gputop_cr_console_log(const char *format, ...)

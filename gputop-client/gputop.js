@@ -38,8 +38,29 @@ if (typeof module !== 'undefined' && module.exports) {
     var $ = require('jquery')(jsdom.jsdom().defaultView);
     var path = require('path');
 
-    var cc = require("./gputop-web.js");
-    cc.gputop_singleton = undefined;
+    var cc = undefined;
+
+    /* For unit testing we support running node.js tools with the Emscripten
+     * compiled webc code, to cover more code in common with the web ui...
+     */
+    if (process.env.GPUTOP_NODE_USE_WEBC !== undefined) {
+        cc = require("./gputop-web.js");
+        cc.gputop_singleton = undefined;
+    } else {
+        var client_c_path = require.resolve("gputop-client-c");
+        //client_c_path = path.resolve(client_c_path, '..');
+        console.log("DEBUG C: " + client_c_path);
+
+        cc = require("gputop-client-c");
+        cc.gputop_singleton = undefined;
+
+        /* For code compatibility with using the Emscripten compiled bindings... */
+        cc.ALLOC_STACK = 0;
+        cc.Runtime = { stackSave: function() { return 0; },
+                       stackRestore: function(sp) {} };
+        cc.allocate = function (data, type, where) { return data; };
+        cc.intArrayFromString = function (str) { return str; };
+    }
 
     var install_prefix = __dirname;
 

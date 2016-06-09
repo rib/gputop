@@ -28,7 +28,7 @@ _BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_datadir) -I$(gputop_serverdir
 _JSFLAGS=$(JSFLAGS)
 
 
-gputop_web_SOURCE=gputop-web-lib.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-client-c.c gputop-oa-counters.c
+gputop_web_SOURCE=gputop-client-c-runtime.c oa-hsw.c oa-bdw.c oa-chv.c oa-skl.c gputop-client-c.c gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))
 
 all:: gputop-web.bc gputop-web.js

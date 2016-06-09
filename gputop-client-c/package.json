@@ -6,17 +6,12 @@
     "license": "MIT",
     "os": [ "linux" ],
     "gypfile": true,
+    "main": "gputop-client-c.js",
     "dependencies": {
-        "gputop-data": "file:../gputop-data"
+        "bindings": "^1.2.1"
     },
     "files": [
         "binding.gyp",
-        "gputop-client-c-runtime.h",
-        "gputop-client-c.h",
-        "gputop-client-c.c",
-        "gputop-oa-counters.c",
-        "gputop-oa-counters.h",
-        "gputop-client-c-bindings.cc",
         "oa-hsw.h",
         "oa-hsw.c",
         "oa-bdw.h",
@@ -24,8 +19,20 @@
         "oa-chv.h",
         "oa-chv.c",
         "oa-skl.h",
-        "oa-skl.c"
+        "oa-skl.c",
+        "gputop-oa-counters.c",
+        "gputop-oa-counters.h",
+        "gputop-client-c-runtime.h",
+        "gputop-client-c-runtime.c",
+        "gputop-client-c-runtime-bindings.cpp",
+        "gputop-client-c.h",
+        "gputop-client-c.c",
+        "gputop-client-c-bindings.h",
+        "gputop-client-c-bindings.cpp"
     ],
+    "scripts": {
+        "install": "node-gyp rebuild $NODE_GYP_FLAGS"
+    },
     "engines": {
         "node": ">=0.8.0"
     }

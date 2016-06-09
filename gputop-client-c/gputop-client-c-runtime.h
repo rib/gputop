@@ -1,7 +1,7 @@
 /*
  * GPU Top
  *
- * Copyright (C) 2015 Intel Corporation
+ * Copyright (C) 2016 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,10 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ */
+
+/* APIs available within the client-c code that themselves call back in to the
+ * JavaScript runtime - either in a browser or node.js
  */
 
 #pragma once
@@ -54,11 +58,11 @@ enum update_reason {
 struct gputop_cc_stream;
 
 void _gputop_cr_stream_start_update(struct gputop_cc_stream *stream,
-                                 double start_timestamp, double end_timestamp,
-                                 int reason);
+                                    double start_timestamp, double end_timestamp,
+                                    int reason);
 void _gputop_cr_stream_update_counter(struct gputop_cc_stream *stream,
-                                   int counter,
-                                   double max, double value);
+                                      int counter,
+                                      double max, double value);
 void _gputop_cr_stream_end_update(struct gputop_cc_stream *stream);
 
 #ifdef __cplusplus

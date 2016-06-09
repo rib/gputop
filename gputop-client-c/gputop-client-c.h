@@ -66,7 +66,9 @@ struct gputop_cc_stream {
      * can continue with the next message... */
     uint8_t *continuation_report;
 
-    void *js_pimple;
+    /* Can be used for binding structure into JavaScript, e.g. to
+     * associate a corresponding v8::Object... */
+    void *js_priv;
 };
 
 int gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name);
