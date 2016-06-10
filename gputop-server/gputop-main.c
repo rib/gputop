@@ -36,9 +36,22 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* We resolve the location of various libraries and files at runtime adding them
+ * here so we can list them for user feedback... */
+#define MAX_RESOURCES 10
+static char *resource_locations[MAX_RESOURCES + 1];
+static int n_resources = 0;
+
+static void
+list_resource(const char *resource, const char *location)
+{
+    assert(n_resources < MAX_RESOURCES);
+    asprintf(resource_locations + n_resources++, "%-15s at %s", resource, location);
+}
 
 static void
 usage(void)
@@ -233,7 +246,7 @@ env_resolve_append_lib_path(const char *var, const char *lib)
     char *path = resolve_gputop_lib(lib);
     const char *cur = getenv(var);
 
-    fprintf(stderr, "Using %s at %s\n", lib, path);
+    list_resource(lib, path);
 
     if (cur) {
         char *val;
@@ -346,7 +359,7 @@ setup_web_root_env(void)
 
     root = dirname(path);
     setenv("GPUTOP_WEB_ROOT", root, 1);
-    fprintf(stderr, "Serving web ui from %s\n", root);
+    list_resource("web ui assets", root);
 
     free(path);
 }
@@ -392,6 +405,8 @@ main (int argc, char **argv)
         NULL
     };
     char **args = argv;
+    char prog_name_buf[128];
+    const char *prog_name = NULL;
     int err;
     int i;
 
@@ -468,6 +483,12 @@ main (int argc, char **argv)
 
     setup_web_root_env();
 
+    if (n_resources) {
+        fprintf(stderr, "Resources found:\n");
+        for (int i = 0; resource_locations[i]; i++)
+            fprintf(stderr, "  %s\n", resource_locations[i]);
+    }
+
     /*
      * Print out the environment that we are setting up...
      */
@@ -475,7 +496,7 @@ main (int argc, char **argv)
     if (dry_run)
         fprintf(stderr, "\nWould run:\n\n");
     else
-        fprintf(stderr, "Running:\n\n");
+        fprintf(stderr, "\nEffectively running:\n\n");
 
     ld_preload_path = getenv("LD_PRELOAD");
     if (ld_preload_path)
@@ -487,8 +508,10 @@ main (int argc, char **argv)
         fprintf(stderr, "%s ", args[i]);
     fprintf(stderr, "\n\n");
 
-    fprintf(stderr, "The LD_PRELOAD makes running gdb awkward. Either attach with\n");
-    fprintf(stderr, "gdb --pid=`pidof %s` or run like:\n\n", args[optind]);
+    fprintf(stderr, "NOTE: The use of LD_PRELOAD makes running gdb awkward. Either attach with\n");
+    strncpy(prog_name_buf, args[optind], sizeof(prog_name_buf));
+    prog_name = basename(prog_name_buf);
+    fprintf(stderr, "gdb --pid=`pidof %s` or run like:\n\n", prog_name);
 
     print_gputop_env_vars();
     if (ld_preload_path)
