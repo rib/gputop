@@ -327,6 +327,7 @@ get_gputop_system_path(void)
     exit(1);
 }
 
+#ifdef ENABLE_WEBUI
 /* See if gputop is being run from a source/build directory and set
  * the GPUTOP_WEB_ROOT environment accordingly if so, to avoid
  * neeing to run make install during development/testing...
@@ -363,6 +364,7 @@ setup_web_root_env(void)
 
     free(path);
 }
+#endif
 
 int
 main (int argc, char **argv)
@@ -481,7 +483,9 @@ main (int argc, char **argv)
         resolve_lib_path_for_env("libEGL.so.1", "eglGetDisplay", "GPUTOP_EGL_LIBRARY");
 #endif
 
+#ifdef ENABLE_WEBUI
     setup_web_root_env();
+#endif
 
     if (n_resources) {
         fprintf(stderr, "Resources found:\n");
