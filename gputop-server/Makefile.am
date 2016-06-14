@@ -127,29 +127,11 @@ BUILT_SOURCES = \
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts
 
-oa-hsw.h oa-hsw.c: $(data_dir)/oa-hsw.xml $(script_dir)/gputop-oa-codegen.py
+oa-%.h oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
 	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-hsw.h \
-	    --code=$(builddir)/oa-hsw.c \
-	    --chipset="hsw" $(data_dir)/oa-hsw.xml
-
-oa-bdw.h oa-bdw.c: $(data_dir)/oa-bdw.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-bdw.h \
-	    --code=$(builddir)/oa-bdw.c \
-	    --chipset="bdw" $(data_dir)/oa-bdw.xml
-
-oa-chv.h oa-chv.c: $(data_dir)/oa-chv.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-chv.h \
-	    --code=$(builddir)/oa-chv.c \
-	    --chipset="chv" $(data_dir)/oa-chv.xml
-
-oa-skl.h oa-skl.c: $(data_dir)/oa-skl.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-skl.h \
-	    --code=$(builddir)/oa-skl.c \
-	    --chipset="skl" $(data_dir)/oa-skl.xml
+	    --header=$(builddir)/oa-$(*).h \
+	    --code=$(builddir)/oa-$(*).c \
+	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
 
 %.pb-c.c %.pb-c.h: $(data_dir)/%.proto
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop-server -I$(data_dir) $(data_dir)/$(*F).proto
