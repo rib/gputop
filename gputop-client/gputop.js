@@ -47,10 +47,6 @@ if (typeof module !== 'undefined' && module.exports) {
         cc = require("./gputop-web.js");
         cc.gputop_singleton = undefined;
     } else {
-        var client_c_path = require.resolve("gputop-client-c");
-        //client_c_path = path.resolve(client_c_path, '..');
-        console.log("DEBUG C: " + client_c_path);
-
         cc = require("gputop-client-c");
         cc.gputop_singleton = undefined;
 
@@ -60,6 +56,9 @@ if (typeof module !== 'undefined' && module.exports) {
                        stackRestore: function(sp) {} };
         cc.allocate = function (data, type, where) { return data; };
         cc.intArrayFromString = function (str) { return str; };
+
+        var client_data_path = require.resolve("gputop-data");
+        client_data_path = path.resolve(client_data_path, "..");
     }
 
     var install_prefix = __dirname;
@@ -74,7 +73,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 function get_file(filename, load_callback, error_callback) {
     if (is_nodejs) {
-        fs.readFile(path.join(install_prefix, filename), 'utf8', (err, data) => {
+        fs.readFile(path.join(client_data_path, filename), 'utf8', (err, data) => {
             if (err)
                 error_callback(err);
             else
@@ -1028,7 +1027,7 @@ Gputop.prototype.load_emscripten = function(callback) {
 
                     cc = Module;
 
-                    /* Tell gputop-web-lib.js about this object so
+                    /* Tell gputop client-c about this object so
                      * that the cc code can call methods on it...
                      */
                     cc.gputop_singleton = this;
@@ -1046,10 +1045,11 @@ Gputop.prototype.load_emscripten = function(callback) {
          */
         this.native_js_loaded_ = true;
 
-        /* Tell gputop-web-lib.js about this object so that the cc
+        /* Tell gputop client-c about this object so that the cc
          * code can call methods on it...
          */
-        cc.gputop_singleton = this;
+        cc._gputop_cc_set_singleton(this);
+        console.log("Initialized gputop_singleton");
         callback();
     }
 }

@@ -21,11 +21,11 @@
         "jquery": "^2.2.0",
         "ws": "^1.1.0",
         "jsdom": "^3.0.0",
+        "gputop-data": "file:../gputop-data",
         "gputop-client-c": "file:../gputop-client-c"
     },
     "main": "gputop.js",
     "files": [
-        "gputop.proto",
         "gputop.js"
     ],
     "engines": {

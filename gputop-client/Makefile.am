@@ -1,7 +1,5 @@
 include Makefile.mathjax
 
-SUBDIRS =
-
 third_party_files = \
 	protobuf.min.js \
 	bytebuffer.min.js \
@@ -26,12 +24,6 @@ third_party_files = \
 	bootbox.min.js \
 	plotly/plotly.min.js
 
-built_xml = \
-	hsw.xml \
-	bdw.xml \
-	chv.xml \
-	skl.xml
-
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
 	index.html \
@@ -45,43 +37,10 @@ nobase_dist_remote_DATA = \
 	ajax/welcome.html \
 	assets/gputop_logo.png \
 	assets/gputop_logo_44.png \
-	$(built_xml) \
 	$(third_party_files)
 
 BUILT_SOURCES = \
-	gputop-web.js node_modules \
-	$(built_xml)
-
-data_dir = $(top_srcdir)/gputop-data
-script_dir = $(top_srcdir)/scripts
-
-hsw.xml: $(data_dir)/oa-hsw.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-hsw.h \
-	    --code=$(builddir)/oa-hsw.c \
-	    --chipset="hsw" $(data_dir)/oa-hsw.xml \
-	    --xml_eq="hsw.xml"
-
-bdw.xml: $(data_dir)/oa-bdw.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-bdw.h \
-	    --code=$(builddir)/oa-bdw.c \
-	    --chipset="bdw" $(data_dir)/oa-bdw.xml \
-	    --xml_eq="bdw.xml"
-
-chv.xml: $(data_dir)/oa-chv.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-chv.h \
-	    --code=$(builddir)/oa-chv.c \
-	    --chipset="chv" $(data_dir)/oa-chv.xml \
-	    --xml_eq="chv.xml"
-
-skl.xml: $(data_dir)/oa-skl.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-skl.h \
-	    --code=$(builddir)/oa-skl.c \
-	    --chipset="skl" $(data_dir)/oa-skl.xml \
-	    --xml_eq="skl.xml"
+	gputop-web.js node_modules
 
 node_modules: $(srcdir)/package.json
 	npm install
