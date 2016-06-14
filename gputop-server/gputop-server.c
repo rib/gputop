@@ -1283,14 +1283,10 @@ bool gputop_server_run(void)
     pathconf = h2o_config_register_path(hostconf, "/gputop");
     h2o_create_handler(pathconf, sizeof(h2o_handler_t))->on_req = on_req;
 
-    /* NB: the distinction made by this define, is whether this build of gputop
-     * includes a build of the web/node.js clients which depend on the server
-     * hosting the client-side javascript + html etc.
-     *
-     * Without this defined we still at least support remote access to metrics
-     * via a websocket + protocol buffers.
+    /* Without the web ui enabled we still support remote access to metrics via
+     * a websocket + protocol buffers, we just don't host the web ui assets.
      */
-#ifdef ENABLE_REMOTE_CLIENTS
+#ifdef ENABLE_WEBUI
     root = h2o_config_register_path(hostconf, "/");
 
     web_root = getenv("GPUTOP_WEB_ROOT");

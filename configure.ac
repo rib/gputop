@@ -135,21 +135,34 @@ dnl ================================================================
 AC_PROG_INSTALL
 AC_CHECK_PROGS([PYTHON2], [python2 python])
 AC_CHECK_PROGS([EMCC], [emcc])
+AC_CHECK_PROGS([NPM], [npm])
 
 have_emcc=no
 AS_IF([test -n "$EMCC"], [ have_emcc="yes" ])
 AC_ARG_ENABLE(
-  [remote-clients],
-  [AC_HELP_STRING([--enable-remote-clients=@<:@no/yes@:>@],
-                  [Build remote clients (web/node.js) @<:@default=auto@:>@])],
-  [enable_remote_clients="$enableval"],
-  [enable_remote_clients="$have_emcc"]
+  [web-ui],
+  [AC_HELP_STRING([--enable-webui=@<:@no/yes@:>@],
+                  [Build web ui @<:@default=auto@:>@])],
+  [enable_web_ui="$enableval"],
+  [enable_web_ui="$have_emcc"]
 )
-AS_IF([test "$enable_remote_clients" = "yes"],
+AS_IF([test "$enable_web_ui" = "yes"],
       [
-        AC_DEFINE([ENABLE_REMOTE_CLIENTS], [1], [Build remote clients (web/node.js)])
+        AC_DEFINE([ENABLE_WEBUI], [1], [Build remote clients (web/node.js)])
       ])
-AM_CONDITIONAL(ENABLE_REMOTE_CLIENTS, [test "$enable_remote_clients" = "yes"])
+AM_CONDITIONAL(ENABLE_WEBUI, [test "$enable_web_ui" = "yes"])
+
+AS_IF([test -n "$NPM"], [ have_npm="yes" ])
+AC_ARG_ENABLE(
+  [node-clients],
+  [AC_HELP_STRING([--enable-node-clients=@<:@no/yes@:>@],
+                  [Build node.js clients @<:@default=auto@:>@])],
+  [enable_node_clients="$enableval"],
+  [enable_node_clients="$have_npm"]
+)
+AM_CONDITIONAL(ENABLE_NODE_CLIENTS, [test "$enable_node_clients" = "yes"])
+
+AM_CONDITIONAL(ENABLE_CLIENTS, [test "$enable_web_ui" = "yes" -o "$enable_node_clients" = "yes"])
 
 dnl ================================================================
 dnl What needs to be substituted in other files
@@ -180,8 +193,8 @@ echo "GPU Top configured:"
 echo ""
 echo " • Optional Features: ${FEATURES}"
 echo "        GL Intercept: ${enable_gl}"
-echo "              Web UI: ${enable_remote_clients}"
-echo "     Node.js Clients: ${enable_remote_clients}"
+echo "              Web UI: ${enable_web_ui}"
+echo "               Tools: ${enable_node_clients}"
 echo ""
 echo "Note: The UI hosted at gputop.github.io can be used if the web"
 echo "      UI isn't built here."

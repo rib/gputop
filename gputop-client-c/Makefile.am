@@ -17,7 +17,7 @@ oa-%.h oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
 	    --code=$(builddir)/oa-$(*).c \
 	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
 
-if ENABLE_REMOTE_CLIENTS
+if ENABLE_WEBUI
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
     gputop-web.js \

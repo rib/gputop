@@ -49,9 +49,11 @@ bootstrap% %.js: | node_modules ;
 
 all-local: | node_modules
 
+if ENABLE_NODE_CLIENTS
 distclean-local:
 	rm -fr node_modules
 install-data-local: | node_modules ;
-	npm install -g --prefix=$(prefix) --production --cache-min 999999999
+	env NODE_GYP_FLAGS=-Dtop_srcdir=$(shell realpath $(top_srcdir)) npm install -g --prefix=$(prefix) --production --cache-min 999999999
+endif
 
 CLEANFILES = $(BUILT_SOURCES)
