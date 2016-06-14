@@ -1,8 +1,3 @@
 
-install-data-local:
-	npm install -g --prefix=$(prefix) --production --cache-min 999999999
+include $(top_srcdir)/Makefile.tool
 
-clean-local:
-	rm -fr node_modules
-
-EXTRA_DIST=gputop-*.js
