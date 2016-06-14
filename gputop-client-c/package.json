@@ -7,8 +7,12 @@
     "os": [ "linux" ],
     "gypfile": true,
     "main": "gputop-client-c.js",
+    "devDependencies": {
+        "gputop-data": "file:../gputop-data"
+    },
     "dependencies": {
-        "bindings": "^1.2.1"
+        "bindings": "^1.2.1",
+        "gputop-system-headers": "file:../gputop-server"
     },
     "files": [
         "binding.gyp",
@@ -31,7 +35,7 @@
         "gputop-client-c-bindings.cpp"
     ],
     "scripts": {
-        "install": "node-gyp rebuild $NODE_GYP_FLAGS"
+        "install": "node-gyp rebuild -- $NODE_GYP_FLAGS"
     },
     "engines": {
         "node": ">=0.8.0"

@@ -1,4 +1,7 @@
 {
+  "variables": {
+    "system_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-system-headers\'), \'..\'));")'
+  },
   "targets": [
     {
       "target_name": "gputop-client-c",
@@ -7,9 +10,7 @@
       ],
       "include_dirs": [
         ".",
-        # Urgh, what a pain...
-        '<!(node -e "require(\'child_process\').execSync(\'git rev-parse --show-toplevel\', {stdio:[0,1,2]});")/gputop-server',
-        '<!(node -e "require(\'child_process\').execSync(\'git rev-parse --show-toplevel\', {stdio:[0,1,2]});")/gputop-data'
+        "<(system_headers)"
       ],
       "sources": [
         "oa-hsw.h",
