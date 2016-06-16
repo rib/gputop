@@ -43,8 +43,8 @@ nobase_dist_remote_DATA = \
 BUILT_SOURCES = \
 	gputop-web.js node_modules
 
-node_modules: $(srcdir)/package.json
-	npm install --development
+node_modules: $(srcdir)/package.json $(srcdir)/Makefile.am
+	npm install
 
 distclean-local:
 	rm -fr node_modules
