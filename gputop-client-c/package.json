@@ -38,6 +38,6 @@
         "install": "node-gyp rebuild -- $NODE_GYP_FLAGS"
     },
     "engines": {
-        "node": ">=0.8.0"
+        "node": ">=5.0.0"
     }
 }
