@@ -1,0 +1,18 @@
+{
+    "name": "gputop-term",
+    "description": "GPU Top Terminal UI Tool",
+    "repository": "https://github.com/rib/gputop",
+    "version": "0.0.1",
+    "license": "MIT",
+    "dependencies": {
+        "gputop": "file:../gputop-client",
+        "argparse": "^1.0.7",
+        "blessed": "^0.1.81"
+    },
+    "bin": {
+        "gputop-term": "gputop-term.js"
+    },
+    "engines": {
+        "node": ">=0.8.0"
+    }
+}
