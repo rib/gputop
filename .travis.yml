@@ -42,6 +42,7 @@ node_js:
     - "5"
 
 before_install:
+    - node --version
     # Use a more recent toolchain so we can rely on C11
     - export CC=gcc-4.9 CXX=g++-4.9
     # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
