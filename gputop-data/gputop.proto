@@ -41,11 +41,13 @@ enum GLCounterDataType
 
 message GLCounter
 {
-    required string name = 1;
-    required string description = 2;
-    required GLCounterType type = 3;
-    required GLCounterDataType data_type = 4;
-    required uint64 maximum = 5;
+    required uint32 id = 1;
+    required string name = 2;
+    required string description = 3;
+    required GLCounterType type = 4;
+    required uint32 data_offset = 5;
+    required GLCounterDataType data_type = 6;
+    required uint64 maximum = 7;
 }
 
 message GLQueryInfo
@@ -53,6 +55,7 @@ message GLQueryInfo
     required uint32 id = 1;
     required string name = 2;
     repeated GLCounter counters = 3;
+    required uint32 data_size = 4;
 }
 
 message Features

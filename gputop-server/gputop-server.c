@@ -1020,6 +1020,128 @@ error:
     send_pb_message(conn, &message.base);
 }
 
+#ifdef SUPPORT_GL
+static Gputop__GLQueryInfo **
+get_gl_query_info(int *n_queries_ret)
+{
+    Gputop__GLQueryInfo **queries_vec = NULL;
+    Gputop__GLQueryInfo *queries = NULL;
+    int n_queries = 0;
+
+    pthread_rwlock_rdlock(&gputop_gl_lock);
+
+    /* XXX: we currently assume if there are multiple contexts in use, they
+     * have the same queries, with the same IDs available...
+     */
+    if (gputop_gl_contexts->len) {
+        struct winsys_context **contexts = gputop_gl_contexts->data;
+        struct winsys_context *first_wctx = contexts[0];
+        struct intel_query_info *q;
+        int i;
+
+        n_queries = gputop_list_length(&first_wctx->queries);
+
+        queries_vec = xmalloc(sizeof(void *) * n_queries);
+        queries = xmalloc(sizeof(Gputop__GLQueryInfo) * n_queries);
+
+        i = 0;
+        gputop_list_for_each(q, &first_wctx->queries, link) {
+            Gputop__GLQueryInfo *query = &queries[i];
+            Gputop__GLCounter **counters_vec;
+            Gputop__GLCounter *counters;
+
+            query->name = q->name;
+            query->id = q->id;
+
+            counters_vec = xmalloc(sizeof(void *) * q->n_counters);
+            counters = xmalloc(sizeof(Gputop__GLCounter) * q->n_counters);
+            query->n_counters = q->n_counters;
+            query->counters = counters_vec;
+
+            for (int j = 0; j < query->n_counters; j++) {
+                struct intel_counter *c = &q->counters[j];
+                Gputop__GLCounter *counter = &counters[j];
+
+                counter->id = c->id;
+                counter->name = c->name;
+                counter->description = c->description;
+                counter->maximum = c->max_raw_value;
+
+                switch (c->type) {
+                case GL_PERFQUERY_COUNTER_EVENT_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__EVENT;
+                    break;
+                case GL_PERFQUERY_COUNTER_DURATION_NORM_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__DURATION_NORM;
+                    break;
+                case GL_PERFQUERY_COUNTER_DURATION_RAW_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__DURATION_RAW;
+                    break;
+                case GL_PERFQUERY_COUNTER_THROUGHPUT_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__THROUGHPUT;
+                    break;
+                case GL_PERFQUERY_COUNTER_RAW_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__RAW;
+                    break;
+                case GL_PERFQUERY_COUNTER_TIMESTAMP_INTEL:
+                    counter->type = GPUTOP__GLCOUNTER_TYPE__TIMESTAMP;
+                    break;
+                }
+
+                switch(c->data_type) {
+                case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
+                    counter->data_type = GPUTOP__GLCOUNTER_DATA_TYPE__UINT32;
+                    break;
+                case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
+                    counter->data_type = GPUTOP__GLCOUNTER_DATA_TYPE__UINT64;
+                    break;
+                case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
+                    counter->data_type = GPUTOP__GLCOUNTER_DATA_TYPE__FLOAT;
+                    break;
+                case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
+                    counter->data_type = GPUTOP__GLCOUNTER_DATA_TYPE__DOUBLE;
+                    break;
+                case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
+                    counter->data_type = GPUTOP__GLCOUNTER_DATA_TYPE__BOOL32;
+                    break;
+                }
+
+                counter->data_offset = c->data_offset;
+
+                counters_vec[j] = counter;
+            }
+
+            query->data_size = q->max_counter_data_len;
+
+            queries_vec[i] = query;
+            i++;
+        }
+    }
+
+    pthread_rwlock_unlock(&gputop_gl_lock);
+
+    *n_queries_ret = n_queries;
+
+    return queries_vec;
+}
+
+static void
+free_gl_query_info(Gputop__GLQueryInfo **queries, int n_queries)
+{
+    for (int i = 0; i < n_queries; i++) {
+        Gputop__GLQueryInfo *query = queries[i];
+
+        for (int j = 0; j < query->n_counters; j++)
+            free(query->counters[j]);
+
+        free(query->counters);
+        free(query);
+    }
+
+    free(queries);
+}
+#endif
+
 static void
 handle_get_features(h2o_websocket_conn_t *conn,
                     Gputop__Request *request)
@@ -1064,8 +1186,15 @@ handle_get_features(h2o_websocket_conn_t *conn,
     features.fake_mode = gputop_fake_mode;
 
     features.devinfo = &devinfo;
+
 #ifdef SUPPORT_GL
     features.has_gl_performance_query = gputop_gl_has_intel_performance_query_ext;
+
+    if (gputop_gl_has_intel_performance_query_ext && !gputop_fake_mode) {
+        int n_gl_queries;
+        features.gl_queries = get_gl_query_info(&n_gl_queries);
+        features.n_gl_queries = n_gl_queries;
+    }
 #else
     features.has_gl_performance_query = false;
 #endif
@@ -1120,6 +1249,11 @@ handle_get_features(h2o_websocket_conn_t *conn,
     send_pb_message(conn, &message.base);
 
     gputop_debugfs_free_tracepoint_names(features.tracepoints);
+
+#ifdef SUPPORT_GL
+    if (features.n_gl_queries)
+        free_gl_query_info(features.gl_queries, features.n_gl_queries);
+#endif
 }
 
 static void on_ws_message(h2o_websocket_conn_t *conn,
