@@ -13,6 +13,6 @@
         "gputop-term": "gputop-term.js"
     },
     "engines": {
-        "node": ">=0.8.0"
+        "node": ">=5.0.0"
     }
 }

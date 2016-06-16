@@ -10,8 +10,5 @@
         "i915_oa_drm.h",
         "gputop-oa-metrics.h"
     ],
-    "main": "index.js",
-    "engines": {
-        "node": ">=0.8.0"
-    }
+    "main": "index.js"
 }
