@@ -38,6 +38,9 @@ env:
         - CONFIG_OPTS="--enable-debug --disable-gl --enable-remote-clients"
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-remote-clients"
 
+node_js:
+    - "5"
+
 before_install:
     # Use a more recent toolchain so we can rely on C11
     - export CC=gcc-4.9 CXX=g++-4.9
