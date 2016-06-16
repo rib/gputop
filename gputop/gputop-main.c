@@ -281,7 +281,7 @@ get_gputop_system_path(void)
         NULL
     };
 
-    for (int i; options[i]; i++) {
+    for (int i = 0; options[i]; i++) {
         struct stat sb;
         char *path = NULL;
 
