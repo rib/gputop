@@ -24,12 +24,6 @@
 
 #pragma once
 
-#ifdef EMSCRIPTEN
-#include <emscripten.h>
-#else
-#define EMSCRIPTEN_KEEPALIVE
-#endif
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -37,18 +31,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <uuid/uuid.h>
-
-#include <intel_chipset.h>
-#include <i915_oa_drm.h>
-
-#include "gputop-client-c-runtime.h"
 #include "gputop-oa-counters.h"
-
-#include "oa-hsw.h"
-#include "oa-bdw.h"
-#include "oa-chv.h"
-#include "oa-skl.h"
 
 #ifdef __cplusplus
 extern "C" {
