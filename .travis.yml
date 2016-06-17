@@ -1,6 +1,8 @@
 sudo: false
 
-language: c
+language: node_js
+node_js:
+    - "5"
 
 os:
     - linux
@@ -37,9 +39,6 @@ env:
         - CONFIG_OPTS="--disable-debug --disable-gl --disable-remote-clients"
         - CONFIG_OPTS="--enable-debug --disable-gl --enable-remote-clients"
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-remote-clients"
-
-node_js:
-    - "5"
 
 before_install:
     - node --version
