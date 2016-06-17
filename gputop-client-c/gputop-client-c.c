@@ -37,8 +37,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <uuid/uuid.h>
-
 #include <intel_chipset.h>
 #include <i915_oa_drm.h>
 
