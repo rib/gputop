@@ -12,4 +12,8 @@ if ENABLE_NODE_CLIENTS
 SUBDIRS += gputop-csv gputop-tracepoints gputop-term
 endif
 
+if ENABLE_WEBUI
+SUBDIRS += gputop-webui
+endif
+
 ACLOCAL_AMFLAGS = -I build/autotools ${ACLOCAL_FLAGS}

@@ -164,6 +164,7 @@ AM_CONDITIONAL(ENABLE_NODE_CLIENTS, [test "$enable_node_clients" = "yes"])
 
 AM_CONDITIONAL(ENABLE_CLIENTS, [test "$enable_web_ui" = "yes" -o "$enable_node_clients" = "yes"])
 
+
 dnl ================================================================
 dnl What needs to be substituted in other files
 dnl ================================================================
@@ -184,6 +185,7 @@ gputop-server/Makefile
 gputop-server/registry/Makefile
 gputop-client/Makefile
 gputop-client-c/Makefile
+gputop-webui/Makefile
 gputop-csv/Makefile
 gputop-tracepoints/Makefile
 gputop-term/Makefile

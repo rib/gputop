@@ -339,8 +339,8 @@ setup_web_root_env(void)
     char dir[1024];
     char *prefix;
     const char *options[] = {
-        "gputop-client/gputop.js",
-        "share/remote/gputop.js",
+        "gputop-webui/index.html",
+        "share/remote/index.html",
         NULL
     };
     char *path;

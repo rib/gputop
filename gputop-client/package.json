@@ -1,19 +1,10 @@
 {
     "name": "gputop",
-    "description": "GPU Top",
+    "description": "GPU Top Client",
     "repository": "https://github.com/rib/gputop",
     "version": "0.0.1",
     "license": "MIT",
     "os": [ "linux" ],
-    "devDependencies": {
-        "bootstrap": "^3.3.6",
-        "bootstrap-slider": "^6.0.16",
-        "bootbox": "4.4.0",
-        "jqueryui-browser": "^1.10.2-1",
-        "plotly.js": "^1.11.0",
-        "jquery-flot": "^0.8.3",
-        "mathjax": "^2.6.1"
-    },
     "dependencies": {
         "protobufjs": "^5.0.1",
         "bytebuffer": "^5.0.0",

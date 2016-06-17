@@ -23,6 +23,9 @@ nobase_dist_remote_DATA = \
     gputop-web.js \
     gputop-web.js.map
 
+BUILT_SOURCES = \
+	gputop-web.js
+
 # Automake seems awkward to use for running the emscripten toolchain so
 # we have a plain GNU Makefile that we proxy too instead...
 EMCC_PROXY_MAKEFLAGS=-f $(srcdir)/Makefile.emscripten $(AM_MAKEFLAGS) top_srcdir=$(top_srcdir)
