@@ -12,6 +12,9 @@
         ".",
         "<(system_headers)"
       ],
+      "cflags": [
+          "-std=c11"
+      ],
       "sources": [
         "oa-hsw.h",
         "oa-hsw.c",
