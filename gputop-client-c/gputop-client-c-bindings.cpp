@@ -106,35 +106,6 @@ gputop_cc_get_counter_id_binding(const v8::FunctionCallbackInfo<Value>& args)
 }
 
 void
-gputop_cc_handle_perf_message_binding(const v8::FunctionCallbackInfo<Value>& args)
-{
-    Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope(isolate);
-
-    if (args.Length() < 3) {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
-        return;
-    }
-
-    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
-    struct gputop_cc_stream *stream = (struct gputop_cc_stream *)ptr->ptr_;
-
-    unsigned int len = args[2]->NumberValue();
-
-    Local<ArrayBuffer> buf = Local<ArrayBuffer>::Cast(args[1]);
-    auto data_contents = buf->GetContents();
-
-    if (len < data_contents.ByteLength()) {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Length given would overrun data")));
-        return;
-    }
-
-    gputop_cc_handle_perf_message(stream,
-                                  static_cast<uint8_t *>(data_contents.Data()),
-                                  len);
-}
-
-void
 gputop_cc_reset_accumulator_binding(const v8::FunctionCallbackInfo<Value>& args)
 {
     Isolate* isolate = Isolate::GetCurrent();
@@ -242,15 +213,29 @@ bind_c_struct(Isolate* isolate, void *c_struct, void **js_priv_member)
 }
 
 void
-gputop_cc_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
+gputop_cc_oa_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
 {
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope(isolate);
 
     struct gputop_cc_stream *stream =
-        gputop_cc_stream_new(*String::Utf8Value(args[0]), /* guid */
-                             args[1]->BooleanValue(), /* per-ctx-mode */
-                             args[2]->NumberValue()); /* aggregation period */
+        gputop_cc_oa_stream_new(*String::Utf8Value(args[0]), /* guid */
+                                args[1]->BooleanValue(), /* per-ctx-mode */
+                                args[2]->NumberValue()); /* aggregation period */
+
+    Local<Object> stream_obj = bind_c_struct(isolate, stream, &stream->js_priv);
+
+    args.GetReturnValue().Set(stream_obj);
+}
+
+void
+gputop_cc_tracepoint_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    struct gputop_cc_stream *stream =
+        gputop_cc_tracepoint_stream_new();
 
     Local<Object> stream_obj = bind_c_struct(isolate, stream, &stream->js_priv);
 
@@ -273,6 +258,61 @@ gputop_cc_stream_destroy_binding(const v8::FunctionCallbackInfo<Value>& args)
 }
 
 void
+gputop_cc_tracepoint_add_field_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_stream *stream = static_cast<struct gputop_cc_stream *>(ptr->ptr_);
+
+    gputop_cc_tracepoint_add_field(stream,
+                                   *String::Utf8Value(args[1]), /* name */
+                                   *String::Utf8Value(args[2]), /* type */
+                                   args[3]->NumberValue(), /* offset */
+                                   args[4]->NumberValue(), /* size */
+                                   args[3]->BooleanValue()); /* is_signed */
+}
+
+void
+gputop_cc_handle_tracepoint_message_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    if (args.Length() < 3) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    }
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_stream *stream = (struct gputop_cc_stream *)ptr->ptr_;
+
+    unsigned int len = args[2]->NumberValue();
+
+    if (!args[1]->IsArrayBufferView()) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Expected 2nd argument to be an ArrayBufferView")));
+        return;
+    }
+
+    Local<ArrayBufferView> view = Local<ArrayBufferView>::Cast(args[1]);
+    size_t offset = view->ByteOffset();
+    size_t view_len = view->ByteLength();
+
+    Local<ArrayBuffer> buf = view->Buffer();
+    auto data_contents = buf->GetContents();
+
+    if (len > view_len || (offset + len) > data_contents.ByteLength()) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Length given would overrun data")));
+        return;
+    }
+
+    gputop_cc_handle_tracepoint_message(stream,
+                                        static_cast<uint8_t *>(data_contents.Data()) + offset,
+                                        len);
+}
+
+void
 Init(Handle<Object> exports)
 {
     Isolate* isolate = Isolate::GetCurrent();
@@ -285,14 +325,16 @@ Init(Handle<Object> exports)
 
     EXPORT(gputop_cc_set_singleton);
     EXPORT(gputop_cc_get_counter_id);
-    EXPORT(gputop_cc_handle_perf_message);
     EXPORT(gputop_cc_reset_accumulator);
     EXPORT(gputop_cc_handle_i915_perf_message);
     EXPORT(gputop_cc_reset_system_properties);
     EXPORT(gputop_cc_set_system_property);
     EXPORT(gputop_cc_update_system_metrics);
-    EXPORT(gputop_cc_stream_new);
+    EXPORT(gputop_cc_oa_stream_new);
     EXPORT(gputop_cc_stream_destroy);
+    EXPORT(gputop_cc_tracepoint_stream_new);
+    EXPORT(gputop_cc_tracepoint_add_field);
+    EXPORT(gputop_cc_handle_tracepoint_message);
 
 #undef EXPORT
 }

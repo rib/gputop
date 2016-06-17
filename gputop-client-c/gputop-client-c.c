@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+#define _GNU_SOURCE
+
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
 #else
@@ -50,6 +52,13 @@
 #include "oa-chv.h"
 #include "oa-skl.h"
 
+#define PERF_RECORD_SAMPLE 9
+
+struct perf_event_header {
+    uint32_t type;
+    uint16_t misc;
+    uint16_t size;
+};
 
 struct oa_sample {
    struct i915_perf_record_header header;
@@ -137,11 +146,39 @@ forward_stream_update(struct gputop_cc_stream *stream,
 }
 
 void EMSCRIPTEN_KEEPALIVE
-gputop_cc_handle_perf_message(struct gputop_cc_stream *stream,
-                                uint8_t *data,
-                                int len)
+gputop_cc_handle_tracepoint_message(struct gputop_cc_stream *stream,
+                                    uint8_t *data,
+                                    int len)
 {
-    gputop_cr_console_log("FIXME: parse perf data");
+    const struct perf_event_header *header;
+
+    gputop_cr_console_error("Tracepoint message: stream=%p, data=%p, len=%d\n",
+                            stream, data, len);
+
+    for (header = (void *)data;
+         (uint8_t *)header < (data + len);
+         header = (void *)(((uint8_t *)header) + header->size))
+    {
+        if (header->size == 0) {
+            gputop_cr_console_error("Spurious header size == 0\n");
+            break;
+        }
+
+        if (((uint8_t *)header) + header->size > (data + len)) {
+            gputop_cr_console_error("Spurious incomplete perf record forwarded\n");
+            break;
+        }
+
+        switch (header->type) {
+        case PERF_RECORD_SAMPLE:
+            gputop_cr_console_log("Tracepoint sample received");
+            break;
+        default:
+            break;
+        }
+    }
+
+    gputop_cr_console_log("FIXME: parse perf tracepoint data");
 }
 
 // function that resets the accumulator clock and the continuation_report
@@ -331,15 +368,17 @@ gputop_cc_update_system_metrics(void)
 }
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
-gputop_cc_stream_new(const char *guid,
-                       bool per_ctx_mode,
-                       uint32_t aggregation_period)
+gputop_cc_oa_stream_new(const char *guid,
+                        bool per_ctx_mode,
+                        uint32_t aggregation_period)
 {
     struct gputop_cc_stream *stream = malloc(sizeof(*stream));
 
     assert(stream);
 
     memset(stream, 0, sizeof(*stream));
+
+    stream->type = STREAM_TYPE_OA;
     stream->aggregation_period = aggregation_period;
     stream->per_ctx_mode = per_ctx_mode;
 
@@ -352,11 +391,66 @@ gputop_cc_stream_new(const char *guid,
     return stream;
 }
 
+struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
+gputop_cc_tracepoint_stream_new(void)
+{
+    struct gputop_cc_stream *stream = malloc(sizeof(*stream));
+
+    assert(stream);
+
+    memset(stream, 0, sizeof(*stream));
+
+    stream->type = STREAM_TYPE_TRACEPOINT;
+
+    return stream;
+}
+
 void EMSCRIPTEN_KEEPALIVE
 gputop_cc_update_stream_period(struct gputop_cc_stream *stream,
                                  uint32_t aggregation_period)
 {
     stream->aggregation_period = aggregation_period;
+}
+
+void EMSCRIPTEN_KEEPALIVE
+gputop_cc_tracepoint_add_field(struct gputop_cc_stream *stream,
+                               const char *name,
+                               const char *type_name,
+                               int offset,
+                               int size,
+                               bool is_signed)
+{
+    enum gputop_cc_field_type type;
+    struct gputop_cc_tracepoint_field *field;
+
+    gputop_cr_console_log("Ading field: %s\n", name);
+    assert(stream->n_fields < GPUTOP_CC_MAX_FIELDS);
+
+    if (strcmp(type_name, "char") == 0 && size == 1 && is_signed) {
+        type = FIELD_TYPE_INT8;
+    } else if (strcmp(type_name, "unsigned char") == 0 && size == 1 && !is_signed) {
+        type = FIELD_TYPE_UINT8;
+    } else if (strcmp(type_name, "short") == 0 && size == 2 && is_signed) {
+        type = FIELD_TYPE_INT16;
+    } else if (strcmp(type_name, "unsigned short") == 0 && size == 2 && !is_signed) {
+        type = FIELD_TYPE_UINT16;
+    } else if (strcmp(type_name, "int") == 0 && size == 4 && is_signed) {
+        type = FIELD_TYPE_INT32;
+    } else if (strcmp(type_name, "unsigned int") == 0 && size == 4 && !is_signed) {
+        type = FIELD_TYPE_UINT32;
+    } else if (strcmp(type_name, "int") == 0 && size == 8 && is_signed) {
+        type = FIELD_TYPE_INT64;
+    } else if (strcmp(type_name, "unsigned int") == 0 && size == 6 && !is_signed) {
+        type = FIELD_TYPE_UINT64;
+    } else {
+        /* skip unsupport types */
+        return;
+    }
+
+    field = &stream->fields[stream->n_fields++];
+    field->name = strdup(name);
+    field->type = type;
+    field->offset = offset;
 }
 
 void EMSCRIPTEN_KEEPALIVE

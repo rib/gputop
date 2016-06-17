@@ -700,12 +700,12 @@ err:
 }
 
 static void
-handle_open_trace_query(h2o_websocket_conn_t *conn,
-                        Gputop__Request *request)
+handle_open_tracepoint(h2o_websocket_conn_t *conn,
+                       Gputop__Request *request)
 {
     Gputop__OpenQuery *open_query = request->open_query;
     uint32_t id = open_query->id;
-    Gputop__TraceInfo *trace_info = open_query->trace;
+    Gputop__TracepointConfig *config = open_query->tracepoint;
     struct gputop_perf_stream *stream;
     char *error = NULL;
     int buffer_size;
@@ -726,17 +726,16 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
     else
         buffer_size = 16 * 1024 * 1024;
 
-    stream = gputop_perf_open_trace(trace_info->pid,
-                                    trace_info->cpu,
-                                    trace_info->system,
-                                    trace_info->event,
-                                    12, /* FIXME: guess trace struct size
-                                         * used to estimate number of samples
-                                         * that will fit in buffer */
-                                    buffer_size,
-                                    NULL,
-                                    open_query->overwrite,
-                                    &error);
+    stream = gputop_perf_open_tracepoint(config->pid,
+                                         config->cpu,
+                                         config->id,
+                                         12, /* FIXME: guess trace struct size
+                                              * used to estimate number of samples
+                                              * that will fit in buffer */
+                                         buffer_size,
+                                         NULL,
+                                         open_query->overwrite,
+                                         &error);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
@@ -747,8 +746,7 @@ handle_open_trace_query(h2o_websocket_conn_t *conn,
         else
             uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
     } else {
-        dbg("Failed to open trace %s:%s: %s\n",
-            trace_info->system, trace_info->event, error);
+        dbg("Failed to open trace %"PRIu32": %s\n", config->id, error);
         free(error);
     }
 
@@ -859,8 +857,8 @@ handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
     case GPUTOP__OPEN_QUERY__TYPE_OA_QUERY:
         handle_open_i915_perf_oa_query(conn, request);
         break;
-    case GPUTOP__OPEN_QUERY__TYPE_TRACE:
-        handle_open_trace_query(conn, request);
+    case GPUTOP__OPEN_QUERY__TYPE_TRACEPOINT:
+        handle_open_tracepoint(conn, request);
         break;
     case GPUTOP__OPEN_QUERY__TYPE_GENERIC:
         handle_open_generic_query(conn, request);

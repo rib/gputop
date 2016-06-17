@@ -37,7 +37,37 @@
 extern "C" {
 #endif
 
+enum gputop_cc_stream_type {
+    STREAM_TYPE_OA,
+    STREAM_TYPE_TRACEPOINT,
+};
+
+enum gputop_cc_field_type {
+    FIELD_TYPE_INT8,
+    FIELD_TYPE_UINT8,
+    FIELD_TYPE_INT16,
+    FIELD_TYPE_UINT16,
+    FIELD_TYPE_INT32,
+    FIELD_TYPE_UINT32,
+    FIELD_TYPE_INT64,
+    FIELD_TYPE_UINT64,
+};
+
+#define GPUTOP_CC_MAX_FIELDS 20
+
+struct gputop_cc_tracepoint_field {
+    char *name;
+    enum gputop_cc_field_type type;
+    int offset;
+};
+
 struct gputop_cc_stream {
+    enum gputop_cc_stream_type type;
+
+
+    /*
+     * OA streams...
+     */
     uint64_t aggregation_period;
     bool per_ctx_mode;
 
@@ -49,6 +79,14 @@ struct gputop_cc_stream {
      * can continue with the next message... */
     uint8_t *continuation_report;
 
+
+    /*
+     * Tracepoint streams...
+     */
+    struct gputop_cc_tracepoint_field fields[GPUTOP_CC_MAX_FIELDS];
+    int n_fields;
+
+
     /* Can be used for binding structure into JavaScript, e.g. to
      * associate a corresponding v8::Object... */
     void *js_priv;
@@ -56,9 +94,6 @@ struct gputop_cc_stream {
 
 int gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name);
 
-void gputop_cc_handle_perf_message(struct gputop_cc_stream *stream,
-                                   uint8_t *data,
-                                   int len);
 // function that resets the accumulator clock and the continuation_report
 void gputop_cc_reset_accumulator(struct gputop_cc_stream *stream);
 void gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
@@ -69,14 +104,26 @@ void gputop_cc_set_system_property(const char *name, double value);
 void gputop_cc_update_system_metrics(void);
 
 struct gputop_cc_stream *
-gputop_cc_stream_new(const char *guid,
-                       bool per_ctx_mode,
-                       uint32_t aggregation_period);
+gputop_cc_oa_stream_new(const char *guid,
+                        bool per_ctx_mode,
+                        uint32_t aggregation_period);
 
 void gputop_cc_update_stream_period(struct gputop_cc_stream *stream,
                                     uint32_t aggregation_period);
 
 void gputop_cc_stream_destroy(struct gputop_cc_stream *stream);
+
+
+struct gputop_cc_stream *gputop_cc_tracepoint_stream_new(void);
+void gputop_cc_tracepoint_add_field(struct gputop_cc_stream *stream,
+                                    const char *name,
+                                    const char *type,
+                                    int offset,
+                                    int size,
+                                    bool is_signed);
+void gputop_cc_handle_tracepoint_message(struct gputop_cc_stream *stream,
+                                         uint8_t *data,
+                                         int len);
 
 #ifdef __cplusplus
 }

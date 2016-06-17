@@ -35,7 +35,7 @@
         "gputop-client-c-bindings.cpp"
     ],
     "scripts": {
-        "install": "node-gyp rebuild -- $NODE_GYP_FLAGS"
+        "install": "node-gyp rebuild $NODE_GYP_FLAGS"
     },
     "engines": {
         "node": ">=5.0.0"

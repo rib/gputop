@@ -464,15 +464,14 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 }
 
 struct gputop_perf_stream *
-gputop_perf_open_trace(int pid,
-                       int cpu,
-                       const char *system,
-                       const char *event,
-                       size_t trace_struct_size,
-                       size_t perf_buffer_size,
-                       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-                       bool overwrite,
-                       char **error)
+gputop_perf_open_tracepoint(int pid,
+                            int cpu,
+                            uint64_t id,
+                            size_t trace_struct_size,
+                            size_t perf_buffer_size,
+                            void (*ready_cb)(struct gputop_perf_stream *),
+                            bool overwrite,
+                            char **error)
 {
     struct gputop_perf_stream *stream;
     struct perf_event_attr attr;
@@ -480,36 +479,7 @@ gputop_perf_open_trace(int pid,
     uint8_t *mmap_base;
     int expected_max_samples;
     char *filename = NULL;
-    int id = 0;
     size_t sample_size = 0;
-
-    asprintf(&filename, "/sys/kernel/debug/tracing/events/%s/%s/id", system, event);
-    if (filename) {
-        struct stat st;
-
-        if (stat(filename, &st) < 0) {
-            int err = errno;
-
-            free(filename);
-            filename = NULL;
-
-            if (err == EPERM) {
-                asprintf(error, "Permission denied to open tracepoint %s:%s"
-                         " (Linux tracepoints require root privileges)",
-                         system, event);
-                return NULL;
-            } else {
-                asprintf(error, "Failed to open tracepoint %s:%s: %s",
-                         system, event,
-                         strerror(err));
-                return NULL;
-            }
-        }
-    }
-
-    id = gputop_read_file_uint64(filename);
-    free(filename);
-    filename = NULL;
 
     memset(&attr, 0, sizeof(attr));
     attr.size = sizeof(attr);
@@ -517,8 +487,10 @@ gputop_perf_open_trace(int pid,
     attr.config = id;
 
     attr.sample_type = PERF_SAMPLE_RAW | PERF_SAMPLE_TIME;
+    //attr.sample_type = PERF_SAMPLE_RAW;
     attr.sample_period = 1;
 
+    //attr.wakeup_events = 1;
     attr.watermark = true;
     attr.wakeup_watermark = perf_buffer_size / 4;
 
@@ -550,6 +522,7 @@ gputop_perf_open_trace(int pid,
     stream->perf.buffer = mmap_base + page_size;
     stream->perf.buffer_size = perf_buffer_size;
     stream->perf.mmap_page = (void *)mmap_base;
+    stream->ready_cb = ready_cb;
 
     sample_size =
         sizeof(struct perf_event_header) +
@@ -569,7 +542,7 @@ gputop_perf_open_trace(int pid,
 
     stream->fd_poll.data = stream;
     uv_poll_init(gputop_mainloop, &stream->fd_poll, stream->fd);
-    uv_poll_start(&stream->fd_poll, UV_READABLE, ready_cb);
+    uv_poll_start(&stream->fd_poll, UV_READABLE, perf_ready_cb);
 
     return stream;
 }

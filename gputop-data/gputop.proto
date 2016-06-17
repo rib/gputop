@@ -159,12 +159,11 @@ message OAQueryInfo
     required uint32 period_exponent = 3;
 }
 
-message TraceInfo
+message TracepointConfig
 {
     required int32 pid = 1;
     required int32 cpu = 2;
-    required string system = 3;
-    required string event = 4;
+    required uint32 id = 3;
 }
 
 message GenericEventInfo
@@ -187,7 +186,7 @@ message OpenQuery
     oneof type {
         uint32 gl_query = 2;
         OAQueryInfo oa_query = 3;
-        TraceInfo trace = 4;
+        TracepointConfig tracepoint = 4;
         GenericEventInfo generic = 5;
         CpuStatsInfo cpu_stats = 9;
     }

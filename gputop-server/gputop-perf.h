@@ -237,15 +237,14 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
                                 bool overwrite,
                                 char **error);
 struct gputop_perf_stream *
-gputop_perf_open_trace(int pid,
-                       int cpu,
-                       const char *system,
-                       const char *event,
-                       size_t trace_struct_size,
-                       size_t perf_buffer_size,
-                       void (*ready_cb)(uv_poll_t *poll, int status, int events),
-                       bool overwrite,
-                       char **error);
+gputop_perf_open_tracepoint(int pid,
+                            int cpu,
+                            uint64_t id,
+                            size_t trace_struct_size,
+                            size_t perf_buffer_size,
+                            void (*ready_cb)(struct gputop_perf_stream *),
+                            bool overwrite,
+                            char **error);
 
 struct gputop_perf_stream *
 gputop_perf_open_generic_counter(int pid,

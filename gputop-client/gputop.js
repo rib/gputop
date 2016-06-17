@@ -73,7 +73,9 @@ if (typeof module !== 'undefined' && module.exports) {
 
 function get_file(filename, load_callback, error_callback) {
     if (is_nodejs) {
-        fs.readFile(path.join(client_data_path, filename), 'utf8', (err, data) => {
+        var full_path = path.join(client_data_path, filename);
+
+        fs.readFile(full_path, 'utf8', (err, data) => {
             if (err)
                 error_callback(err);
             else
@@ -311,6 +313,8 @@ function Gputop () {
     this.metrics_ = [];
     this.map_metrics_ = {}; // Map of metrics by GUID
 
+    this.tracepoints_ = [];
+
     this.is_connected_ = false;
 
     this.config_ = {
@@ -340,15 +344,14 @@ function Gputop () {
      * set that the data corresponds to.
      */
     this.next_server_handle = 1;
-    this.server_handle_to_metric_map = {};
-    this.server_handle_to_stream_map = {};
+    this.server_handle_to_obj = {};
 
     /* When we open a stream of metrics we also call into the
      * Emscripten compiled cc code to allocate a corresponding
      * struct gputop_cc_stream. This map lets us look up a
      * Metric object given a gputop_cc_stream pointer.
      */
-    this.cc_stream_ptr_to_metric_map = {};
+    this.cc_stream_ptr_to_obj_map = {};
     this.active_oa_metric_ = undefined;
 
     this.current_update_ = { metric: null };
@@ -510,13 +513,13 @@ Gputop.prototype.stream_start_update = function (stream_ptr,
                                                  reason) {
     var update = this.current_update_;
 
-    if (!(stream_ptr in this.cc_stream_ptr_to_metric_map)) {
+    if (!(stream_ptr in this.cc_stream_ptr_to_obj_map)) {
         console.error("Ignoring spurious update for unknown stream");
         update.metric = null;
         return;
     }
 
-    update.metric = this.cc_stream_ptr_to_metric_map[stream_ptr];
+    update.metric = this.cc_stream_ptr_to_obj_map[stream_ptr];
     update.start_timestamp = start_timestamp;
     update.end_timestamp = end_timestamp;
     update.reason = reason;
@@ -607,13 +610,13 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
             var sp = cc.Runtime.stackSave();
 
             metric.cc_stream_ptr_ =
-                cc._gputop_cc_stream_new(String_pointerify_on_stack(config.guid),
-                                         per_ctx_mode,
-                                         metric.period_ns_);
+                cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(config.guid),
+                                            per_ctx_mode,
+                                            metric.period_ns_);
 
             cc.Runtime.stackRestore(sp);
 
-            this.cc_stream_ptr_to_metric_map[metric.cc_stream_ptr_] = metric;
+            this.cc_stream_ptr_to_obj_map[metric.cc_stream_ptr_] = metric;
 
             if (callback != undefined)
                 callback(metric);
@@ -645,7 +648,7 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
             open.live_updates = true; /* send live updates */
             open.per_ctx_mode = per_ctx_mode;
 
-            this.server_handle_to_metric_map[open.id] = metric;
+            this.server_handle_to_obj[open.id] = metric;
 
             this.rpc_request('open_query', open, _finalize_open.bind(this));
 
@@ -691,8 +694,8 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
 
     function _finish_close() {
         cc._gputop_cc_stream_destroy(metric.cc_stream_ptr_);
-        delete this.cc_stream_ptr_to_metric_map[metric.cc_stream_ptr_];
-        delete this.server_handle_to_metric_map[metric.server_handle];
+        delete this.cc_stream_ptr_to_obj_map[metric.cc_stream_ptr_];
+        delete this.server_handle_to_obj[metric.server_handle];
 
         metric.cc_stream_ptr_ = 0;
         metric.server_handle = 0;
@@ -793,10 +796,11 @@ Gputop.prototype.open_cpu_stats = function(config, callback) {
     /* FIXME: remove from OpenQuery - not relevant to opening cpu stats */
     open.set('per_ctx_mode', false);
 
-    stream.on('open', callback);
+    if (callback !== undefined)
+        stream.on('open', callback);
 
     this.rpc_request('open_query', open, () => {
-        this.server_handle_to_stream_map[open.id] = stream;
+        this.server_handle_to_obj[open.id] = stream;
 
         var ev = { type: "open" };
         stream.dispatchEvent(ev);
@@ -814,6 +818,177 @@ Gputop.prototype.close_active_metric_set = function(callback) {
     this.close_oa_metric_set(this.active_oa_metric_, callback);
 }
 
+Gputop.prototype.get_tracepoint_info = function(name, callback) {
+    function parse_field(str) {
+        var field = {};
+
+        var subfields = str.split(';');
+
+        for (var i = 0; i < subfields.length; i++) {
+            var subfield = subfields[i].trim();
+
+            if (subfield.match('^field:')) {
+                var tokens = subfield.split(':')[1].split(' ');
+                field.name = tokens[tokens.length - 1];
+                field.type = tokens.slice(0, -1).join(' ');
+            } else if (subfield.match('^offset:')) {
+                field.offset = Number(subfield.split(':')[1]);
+            } else if (subfield.match('^size:')) {
+                field.size = Number(subfield.split(':')[1]);
+            } else if (subfield.match('^signed:')) {
+                field.signed = Boolean(Number(subfield.split(':')[1]));
+            }
+        }
+
+        return field;
+    }
+
+    function parse_tracepoint_format(str) {
+        var tracepoint = {};
+
+        var lines = str.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+
+            if (line.match('^name:'))
+                tracepoint.name = line.slice(6);
+            else if (line.match('^ID:'))
+                tracepoint.id = Number(line.slice(4));
+            else if (line.match('^print fmt:'))
+                tracepoint.print_format = line.slice(11);
+            else if (line.match('^format:')) {
+                tracepoint.common_fields = [];
+                tracepoint.event_fields = [];
+
+                for (i++; lines[i].match('^\tfield:'); i++) {
+                    line = lines[i];
+                    var field = parse_field(line.slice(1));
+                    tracepoint.common_fields.push(field);
+                }
+                if (lines[i + 1].match('\tfield:')) {
+                    for (i++; lines[i].match('^\tfield:'); i++) {
+                        line = lines[i];
+                        var field = parse_field(line.slice(1));
+                        tracepoint.event_fields.push(field);
+                    }
+                }
+                break;
+            }
+        }
+
+        return tracepoint;
+    }
+
+    this.rpc_request('get_tracepoint_info', name, (msg) => {
+        var tracepoint = {};
+
+        tracepoint.name = name;
+
+        tracepoint.id = msg.tracepoint_info.id;
+
+        var format = msg.tracepoint_info.sample_format;
+        console.log("Full format description = " + format);
+
+        var tracepoint = parse_tracepoint_format(format);
+        console.log("Structured format = " + JSON.stringify(tracepoint));
+
+        callback(tracepoint);
+    });
+}
+
+Gputop.prototype.open_tracepoint = function(tracepoint_info, config, callback) {
+
+    var stream = new Stream(this.next_server_handle++);
+
+    stream.info = tracepoint_info;
+
+    if (callback !== undefined)
+        stream.on('open', callback);
+
+    this.tracepoints_.push(stream);
+
+    function _finalize_open() {
+        this.log("Opened tracepoint " + tracepoint_info.name);
+
+        var sp = cc.Runtime.stackSave();
+
+        stream.cc_stream_ptr_ = cc._gputop_cc_tracepoint_stream_new();
+
+        tracepoint_info.common_fields.forEach((field) => {
+            var name_c_string = String_pointerify_on_stack(field.name);
+            var type_c_string = String_pointerify_on_stack(field.type);
+
+            cc._gputop_cc_tracepoint_add_field(stream.cc_stream_ptr_,
+                                               name_c_string,
+                                               type_c_string,
+                                               field.offset,
+                                               field.size,
+                                               field.signed);
+        });
+
+        tracepoint_info.event_fields.forEach((field) => {
+            var name_c_string = String_pointerify_on_stack(field.name);
+            var type_c_string = String_pointerify_on_stack(field.type);
+
+            cc._gputop_cc_tracepoint_add_field(stream.cc_stream_ptr_,
+                                               name_c_string,
+                                               type_c_string,
+                                               field.offset,
+                                               field.size,
+                                               field.signed);
+        });
+
+        cc.Runtime.stackRestore(sp);
+
+        this.cc_stream_ptr_to_obj_map[stream.cc_stream_ptr_] = stream;
+
+        if (callback != undefined)
+            callback(stream);
+    }
+
+    if ('paused_state' in config) {
+        _finalize_open.call(this);
+    } else {
+        var tracepoint = new this.gputop_proto_.TracepointConfig();
+
+        if ('pid' in config)
+            tracepoint.set('pid', config.pid);
+        else
+            tracepoint.set('pid', -1);
+
+        if ('cpu' in config)
+            tracepoint.set('cpu', config.cpu);
+        else {
+            if (tracepoint.get('pid') === -1)
+                tracepoint.set('cpu', 0);
+            else
+                tracepoint.set('cpu', -1);
+        }
+
+        tracepoint.set('id', tracepoint_info.id);
+
+        var open = new this.gputop_proto_.OpenQuery();
+        open.set('id', stream.server_handle);
+        open.set('tracepoint', tracepoint);
+        open.set('overwrite', false);   /* don't overwrite old samples */
+        open.set('live_updates', true); /* send live updates */
+
+        /* FIXME: remove from OpenQuery - not relevant to opening cpu stats */
+        open.set('per_ctx_mode', false);
+
+        console.log("REQUEST = " + JSON.stringify(open));
+        this.rpc_request('open_query', open, () => {
+            this.server_handle_to_obj[open.id] = stream;
+
+            _finalize_open.call(this);
+
+            var ev = { type: "open" };
+            stream.dispatchEvent(ev);
+        });
+    }
+
+    return stream;
+}
 
 function String_pointerify_on_stack(js_string) {
     return cc.allocate(cc.intArrayFromString(js_string), 'i8', cc.ALLOC_STACK);
@@ -1069,9 +1244,8 @@ Gputop.prototype.dispose = function() {
     this.metrics_ = [];
     this.map_metrics_ = {}; // Map of metrics by GUID
 
-    this.cc_stream_ptr_to_metric_map = {};
-    this.server_handle_to_metric_map = {};
-    this.server_handle_to_stream_map = {};
+    this.cc_stream_ptr_to_obj_map = {};
+    this.server_handle_to_obj = {};
     this.active_oa_metric_ = undefined;
 }
 
@@ -1112,8 +1286,31 @@ function gputop_socket_on_message(evt) {
 
     switch(msg_type) {
     case 1: /* WS_MESSAGE_PERF */
-        var id = dv.getUint16(4, true /* little endian */);
-        cc._gputop_cc_handle_perf_message(id, data);
+        var server_handle = dv.getUint16(4, true /* little endian */);
+
+        if (server_handle in this.server_handle_to_obj) {
+            var sp = cc.Runtime.stackSave();
+
+            var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
+
+            var stream = this.server_handle_to_obj[server_handle];
+
+            // save messages in a buffer to replay when query is paused
+            /*
+            metric.history.push(data);
+            metric.history_size += data.length;
+            if (metric.history_size > 1048576) // 1 MB of data
+                metric.history.shift();
+                */
+
+            cc._gputop_cc_handle_tracepoint_message(stream.cc_stream_ptr_,
+                                                    stack_data,
+                                                    data.length);
+
+            cc.Runtime.stackRestore(sp);
+        } else {
+            console.log("Ignoring i915 perf data for unknown Metric object")
+        }
         break;
     case 2: /* WS_MESSAGE_PROTOBUF */
         var msg = this.gputop_proto_.Message.decode(data);
@@ -1142,8 +1339,8 @@ function gputop_socket_on_message(evt) {
         case 'cpu_stats':
             var server_handle = msg.cpu_stats.id;
 
-            if (server_handle in this.server_handle_to_stream_map) {
-                var stream = this.server_handle_to_stream_map[server_handle];
+            if (server_handle in this.server_handle_to_obj) {
+                var stream = this.server_handle_to_obj[server_handle];
 
                 var ev = { type: "update", stats: msg.cpu_stats };
                 stream.dispatchEvent(ev);
@@ -1161,12 +1358,12 @@ function gputop_socket_on_message(evt) {
     case 3: /* WS_MESSAGE_I915_PERF */
         var server_handle = dv.getUint16(4, true /* little endian */);
 
-        if (server_handle in this.server_handle_to_metric_map) {
+        if (server_handle in this.server_handle_to_obj) {
             var sp = cc.Runtime.stackSave();
 
             var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
-            var metric = this.server_handle_to_metric_map[server_handle];
+            var metric = this.server_handle_to_obj[server_handle];
 
             // save messages in a buffer to replay when query is paused
             metric.history.push(data);

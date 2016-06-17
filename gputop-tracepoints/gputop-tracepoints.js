@@ -51,75 +51,13 @@ GputopTool.prototype.update_features = function(features)
     //    console.log("Tracepoint: " + features.tracepoints[i]);
     //}
 
+    //this.get_tracepoint_info("i915/i915_flip_complete", (info) => {
+    this.get_tracepoint_info("i915/i915_gem_request_add", (info) => {
+        console.log("i915 tracepoint info = " + JSON.stringify(info));
 
-    function parse_field(str) {
-        var field = {};
-
-        var subfields = str.split(';');
-
-        for (var i = 0; i < subfields.length; i++) {
-            var subfield = subfields[i].trim();
-
-            if (subfield.match('^field:')) {
-                field.field = subfield.split(':')[1];
-            } else if (subfield.match('^offset:')) {
-                field.offset = Number(subfield.split(':')[1]);
-            } else if (subfield.match('^size:')) {
-                field.size = Number(subfield.split(':')[1]);
-            } else if (subfield.match('^signed:')) {
-                field.signed = Boolean(Number(subfield.split(':')[1]));
-            }
-        }
-
-        return field;
-    }
-
-    function parse_tracepoint_format(str) {
-        var tracepoint = {};
-
-        var lines = str.split('\n');
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-
-            if (line.match('^name:'))
-                tracepoint.name = line.slice(6);
-            else if (line.match('^ID:'))
-                tracepoint.id = Number(line.slice(4));
-            else if (line.match('^print fmt:'))
-                tracepoint.print_format = line.slice(11);
-            else if (line.match('^format:')) {
-                tracepoint.common_fields = [];
-                tracepoint.event_fields = [];
-
-                for (i++; lines[i].match('^\tfield:'); i++) {
-                    line = lines[i];
-                    var field = parse_field(line.slice(1));
-                    tracepoint.common_fields.push(field);
-                }
-                if (lines[i + 1].match('\tfield:')) {
-                    for (i++; lines[i].match('^\tfield:'); i++) {
-                        line = lines[i];
-                        var field = parse_field(line.slice(1));
-                        tracepoint.event_fields.push(field);
-                    }
-                }
-                break;
-            }
-        }
-
-        return tracepoint;
-    }
-
-    this.rpc_request('get_tracepoint_info', "i915/i915_flip_complete", (msg) => {
-        var tracepoint = {};
-
-        tracepoint.id = msg.tracepoint_info.id;
-
-        var format = msg.tracepoint_info.sample_format;
-        console.log("Full format description = " + format);
-
-        var tracepoint = parse_tracepoint_format(format);
-        console.log("Structured format = " + JSON.stringify(tracepoint));
+        this.open_tracepoint(info, {}, () => {
+            console.log("Tracepoint opened");
+        });
     });
 }
 
