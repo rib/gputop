@@ -1,0 +1,76 @@
+CONVERT_ARGS =
+KERNELGEN_ARGS =
+top_srcdir=../
+script_dir=$(top_srcdir)/scripts
+
+oa_xml_files = \
+	oa-hsw.xml \
+	oa-bdw.xml \
+	oa-chv.xml \
+	oa-skl.xml \
+	oa-bxt.xml
+
+drm_files = \
+	i915_oa_hsw.h \
+	i915_oa_hsw.c \
+	i915_oa_bdw.h \
+	i915_oa_bdw.c \
+	i915_oa_chv.h \
+	i915_oa_chv.c \
+	i915_oa_skl.h \
+	i915_oa_skl.c \
+	i915_oa_bxt.h \
+	i915_oa_bxt.c
+
+hsw_xml = mdapi/MetricsXML_HSW.xml
+bdw_xml = mdapi/MetricsXML_BDW.xml
+chv_xml = mdapi/MetricsXML_CHV.xml
+skl_xml = mdapi/MetricsXML_SKL.xml
+bxt_xml = mdapi/MetricsXML_BXT.xml
+
+INTERNAL=0
+ifeq ($(INTERNAL), 1)
+hsw_xml += mdapi/MetricsXML_HSW_internal.xml
+bdw_xml += mdapi/MetricsXML_BDW_internal.xml
+chv_xml += mdapi/MetricsXML_CHV_internal.xml
+skl_xml += mdapi/MetricsXML_SKL_internal.xml
+endif
+
+ifdef WHITELIST
+CONVERT_ARGS += --whitelist="$(WHITELIST)"
+KERNELGEN_ARGS += --whitelist="$(WHITELIST)"
+endif
+
+ifdef BLACKLIST
+CONVERT_ARGS += --blacklist="$(BLACKLIST)"
+KERNELGEN_ARGS += --blacklist="$(BLACKLIST)"
+endif
+
+SYSFS=1
+ifeq ($(SYSFS), 1)
+KERNELGEN_ARGS += --sysfs
+endif
+
+MMIOWRAPPER=1
+ifeq ($(MMIOWRAPPER), 1)
+KERNELGEN_ARGS += --mmio-wrapper
+endif
+
+GUIDS=$(top_srcdir)/gputop-data/guids.xml
+
+all: $(oa_xml_files) $(drm_files)
+oa-%.xml: mdapi/*.xml $(script_dir)/mdapi-xml-convert.py Makefile.am
+	$(script_dir)/mdapi-xml-convert.py --guids=$(GUIDS) $(CONVERT_ARGS) $($(*)_xml) > $@
+
+i915_oa_%.c i915_oa_%.h: oa-%.xml $(script_dir)/i915-perf-kernelgen.py Makefile.am
+	$(script_dir)/i915-perf-kernelgen.py \
+	    --guids=$(GUIDS) \
+	    --chipset=$(*) \
+	    --c-out=i915_oa_$(*).c \
+	    --h-out=i915_oa_$(*).h \
+	    $(KERNELGEN_ARGS) \
+	    oa-$(*).xml
+
+clean:
+	-rm -f i915_oa_*
+

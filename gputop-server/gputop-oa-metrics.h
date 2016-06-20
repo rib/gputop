@@ -97,7 +97,7 @@ struct gputop_metric_set
 {
     const char *name;
     const char *symbol_name;
-    const char *guid;
+    const char *hw_config_guid;
     struct gputop_metric_set_counter *counters;
     int n_counters;
 

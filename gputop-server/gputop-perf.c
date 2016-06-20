@@ -776,8 +776,8 @@ init_dev_info(int drm_fd, uint32_t devid)
         }
 
         assert(drm_card >= 0);
-        gputop_devinfo.gt_min_freq = sysfs_card_read("gt_min_freq_mhz");
-        gputop_devinfo.gt_max_freq = sysfs_card_read("gt_max_freq_mhz");
+        gputop_devinfo.gt_min_freq = sysfs_card_read("gt_min_freq_mhz") * 1000000;
+        gputop_devinfo.gt_max_freq = sysfs_card_read("gt_max_freq_mhz") * 1000000;
     }
 
     gputop_devinfo.eu_threads_count =
@@ -1410,7 +1410,7 @@ gputop_enumerate_metrics_via_sysfs(void)
                  drm_card, entry2->d_name);
 
         metric_set->perf_oa_metrics_set = gputop_read_file_uint64(buffer);
-        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->guid);
+        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->hw_config_guid);
     }
     closedir(metrics_dir);
 
@@ -1453,7 +1453,7 @@ gputop_enumerate_metrics_fake(void)
         metrics_entry = gputop_hash_table_search(metrics, fake_bdw_guids[i]);
         metric_set = (struct gputop_metric_set*)metrics_entry->data;
         metric_set->perf_oa_metrics_set = i;
-        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->guid);
+        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->hw_config_guid);
     }
 
     return true;
@@ -1465,7 +1465,7 @@ gputop_enumerate_metrics_fake(void)
 void
 gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 {
-    gputop_hash_table_insert(metrics, metric_set->guid, metric_set);
+    gputop_hash_table_insert(metrics, metric_set->hw_config_guid, metric_set);
 }
 
 bool

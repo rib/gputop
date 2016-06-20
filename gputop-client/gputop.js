@@ -485,7 +485,7 @@ Gputop.prototype.lookup_metric_for_guid = function(guid){
 }
 
 Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
-    var guid = $(xml_elem).attr("guid");
+    var guid = $(xml_elem).attr("hw_config_guid");
     var metric = this.lookup_metric_for_guid(guid);
     metric.xml_ = $(xml_elem);
     metric.name = $(xml_elem).attr("name");
@@ -1160,7 +1160,7 @@ Gputop.prototype.process_features = function(features){
 
     cc._gputop_cc_update_system_metrics();
 
-    this.xml_file_name_ = this.config_.architecture + ".xml";
+    this.xml_file_name_ = "gputop-" + this.config_.architecture + ".xml";
 
     get_file(this.xml_file_name_, (xml) => {
         this.parse_xml_metrics(xml);

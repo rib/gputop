@@ -233,8 +233,8 @@ hw_vars["$EuThreadsCount"] = "devinfo->eu_threads_count"
 hw_vars["$SliceMask"] = "devinfo->slice_mask"
 hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
 hw_vars["$GpuTimestampFrequency"] = "devinfo->timestamp_frequency"
-hw_vars["$GpuMinFrequencyMHz"] = "devinfo->gt_min_freq"
-hw_vars["$GpuMaxFrequencyMHz"] = "devinfo->gt_max_freq"
+hw_vars["$GpuMinFrequency"] = "devinfo->gt_min_freq"
+hw_vars["$GpuMaxFrequency"] = "devinfo->gt_max_freq"
 
 counter_vars = {}
 
@@ -566,7 +566,7 @@ for set in tree.findall(".//set"):
     c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
     c("metric_set->name = \"" + set.get('name') + "\";\n")
     c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
-    c("metric_set->guid = \"" + set.get('guid') + "\";\n")
+    c("metric_set->hw_config_guid = \"" + set.get('hw_config_guid') + "\";\n")
     c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
     c("metric_set->n_counters = 0;\n")
     c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")

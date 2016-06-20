@@ -35,7 +35,7 @@ for xml in glob.glob(path.join(srcdir, 'oa-*.xml')):
     arch = filename[3:-4];
     cmd = [path.join(scriptdir, 'gputop-oa-codegen.py'),
                      '--chipset=' + arch,
-                     '--xml-out=' + arch + '.xml',
+                     '--xml-out=gputop-' + arch + '.xml',
                      xml ]
     print("(GENXML) " + " ".join(cmd[2:]))
     ret = subprocess.call(cmd)

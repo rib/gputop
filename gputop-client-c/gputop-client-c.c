@@ -75,9 +75,9 @@ assert_not_reached(void)
 
 /* Returns the ID for a counter_name using the symbol_name */
 int EMSCRIPTEN_KEEPALIVE
-gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name)
+gputop_cc_get_counter_id(const char *hw_config_guid, const char *counter_symbol_name)
 {
-    struct gputop_metric_set *metric_set = gputop_cr_lookup_metric_set(guid);
+    struct gputop_metric_set *metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
 
     for (int t=0; t<metric_set->n_counters; t++) {
         struct gputop_metric_set_counter *counter = &metric_set->counters[t];
@@ -279,7 +279,7 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
 void
 gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 {
-    gputop_cr_index_metric_set(metric_set->guid, metric_set);
+    gputop_cr_index_metric_set(metric_set->hw_config_guid, metric_set);
 }
 
 void EMSCRIPTEN_KEEPALIVE
@@ -366,7 +366,7 @@ gputop_cc_update_system_metrics(void)
 }
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
-gputop_cc_oa_stream_new(const char *guid,
+gputop_cc_oa_stream_new(const char *hw_config_guid,
                         bool per_ctx_mode,
                         uint32_t aggregation_period)
 {
@@ -380,7 +380,7 @@ gputop_cc_oa_stream_new(const char *guid,
     stream->aggregation_period = aggregation_period;
     stream->per_ctx_mode = per_ctx_mode;
 
-    stream->oa_metric_set = gputop_cr_lookup_metric_set(guid);
+    stream->oa_metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
     assert(stream->oa_metric_set);
     assert(stream->oa_metric_set->perf_oa_format);
 

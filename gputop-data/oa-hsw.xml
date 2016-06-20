@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<metrics version="1458834995" merge_md5="71f1da5f04d5e4d487c89bcc941d29a9">
+<metrics version="1467042847" merge_md5="">
   <set name="Render Metrics Basic Gen7.5"
-       mdapi_supported_apis="OGL OCL IO"
+       mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
+       hw_config_guid="403d8832-1a27-4aa6-a64e-f5389ce7b212"
        chipset="HSW"
-       guid="403d8832-1a27-4aa6-a64e-f5389ce7b212"
        symbol_name="RenderBasic"
        >
     <counter name="GPU Core Clocks"
@@ -15,7 +15,7 @@
              units="cycles"
              symbol_name="GpuCoreClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -29,7 +29,7 @@
              units="percent"
              symbol_name="EuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -43,7 +43,7 @@
              units="percent"
              symbol_name="DsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -56,7 +56,7 @@
              units="pixels"
              symbol_name="AlphaTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -73,7 +73,7 @@
              symbol_name="Sampler1Bottleneck"
              availability="$SubsliceMask 0x2 AND"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Indicate Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
@@ -86,7 +86,7 @@
              units="threads"
              symbol_name="DsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -100,7 +100,7 @@
              units="cycles"
              symbol_name="DsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -113,7 +113,7 @@
              units="threads"
              symbol_name="GsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -127,7 +127,7 @@
              units="percent"
              symbol_name="GsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -141,7 +141,7 @@
              units="percent"
              symbol_name="CsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -155,7 +155,7 @@
              units="percent"
              symbol_name="VsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -169,7 +169,7 @@
              units="percent"
              symbol_name="HsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -183,7 +183,7 @@
              units="percent"
              symbol_name="DsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -197,7 +197,7 @@
              units="percent"
              symbol_name="GsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -211,7 +211,7 @@
              units="percent"
              symbol_name="PsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -225,7 +225,7 @@
              units="percent"
              symbol_name="CsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -239,7 +239,7 @@
              units="percent"
              symbol_name="EuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -253,7 +253,7 @@
              units="percent"
              symbol_name="VsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -267,7 +267,7 @@
              units="percent"
              symbol_name="HsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -281,7 +281,7 @@
              units="percent"
              symbol_name="PsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -294,7 +294,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -320,7 +320,7 @@
              units="threads"
              symbol_name="VsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -333,7 +333,7 @@
              units="threads"
              symbol_name="PsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -348,7 +348,7 @@
              symbol_name="Sampler0Busy"
              availability="$SubsliceMask 0x1 AND"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Batch Frame Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
@@ -363,7 +363,7 @@
              symbol_name="Sampler1Busy"
              availability="$SubsliceMask 0x2 AND"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Batch Frame Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
@@ -377,7 +377,7 @@
              units="percent"
              symbol_name="SamplersBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="gpu"
@@ -404,7 +404,7 @@
              units="bytes"
              symbol_name="GtiVfThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier2 Frame Batch Draw"
              mdapi_group="GTI/3D Pipe"
              mdapi_hw_unit_type="gpu"
@@ -418,7 +418,7 @@
              units="bytes"
              symbol_name="GtiReadThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
@@ -431,7 +431,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -445,7 +445,7 @@
              units="cycles"
              symbol_name="CsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -462,7 +462,7 @@
              symbol_name="Sampler0Bottleneck"
              availability="$SubsliceMask 0x1 AND"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Indicate Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="subslice"
@@ -475,7 +475,7 @@
              units="cycles"
              symbol_name="GsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -489,7 +489,7 @@
              symbol_name="Sampler0Texels"
              availability="$SubsliceMask 0x1 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler"
@@ -503,7 +503,7 @@
              symbol_name="Sampler1Texels"
              availability="$SubsliceMask 0x2 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler"
@@ -516,7 +516,7 @@
              units="texels"
              symbol_name="SamplerTexels"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="Sampler"
@@ -537,13 +537,13 @@
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
-             max_equation="$GpuMaxFrequencyMHz"
-             equation="$GpuCoreClocks 1000 UMUL $GpuTime UDIV"
-             underscore_name="avg_gpu_core_frequency_mhz"
-             units="mhz"
-             symbol_name="AvgGpuCoreFrequencyMHz"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -557,7 +557,7 @@
              units="percent"
              symbol_name="EuIdle"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -571,7 +571,7 @@
              units="bytes"
              symbol_name="GtiDepthThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier2 Frame Batch Draw"
              mdapi_group="GTI/Depth Cache"
              mdapi_hw_unit_type="gpu"
@@ -585,7 +585,7 @@
              units="bytes"
              symbol_name="GtiWriteThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
@@ -598,7 +598,7 @@
              units="cycles"
              symbol_name="PsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -612,7 +612,7 @@
              units="bytes"
              symbol_name="GtiL3Throughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Frame Batch Draw"
              mdapi_group="GTI/L3"
              mdapi_hw_unit_type="gpu"
@@ -625,7 +625,7 @@
              units="cycles"
              symbol_name="VsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -638,7 +638,7 @@
              units="pixels"
              symbol_name="SamplesBlended"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -652,7 +652,7 @@
              units="percent"
              symbol_name="GpuBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -666,7 +666,7 @@
              units="cycles"
              symbol_name="PsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -679,7 +679,7 @@
              units="pixels"
              symbol_name="EarlyDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
@@ -705,7 +705,7 @@
              units="cycles"
              symbol_name="DsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -719,7 +719,7 @@
              units="cycles"
              symbol_name="GsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -732,7 +732,7 @@
              units="threads"
              symbol_name="HsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -745,7 +745,7 @@
              units="cycles"
              symbol_name="HsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -758,7 +758,7 @@
              units="pixels"
              symbol_name="SamplesKilledInPs"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
@@ -771,7 +771,7 @@
              units="pixels"
              symbol_name="PostPsDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -787,7 +787,7 @@
              units="percent"
              symbol_name="SamplerBottleneck"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview Indicate System Frame Batch Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="gpu"
@@ -801,7 +801,7 @@
              units="cycles"
              symbol_name="HsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -827,7 +827,7 @@
              units="pixels"
              symbol_name="HiDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
@@ -840,7 +840,7 @@
              units="cycles"
              symbol_name="CsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -853,7 +853,7 @@
              units="pixels"
              symbol_name="PostPsStencilTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -867,7 +867,7 @@
              units="bytes"
              symbol_name="GtiRccThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier2 Frame Batch Draw"
              mdapi_group="GTI/Color Cache"
              mdapi_hw_unit_type="gpu"
@@ -881,7 +881,7 @@
              units="bytes"
              symbol_name="L3SamplerThroughput"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Frame Batch Draw"
              mdapi_group="L3/Sampler"
              mdapi_hw_unit_type="gpu"
@@ -895,7 +895,7 @@
              units="cycles"
              symbol_name="VsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -921,18 +921,85 @@
              units="pixels"
              symbol_name="SamplesWritten"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x000253A4" value="0x01600000" />
+        <register type="NOA" address="0x00025440" value="0x00100000" />
+        <register type="NOA" address="0x00025128" value="0x00000000" />
+        <register type="NOA" address="0x0002691C" value="0x00000800" />
+        <register type="NOA" address="0x00026AA0" value="0x01500000" />
+        <register type="NOA" address="0x00026B9C" value="0x00006000" />
+        <register type="NOA" address="0x0002791C" value="0x00000800" />
+        <register type="NOA" address="0x00027AA0" value="0x01500000" />
+        <register type="NOA" address="0x00027B9C" value="0x00006000" />
+        <register type="NOA" address="0x0002641C" value="0x00000400" />
+        <register type="NOA" address="0x00025380" value="0x00000010" />
+        <register type="NOA" address="0x0002538C" value="0x00000000" />
+        <register type="NOA" address="0x00025384" value="0x0800AAAA" />
+        <register type="NOA" address="0x00025400" value="0x00000004" />
+        <register type="NOA" address="0x0002540C" value="0x06029000" />
+        <register type="NOA" address="0x00025410" value="0x00000002" />
+        <register type="NOA" address="0x00025404" value="0x5C30FFFF" />
+        <register type="NOA" address="0x00025100" value="0x00000016" />
+        <register type="NOA" address="0x00025110" value="0x00000400" />
+        <register type="NOA" address="0x00025104" value="0x00000000" />
+        <register type="NOA" address="0x00026804" value="0x00001211" />
+        <register type="NOA" address="0x00026884" value="0x00000100" />
+        <register type="NOA" address="0x00026900" value="0x00000002" />
+        <register type="NOA" address="0x00026908" value="0x00700000" />
+        <register type="NOA" address="0x00026904" value="0x00000000" />
+        <register type="NOA" address="0x00026984" value="0x00001022" />
+        <register type="NOA" address="0x00026A04" value="0x00000011" />
+        <register type="NOA" address="0x00026A80" value="0x00000006" />
+        <register type="NOA" address="0x00026A88" value="0x00000C02" />
+        <register type="NOA" address="0x00026A84" value="0x00000000" />
+        <register type="NOA" address="0x00026B04" value="0x00001000" />
+        <register type="NOA" address="0x00026B80" value="0x00000002" />
+        <register type="NOA" address="0x00026B8C" value="0x00000007" />
+        <register type="NOA" address="0x00026B84" value="0x00000000" />
+        <register type="NOA" address="0x00027804" value="0x00004844" />
+        <register type="NOA" address="0x00027884" value="0x00000400" />
+        <register type="NOA" address="0x00027900" value="0x00000002" />
+        <register type="NOA" address="0x00027908" value="0x0E000000" />
+        <register type="NOA" address="0x00027904" value="0x00000000" />
+        <register type="NOA" address="0x00027984" value="0x00004088" />
+        <register type="NOA" address="0x00027A04" value="0x00000044" />
+        <register type="NOA" address="0x00027A80" value="0x00000006" />
+        <register type="NOA" address="0x00027A88" value="0x00018040" />
+        <register type="NOA" address="0x00027A84" value="0x00000000" />
+        <register type="NOA" address="0x00027B04" value="0x00004000" />
+        <register type="NOA" address="0x00027B80" value="0x00000002" />
+        <register type="NOA" address="0x00027B8C" value="0x000000E0" />
+        <register type="NOA" address="0x00027B84" value="0x00000000" />
+        <register type="NOA" address="0x00026104" value="0x00002222" />
+        <register type="NOA" address="0x00026184" value="0x0C006666" />
+        <register type="NOA" address="0x00026284" value="0x04000000" />
+        <register type="NOA" address="0x00026304" value="0x04000000" />
+        <register type="NOA" address="0x00026400" value="0x00000002" />
+        <register type="NOA" address="0x00026410" value="0x000000A0" />
+        <register type="NOA" address="0x00026404" value="0x00000000" />
+        <register type="NOA" address="0x00025420" value="0x04108020" />
+        <register type="NOA" address="0x00025424" value="0x1284A420" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x00042049" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002724" value="0x00800000" /> <!--OASTARTTRIG6 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0x00800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+    </register_config>
   </set>
 
   <set name="Compute Metrics Basic Gen7.5"
-       mdapi_supported_apis="OGL4 OCL IO"
+       mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_basic"
+       hw_config_guid="39ad14bc-2380-45c4-91eb-fbcb3aa7ae7b"
        chipset="HSW"
-       guid="39ad14bc-2380-45c4-91eb-fbcb3aa7ae7b"
        symbol_name="ComputeBasic"
        >
     <counter name="GPU Core Clocks"
@@ -943,7 +1010,7 @@
              units="cycles"
              symbol_name="GpuCoreClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OGL4 OCL IO"
+             mdapi_supported_apis="OGL OGL4 OCL IO BB"
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -957,7 +1024,7 @@
              units="percent"
              symbol_name="EuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -971,7 +1038,7 @@
              units="percent"
              symbol_name="DsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -985,7 +1052,7 @@
              units="bytes"
              symbol_name="TypedBytesWritten"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Draw"
              mdapi_group="L3/Data Port"
              mdapi_hw_unit_type="gpu"
@@ -998,7 +1065,7 @@
              units="pixels"
              symbol_name="AlphaTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -1011,7 +1078,7 @@
              units="threads"
              symbol_name="HsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -1025,7 +1092,7 @@
              units="cycles"
              symbol_name="HsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -1038,7 +1105,7 @@
              units="threads"
              symbol_name="GsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -1052,7 +1119,7 @@
              units="percent"
              symbol_name="GsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -1065,7 +1132,7 @@
              units="threads"
              symbol_name="VsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -1078,7 +1145,7 @@
              units="threads"
              symbol_name="PsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -1091,7 +1158,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -1105,7 +1172,7 @@
              units="cycles"
              symbol_name="CsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -1119,7 +1186,7 @@
              units="bytes"
              symbol_name="UntypedBytesRead"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Draw"
              mdapi_group="L3/Data Port"
              mdapi_hw_unit_type="gpu"
@@ -1132,7 +1199,7 @@
              units="cycles"
              symbol_name="GsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -1145,7 +1212,7 @@
              units="messages"
              symbol_name="TypedAtomics"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="L3/Data Port"
@@ -1158,7 +1225,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OGL4 OCL IO"
+             mdapi_supported_apis="OGL OGL4 OCL IO BB"
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -1166,13 +1233,13 @@
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
-             max_equation="$GpuMaxFrequencyMHz"
-             equation="$GpuCoreClocks 1000 UMUL $GpuTime UDIV"
-             underscore_name="avg_gpu_core_frequency_mhz"
-             units="mhz"
-             symbol_name="AvgGpuCoreFrequencyMHz"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
              semantic_type="event"
-             mdapi_supported_apis="OGL OGL4 OCL IO"
+             mdapi_supported_apis="OGL OGL4 OCL IO BB"
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -1186,7 +1253,7 @@
              units="bytes"
              symbol_name="SlmBytesRead"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Draw"
              mdapi_group="L3/Data Port/SLM"
              mdapi_hw_unit_type="gpu"
@@ -1199,7 +1266,7 @@
              units="cycles"
              symbol_name="PsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -1213,7 +1280,7 @@
              units="percent"
              symbol_name="DsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -1226,7 +1293,7 @@
              units="cycles"
              symbol_name="VsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -1240,7 +1307,7 @@
              units="percent"
              symbol_name="HsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -1254,7 +1321,7 @@
              units="percent"
              symbol_name="GpuBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -1268,7 +1335,7 @@
              units="cycles"
              symbol_name="PsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -1281,7 +1348,7 @@
              units="pixels"
              symbol_name="EarlyDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
@@ -1294,7 +1361,7 @@
              units="threads"
              symbol_name="DsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -1308,7 +1375,7 @@
              units="cycles"
              symbol_name="DsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -1322,7 +1389,7 @@
              units="percent"
              symbol_name="GsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -1336,7 +1403,7 @@
              units="percent"
              symbol_name="PsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -1349,7 +1416,7 @@
              units="cycles"
              symbol_name="DsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -1363,7 +1430,7 @@
              units="cycles"
              symbol_name="GsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -1377,7 +1444,7 @@
              units="bytes"
              symbol_name="UntypedBytesWritten"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Draw"
              mdapi_group="L3/Data Port"
              mdapi_hw_unit_type="gpu"
@@ -1391,7 +1458,7 @@
              units="bytes"
              symbol_name="SlmBytesWritten"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Draw"
              mdapi_group="L3/Data Port/SLM"
              mdapi_hw_unit_type="gpu"
@@ -1404,7 +1471,7 @@
              units="cycles"
              symbol_name="HsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -1418,7 +1485,7 @@
              units="percent"
              symbol_name="HsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -1431,7 +1498,7 @@
              units="pixels"
              symbol_name="SamplesKilledInPs"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
@@ -1444,7 +1511,7 @@
              units="pixels"
              symbol_name="PostPsDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -1458,7 +1525,7 @@
              units="percent"
              symbol_name="PsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -1472,7 +1539,7 @@
              units="percent"
              symbol_name="EuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -1485,7 +1552,7 @@
              units="pixels"
              symbol_name="HiDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
@@ -1499,7 +1566,7 @@
              units="percent"
              symbol_name="VsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -1513,7 +1580,7 @@
              units="percent"
              symbol_name="CsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -1526,7 +1593,7 @@
              units="cycles"
              symbol_name="CsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -1539,7 +1606,7 @@
              units="pixels"
              symbol_name="PostPsStencilTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -1553,7 +1620,7 @@
              units="cycles"
              symbol_name="VsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -1567,7 +1634,7 @@
              units="percent"
              symbol_name="CsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -1581,7 +1648,7 @@
              units="bytes"
              symbol_name="TypedBytesRead"
              semantic_type="throughput"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Draw"
              mdapi_group="L3/Data Port"
              mdapi_hw_unit_type="gpu"
@@ -1594,7 +1661,7 @@
              units="pixels"
              symbol_name="SamplesWritten"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -1608,18 +1675,71 @@
              units="percent"
              symbol_name="VsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 IO"
+             mdapi_supported_apis="OGL4 IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x000253A4" value="0x00000000" />
+        <register type="NOA" address="0x0002681C" value="0x01F00800" />
+        <register type="NOA" address="0x00026820" value="0x00001000" />
+        <register type="NOA" address="0x0002781C" value="0x01F00800" />
+        <register type="NOA" address="0x00026520" value="0x00000007" />
+        <register type="NOA" address="0x000265A0" value="0x00000007" />
+        <register type="NOA" address="0x00025380" value="0x00000010" />
+        <register type="NOA" address="0x0002538C" value="0x00300000" />
+        <register type="NOA" address="0x00025384" value="0xAA8AAAAA" />
+        <register type="NOA" address="0x00025404" value="0xFFFFFFFF" />
+        <register type="NOA" address="0x00026800" value="0x00004202" />
+        <register type="NOA" address="0x00026808" value="0x00605817" />
+        <register type="NOA" address="0x0002680C" value="0x10001005" />
+        <register type="NOA" address="0x00026804" value="0x00000000" />
+        <register type="NOA" address="0x00027800" value="0x00000102" />
+        <register type="NOA" address="0x00027808" value="0x0C0701E0" />
+        <register type="NOA" address="0x0002780C" value="0x000200A0" />
+        <register type="NOA" address="0x00027804" value="0x00000000" />
+        <register type="NOA" address="0x00026484" value="0x44000000" />
+        <register type="NOA" address="0x00026704" value="0x44000000" />
+        <register type="NOA" address="0x00026500" value="0x00000006" />
+        <register type="NOA" address="0x00026510" value="0x00000001" />
+        <register type="NOA" address="0x00026504" value="0x88000000" />
+        <register type="NOA" address="0x00026580" value="0x00000006" />
+        <register type="NOA" address="0x00026590" value="0x00000020" />
+        <register type="NOA" address="0x00026584" value="0x00000000" />
+        <register type="NOA" address="0x00026104" value="0x55822222" />
+        <register type="NOA" address="0x00026184" value="0xAA866666" />
+        <register type="NOA" address="0x00025420" value="0x08320C83" />
+        <register type="NOA" address="0x00025424" value="0x06820C83" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x00000C03" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0x00800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002718" value="0xAAAAAAAA" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x0000271C" value="0xAAAAAAAA" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002724" value="0x00800000" /> <!--OASTARTTRIG6 -->
+        <register type="OA" address="0x00002728" value="0xAAAAAAAA" /> <!--OASTARTTRIG7 -->
+        <register type="OA" address="0x0000272C" value="0xAAAAAAAA" /> <!--OASTARTTRIG8 -->
+        <register type="OA" address="0x00002740" value="0x00000000" /> <!--OAREPORTTRIG1 -->
+        <register type="OA" address="0x00002744" value="0x00000000" /> <!--OAREPORTTRIG2 -->
+        <register type="OA" address="0x00002748" value="0x00000000" /> <!--OAREPORTTRIG3 -->
+        <register type="OA" address="0x0000274C" value="0x00000000" /> <!--OAREPORTTRIG4 -->
+        <register type="OA" address="0x00002750" value="0x00000000" /> <!--OAREPORTTRIG5 -->
+        <register type="OA" address="0x00002754" value="0x00000000" /> <!--OAREPORTTRIG6 -->
+        <register type="OA" address="0x00002758" value="0x00000000" /> <!--OAREPORTTRIG7 -->
+        <register type="OA" address="0x0000275C" value="0x00000000" /> <!--OAREPORTTRIG8 -->
+        <register type="OA" address="0x0000236C" value="0x00000000" />
+    </register_config>
   </set>
 
   <set name="Compute Metrics Extended Gen7.5"
-       mdapi_supported_apis="OGL4 OCL IO"
+       mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_extended"
+       hw_config_guid="3865be28-6982-49fe-9494-e4d1b4795413"
        chipset="HSW"
-       guid="3865be28-6982-49fe-9494-e4d1b4795413"
        symbol_name="ComputeExtended"
        >
     <counter name="EuUntypedWrites0"
@@ -1630,7 +1750,7 @@
              units="messages"
              symbol_name="EuUntypedWrites0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1643,7 +1763,7 @@
              units="messages"
              symbol_name="UntypedWrites0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1656,7 +1776,7 @@
              units="eu sends to l3 cache lines"
              symbol_name="UntypedWritesPerCacheLine"
              semantic_type="ratio"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1669,7 +1789,7 @@
              units="messages"
              symbol_name="TypedReads0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1682,7 +1802,7 @@
              units="messages"
              symbol_name="TypedWrites0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1695,7 +1815,7 @@
              units="messages"
              symbol_name="EuTypedAtomics0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1708,7 +1828,7 @@
              units="messages"
              symbol_name="TypedAtomics0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1721,7 +1841,7 @@
              units="eu sends to l3 cache lines"
              symbol_name="TypedAtomicsPerCacheLine"
              semantic_type="ratio"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1734,7 +1854,7 @@
              units="messages"
              symbol_name="EuUntypedReads0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1747,7 +1867,7 @@
              units="messages"
              symbol_name="EuUntypedAtomics0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1760,7 +1880,7 @@
              units="cycles"
              symbol_name="GpuClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis="OGL OCL IO BB"
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -1773,7 +1893,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -1786,7 +1906,7 @@
              units="messages"
              symbol_name="EuTypedWrites0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1799,7 +1919,7 @@
              units="eu sends to l3 cache lines"
              symbol_name="TypedWritesPerCacheLine"
              semantic_type="ratio"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1812,7 +1932,7 @@
              units="messages"
              symbol_name="EuTypedReads0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1825,7 +1945,7 @@
              units="messages"
              symbol_name="EuUrbAtomics0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1838,7 +1958,7 @@
              units="messages"
              symbol_name="UntypedReads0"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1851,7 +1971,7 @@
              units="eu sends to l3 cache lines"
              symbol_name="UntypedReadsPerCacheLine"
              semantic_type="ratio"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
@@ -1864,7 +1984,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -1877,18 +1997,57 @@
              units="eu sends to l3 cache lines"
              symbol_name="TypedReadsPerCacheLine"
              semantic_type="ratio"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="L3/Data Port"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x0002681C" value="0x3EB00800" />
+        <register type="NOA" address="0x00026820" value="0x00900000" />
+        <register type="NOA" address="0x00025384" value="0x02AAAAAA" />
+        <register type="NOA" address="0x00025404" value="0x03FFFFFF" />
+        <register type="NOA" address="0x00026800" value="0x00142284" />
+        <register type="NOA" address="0x00026808" value="0x0E629062" />
+        <register type="NOA" address="0x0002680C" value="0x3F6F55CB" />
+        <register type="NOA" address="0x00026810" value="0x00000014" />
+        <register type="NOA" address="0x00026804" value="0x00000000" />
+        <register type="NOA" address="0x00026104" value="0x02AAAAAA" />
+        <register type="NOA" address="0x00026184" value="0x02AAAAAA" />
+        <register type="NOA" address="0x00025420" value="0x00000000" />
+        <register type="NOA" address="0x00025424" value="0x00000000" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x00000000" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002724" value="0xF0800000" /> <!--OASTARTTRIG6 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0xF0800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002770" value="0x0007FE2A" /> <!--OACEC0_0 -->
+        <register type="OA" address="0x00002774" value="0x0000FF00" /> <!--OACEC0_1 -->
+        <register type="OA" address="0x00002778" value="0x0007FE6A" /> <!--OACEC1_0 -->
+        <register type="OA" address="0x0000277C" value="0x0000FF00" /> <!--OACEC1_1 -->
+        <register type="OA" address="0x00002780" value="0x0007FE92" /> <!--OACEC2_0 -->
+        <register type="OA" address="0x00002784" value="0x0000FF00" /> <!--OACEC2_1 -->
+        <register type="OA" address="0x00002788" value="0x0007FEA2" /> <!--OACEC3_0 -->
+        <register type="OA" address="0x0000278C" value="0x0000FF00" /> <!--OACEC3_1 -->
+        <register type="OA" address="0x00002790" value="0x0007FE32" /> <!--OACEC4_0 -->
+        <register type="OA" address="0x00002794" value="0x0000FF00" /> <!--OACEC4_1 -->
+        <register type="OA" address="0x00002798" value="0x0007FE9A" /> <!--OACEC5_0 -->
+        <register type="OA" address="0x0000279C" value="0x0000FF00" /> <!--OACEC5_1 -->
+        <register type="OA" address="0x000027A0" value="0x0007FF23" /> <!--OACEC6_0 -->
+        <register type="OA" address="0x000027A4" value="0x0000FF00" /> <!--OACEC6_1 -->
+        <register type="OA" address="0x000027A8" value="0x0007FFF3" /> <!--OACEC7_0 -->
+        <register type="OA" address="0x000027AC" value="0x0000FFFE" /> <!--OACEC7_1 -->
+    </register_config>
   </set>
 
   <set name="Memory Reads Distribution Gen7.5"
-       mdapi_supported_apis="OGL OCL IO"
+       mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="memory_reads"
+       hw_config_guid="bb5ed49b-2497-4095-94f6-26ba294db88a"
        chipset="HSW"
-       guid="bb5ed49b-2497-4095-94f6-26ba294db88a"
        symbol_name="MemoryReads"
        >
     <counter name="GPU Core Clocks"
@@ -1899,7 +2058,7 @@
              units="cycles"
              symbol_name="GpuCoreClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -1913,7 +2072,7 @@
              units="percent"
              symbol_name="EuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -1927,7 +2086,7 @@
              units="percent"
              symbol_name="DsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -1940,7 +2099,7 @@
              units="pixels"
              symbol_name="AlphaTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -1953,7 +2112,7 @@
              units="threads"
              symbol_name="DsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -1967,7 +2126,7 @@
              units="cycles"
              symbol_name="DsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -1980,7 +2139,7 @@
              units="threads"
              symbol_name="GsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -1994,7 +2153,7 @@
              units="percent"
              symbol_name="GsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -2007,7 +2166,7 @@
              units="threads"
              symbol_name="VsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -2020,7 +2179,7 @@
              units="messages"
              symbol_name="LlcReadAccesses"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="LLC"
@@ -2033,7 +2192,7 @@
              units="threads"
              symbol_name="PsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -2046,7 +2205,7 @@
              units="messages"
              symbol_name="GtiMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI"
@@ -2059,7 +2218,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -2073,7 +2232,7 @@
              units="cycles"
              symbol_name="CsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -2086,7 +2245,7 @@
              units="messages"
              symbol_name="GtiRczMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -2099,7 +2258,7 @@
              units="cycles"
              symbol_name="GsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -2112,7 +2271,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -2120,13 +2279,13 @@
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
-             max_equation="$GpuMaxFrequencyMHz"
-             equation="$GpuCoreClocks 1000 UMUL $GpuTime UDIV"
-             underscore_name="avg_gpu_core_frequency_mhz"
-             units="mhz"
-             symbol_name="AvgGpuCoreFrequencyMHz"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -2139,7 +2298,7 @@
              units="messages"
              symbol_name="GtiRccMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Color Cache"
@@ -2152,7 +2311,7 @@
              units="cycles"
              symbol_name="PsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -2166,7 +2325,7 @@
              units="percent"
              symbol_name="DsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -2179,7 +2338,7 @@
              units="cycles"
              symbol_name="VsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -2193,7 +2352,7 @@
              units="percent"
              symbol_name="HsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -2207,7 +2366,7 @@
              units="percent"
              symbol_name="GpuBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -2221,7 +2380,7 @@
              units="cycles"
              symbol_name="PsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -2234,7 +2393,7 @@
              units="messages"
              symbol_name="GtiCmdStreamerMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/3D Pipe/Command Streamer"
@@ -2247,7 +2406,7 @@
              units="pixels"
              symbol_name="EarlyDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
@@ -2261,7 +2420,7 @@
              units="percent"
              symbol_name="GsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -2275,7 +2434,7 @@
              units="percent"
              symbol_name="PsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -2288,7 +2447,7 @@
              units="cycles"
              symbol_name="DsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -2302,7 +2461,7 @@
              units="cycles"
              symbol_name="GsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -2315,7 +2474,7 @@
              units="messages"
              symbol_name="GtiHiDepthMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -2328,7 +2487,7 @@
              units="threads"
              symbol_name="HsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -2341,7 +2500,7 @@
              units="cycles"
              symbol_name="HsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -2355,7 +2514,7 @@
              units="percent"
              symbol_name="HsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -2368,7 +2527,7 @@
              units="pixels"
              symbol_name="SamplesKilledInPs"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
@@ -2381,7 +2540,7 @@
              units="pixels"
              symbol_name="PostPsDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -2395,7 +2554,7 @@
              units="cycles"
              symbol_name="HsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -2409,7 +2568,7 @@
              units="percent"
              symbol_name="PsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -2423,7 +2582,7 @@
              units="percent"
              symbol_name="EuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -2436,7 +2595,7 @@
              units="messages"
              symbol_name="GtiMscMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Color Cache"
@@ -2449,7 +2608,7 @@
              units="pixels"
              symbol_name="HiDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
@@ -2463,7 +2622,7 @@
              units="percent"
              symbol_name="VsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -2477,7 +2636,7 @@
              units="percent"
              symbol_name="CsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -2490,7 +2649,7 @@
              units="cycles"
              symbol_name="CsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -2503,7 +2662,7 @@
              units="messages"
              symbol_name="GtiVfMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/3D Pipe/Vertex Fetch"
@@ -2516,7 +2675,7 @@
              units="pixels"
              symbol_name="PostPsStencilTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -2529,7 +2688,7 @@
              units="messages"
              symbol_name="GtiStcMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -2543,7 +2702,7 @@
              units="cycles"
              symbol_name="VsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -2556,7 +2715,7 @@
              units="messages"
              symbol_name="GtiRsMemoryReads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/3D Pipe/Resource Streamer"
@@ -2570,7 +2729,7 @@
              units="percent"
              symbol_name="CsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -2583,7 +2742,7 @@
              units="pixels"
              symbol_name="SamplesWritten"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -2596,7 +2755,7 @@
              units="messages"
              symbol_name="GtiL3Reads"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI"
@@ -2610,18 +2769,68 @@
              units="percent"
              symbol_name="VsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x000253A4" value="0x34300000" />
+        <register type="NOA" address="0x00025440" value="0x2D800000" />
+        <register type="NOA" address="0x00025444" value="0x00000008" />
+        <register type="NOA" address="0x00025128" value="0x0E600000" />
+        <register type="NOA" address="0x00025380" value="0x00000450" />
+        <register type="NOA" address="0x00025390" value="0x00052C43" />
+        <register type="NOA" address="0x00025384" value="0x00000000" />
+        <register type="NOA" address="0x00025400" value="0x00006144" />
+        <register type="NOA" address="0x00025408" value="0x0A418820" />
+        <register type="NOA" address="0x0002540C" value="0x000820E6" />
+        <register type="NOA" address="0x00025404" value="0xFF500000" />
+        <register type="NOA" address="0x00025100" value="0x000005D6" />
+        <register type="NOA" address="0x0002510C" value="0x0EF00000" />
+        <register type="NOA" address="0x00025104" value="0x00000000" />
+        <register type="NOA" address="0x00025420" value="0x02108421" />
+        <register type="NOA" address="0x00025424" value="0x00008421" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x00000000" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002724" value="0xF0800000" /> <!--OASTARTTRIG6 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0xF0800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x0000274C" value="0x76543298" /> <!--OAREPORTTRIG4 -->
+        <register type="OA" address="0x00002748" value="0x98989898" /> <!--OAREPORTTRIG3 -->
+        <register type="OA" address="0x00002744" value="0x000000E4" /> <!--OAREPORTTRIG2 -->
+        <register type="OA" address="0x00002740" value="0x00000000" /> <!--OAREPORTTRIG1 -->
+        <register type="OA" address="0x0000275C" value="0x98A98A98" /> <!--OAREPORTTRIG8 -->
+        <register type="OA" address="0x00002758" value="0x88888888" /> <!--OAREPORTTRIG7 -->
+        <register type="OA" address="0x00002754" value="0x000C5500" /> <!--OAREPORTTRIG6 -->
+        <register type="OA" address="0x00002750" value="0x00000000" /> <!--OAREPORTTRIG5 -->
+        <register type="OA" address="0x00002770" value="0x0007F81A" /> <!--OACEC0_0 -->
+        <register type="OA" address="0x00002774" value="0x0000FC00" /> <!--OACEC0_1 -->
+        <register type="OA" address="0x00002778" value="0x0007F82A" /> <!--OACEC1_0 -->
+        <register type="OA" address="0x0000277C" value="0x0000FC00" /> <!--OACEC1_1 -->
+        <register type="OA" address="0x00002780" value="0x0007F872" /> <!--OACEC2_0 -->
+        <register type="OA" address="0x00002784" value="0x0000FC00" /> <!--OACEC2_1 -->
+        <register type="OA" address="0x00002788" value="0x0007F8BA" /> <!--OACEC3_0 -->
+        <register type="OA" address="0x0000278C" value="0x0000FC00" /> <!--OACEC3_1 -->
+        <register type="OA" address="0x00002790" value="0x0007F87A" /> <!--OACEC4_0 -->
+        <register type="OA" address="0x00002794" value="0x0000FC00" /> <!--OACEC4_1 -->
+        <register type="OA" address="0x00002798" value="0x0007F8EA" /> <!--OACEC5_0 -->
+        <register type="OA" address="0x0000279C" value="0x0000FC00" /> <!--OACEC5_1 -->
+        <register type="OA" address="0x000027A0" value="0x0007F8E2" /> <!--OACEC6_0 -->
+        <register type="OA" address="0x000027A4" value="0x0000FC00" /> <!--OACEC6_1 -->
+        <register type="OA" address="0x000027A8" value="0x0007F8F2" /> <!--OACEC7_0 -->
+        <register type="OA" address="0x000027AC" value="0x0000FC00" /> <!--OACEC7_1 -->
+    </register_config>
   </set>
 
   <set name="Memory Writes Distribution Gen7.5"
-       mdapi_supported_apis="OGL OCL IO"
+       mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="memory_writes"
+       hw_config_guid="3358d639-9b5f-45ab-976d-9b08cbfc6240"
        chipset="HSW"
-       guid="3358d639-9b5f-45ab-976d-9b08cbfc6240"
        symbol_name="MemoryWrites"
        >
     <counter name="GPU Core Clocks"
@@ -2632,7 +2841,7 @@
              units="cycles"
              symbol_name="GpuCoreClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -2646,7 +2855,7 @@
              units="percent"
              symbol_name="EuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -2660,7 +2869,7 @@
              units="percent"
              symbol_name="DsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -2673,7 +2882,7 @@
              units="pixels"
              symbol_name="AlphaTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -2686,7 +2895,7 @@
              units="threads"
              symbol_name="DsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -2700,7 +2909,7 @@
              units="cycles"
              symbol_name="DsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -2713,7 +2922,7 @@
              units="threads"
              symbol_name="GsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -2727,7 +2936,7 @@
              units="percent"
              symbol_name="GsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -2740,7 +2949,7 @@
              units="threads"
              symbol_name="VsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -2753,7 +2962,7 @@
              units="threads"
              symbol_name="PsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -2766,7 +2975,7 @@
              units="messages"
              symbol_name="GtiMscMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Color Cache"
@@ -2779,7 +2988,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -2793,7 +3002,7 @@
              units="cycles"
              symbol_name="CsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -2806,7 +3015,7 @@
              units="messages"
              symbol_name="GtiCmdStreamerMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/3D Pipe/Command Streamer"
@@ -2819,7 +3028,7 @@
              units="cycles"
              symbol_name="GsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -2832,7 +3041,7 @@
              units="messages"
              symbol_name="GtiL3Writes"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/L3"
@@ -2845,7 +3054,7 @@
              units="messages"
              symbol_name="GtiHizMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -2858,7 +3067,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -2866,13 +3075,13 @@
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
-             max_equation="$GpuMaxFrequencyMHz"
-             equation="$GpuCoreClocks 1000 UMUL $GpuTime UDIV"
-             underscore_name="avg_gpu_core_frequency_mhz"
-             units="mhz"
-             symbol_name="AvgGpuCoreFrequencyMHz"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -2885,7 +3094,7 @@
              units="cycles"
              symbol_name="PsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -2898,7 +3107,7 @@
              units="messages"
              symbol_name="GtiRccMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Color Cache"
@@ -2912,7 +3121,7 @@
              units="percent"
              symbol_name="DsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -2925,7 +3134,7 @@
              units="cycles"
              symbol_name="VsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -2939,7 +3148,7 @@
              units="percent"
              symbol_name="HsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -2953,7 +3162,7 @@
              units="percent"
              symbol_name="GpuBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -2967,7 +3176,7 @@
              units="cycles"
              symbol_name="PsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -2980,7 +3189,7 @@
              units="pixels"
              symbol_name="EarlyDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
@@ -2993,7 +3202,7 @@
              units="messages"
              symbol_name="LlcWrAccesses"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="LLC"
@@ -3007,7 +3216,7 @@
              units="percent"
              symbol_name="GsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -3021,7 +3230,7 @@
              units="percent"
              symbol_name="PsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -3034,7 +3243,7 @@
              units="messages"
              symbol_name="GtiStcMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -3047,7 +3256,7 @@
              units="cycles"
              symbol_name="DsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -3061,7 +3270,7 @@
              units="cycles"
              symbol_name="GsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -3074,7 +3283,7 @@
              units="threads"
              symbol_name="HsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -3087,7 +3296,7 @@
              units="cycles"
              symbol_name="HsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -3101,7 +3310,7 @@
              units="percent"
              symbol_name="HsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -3114,7 +3323,7 @@
              units="pixels"
              symbol_name="SamplesKilledInPs"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
@@ -3127,7 +3336,7 @@
              units="pixels"
              symbol_name="PostPsDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -3141,7 +3350,7 @@
              units="cycles"
              symbol_name="HsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -3155,7 +3364,7 @@
              units="percent"
              symbol_name="PsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -3169,7 +3378,7 @@
              units="percent"
              symbol_name="EuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -3182,7 +3391,7 @@
              units="pixels"
              symbol_name="HiDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
@@ -3196,7 +3405,7 @@
              units="percent"
              symbol_name="VsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -3210,7 +3419,7 @@
              units="percent"
              symbol_name="CsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -3223,7 +3432,7 @@
              units="cycles"
              symbol_name="CsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -3236,7 +3445,7 @@
              units="pixels"
              symbol_name="PostPsStencilTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -3249,7 +3458,7 @@
              units="messages"
              symbol_name="GtiSoMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/3D Pipe/Stream Output"
@@ -3263,7 +3472,7 @@
              units="cycles"
              symbol_name="VsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -3276,7 +3485,7 @@
              units="messages"
              symbol_name="GtiRczMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI/Depth Cache"
@@ -3290,7 +3499,7 @@
              units="percent"
              symbol_name="CsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -3303,7 +3512,7 @@
              units="pixels"
              symbol_name="SamplesWritten"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -3316,7 +3525,7 @@
              units="messages"
              symbol_name="GtiMemoryWrites"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GTI"
@@ -3330,18 +3539,68 @@
              units="percent"
              symbol_name="VsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x000253A4" value="0x34300000" />
+        <register type="NOA" address="0x00025440" value="0x01500000" />
+        <register type="NOA" address="0x00025444" value="0x00000120" />
+        <register type="NOA" address="0x00025128" value="0x0C200000" />
+        <register type="NOA" address="0x00025380" value="0x00000450" />
+        <register type="NOA" address="0x00025390" value="0x00052C43" />
+        <register type="NOA" address="0x00025384" value="0x00000000" />
+        <register type="NOA" address="0x00025400" value="0x00007184" />
+        <register type="NOA" address="0x00025408" value="0x0A418820" />
+        <register type="NOA" address="0x0002540C" value="0x000820E6" />
+        <register type="NOA" address="0x00025404" value="0xFF500000" />
+        <register type="NOA" address="0x00025100" value="0x000005D6" />
+        <register type="NOA" address="0x0002510C" value="0x1E700000" />
+        <register type="NOA" address="0x00025104" value="0x00000000" />
+        <register type="NOA" address="0x00025420" value="0x02108421" />
+        <register type="NOA" address="0x00025424" value="0x00008421" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x00000000" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002724" value="0xF0800000" /> <!--OASTARTTRIG6 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0xF0800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x0000274C" value="0x76543298" /> <!--OAREPORTTRIG4 -->
+        <register type="OA" address="0x00002748" value="0x98989898" /> <!--OAREPORTTRIG3 -->
+        <register type="OA" address="0x00002744" value="0x000000E4" /> <!--OAREPORTTRIG2 -->
+        <register type="OA" address="0x00002740" value="0x00000000" /> <!--OAREPORTTRIG1 -->
+        <register type="OA" address="0x0000275C" value="0xBABABABA" /> <!--OAREPORTTRIG8 -->
+        <register type="OA" address="0x00002758" value="0x88888888" /> <!--OAREPORTTRIG7 -->
+        <register type="OA" address="0x00002754" value="0x000C5500" /> <!--OAREPORTTRIG6 -->
+        <register type="OA" address="0x00002750" value="0x00000000" /> <!--OAREPORTTRIG5 -->
+        <register type="OA" address="0x00002770" value="0x0007F81A" /> <!--OACEC0_0 -->
+        <register type="OA" address="0x00002774" value="0x0000FC00" /> <!--OACEC0_1 -->
+        <register type="OA" address="0x00002778" value="0x0007F82A" /> <!--OACEC1_0 -->
+        <register type="OA" address="0x0000277C" value="0x0000FC00" /> <!--OACEC1_1 -->
+        <register type="OA" address="0x00002780" value="0x0007F822" /> <!--OACEC2_0 -->
+        <register type="OA" address="0x00002784" value="0x0000FC00" /> <!--OACEC2_1 -->
+        <register type="OA" address="0x00002788" value="0x0007F8BA" /> <!--OACEC3_0 -->
+        <register type="OA" address="0x0000278C" value="0x0000FC00" /> <!--OACEC3_1 -->
+        <register type="OA" address="0x00002790" value="0x0007F87A" /> <!--OACEC4_0 -->
+        <register type="OA" address="0x00002794" value="0x0000FC00" /> <!--OACEC4_1 -->
+        <register type="OA" address="0x00002798" value="0x0007F8EA" /> <!--OACEC5_0 -->
+        <register type="OA" address="0x0000279C" value="0x0000FC00" /> <!--OACEC5_1 -->
+        <register type="OA" address="0x000027A0" value="0x0007F8E2" /> <!--OACEC6_0 -->
+        <register type="OA" address="0x000027A4" value="0x0000FC00" /> <!--OACEC6_1 -->
+        <register type="OA" address="0x000027A8" value="0x0007F8F2" /> <!--OACEC7_0 -->
+        <register type="OA" address="0x000027AC" value="0x0000FC00" /> <!--OACEC7_1 -->
+    </register_config>
   </set>
 
   <set name="Metric set SamplerBalance"
-       mdapi_supported_apis="OGL OCL IO"
+       mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler_balance"
+       hw_config_guid="bc274488-b4b6-40c7-90da-b77d7ad16189"
        chipset="HSW"
-       guid="bc274488-b4b6-40c7-90da-b77d7ad16189"
        symbol_name="SamplerBalance"
        >
     <counter name="GPU Core Clocks"
@@ -3352,7 +3611,7 @@
              units="cycles"
              symbol_name="GpuCoreClocks"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -3366,7 +3625,7 @@
              units="percent"
              symbol_name="EuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -3380,7 +3639,7 @@
              units="percent"
              symbol_name="DsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -3394,7 +3653,7 @@
              symbol_name="Sampler3L2CacheMisses"
              availability="$SubsliceMask 0x8 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
@@ -3407,7 +3666,7 @@
              units="pixels"
              symbol_name="AlphaTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -3420,7 +3679,7 @@
              units="threads"
              symbol_name="DsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -3434,7 +3693,7 @@
              units="cycles"
              symbol_name="DsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -3447,7 +3706,7 @@
              units="threads"
              symbol_name="GsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -3461,7 +3720,7 @@
              units="percent"
              symbol_name="GsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -3475,7 +3734,7 @@
              units="percent"
              symbol_name="CsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -3489,7 +3748,7 @@
              units="percent"
              symbol_name="VsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -3503,7 +3762,7 @@
              units="percent"
              symbol_name="HsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -3517,7 +3776,7 @@
              units="percent"
              symbol_name="DsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Evaluation Shader"
              mdapi_hw_unit_type="gpu"
@@ -3531,7 +3790,7 @@
              units="percent"
              symbol_name="GsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -3545,7 +3804,7 @@
              units="percent"
              symbol_name="PsEuActive"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -3559,7 +3818,7 @@
              units="percent"
              symbol_name="CsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -3573,7 +3832,7 @@
              units="percent"
              symbol_name="EuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -3587,7 +3846,7 @@
              units="percent"
              symbol_name="VsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -3601,7 +3860,7 @@
              units="percent"
              symbol_name="HsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -3615,7 +3874,7 @@
              units="percent"
              symbol_name="PsEuStall"
              semantic_type="duration"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -3628,7 +3887,7 @@
              units="ns"
              symbol_name="GpuTime"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
@@ -3654,7 +3913,7 @@
              units="threads"
              symbol_name="VsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -3667,7 +3926,7 @@
              units="threads"
              symbol_name="PsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -3706,7 +3965,7 @@
              units="threads"
              symbol_name="CsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -3720,7 +3979,7 @@
              units="cycles"
              symbol_name="CsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_group="EU Array/Compute Shader"
              mdapi_hw_unit_type="gpu"
@@ -3733,7 +3992,7 @@
              units="messages"
              symbol_name="SamplerL2CacheMisses"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="Sampler"
@@ -3746,7 +4005,7 @@
              units="cycles"
              symbol_name="GsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Geometry Shader"
@@ -3760,7 +4019,7 @@
              symbol_name="Sampler2L2CacheMisses"
              availability="$SubsliceMask 0x4 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
@@ -3768,13 +4027,13 @@
     <counter name="AVG GPU Core Frequency"
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
-             max_equation="$GpuMaxFrequencyMHz"
-             equation="$GpuCoreClocks 1000 UMUL $GpuTime UDIV"
-             underscore_name="avg_gpu_core_frequency_mhz"
-             units="mhz"
-             symbol_name="AvgGpuCoreFrequencyMHz"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -3788,7 +4047,7 @@
              units="percent"
              symbol_name="EuIdle"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
@@ -3801,7 +4060,7 @@
              units="cycles"
              symbol_name="PsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
@@ -3814,7 +4073,7 @@
              units="cycles"
              symbol_name="VsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
@@ -3828,7 +4087,7 @@
              units="percent"
              symbol_name="GpuBusy"
              semantic_type="duration"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Tier1 Overview System Frame"
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
@@ -3842,7 +4101,7 @@
              units="cycles"
              symbol_name="PsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Fragment Shader"
              mdapi_hw_unit_type="gpu"
@@ -3855,7 +4114,7 @@
              units="pixels"
              symbol_name="EarlyDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
@@ -3881,7 +4140,7 @@
              units="cycles"
              symbol_name="DsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Evaluation Shader"
@@ -3895,7 +4154,7 @@
              units="cycles"
              symbol_name="GsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Geometry Shader"
              mdapi_hw_unit_type="gpu"
@@ -3908,7 +4167,7 @@
              units="threads"
              symbol_name="HsThreads"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -3921,7 +4180,7 @@
              units="cycles"
              symbol_name="HsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Control Shader"
@@ -3934,7 +4193,7 @@
              units="pixels"
              symbol_name="SamplesKilledInPs"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
@@ -3947,7 +4206,7 @@
              units="pixels"
              symbol_name="PostPsDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -3961,7 +4220,7 @@
              units="cycles"
              symbol_name="HsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Control Shader"
              mdapi_hw_unit_type="gpu"
@@ -3988,7 +4247,7 @@
              symbol_name="Sampler1L2CacheMisses"
              availability="$SubsliceMask 0x2 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
@@ -4001,7 +4260,7 @@
              units="pixels"
              symbol_name="HiDepthTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
@@ -4014,7 +4273,7 @@
              units="cycles"
              symbol_name="CsEuStallPerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL4 OCL IO"
+             mdapi_supported_apis="OGL4 OCL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Compute Shader"
@@ -4027,7 +4286,7 @@
              units="pixels"
              symbol_name="PostPsStencilTestFails"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
@@ -4041,7 +4300,7 @@
              symbol_name="Sampler0L2CacheMisses"
              availability="$SubsliceMask 0x1 AND"
              semantic_type="event"
-             mdapi_supported_apis="OGL OCL IO"
+             mdapi_supported_apis=""
              mdapi_usage_flags="Frame Batch Draw"
              mdapi_hw_unit_type="subslice"
              mdapi_group="Sampler/Sampler Cache"
@@ -4055,7 +4314,7 @@
              units="cycles"
              symbol_name="VsEuActivePerThread"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier4 Frame Batch Draw"
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
@@ -4081,11 +4340,61 @@
              units="pixels"
              symbol_name="SamplesWritten"
              semantic_type="event"
-             mdapi_supported_apis="OGL IO"
+             mdapi_supported_apis="OGL IO BB"
              mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
+    <register_config id="0">
+        <register type="NOA" address="0x0002EB9C" value="0x01906400" />
+        <register type="NOA" address="0x0002FB9C" value="0x01906400" />
+        <register type="NOA" address="0x000253A4" value="0x00000000" />
+        <register type="NOA" address="0x00026B9C" value="0x01906400" />
+        <register type="NOA" address="0x00027B9C" value="0x01906400" />
+        <register type="NOA" address="0x00027104" value="0x00A00000" />
+        <register type="NOA" address="0x00027184" value="0x00A50000" />
+        <register type="NOA" address="0x0002E804" value="0x00500000" />
+        <register type="NOA" address="0x0002E984" value="0x00500000" />
+        <register type="NOA" address="0x0002EB04" value="0x00500000" />
+        <register type="NOA" address="0x0002EB80" value="0x00000084" />
+        <register type="NOA" address="0x0002EB8C" value="0x14200000" />
+        <register type="NOA" address="0x0002EB84" value="0x00000000" />
+        <register type="NOA" address="0x0002F804" value="0x00050000" />
+        <register type="NOA" address="0x0002F984" value="0x00050000" />
+        <register type="NOA" address="0x0002FB04" value="0x00050000" />
+        <register type="NOA" address="0x0002FB80" value="0x00000084" />
+        <register type="NOA" address="0x0002FB8C" value="0x00050800" />
+        <register type="NOA" address="0x0002FB84" value="0x00000000" />
+        <register type="NOA" address="0x00025380" value="0x00000010" />
+        <register type="NOA" address="0x0002538C" value="0x000000C0" />
+        <register type="NOA" address="0x00025384" value="0xAA550000" />
+        <register type="NOA" address="0x00025404" value="0xFFFFC000" />
+        <register type="NOA" address="0x00026804" value="0x50000000" />
+        <register type="NOA" address="0x00026984" value="0x50000000" />
+        <register type="NOA" address="0x00026B04" value="0x50000000" />
+        <register type="NOA" address="0x00026B80" value="0x00000084" />
+        <register type="NOA" address="0x00026B90" value="0x00050800" />
+        <register type="NOA" address="0x00026B84" value="0x00000000" />
+        <register type="NOA" address="0x00027804" value="0x05000000" />
+        <register type="NOA" address="0x00027984" value="0x05000000" />
+        <register type="NOA" address="0x00027B04" value="0x05000000" />
+        <register type="NOA" address="0x00027B80" value="0x00000084" />
+        <register type="NOA" address="0x00027B90" value="0x00000142" />
+        <register type="NOA" address="0x00027B84" value="0x00000000" />
+        <register type="NOA" address="0x00026104" value="0xA0000000" />
+        <register type="NOA" address="0x00026184" value="0xA5000000" />
+        <register type="NOA" address="0x00025424" value="0x00008620" />
+        <register type="NOA" address="0x0002541C" value="0x00000000" />
+        <register type="NOA" address="0x00025428" value="0x0004A54A" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002740" value="0x00000000" /> <!--OAREPORTTRIG1 -->
+        <register type="OA" address="0x00002744" value="0x00800000" /> <!--OAREPORTTRIG2 -->
+        <register type="OA" address="0x00002710" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002714" value="0x00800000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002720" value="0x00000000" /> <!--OASTARTTRIG1 -->
+        <register type="OA" address="0x00002724" value="0x00800000" /> <!--OASTARTTRIG6 -->
+    </register_config>
   </set>
 
 </metrics>
