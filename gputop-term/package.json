@@ -7,7 +7,9 @@
     "dependencies": {
         "gputop": "file:../gputop-client",
         "argparse": "^1.0.7",
-        "blessed": "^0.1.81"
+        "blessed": "^0.1.81",
+        "blessed-contrib": "3.5.4",
+        "sparkline": "^0.1.1"
     },
     "bin": {
         "gputop-term": "gputop-term.js"
