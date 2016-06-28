@@ -155,8 +155,7 @@ GputopCSV.prototype.update_features = function(features)
         log.warn("CSV:   Accumulation period: " + args.accumulation_period);
         log.warn("\n\n");
 
-        this.open_oa_metric_set({guid: this.metric.guid_,
-                                 oa_exponent: closest_oa_exponent });
+        this.metric.open({ oa_exponent: closest_oa_exponent });
     } else {
         log.error("Failed to find counters matching requested columns");
     }

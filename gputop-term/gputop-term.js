@@ -367,14 +367,30 @@ function GputopTerm()
         var guid = this.features.supported_oa_query_guids[i];
         var metric = this.lookup_metric_for_guid(guid);
 
-        if (this.current_metric_set)
+        if (this.current_metric_set === metric)
+            return;
+
+        if (this.current_metric_set !== undefined) {
             this.current_metric_set.counters_scrollable.hide();
 
-        this.current_metric_set = metric;
-        metric.counters_scrollable.show();
+            var prev_metric = this.current_metric_set;
+            this.current_metric_set = metric;
 
-        this.update_metric_aggregation_period_for_zoom(metric);
-        this.open_oa_metric_set({guid: guid});
+            metric.counters_scrollable.show();
+
+            var config = prev_metric.open_config;
+            prev_metric.close((ev) => {
+                this.update_metric_aggregation_period_for_zoom(metric);
+                metric.open(config);
+            });
+        } else {
+            this.current_metric_set = metric;
+
+            metric.counters_scrollable.show();
+
+            this.update_metric_aggregation_period_for_zoom(metric);
+            metric.open();
+        }
     });
 
     this.filter_box = blessed.box({
@@ -608,63 +624,57 @@ GputopTerm.prototype.update_features = function(features)
 
     if (render_basic_metric) {
         this.update_metric_aggregation_period_for_zoom(render_basic_metric);
-        this.open_oa_metric_set({guid: render_basic_metric.guid_});
+        render_basic_metric.open();
     }
 
     this.screen.render();
 }
 
-/* returns true if the exponent changed and therefore the metric
- * stream needs to be re-opened, else false.
- */
+/* Also returns the maximum OA exponent suitable for viewing at the given
+ * zoom level */
 GputopTerm.prototype.update_metric_aggregation_period_for_zoom = function (metric) {
     var hack_graph_size_px = 200;
 
     /* We want to set an aggregation period such that we get ~1 update per
-     * x-axis-pixel on the trace graph.
+     * x-axis point on the trace graph.
      *
      * We need to ensure the HW sampling period is low enough to expect two HW
      * samples per x-axis-pixel.
      *
      * FIXME: actually determine how wide the graphs are in pixels instead of
-     * assuming 1000 pixels.
+     * assuming 200 points.
      */
 
     var ns_per_pixel = this.zoom * 1000000000 / hack_graph_size_px;
 
-    /* XXX: the way we make side-band changes to the metric object while its
-     * still open seems fragile.
-     *
-     * E.g. directly lowering the aggregation period potentially lower than the
-     * HW sampling period won't be meaningful.
-     *
-     * These changes should be done in terms of opening a new stream of metrics
-     * which happens asynchronously after the current stream has closed and the
-     * new, pending configuration shouldn't have any affect on any currently
-     * open stream.
-     */
+    /* XXX maybe this function should refuse to reduce the aggregation
+     * period lower than is valid with the current HW exponent */
     metric.set_aggregation_period(ns_per_pixel);
-    var exponent = this.calculate_max_exponent_for_period(ns_per_pixel);
 
-    if (metric.exponent != exponent) {
-        metric.exponent = exponent;
-        return true;
-    } else
-        return false;
+    return this.calculate_max_exponent_for_period(ns_per_pixel);
 }
 
 GputopTerm.prototype.set_zoom = function(zoom) {
     this.zoom = zoom;
 
-    var metric = this.active_oa_metric_;
-    if (metric !== undefined) {
-        // Note: we have to update the aggregation period even if we are in a
-        // paused state where we are replying previously captured metric data.
-        var exponent_changed = this.update_metric_aggregation_period_for_zoom(metric);
+    var metric = this.current_metric_set;
+    if (metric === undefined)
+        return;
 
-        if (exponent_changed && !global_paused_query)
-            this.open_oa_metric_set({guid: metric.guid_});
+    // Note: we have to update the aggregation period even if we are in a
+    // paused state where we are replying previously captured metric data.
+    var exponent = this.update_metric_aggregation_period_for_zoom(metric);
+
+    if (exponent != metric.open_config.oa_exponent && !metric.paused) {
+        var config = metric.open_config;
+        metric.close((ev) => {
+            config.oa_exponent = exponent;
+            metric.open(config);
+        });
     }
+
+    if (metric.paused)
+        metric.replay_buffer();
 
     this.queue_redraw();
 }
@@ -862,7 +872,7 @@ GputopTerm.prototype.update_counter = function(counter) {
 }
 
 GputopTerm.prototype.update = function(timestamp) {
-    var metric = this.active_oa_metric_;
+    var metric = this.current_metric_set;
     if (metric == undefined)
         return;
 

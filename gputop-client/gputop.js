@@ -179,13 +179,9 @@ function Metric (gputopParent) {
     this.server_handle = 0;
     this.cc_stream_ptr_ = 0;
 
-    this.per_ctx_mode_ = false;
-
     // Aggregation period
     this.period_ns_ = 1000000000;
 
-    // OA HW periodic timer exponent
-    this.exponent = 14;
     this.history = []; // buffer used when query is paused.
     this.history_index = 0;
     this.history_size = 0;
@@ -261,7 +257,12 @@ Metric.prototype.replay_buffer = function() {
 
 Metric.prototype.set_paused = function(paused) {
 
-    if (this.paused === paused)
+    if (this.stream === undefined) {
+        this.gputop.error("Can't change pause state of OA metric without a stream");
+        return;
+    }
+
+    if (this.open_config.paused === paused)
         return;
 
     if (this.closing_) {
@@ -269,24 +270,21 @@ Metric.prototype.set_paused = function(paused) {
         return;
     }
 
-    function _open_with_new_state() {
+    function _open_with_new_state(config) {
+        config.paused = paused;
+
         if (paused) {
-            this.gputop.open_oa_metric_set({guid: this.guid_, paused_state: true},
-                                           this.replay_buffer.bind(this));
+            this.open(config, this.replay_buffer.bind(this));
         } else {
             this.clear_metric_data();
-            this.gputop.open_oa_metric_set({guid: this.guid_});
+            this.open(config);
         }
     }
 
-    if (this.server_handle !== 0)
-        this.gputop.close_oa_metric_set(this, _open_with_new_state.bind(this));
-    else
-        _open_with_new_state.call(this);
-
-    /* XXX: change state after calling close_oa_metric_set otherwise it might
-     * be confused, thinking there's no server stream to close */
-    this.paused = paused;
+    var config = this.open_config;
+    this.close(() => {
+        _open_with_new_state.call(this, config);
+    });
 }
 
 function Process_info () {
@@ -372,7 +370,6 @@ function Gputop () {
      * Metric object given a gputop_cc_stream pointer.
      */
     this.cc_stream_ptr_to_obj_map = {};
-    this.active_oa_metric_ = undefined;
 
     this.current_update_ = { metric: null };
 
@@ -620,134 +617,139 @@ Gputop.prototype.set_architecture = function(architecture) {
     this.config_.architecture = architecture;
 }
 
-Gputop.prototype.open_oa_metric_set = function(config, callback) {
+Metric.prototype.open = function(config,
+                                 onopen,
+                                 onclose,
+                                 onerror) {
 
-    function _real_open_oa_metric_set(config, callback) {
-        var metric = this.lookup_metric_for_guid(config.guid);
-        var oa_exponent = metric.exponent;
-        var per_ctx_mode = metric.per_ctx_mode_;
+    var stream = new Stream(this.gputop.next_server_handle++);
 
-        this.open_config = config;
+    if (onopen !== undefined)
+        stream.on('open', onopen);
 
-        if ('oa_exponent' in config)
-            oa_exponent = config.oa_exponent;
-        if ('per_ctx_mode' in config)
-            per_ctx_mode = config.per_ctx_mode;
+    if (onclose !== undefined)
+        stream.on('close', onclose);
 
-        function _finalize_open() {
-            this.log("Opened OA metric set " + metric.name);
+    if (onerror !== undefined)
+        stream.on('error', onerror);
 
-            metric.exponent = oa_exponent;
-            metric.per_ctx_mode_ = per_ctx_mode;
-
-            var sp = cc.Runtime.stackSave();
-
-            metric.cc_stream_ptr_ =
-                cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(config.guid),
-                                            per_ctx_mode,
-                                            metric.period_ns_);
-
-            cc.Runtime.stackRestore(sp);
-
-            this.cc_stream_ptr_to_obj_map[metric.cc_stream_ptr_] = metric;
-
-            if (callback != undefined)
-                callback(metric);
-        }
-
-        this.active_oa_metric_ = metric;
-
-        // if (open.per_ctx_mode)
-        //     this.user_msg("Opening metric set " + metric.name + " in per context mode");
-        // else
-        //     this.user_msg("Opening metric set " + metric.name);
-
-
-        if ('paused_state' in config) {
-            _finalize_open.call(this);
-        } else {
-            var oa_query = new this.gputop_proto_.OAQueryInfo();
-
-            oa_query.guid = config.guid;
-            oa_query.period_exponent = oa_exponent;
-
-            var open = new this.gputop_proto_.OpenQuery();
-
-            metric.server_handle = this.next_server_handle++;
-
-            open.id = metric.server_handle;
-            open.oa_query = oa_query;
-            open.overwrite = false;   /* don't overwrite old samples */
-            open.live_updates = true; /* send live updates */
-            open.per_ctx_mode = per_ctx_mode;
-
-            this.server_handle_to_obj[open.id] = metric;
-
-            this.rpc_request('open_query', open, _finalize_open.bind(this));
-
-            metric.history = [];
-            metric.history_size = 0;
-        }
+    if (this.supported_ == false) {
+        var ev = { type: "error", msg: this.guid_ + " " + this.name + " not supported by this kernel" };
+        stream.dispatchEvent(ev);
+        return null;
     }
 
-    if (config.guid === undefined) {
-        console.error("No GUID given when opening OA metric set");
-        return;
+    if (this.closing_) {
+        var ev = { type: "error", msg: "Can't open metric while also waiting for it to close" };
+        stream.dispatchEvent(ev);
+        return null;
     }
 
-    var metric = this.lookup_metric_for_guid(config.guid);
-    if (metric === undefined) {
-        console.error('Error: failed to lookup OA metric set with guid = "' + config.guid + '"');
-        return;
+    if (this.stream != undefined) {
+        var ev = { type: "error", msg: "Can't re-open OA metric without explicitly closing first" };
+        stream.dispatchEvent(ev);
+        return null;
     }
 
-    if (metric.supported_ == false) {
-        this.user_msg(config.guid + " " + metric.name + " not supported on this kernel (guid=" + config.guid + ")", this.ERROR);
-        return;
+    if (config === undefined)
+        config = {};
+
+    if (config.oa_exponent === undefined)
+        config.oa_exponent = 14;
+    if (config.per_ctx_mode === undefined)
+        config.per_ctx_mode = false;
+    if (config.paused === undefined)
+        config.paused = false;
+
+    this.open_config = config;
+    this.stream = stream;
+
+    function _finalize_open() {
+        this.gputop.log("Opened OA metric set " + this.name);
+
+        var sp = cc.Runtime.stackSave();
+
+        this.cc_stream_ptr_ =
+            cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(this.guid_),
+                                        config.per_ctx_mode,
+                                        this.period_ns_);
+
+        cc.Runtime.stackRestore(sp);
+
+        this.gputop.cc_stream_ptr_to_obj_map[this.cc_stream_ptr_] = this;
+
+        var ev = { type: "open" };
+        stream.dispatchEvent(ev);
     }
 
-    if (metric.closing_) {
-        //this.user_msg("Ignoring attempt to open OA metrics while waiting for close ACK", this.ERROR);
-        return;
+    if (config.paused === true) {
+        stream.server_handle = 0;
+        _finalize_open.call(this);
+    } else {
+        var oa_query = new this.gputop.gputop_proto_.OAQueryInfo();
+
+        oa_query.guid = this.guid_;
+        oa_query.period_exponent = config.oa_exponent;
+
+        var open = new this.gputop.gputop_proto_.OpenQuery();
+
+        open.set('id', stream.server_handle);
+        open.set('oa_query', oa_query);
+        open.set('overwrite', false);   /* don't overwrite old samples */
+        open.set('live_updates', true); /* send live updates */
+        open.set('per_ctx_mode', config.per_ctx_mode);
+
+        this.gputop.server_handle_to_obj[open.id] = this;
+
+        this.gputop.rpc_request('open_query', open, _finalize_open.bind(this));
+
+        this.history = [];
+        this.history_size = 0;
     }
 
-    if (this.active_oa_metric_ != undefined) {
-        this.close_oa_metric_set(this.active_oa_metric_, () => {
-            _real_open_oa_metric_set.call(this, config, callback);
-        });
-    } else
-        _real_open_oa_metric_set.call(this, config, callback);
+    return stream;
 }
 
-Gputop.prototype.close_oa_metric_set = function(metric, callback) {
-    if (metric.closing_ == true ) {
-        this.log("Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)", this.WARN);
+Metric.prototype.close = function(onclose) {
+    if (this.closing_ === true ) {
+        var ev = { type: "error", msg: "Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)" };
+        this.stream.dispatchEvent(ev);
+        return;
+    }
+
+    if (this.stream === undefined) {
+        var ev = { type: "error", msg: "Redundant OA metric close request" };
+        this.stream.dispatchEvent(ev);
         return;
     }
 
     function _finish_close() {
-        cc._gputop_cc_stream_destroy(metric.cc_stream_ptr_);
-        delete this.cc_stream_ptr_to_obj_map[metric.cc_stream_ptr_];
-        delete this.server_handle_to_obj[metric.server_handle];
+        cc._gputop_cc_stream_destroy(this.cc_stream_ptr_);
+        delete this.gputop.cc_stream_ptr_to_obj_map[this.cc_stream_ptr_];
+        delete this.gputop.server_handle_to_obj[this.stream.server_handle];
 
-        metric.cc_stream_ptr_ = 0;
-        metric.server_handle = 0;
-        metric.open_config = undefined;
+        this.cc_stream_ptr_ = 0;
+        this.open_config = undefined;
 
-        metric.closing_ = false;
+        this.closing_ = false;
 
-        if (callback != undefined)
-            callback();
+        var stream = this.stream;
+        this.stream = undefined;
+
+        if (onclose !== undefined)
+            onclose();
+
+        var ev = { type: "close" };
+        stream.dispatchEvent(ev);
     }
 
-    //this.user_msg("Closing query " + metric.name);
-    metric.closing_ = true;
-    this.active_oa_metric_ = undefined;
+    this.closing_ = true;
 
-    if (metric.paused) {
+    /* XXX: May have a stream but no server handle while metric is paused */
+    if (this.stream.server_handle === 0) {
         _finish_close.call(this);
     } else {
-        this.rpc_request('close_query', metric.server_handle, (msg) => {
+        this.gputop.rpc_request('close_query', this.stream.server_handle, (msg) => {
             _finish_close.call(this);
         });
     }
@@ -790,7 +792,6 @@ EventTarget.prototype.addEventListener = function(type, callback) {
     this.listeners[type].push(callback);
 };
 
-
 EventTarget.prototype.dispatchEvent = function(event){
     if(!(event.type in this.listeners)) {
         return;
@@ -805,6 +806,14 @@ EventTarget.prototype.dispatchEvent = function(event){
 EventTarget.prototype.on = function(type, callback) {
     this.addEventListener(type, callback);
 }
+
+EventTarget.prototype.once = function(type, callback) {
+  function _once_wraper() {
+    this.removeListener(type, _once_wrapper);
+    return callback.apply(this, arguments);
+  }
+  return this.on(type, _once_wrapper);
+};
 
 var Stream = function(server_handle) {
     EventTarget.call(this);
@@ -923,14 +932,43 @@ Gputop.prototype.get_tracepoint_info = function(name, callback) {
     });
 }
 
-Gputop.prototype.open_tracepoint = function(tracepoint_info, config, callback) {
+Gputop.prototype.open_tracepoint = function(tracepoint_info, config, onopen, onclose, onerror) {
 
     var stream = new Stream(this.next_server_handle++);
 
     stream.info = tracepoint_info;
 
-    if (callback !== undefined)
-        stream.on('open', callback);
+    if (onopen !== undefined)
+        stream.on('open', onopen);
+
+    if (onclose !== undefined)
+        stream.on('close', onclose);
+
+    if (onerror !== undefined)
+        stream.on('error', onerror);
+
+    if (this.closing_) {
+        var ev = { type: "error", msg: "Can't open metric while also waiting for it to close" };
+        stream.dispatchEvent(ev);
+        return null;
+    }
+
+    if (this.stream != undefined) {
+        var ev = { type: "error", msg: "Can't re-open OA metric without explicitly closing first" };
+        stream.dispatchEvent(ev);
+        return null;
+    }
+
+    if (config.paused === undefined)
+        config.paused = false;
+    if (config.pid === undefined)
+        config.pid = -1;
+    if (config.cpu === undefined) {
+        if (config.pid === -1)
+            config.cpu = 0;
+        else
+            config.cpu = -1;
+    }
 
     this.tracepoints_.push(stream);
 
@@ -973,24 +1011,14 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, callback) {
             callback(stream);
     }
 
-    if ('paused_state' in config) {
+    if (config.paused) {
+        stream.server_handle = 0;
         _finalize_open.call(this);
     } else {
         var tracepoint = new this.gputop_proto_.TracepointConfig();
 
-        if ('pid' in config)
-            tracepoint.set('pid', config.pid);
-        else
-            tracepoint.set('pid', -1);
-
-        if ('cpu' in config)
-            tracepoint.set('cpu', config.cpu);
-        else {
-            if (tracepoint.get('pid') === -1)
-                tracepoint.set('cpu', 0);
-            else
-                tracepoint.set('cpu', -1);
-        }
+        tracepoint.set('pid', config.pid);
+        tracepoint.set('cpu', config.cpu);
 
         tracepoint.set('id', tracepoint_info.id);
 
@@ -1273,7 +1301,6 @@ Gputop.prototype.dispose = function() {
 
     this.cc_stream_ptr_to_obj_map = {};
     this.server_handle_to_obj = {};
-    this.active_oa_metric_ = undefined;
 }
 
 function gputop_socket_on_message(evt) {

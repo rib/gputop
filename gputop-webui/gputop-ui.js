@@ -161,13 +161,23 @@ GputopUI.prototype.select_metric_set = function(guid) {
     if (this.current_metric_set === metric)
         return;
 
-    this.current_metric_set = metric;
-    this.open_oa_metric_set({guid: guid});
+    if (this.current_metric_set !== undefined) {
+        var prev_metric = this.current_metric_set;
+
+        this.current_metric_set = metric;
+
+        var config = metric.open_config;
+        prev_metric.close((ev) => {
+            metric.open(config);
+        });
+    } else {
+        this.current_metric_set = metric;
+        metric.open();
+    }
 }
 
-/* returns true if the exponent changed and therefore the metric
- * stream needs to be re-opened, else false.
- */
+/* Also returns the maximum OA exponent suitable for viewing at the given
+ * zoom level */
 GputopUI.prototype.update_metric_aggregation_period_for_zoom = function (metric) {
     var hack_graph_size_px = 1000;
 
@@ -183,25 +193,11 @@ GputopUI.prototype.update_metric_aggregation_period_for_zoom = function (metric)
 
     var ns_per_pixel = this.zoom * 1000000000 / hack_graph_size_px;
 
-    /* XXX: the way we make side-band changes to the metric object while its
-     * still open seems fragile.
-     *
-     * E.g. directly lowering the aggregation period potentially lower than the
-     * HW sampling period won't be meaningful.
-     *
-     * These changes should be done in terms of opening a new stream of metrics
-     * which happens asynchronously after the current stream has closed and the
-     * new, pending configuration shouldn't have any affect on any currently
-     * open stream.
-     */
+    /* XXX maybe this function should refuse to reduce the aggregation
+     * period lower than is valid with the current HW exponent */
     metric.set_aggregation_period(ns_per_pixel);
-    var exponent = this.calculate_max_exponent_for_period(ns_per_pixel);
 
-    if (metric.exponent != exponent) {
-        metric.exponent = exponent;
-        return true;
-    } else
-        return false;
+    return this.calculate_max_exponent_for_period(ns_per_pixel);
 }
 
 GputopUI.prototype.set_zoom = function(zoom) {
@@ -213,12 +209,18 @@ GputopUI.prototype.set_zoom = function(zoom) {
 
     // Note: we have to update the aggregation period even if we are in a
     // paused state where we are replying previously captured metric data.
-    var exponent_changed = this.update_metric_aggregation_period_for_zoom(metric);
+    var exponent = this.update_metric_aggregation_period_for_zoom(metric);
 
-    if (exponent_changed && !metric.paused)
-        this.open_oa_metric_set({guid: metric.guid_});
+    if (exponent != metric.open_config.oa_exponent && !metric.open_config.paused) {
 
-    if (metric.paused)
+        var config = metric.open_config;
+        metric.close((ev) => {
+            config.oa_exponent = exponent;
+            metric.open(config);
+        });
+    }
+
+    if (metric.open_config.paused)
         metric.replay_buffer();
 
     this.queue_redraw();
@@ -549,13 +551,15 @@ GputopUI.prototype.update_cpu_stats = function (timestamp) {
 
 GputopUI.prototype.update = function(timestamp) {
     var metric = this.current_metric_set;
-    if (metric == undefined)
+    if (metric === undefined)
         return;
 
-    if (metric.paused)
-        this.update_oa_graphs_paused(timestamp);
-    else
-        this.update_oa_graphs(timestamp);
+    if (metric.stream !== undefined) {
+        if (metric.open_config.paused)
+            this.update_oa_graphs_paused(timestamp);
+        else
+            this.update_oa_graphs(timestamp);
+    }
 
     this.update_cpu_stats(timestamp);
 
@@ -616,7 +620,7 @@ GputopUI.prototype.update_features = function(features) {
         var metric = this.current_metric_set;
         if (metric !== undefined) {
             this.update_metric_aggregation_period_for_zoom(metric);
-            this.open_oa_metric_set({guid: metric.guid_});
+            metric.open();
         }
     });
 
