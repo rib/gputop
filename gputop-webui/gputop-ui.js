@@ -26,8 +26,75 @@
  * SOFTWARE.
  */
 
+function CounterUI (metricSetParent) {
+    Counter.call(this, metricSetParent);
+
+    this.graph_options = {
+        grid: {
+            borderWidth: 1,
+            minBorderMargin: 20,
+            labelMargin: 10,
+            backgroundColor: {
+                colors: ["#fff", "#e4f4f4"]
+            },
+            margin: {
+                top: 8,
+                bottom: 20,
+                left: 20
+            },
+        },
+        xaxis: {
+            show: false,
+            panRange: null
+        },
+        yaxis: {
+            min: 0,
+            max: 110,
+            panRange: false
+        },
+        legend: {
+            show: true
+        },
+        pan: {
+            interactive: true
+        }
+    };// options
+
+
+    this.graph_data = [];
+    this.graph_markings = [];
+    this.flot_container = undefined;
+}
+
+CounterUI.prototype = Object.create(Counter.prototype);
+
+function MetricSetUI (gputopParent) {
+    Metric.call(this, gputopParent);
+
+    this.start_timestamp = 0;
+    this.start_gpu_timestamp = 0;
+    this.end_gpu_timestamp = 0;
+}
+
+MetricSetUI.prototype = Object.create(Metric.prototype);
+
+// remove all the data from all opened graphs
+MetricSetUI.prototype.clear_metric_data = function() {
+
+    Metric.prototype.clear_metric_data.call(this);
+
+    this.start_timestamp = 0;
+
+    for (var i = 0; i < this.cc_counters.length; i++) {
+        var counter = this.cc_counters[i];
+        counter.graph_data = [];
+    }
+}
+
 function GputopUI () {
     Gputop.call(this);
+    this.MetricConstructor = MetricSetUI;
+    this.CounterConstructor = CounterUI;
 
     /* NB: Although we initialize in demo mode in these conditions, it's still
      * possible to enter/leave demo mode interactively by specifying and
@@ -49,6 +116,9 @@ function GputopUI () {
     this.overview_loaded = false;
     this.demo_ui_loaded = false;
 
+    this.paused = false;
+    this.current_metric_set = undefined;
+
     this.graph_array = [];
     this.zoom = 10; //seconds
 
@@ -59,12 +129,7 @@ function GputopUI () {
         color: "#6666ff"
     }];
 
-    this.start_timestamp = 0;
-    this.start_gpu_timestamp = 0;
-
     this.redraw_queued_ = false;
-
-    this.previous_zoom = 0;
 
     this.cpu_stats_stream = undefined;
 
@@ -90,10 +155,20 @@ function create_default_markings(xaxis) {
     return markings;
 }
 
+GputopUI.prototype.select_metric_set = function(guid) {
+    var metric = this.lookup_metric_for_guid(guid);
+
+    if (this.current_metric_set === metric)
+        return;
+
+    this.current_metric_set = metric;
+    this.open_oa_metric_set({guid: guid});
+}
+
 /* returns true if the exponent changed and therefore the metric
  * stream needs to be re-opened, else false.
  */
-GputopUI.prototype.update_metric_period_exponent_for_zoom = function (metric) {
+GputopUI.prototype.update_metric_aggregation_period_for_zoom = function (metric) {
     var hack_graph_size_px = 1000;
 
     /* We want to set an aggregation period such that we get ~1 update per
@@ -132,120 +207,153 @@ GputopUI.prototype.update_metric_period_exponent_for_zoom = function (metric) {
 GputopUI.prototype.set_zoom = function(zoom) {
     this.zoom = zoom;
 
-    var metric = this.lookup_metric_for_guid(global_guid);
+    var metric = this.current_metric_set;
+    if (metric === undefined)
+        return;
 
-    // First update metric period exponent, then check for paused query.
-    // The other way around would have not checked whether or not to update the
-    // exponent if the query was paused.
-    if (this.update_metric_period_exponent_for_zoom(metric) && !global_paused_query)
-        this.open_oa_metric_set({guid:global_guid});
+    // Note: we have to update the aggregation period even if we are in a
+    // paused state where we are replying previously captured metric data.
+    var exponent_changed = this.update_metric_aggregation_period_for_zoom(metric);
+
+    if (exponent_changed && !metric.paused)
+        this.open_oa_metric_set({guid: metric.guid_});
+
+    if (metric.paused)
+        metric.replay_buffer();
 
     this.queue_redraw();
 }
 
-// remove all the data from all opened graphs
-GputopUI.prototype.clear_graphs = function() {
-    var metric = this.lookup_metric_for_guid(global_guid);
+GputopUI.prototype.set_paused = function(paused) {
+    if (this.paused === paused)
+        return;
 
-    // reset the accumulator clock and continuation report
-    cc._gputop_cc_reset_accumulator(metric.cc_stream_ptr_);
+    var metric = this.current_metric_set;
+    if (metric === undefined)
+        return;
 
-    // go through the list of opened graphs
-    for (var i = 0; i < this.graph_array.length; ++i) {
-        var container = "#" + this.graph_array[i];
-        var counter = $(container).data("counter");
-        counter.graph_data = [];
-        counter.updates = [];
-        this.start_timestamp = 0;
-    }
+    metric.set_paused(paused);
+
+    this.paused = paused;
 }
 
-GputopUI.prototype.update_graphs_paused = function (timestamp) {
-    var metric = this.lookup_metric_for_guid(global_guid);
+GputopUI.prototype.update_oa_graphs_paused = function (timestamp) {
+    var metric = this.current_metric_set;
+    if (metric === undefined)
+        return;
 
-    for (var i = 0; i < this.graph_array.length; ++i) {
-        var container = "#" + this.graph_array[i];
-        var counter = $(container).data("counter");
+    var n_counters = metric.cc_counters.length;
+    if (n_counters === 0)
+        return;
 
-        var length = counter.updates.length;
-        var x_min = 0;
-        var x_max = 1;
+    var first_counter = undefined;
+    for (var i = 0; i < metric.cc_counters.length; i++) {
+        first_counter = metric.cc_counters[i];
+        if (first_counter.record_data === true)
+            break;
+    }
+    if (!first_counter)
+        return;
 
-        if (length > 0) {
-                this.start_gpu_timestamp = counter.updates[0][0]; // end_timestamp
-                this.end_gpu_timestamp = counter.updates[length - 1][0]; // end_timestamp
+    var n_updates = first_counter.updates.length;
+
+    if (n_updates === 0)
+        return;
+
+    metric.start_gpu_timestamp = first_counter.updates[0][0];
+    metric.end_gpu_timestamp = first_counter.updates[n_updates - 1][1];
+
+    var time_range = this.zoom * 1000000000;
+    var margin = time_range * 0.05;
+
+    var x_max = metric.end_gpu_timestamp;
+    var x_min = x_max - time_range;
+
+    for (var i = 0; i < n_counters; i++) {
+        var counter = metric.cc_counters[i];
+        if (!counter.record_data)
+            continue;
+
+        var container = counter.flot_container;
+        if (!container)
+            continue;
+
+        for (var j = 0; j < n_updates; j++) {
+            var start = counter.updates[j][0];
+            var end = counter.updates[j][1];
+            var val = counter.updates[j][2];
+            var max = counter.updates[j][3];
+            var mid = start + (end - start) / 2;
+
+            counter.graph_data.push([mid, val]);
+            counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
         }
-        if (length > 0 || this.previous_zoom != this.zoom) {
-            this.previous_zoom = this.zoom;
-            var time_range = this.zoom * 1000000000;
-            var margin = time_range * 0.1;
 
-            x_max = this.end_gpu_timestamp;
-            x_min = x_max - time_range;
-            var max_graph_data = x_max - 20000000000;
+        // adjust the min and max (start and end of the graph)
+        counter.graph_options.xaxis.min = x_min + margin;
+        counter.graph_options.xaxis.max = x_max;
+        counter.graph_options.xaxis.label = this.zoom + ' seconds';
+        counter.graph_options.xaxis.panRange = [null, null];
 
-            for (var j = 0; j < length; j++) {
-                var start = counter.updates[j][0];
-                var end = counter.updates[j][1];
-                var val = counter.updates[j][2];
-                var max = counter.updates[j][3];
-                var mid = start + (end - start) / 2;
+        var default_markings = create_default_markings(counter.graph_options.xaxis);
+        counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
 
-                counter.graph_data.push([mid, val]);
-                counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
-            }
+        this.series[0].data = counter.graph_data;
+        $.plot(container, this.series, counter.graph_options);
 
-            // adjust the min and max (start and end of the graph)
-            counter.graph_options.xaxis.min = x_min + margin;
-            counter.graph_options.xaxis.max = x_max;
-            counter.graph_options.xaxis.label = this.zoom + ' seconds';
-            counter.graph_options.xaxis.panRange = [max_graph_data, x_max];
-
-            var default_markings = create_default_markings(counter.graph_options.xaxis);
-            counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
-
-            this.series[0].data = counter.graph_data;
-            $.plot(container, this.series, counter.graph_options);
-
-            // remove all the samples from the updates array
-            counter.updates.splice(0, counter.updates.length);
-        }
+        counter.updates = [];
     }
 }
 
 GputopUI.prototype.update_oa_graphs = function(timestamp) {
     this.timestamp = timestamp;
-    if (global_paused_query) {
-        this.update_graphs_paused(timestamp);
+
+    var metric = this.current_metric_set;
+    if (metric === undefined)
         return;
+
+    var n_counters = metric.cc_counters.length;
+    if (n_counters === 0)
+        return;
+
+    var first_counter = undefined;
+    for (var i = 0; i < metric.cc_counters.length; i++) {
+        first_counter = metric.cc_counters[i];
+        if (first_counter.record_data === true)
+            break;
     }
+    if (!first_counter)
+        return;
 
-    var metric = this.lookup_metric_for_guid(global_guid);
+    var n_updates = first_counter.updates.length;
 
-    for (var i = 0; i < this.graph_array.length; ++i) {
-        var container = "#" + this.graph_array[i];
-        var counter = $(container).data("counter");
+    if (n_updates === 0)
+        return;
 
-        var length = counter.updates.length;
-        var x_min = 0;
-        var x_max = 1;
+    if (metric.start_timestamp === 0) {
+        metric.start_timestamp = timestamp;
+        metric.start_gpu_timestamp = first_counter.updates[n_updates - 1][1];
+    }
+    var elapsed = (timestamp - metric.start_timestamp) * 1000000;
 
-        if (!this.start_timestamp && length > 0) {
-            this.start_timestamp = timestamp;
-            this.start_gpu_timestamp = counter.updates[length - 1][0]; // end_timestamp
-        }
+    var time_range = this.zoom * 1000000000;
+    var margin = time_range * 0.05;
 
-        var elapsed = (timestamp - this.start_timestamp) * 1000000; // elapsed time from the very begining
+    var x_max = metric.start_gpu_timestamp + elapsed;
+    var x_min = x_max - time_range;
 
-        var time_range = this.zoom * 1000000000;
-        var margin = time_range * 0.05;
+    // data is saved in the graph for an interval of 20 seconds regardless
+    // of the zoom value
+    var max_graph_data = x_max - 20000000000;
 
-        x_max = this.start_gpu_timestamp + elapsed;
-        x_min = x_max - time_range;
+    for (var i = 0; i < n_counters; i++) {
+        var counter = metric.cc_counters[i];
+        if (!counter.record_data)
+            continue;
 
-        // data is saved in the graph for an interval of 20 seconds regardless
-        // of the zoom value
-        var max_graph_data = x_max - 20000000000;
+        var container = counter.flot_container;
+        if (!container)
+            continue;
 
         // remove the old samples from the graph data
         for (var j = 0; j < counter.graph_data.length &&
@@ -259,8 +367,7 @@ GputopUI.prototype.update_oa_graphs = function(timestamp) {
         if (j > 0)
             counter.graph_markings = counter.graph_markings.slice(j);
 
-        var save_index = -1;
-        for (var j = 0; j < length; j++) {
+        for (var j = 0; j < n_updates; j++) {
             var start = counter.updates[j][0];
             var end = counter.updates[j][1];
             var val = counter.updates[j][2];
@@ -269,20 +376,12 @@ GputopUI.prototype.update_oa_graphs = function(timestamp) {
 
             counter.graph_data.push([mid, val]);
             counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
-            save_index = j;
         }
 
-        // resync the timestamps (the javascript timestamp with the counter timestamp)
-        if (elapsed > 5000000000 && save_index > -1)
-        {
-            this.start_timestamp = timestamp;
-            this.start_gpu_timestamp = counter.updates[save_index][0];
-        }
-
-        // adjust the min and max (start and end of the graph)
         counter.graph_options.xaxis.min = x_min + margin;
         counter.graph_options.xaxis.max = x_max - margin;
         counter.graph_options.xaxis.label = this.zoom + ' seconds';
+        counter.graph_options.xaxis.panRange = false;
 
         var default_markings = create_default_markings(counter.graph_options.xaxis);
         counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
@@ -290,16 +389,22 @@ GputopUI.prototype.update_oa_graphs = function(timestamp) {
         this.series[0].data = counter.graph_data;
         $.plot(container, this.series, counter.graph_options);
 
-        // remove all the samples from the updates array
-        counter.updates.splice(0, counter.updates.length);
+        /* XXX: we currently have to come up with new synchronization points
+         * periodically otherwise the clocks drift apart too much...
+         */
+        if (elapsed > 5000000000) {
+            metric.start_timestamp = timestamp;
+            metric.start_gpu_timestamp = first_counter.updates[n_updates - 1][1];
+        }
+
+        counter.updates = [];
     }
 }
-
 
 GputopUI.prototype.update_counter = function(counter) {
     var bar_value = counter.latest_value;
     var text_value = counter.latest_value;
-    var max = counter.latest_max;
+    var max = counter.inferred_max;
     var units = counter.units;
     var units_suffix = "";
     var dp = 0;
@@ -443,12 +548,14 @@ GputopUI.prototype.update_cpu_stats = function (timestamp) {
 }
 
 GputopUI.prototype.update = function(timestamp) {
-    var metric = this.active_oa_metric_;
+    var metric = this.current_metric_set;
     if (metric == undefined)
         return;
 
-    this.update_oa_graphs(timestamp);
-
+    if (metric.paused)
+        this.update_oa_graphs_paused(timestamp);
+    else
+        this.update_oa_graphs(timestamp);
 
     this.update_cpu_stats(timestamp);
 
@@ -506,11 +613,11 @@ GputopUI.prototype.update_features = function(features) {
         $( "#metrics-tab-a" ).html("Metrics (Fake Mode) ");
 
     this.load_metrics_panel(() => {
-        var metric = this.lookup_metric_for_guid(global_guid);
-
-        this.update_metric_period_exponent_for_zoom(metric);
-
-        this.open_oa_metric_set({guid:global_guid});
+        var metric = this.current_metric_set;
+        if (metric !== undefined) {
+            this.update_metric_aggregation_period_for_zoom(metric);
+            this.open_oa_metric_set({guid: metric.guid_});
+        }
     });
 
     this.cpu_stats_stream = this.open_cpu_stats({sample_period_ms: 300}, () => {
@@ -711,11 +818,23 @@ GputopUI.prototype.reconnect = function(callback) {
 
     function do_connect() {
         $( ".gputop-connecting" ).show();
-        this.connect(address, () => {
-            $( ".gputop-connecting" ).hide();
-            if (callback !== undefined)
-                callback();
-        });
+        this.connect(address,
+                     () => { //onopen
+                         $( ".gputop-connecting" ).hide();
+                         if (callback !== undefined)
+                             callback();
+                     },
+                     () => { //onclose
+                         this.user_msg("Disconnected: Retry in 5 seconds", this.WARN);
+                         // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
+                         setTimeout(this.reconnect.call(this, callback), 5000);
+                     },
+                     () => { // onerror
+                         this.user_msg("Failed to connect: Retry in 5 seconds", this.ERROR);
+                         // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
+                         setTimeout(this.reconnect.call(this, callback), 5000);
+                     }
+                    );
     }
 
     if (this.demo_mode !== current_demo_mode) {

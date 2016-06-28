@@ -15,9 +15,6 @@
     <div style="display: table-cell; padding-left:25px; vertical-align: middle">
         <b>Zoom: &nbsp</b> <input type="text" value="10" data-slider-min="1" data-slider-max="20" data-slider-step="0.5" data-slider-value="10" data-slider-id="slider_style" id="zoom_slider">
     </div>
-    <div class="checkbox" id="per_ctx_mode_checkbox" style="display: table-cell; padding-left:25px; vertical-align: middle"  data-toggle="tooltip" title="Filter by context using the kernel. For userspace metrics without root access">
-        <label><input type = "checkbox" id = "per_ctx_mode"><b>Per context mode</b> <small>(experimental)</small></label>
-    </div>
 
 </div>
 
@@ -41,14 +38,7 @@
             slider.setAttribute('min', 0.1);
             slider.setValue(slider.getValue()); // update the slider visual position
 
-            gputop.close_active_metric_set(() => {
-                gputop.show_alert("Closed metric set", "alert-info");
-
-                global_paused_query = true;
-
-                gputop.open_oa_metric_set({guid:global_guid, paused_state:1},
-                                          gputop.replay_buffer.bind(gputop));
-            });
+            gputop.set_paused(true);
         } else {
             iSelector.removeClass('glyphicon-play')
             iSelector.addClass('glyphicon-pause')
@@ -56,17 +46,10 @@
             if (slider.getValue() < 1) {
                 slider.setValue(1);
                 gputop.set_zoom(slider.getValue());
-            }
-            else slider.setValue(slider.getValue());
+            } else
+                slider.setValue(slider.getValue());
 
-            gputop.close_active_metric_set(() => {
-                gputop.show_alert("Closed metric set", "alert-info");
-            
-                global_paused_query = false;
-
-                gputop.clear_graphs();
-                gputop.open_oa_metric_set({guid:global_guid});
-            });
+            gputop.set_paused(false);
         }
     }
 
@@ -74,7 +57,6 @@
                       "Tier1", "Tier2", "Tier3", "Tier4"];
     var metric_order = [];
     var selected_index;
-    var global_paused_query = false;
     var set_array = {};
 
     function count(name, underscore_name, flags)
@@ -142,6 +124,8 @@
         $('#' + div_id).data("counter", counter);
         $('#' + flot_id).data("counter", counter);
 
+        counter.flot_container = $('#' + flot_id);
+
         counter.div_id_ = div_id;
         counter.div_bar_id_ = counter_bar_id;
         counter.div_txt_id_ = counter_text_bar_id;
@@ -155,8 +139,8 @@
 
         set_array[name] = new set(name, underscore_name, [], []);
         metric_order.push(name);
-        if (global_guid == "")
-            global_guid = guid;
+        if (!gputop.current_metric_set)
+            gputop.select_metric_set(guid);
 
         var active = "";
         if (set_index == 0) {
@@ -169,10 +153,7 @@
         $('#'+guid).click(function (e) {
             $('#metrics-tab-a').trigger('click');
 
-            global_guid = guid;
-            console.log("click "+e.target.id);
-
-            gputop.open_oa_metric_set({guid:e.target.id});
+            gputop.select_metric_set(guid);
         });
 
         // display of metrics tab-pane
@@ -358,31 +339,12 @@
     } // add_metrics
 
     // index of set + index of active counter forms an unique id for all counters
-    var global_guid = ""; // variable to keep track of the active metric set
     var set_index = 0;
     var slider;
 
     var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
 
     $('#documentation').hide(); // by default hide the equation container
-
-    $('#per_ctx_mode').click(function() {
-        var $this = $(this);
-
-        var metric = gputop.lookup_metric_for_guid(global_guid);
-        if (metric == undefined)
-            return;
-
-        if ($this.is(':checked')) {
-            metric.per_ctx_mode_ = true;
-            console.log("Switching On "+metric.name+" per context");
-        } else {
-            metric.per_ctx_mode_ = false;
-            console.log("Switching Off "+metric.name+" per context");
-        }
-
-        gputop.open_oa_metric_set({guid:global_guid});
-    });
 
     slider = new Slider('#zoom_slider', {
         formatter: function(value) {
@@ -393,10 +355,6 @@
 
     $("#zoom_slider").on("slide change", function(slideEvt) {
         gputop.set_zoom(slider.getValue());
-        if (global_paused_query == true) {
-            gputop.clear_graphs();
-            gputop.replay_buffer();
-        }
     });
 
     // read counters from xml file and populate the website
@@ -404,7 +362,7 @@
 
     // display the new equation
     $('.equation').click(function() {
-        var metric = gputop.lookup_metric_for_guid(global_guid);
+        var metric = gputop.current_metric_set;
         var symbol = $(this).parent().attr("class").split(' ')[1]
         var ctr = metric.find_counter_by_name(symbol);
         $('#documentation').hide();

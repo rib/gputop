@@ -90,10 +90,6 @@ function get_file(filename, load_callback, error_callback) {
     }
 }
 
-Gputop.prototype.is_demo = function() {
-    return false;
-}
-
 function Counter (metricParent) {
 
     this.metric = metricParent;
@@ -117,19 +113,15 @@ function Counter (metricParent) {
     this.inferred_max = 0;
 
     this.updates = [];
-    this.graph_data = [];
-    this.graph_options = []; /* each counter has its own graph options so that
-                              * we can adjust the Y axis for each of them */
     this.units = '';
-    this.graph_markings = [];
 
     /* whether append_counter_data() should really append to counter.updates[] */
     this.record_data = false;
 
     this.eq_xml = ""; // mathml equation
     this.max_eq_xml = ""; // mathml max equation
+
     this.duration_dependent = true;
-    this.test_mode = false;
     this.units_scale = 1; // default value
 }
 
@@ -183,6 +175,7 @@ function Metric (gputopParent) {
     this.counters_map_ = {}; // Map of counters by with symbol_name
     this.metric_set_ = 0;
 
+    this.open_config = undefined;
     this.server_handle = 0;
     this.cc_stream_ptr_ = 0;
 
@@ -207,40 +200,8 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
 }
 
 /* FIXME: some of this should be handled in the Counter constructor */
-Metric.prototype.add_new_counter = function(counter) {
+Metric.prototype.add_counter = function(counter) {
     var symbol_name = counter.symbol_name;
-
-    /* FIXME: this should be handled by gputop-ui.js somehow! */
-    counter.graph_options = {
-        grid: {
-            borderWidth: 1,
-            minBorderMargin: 20,
-            labelMargin: 10,
-            backgroundColor: {
-                colors: ["#fff", "#e4f4f4"]
-            },
-            margin: {
-                top: 8,
-                bottom: 20,
-                left: 20
-            },
-        },
-        xaxis: {
-            show: false,
-            panRange: null
-        },
-        yaxis: {
-            min: 0,
-            max: 110,
-            panRange: false
-        },
-        legend: {
-            show: true
-        },
-        pan: {
-            interactive: true
-        }
-    };// options
 
     var sp = cc.Runtime.stackSave();
 
@@ -271,6 +232,63 @@ Metric.prototype.set_aggregation_period = function(period_ns) {
         cc._gputop_cc_update_stream_period(this.cc_stream_ptr_, period_ns);
 }
 
+Metric.prototype.clear_metric_data = function() {
+
+    cc._gputop_cc_reset_accumulator(this.cc_stream_ptr_);
+
+    for (var i = 0; i < this.cc_counters.length; i++) {
+        var counter = this.cc_counters[i];
+        counter.updates = [];
+    }
+}
+
+Metric.prototype.replay_buffer = function() {
+    this.clear_metric_data();
+
+    for (var i = 0; i < this.history.length; i++) {
+        var data = this.history[i];
+
+        var sp = cc.Runtime.stackSave();
+
+        var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
+
+        cc._gputop_cc_handle_i915_perf_message(this.cc_stream_ptr_,
+                                               stack_data,
+                                               data.length);
+        cc.Runtime.stackRestore(sp);
+    }
+}
+
+Metric.prototype.set_paused = function(paused) {
+
+    if (this.paused === paused)
+        return;
+
+    if (this.closing_) {
+        this.user_msg("Ignoring attempt to pause OA metrics while waiting for close ACK", this.ERROR);
+        return;
+    }
+
+    function _open_with_new_state() {
+        if (paused) {
+            this.gputop.open_oa_metric_set({guid: this.guid_, paused_state: true},
+                                           this.replay_buffer.bind(this));
+        } else {
+            this.clear_metric_data();
+            this.gputop.open_oa_metric_set({guid: this.guid_});
+        }
+    }
+
+    if (this.server_handle !== 0)
+        this.gputop.close_oa_metric_set(this, _open_with_new_state.bind(this));
+    else
+        _open_with_new_state.call(this);
+
+    /* XXX: change state after calling close_oa_metric_set otherwise it might
+     * be confused, thinking there's no server stream to close */
+    this.paused = paused;
+}
+
 function Process_info () {
     this.pid_ = 0;
     this.process_name_ = "empty";
@@ -298,6 +316,8 @@ Process_info.prototype.update = function(process) {
 }
 
 function Gputop () {
+
+    this.connection = undefined;
 
     /* To support being able to redirect the output of node.js tools
      * we redirect all console logging to stderr... */
@@ -375,6 +395,16 @@ function Gputop () {
     this.test_log_messages = [];
 
     this.test_log("Global Gputop object constructed");
+
+
+    // Enable tools to subclass metric sets and counters even though
+    // gputop.js is responsible for allocating these objects...
+    this.MetricConstructor = Metric;
+    this.CounterConstructor = Counter;
+}
+
+Gputop.prototype.is_demo = function() {
+    return false;
 }
 
 Gputop.prototype.application_log = function(level, message)
@@ -440,11 +470,12 @@ Gputop.prototype.get_metrics_xml = function() {
 Gputop.prototype.parse_counter_xml = function(metric, xml_elem) {
     var $cnt = $(xml_elem);
 
-    var counter = new Counter(metric);
+    var counter = new metric.gputop.CounterConstructor(metric);
     counter.name = $cnt.attr("name");
     counter.symbol_name = $cnt.attr("symbol_name");
     counter.underscore_name = $cnt.attr("underscore_name");
     counter.description = $cnt.attr("description");
+    counter.flags = $cnt.attr("mdapi_usage_flags").split(" ");
     counter.eq_xml = ($cnt.find("mathml_EQ"));
     counter.max_eq_xml = ($cnt.find("mathml_MAX_EQ"));
     if (counter.max_eq_xml.length == 0)
@@ -465,7 +496,7 @@ Gputop.prototype.parse_counter_xml = function(metric, xml_elem) {
      if (units === 'hz' || units === 'percent')
          counter.duration_dependent = false;
 
-    metric.add_new_counter.call(metric, counter);
+    metric.add_counter.call(metric, counter);
 }
 
 Gputop.prototype.get_metric_by_id = function(idx){
@@ -477,7 +508,7 @@ Gputop.prototype.lookup_metric_for_guid = function(guid){
     if (guid in this.map_metrics_) {
         metric = this.map_metrics_[guid];
     } else {
-        metric = new Metric(this);
+        metric = new this.MetricConstructor(this);
         metric.guid_ = guid;
         this.map_metrics_[guid] = metric;
     }
@@ -538,7 +569,7 @@ Gputop.prototype.stream_update_counter = function (stream_ptr,
     }
 
     if (counter_id >= metric.cc_counters.length) {
-        console.error("Ignoring spurious counter update for out-of-range counter index");
+        console.error("Ignoring spurious counter update for out-of-range counter index " + counter_id);
         return;
     }
 
@@ -595,6 +626,8 @@ Gputop.prototype.open_oa_metric_set = function(config, callback) {
         var metric = this.lookup_metric_for_guid(config.guid);
         var oa_exponent = metric.exponent;
         var per_ctx_mode = metric.per_ctx_mode_;
+
+        this.open_config = config;
 
         if ('oa_exponent' in config)
             oa_exponent = config.oa_exponent;
@@ -699,6 +732,7 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
 
         metric.cc_stream_ptr_ = 0;
         metric.server_handle = 0;
+        metric.open_config = undefined;
 
         metric.closing_ = false;
 
@@ -710,7 +744,7 @@ Gputop.prototype.close_oa_metric_set = function(metric, callback) {
     metric.closing_ = true;
     this.active_oa_metric_ = undefined;
 
-    if (global_paused_query) {
+    if (metric.paused) {
         _finish_close.call(this);
     } else {
         this.rpc_request('close_query', metric.server_handle, (msg) => {
@@ -735,13 +769,6 @@ var EventTarget = function() {
 };
 
 EventTarget.prototype.listeners = null;
-EventTarget.prototype.addEventListener = function(type, callback) {
-    if(!(type in this.listeners)) {
-        this.listeners[type] = [];
-    }
-    this.listeners[type].push(callback);
-};
-
 EventTarget.prototype.removeEventListener = function(type, callback) {
     if(!(type in this.listeners)) {
         return;
@@ -754,6 +781,15 @@ EventTarget.prototype.removeEventListener = function(type, callback) {
         }
     }
 };
+
+EventTarget.prototype.addEventListener = function(type, callback) {
+    if(!(type in this.listeners)) {
+        this.listeners[type] = [];
+    }
+    this.removeEventListener(type, callback);
+    this.listeners[type].push(callback);
+};
+
 
 EventTarget.prototype.dispatchEvent = function(event){
     if(!(event.type in this.listeners)) {
@@ -807,15 +843,6 @@ Gputop.prototype.open_cpu_stats = function(config, callback) {
     });
 
     return stream;
-}
-
-Gputop.prototype.close_active_metric_set = function(callback) {
-    if (this.active_oa_metric_ == undefined) {
-        this.user_msg("No Active Metric Set");
-        return;
-    }
-
-    this.close_oa_metric_set(this.active_oa_metric_, callback);
 }
 
 Gputop.prototype.get_tracepoint_info = function(name, callback) {
@@ -973,7 +1000,7 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, callback) {
         open.set('overwrite', false);   /* don't overwrite old samples */
         open.set('live_updates', true); /* send live updates */
 
-        /* FIXME: remove from OpenQuery - not relevant to opening cpu stats */
+        /* FIXME: remove from OpenQuery - not relevant to opening a tracepoint */
         open.set('per_ctx_mode', false);
 
         console.log("REQUEST = " + JSON.stringify(open));
@@ -1249,36 +1276,6 @@ Gputop.prototype.dispose = function() {
     this.active_oa_metric_ = undefined;
 }
 
-function gputop_socket_on_close() {
-    this.dispose();
-
-    this.log("Disconnected");
-    this.user_msg("Failed connecting to GPUTOP <p\>Retry in 5 seconds", this.WARN);
-    // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
-    setTimeout(this.connect.bind(this), 5000);
-
-    this.is_connected_ = false;
-}
-
-Gputop.prototype.replay_buffer = function() {
-    var metric = this.active_oa_metric_;
-
-    this.clear_graphs();
-
-    for (var i = 0; i < metric.history.length; i++) {
-        var data = metric.history[i];
-
-        var sp = cc.Runtime.stackSave();
-
-        var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
-
-        cc._gputop_cc_handle_i915_perf_message(metric.cc_stream_ptr_,
-                                               stack_data,
-                                               data.length);
-        cc.Runtime.stackRestore(sp);
-    }
-}
-
 function gputop_socket_on_message(evt) {
     var dv = new DataView(evt.data, 0);
     var data = new Uint8Array(evt.data, 8);
@@ -1387,16 +1384,36 @@ Gputop.prototype.get_process_info = function(pid, callback) {
     this.rpc_request('get_process_info', pid, callback);
 }
 
-Gputop.prototype.connect_web_socket = function(websocket_url, onopen) {
-    var socket = new WebSocket(websocket_url, "binary");
+Gputop.prototype.connect_web_socket = function(websocket_url, onopen, onclose, onerror) {
+    try {
+        var socket = new WebSocket(websocket_url, "binary");
+    } catch (e) {
+        gputop.log("new WebSocket error", this.ERROR);
+        if (onerror !== undefined)
+            onerror();
+        return null;
+    }
     socket.binaryType = "arraybuffer";
 
     socket.onopen = () => {
         this.user_msg("Connected to GPUTOP");
         this.flush_test_log();
-        onopen();
+        if (onopen !== undefined)
+            onopen();
     }
-    socket.onclose = gputop_socket_on_close.bind(this);
+
+    socket.onclose = () => {
+        if (onclose !== undefined)
+            onclose();
+
+        this.dispose();
+
+        this.user_msg("Disconnected");
+    }
+
+    if (onerror !== undefined)
+        socket.onerror = onerror;
+
     socket.onmessage = gputop_socket_on_message.bind(this);
 
     return socket;
@@ -1415,31 +1432,65 @@ Gputop.prototype.load_gputop_proto = function(onload) {
     function (error) { console.log(error); });
 }
 
-Gputop.prototype.connect = function(address, callback) {
+var GputopConnection = function(gputopObj) {
+    EventTarget.call(this);
+
+    this.gputop = gputopObj;
+}
+
+GputopConnection.prototype = Object.create(EventTarget.prototype);
+
+Gputop.prototype.connect = function(address, onopen, onclose, onerror) {
     this.dispose();
+
+    if (this.connection === undefined)
+        this.connection = new GputopConnection(this);
+
+    if (onopen !== undefined)
+        this.connection.on('open', onopen);
+
+    if (onclose !== undefined)
+        this.connection.on('close', onclose);
+
+    if (onerror !== undefined)
+        this.connection.on('error', onerror);
 
     this.load_emscripten(() => {
         this.load_gputop_proto(() => {
             if (!this.is_demo()) {
                 var websocket_url = 'ws://' + address + '/gputop/';
-                this.log('Connecting to port ' + websocket_url);
-                this.socket_ = this.connect_web_socket(websocket_url, () => {
+                this.log('Connecting to ' + websocket_url);
+                this.socket_ = this.connect_web_socket(websocket_url, () => { //onopen
                     this.is_connected_ = true;
                     this.request_features();
-                    if (callback !== undefined)
-                        callback();
+
+                    var ev = { type: "open" };
+                    this.connection.dispatchEvent(ev);
+                },
+                () => { //onclose
+                    var ev = { type: "close" };
+                    this.connection.dispatchEvent(ev);
+                },
+                () => { //onerror
+                    var ev = { type: "error" };
+                    this.connection.dispatchEvent(ev);
                 });
             } else {
                 this.is_connected_ = true;
                 this.request_features();
-                if (callback !== undefined)
-                    callback();
+
+                var ev = { type: "open" };
+                this.connection.dispatchEvent(ev);
             }
         });
     });
+
+    return this.connection;
 }
 
 if (is_nodejs) {
     /* For use as a node.js module... */
     exports.Gputop = Gputop;
+    exports.Metric = Metric;
+    exports.Counter = Counter;
 }
