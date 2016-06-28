@@ -187,10 +187,6 @@ function Metric (gputopParent) {
     this.history_size = 0;
 }
 
-Metric.prototype.is_per_ctx_mode = function() {
-    return this.per_ctx_mode_;
-}
-
 Metric.prototype.find_counter_by_name = function(symbol_name) {
     return this.counters_map_[symbol_name];
 }
