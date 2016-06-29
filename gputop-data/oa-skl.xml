@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1467042848" merge_md5="">
+<metrics version="1467210025" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -820,7 +820,7 @@
              />
     <register_config id="1"
                      availability="$SkuRevisionId 0x02 ULT"
-                     priority="0"
+                     priority="1"
                      >
         <register type="NOA" address="0x00009888" value="0x166C01E0" />
         <register type="NOA" address="0x00009888" value="0x12170280" />
@@ -897,7 +897,7 @@
     </register_config>
     <register_config id="1"
                      availability="$SkuRevisionId 0x02 UGTE"
-                     priority="0"
+                     priority="1"
                      >
         <register type="NOA" address="0x00009888" value="0x166C01E0" />
         <register type="NOA" address="0x00009888" value="0x12170280" />
@@ -5095,7 +5095,7 @@
     </register_config>
     <register_config id="1"
                      availability="$SubsliceMask 0x02 AND $SkuRevisionId 0x02 ULT &amp;&amp;"
-                     priority="0"
+                     priority="2"
                      >
         <register type="NOA" address="0x00009888" value="0x104F00E0" />
         <register type="NOA" address="0x00009888" value="0x143C0160" />
@@ -5161,7 +5161,7 @@
     </register_config>
     <register_config id="1"
                      availability="$SubsliceMask 0x04 AND $SkuRevisionId 0x02 ULT &amp;&amp;"
-                     priority="0"
+                     priority="4"
                      >
         <register type="NOA" address="0x00009888" value="0x124F1C00" />
         <register type="NOA" address="0x00009888" value="0x145C8160" />
