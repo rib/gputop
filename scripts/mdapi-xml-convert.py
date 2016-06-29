@@ -398,7 +398,7 @@ def add_register_config(set, id, priority, availability, regs, type):
     reg_config = ET.SubElement(set, 'register_config')
 
     reg_config.set('id', str(id))
-    reg_config.set('priority', str(reg_config_priorty))
+    reg_config.set('priority', str(reg_config_priority))
 
     if availability != None:
         reg_config.set('availability', availability)
@@ -526,10 +526,10 @@ for arg in args.xml:
                 print_err("ERROR: register configs mixing implied/explicit IDs: MetricSet=\"" + mdapi_set.get('ShortName'))
                 sys.exit(1)
 
-            if mdapi_reg_config.get('ConfigPrioirity') != None:
-                reg_config_priorty = int(mdapi_reg_config.get('ConfigPriority'))
+            if mdapi_reg_config.get('ConfigPriority') != None:
+                reg_config_priority = int(mdapi_reg_config.get('ConfigPriority'))
             else:
-                reg_config_priorty = 0
+                reg_config_priority = 0
 
             availability = mdapi_reg_config.get('AvailabilityEquation')
             if availability == "":
@@ -538,7 +538,7 @@ for arg in args.xml:
             if reg_config_id > max_id:
                 max_id = reg_config_id
 
-            add_register_config(set, reg_config_id, reg_config_priorty, availability, mux_regs, "NOA")
+            add_register_config(set, reg_config_id, reg_config_priority, availability, mux_regs, "NOA")
 
             n_configs = n_configs + 1
 
