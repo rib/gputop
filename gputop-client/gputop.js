@@ -254,7 +254,7 @@ Metric.prototype.replay_buffer = function() {
 Metric.prototype.set_paused = function(paused) {
 
     if (this.stream === undefined) {
-        this.gputop.error("Can't change pause state of OA metric without a stream");
+        this.gputop.log("Can't change pause state of OA metric without a stream", this.gputop.ERROR);
         return;
     }
 
@@ -262,7 +262,7 @@ Metric.prototype.set_paused = function(paused) {
         return;
 
     if (this.closing_) {
-        this.user_msg("Ignoring attempt to pause OA metrics while waiting for close ACK", this.ERROR);
+        this.gputop.log("Ignoring attempt to pause OA metrics while waiting for close ACK", this.gputop.ERROR);
         return;
     }
 
