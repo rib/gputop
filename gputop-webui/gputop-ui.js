@@ -91,6 +91,22 @@ MetricSetUI.prototype.clear_metric_data = function() {
     }
 }
 
+var getUrlParameter = function(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
+
+
 function GputopUI () {
     Gputop.call(this);
     this.MetricConstructor = MetricSetUI;
@@ -101,15 +117,34 @@ function GputopUI () {
      * address:port for a target to connect to. (which is why we don't
      * do these checks in the .is_demo() method.
      */
-    var demo = getUrlParameter('demo');
-    if (demo == "true" || demo == "1"
-        || window.location.hostname == "gputop.github.io"
-        || window.location.hostname == "www.gputop.com"
-       ) {
+
+    var demo = false;
+
+    if (window.location.hostname == "gputop.github.io" ||
+        window.location.hostname == "www.gputop.com")
+        demo = true;
+
+    var target = getUrlParameter('target');
+    var port = getUrlParameter('port');
+
+    if (target !== undefined)
+        demo = false;
+
+    var demo_param = getUrlParameter('demo');
+    if (demo_param !== undefined && (demo_param === "true" ||
+                                     demo_param === "1" ||
+                                     demo_param === true))
+        demo = true;
+
+    if (demo === true) {
         $('#target_address').attr('value', "demo");
         this.demo_mode = true;
     } else {
-        $('#target_address').attr('value', window.location.hostname);
+        if (target === undefined)
+            target = window.location.hostname;
+        $('#target_address').attr('value', target);
+        if (port !== undefined)
+            $('#target_port').attr('value', port);
         this.demo_mode = false;
     }
 
@@ -834,9 +869,7 @@ GputopUI.prototype.reconnect = function(callback) {
                          setTimeout(this.reconnect.call(this, callback), 5000);
                      },
                      () => { // onerror
-                         this.user_msg("Failed to connect: Retry in 5 seconds", this.ERROR);
-                         // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
-                         setTimeout(this.reconnect.call(this, callback), 5000);
+                         this.user_msg("Failed to connect to " + address, this.ERROR);
                      }
                     );
     }
