@@ -33,7 +33,7 @@ const ArgumentParser = require('argparse').ArgumentParser;
 var screen = blessed.screen({
     smartCSR: true,
     debug: true,
-    log: "flibble.txt"
+    //log: "gputop-term.log"
 });
 
 var sidenav_width = 37;
@@ -46,6 +46,12 @@ function TermCounter (metricSetParent) {
     this.graph_abs_data = [];
     this.graph_percent_data = [];
     this.update_series = false;
+
+    this.include_in_graph = false;
+    this.visible = true;
+
+    this.zero = true; /* reset once we see any value > 0 for the counter
+                         so inactive counters can be hidden by default */
 }
 
 TermCounter.prototype = Object.create(Gputop.Counter.prototype);
@@ -59,16 +65,29 @@ function TermMetricSet (gputopParent) {
 
     this.counters_scrollable = blessed.box({
         parent: gputopParent.metrics_tab,
-        top: linechart_height,
+        top: linechart_height + 1,
         left: sidenav_width,
         width: '100%-' + sidenav_width,
-        height: '100%-' + linechart_height,
+        height: '100%-' + (linechart_height + 1),
+        //height: 5,
         hidden: true,
         scrollable: true,
-        scrollbar: true,
+        alwaysScroll: true,
+        scrollbar: {
+            ch: ' ',
+            inverse: true
+        },
+
         mouse: true,
         keys: true,
-
+        /*
+        style: {
+            scrollbar: { 
+                fg: "red",
+                bg: "green",
+            }
+        },
+        */
         border: {
             type: 'line'
         },
@@ -120,159 +139,193 @@ TermMetricSet.prototype.allocate_counter_widgets = function () {
 
     this.queue_allocate = false;
 
-    this.line_chart = contrib.line({
-        style: {
-            line: "yellow",
-            text: "green",
-            baseline: "black",
-            //border: {
-            //    type: 'line'
-            //},
-        },
-        xLabelPadding: 3,
-        xPadding: 5,
-        showLegend: true,
-        legend: {
-            width: 20,
-        },
-        wholeNumbersOnly: false,
-        label: 'Check "[ ] add to graph ⬏ " to see detailed trace here...',
-        top: 1,
-        left: sidenav_width,
-        height: linechart_height,
-        width: '100%-' + sidenav_width,
-    });
-    this.gputop.metrics_tab.append(this.line_chart);
+    if (this.line_chart === undefined) {
+        this.line_chart = contrib.line({
+            style: {
+                line: "yellow",
+                text: "green",
+                baseline: "black",
+                //border: {
+                //    type: 'line'
+                //},
+            },
+            xLabelPadding: 3,
+            xPadding: 5,
+            showLegend: true,
+            legend: {
+                width: 20,
+            },
+            wholeNumbersOnly: false,
+            label: 'Check "[ ] add to graph ⬏ " to see detailed trace here...',
+            top: 1,
+            left: sidenav_width,
+            height: linechart_height,
+            width: '100%-' + sidenav_width,
+        });
+        this.gputop.metrics_tab.append(this.line_chart);
+    }
 
-    this.counter_list_offset = 1;
+    this.counter_list_offset = 0;
 
     var label_col_width = 30;
 
     for (var i = 0; i < this.cc_counters.length; i++) {
         var counter = this.cc_counters[i];
 
-        var lpos = 0;
-
-        var label = blessed.text({
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            width: label_col_width,
-            height: 1,
-            content: counter.name,
-            //hoverText: counter.description,
-        });
-
-        lpos += label.width;
-
-        var label = blessed.text({
-            screen: screen,
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            width: 3,
-            height: 1,
-            content: '(ℹ)',
-            hoverText: counter.description,
-        });
-        lpos += 4;
-
+        if (counter.hbox !== undefined) {
+            counter.hbox.detach();
+        }
         /*
-        counter.graph_check.on('check', () => {
-            counter.update_series = true;
-        });
-        counter.graph_check.on('uncheck', () => {
-            counter.update_series = false;
-        });
+        if (!counter.visible) {
+
+            continue;
+        }
         */
 
-        //this.counter_list_offset++;
+        if (counter.hbox === undefined) {
+            var hbox = blessed.box({
+                screen: screen,
+                parent: this.counter_list,
+                scrollable: true,
+                top: this.counter_list_offset,
+                left: 0,
+                width: '100%-3',
+                height: 2,
+            });
+            counter.hbox = hbox;
 
-        //this.gputop.log("Add counter " + counter.name);
+            var lpos = 0;
 
-        counter.gauge = blessed.box({
-            screen: screen,
-            //parent: screen,
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            width: 10,
-            height: 1,
-            //left: '15%',
-            //label: 'Progress',
-            //stroke: 'green',
-            //fill: 'white',
-            style: {
-                fg: 'green',
-                bg: 'grey',
-            }
-        });
-        lpos += counter.gauge.width;
+            var label = blessed.text({
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                width: label_col_width,
+                height: 1,
+                content: counter.name + i,
+                //content: "" + i,
+                hoverText: counter.description + i,
+            });
 
-        var label = blessed.text({
-            screen: screen,
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            width: 3,
-            height: 1,
-            content: '%',
-        });
-        lpos += 2;
+            lpos += label.width;
 
-        //this.counter_list.append(counter.gauge);
-        //this.gputop.log("Appended gauge");
-        //counter.gauge.setPercent(25);
+            var label = blessed.text({
+                screen: screen,
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                width: 3,
+                height: 1,
+                content: '(ℹ)',
+                hoverText: counter.description,
+            });
+            lpos += 4;
 
-        counter.sparkline = blessed.box({
-            screen: screen,
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            width: 50,
-            height: 1,
-            //label: 'spark',
-            tags: true,
-            style: {
-                fg: 'blue',
-                bg: 'grey',
-            }
-        })
-        lpos += counter.sparkline.width + 1;
+            counter.gauge = blessed.box({
+                screen: screen,
+                scrollable: true,
+                parent: hbox,
+                top: 0,
+                left: lpos,
+                width: 10,
+                height: 1,
+                style: {
+                    fg: 'green',
+                    bg: 'grey',
+                }
+            });
+            lpos += counter.gauge.width;
 
-        counter.graph_check = blessed.checkbox({
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: lpos,
-            height: 1,
-            width: 20,
-            text: "add to graph ⬏",
-            mouse: true,
-        });
-        lpos += counter.graph_check.width;
+            var label = blessed.text({
+                screen: screen,
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                width: 3,
+                height: 1,
+                content: '%',
+            });
+            lpos += 2;
 
-        this.counter_list_offset++;
+            //this.counter_list.append(counter.gauge);
+            //this.gputop.log("Appended gauge");
+            //counter.gauge.setPercent(25);
 
-        //this.counter_list.append(counter.sparkline);
+            counter.sparkline = blessed.box({
+                screen: screen,
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                width: 50,
+                height: 1,
+                //label: 'spark',
+                tags: true,
+                style: {
+                    fg: 'blue',
+                    //bg: 'orange',
+                }
+            })
+            lpos += counter.sparkline.width + 1;
 
-        //this.counter_list_offset += 5;
-        /*
-        //this.counter_list.append(counter.gauge);
-        //counter.gauge.setPercent(25);
-        */
-        //this.counter_list_offset += 2;
+            counter.graph_check = blessed.checkbox({
+                screen: screen,
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                height: 1,
+                width: 20,
+                text: "add to graph ⬏",
+                mouse: true,
+                checked: counter.include_in_graph
+            });
+            //need to capture 'counter' otherwise the
+            //checks would just relate to the last counter
+            //in the loop
+            (function (counter) {
+                counter.graph_check.on('check', () => {
+                    counter.include_in_graph = true;
+                })
+                counter.graph_check.on('uncheck', () => {
+                    counter.include_in_graph = false;
+                });
+            })(counter);
 
-        counter.baseline = blessed.Line({
-            parent: this.counter_list,
-            top: this.counter_list_offset,
-            left: 0,
-            width: '100%-2',
-            height: 1,
-            orientation: 'horizontal',
-            //label: counter.name,
-        });
+            lpos += counter.graph_check.width;
 
-        this.counter_list_offset++;
+            counter.value_txt = blessed.box({
+                screen: screen,
+                parent: hbox,
+                scrollable: true,
+                top: 0,
+                left: lpos,
+                width: 10,
+                height: 1,
+            })
+            lpos += counter.value_txt.width + 1;
+
+
+            counter.baseline = blessed.Line({
+                parent: hbox,
+                scrollable: true,
+                top: 1,
+                left: 0,
+                width: '100%-3',
+                height: 1,
+                orientation: 'horizontal',
+                //label: counter.name,
+            });
+        }
+
+        counter.hbox.top = this.counter_list_offset;
+        //if (counter.hbox.parent === undefined)
+            this.counter_list.append(counter.hbox);
+
+        this.counter_list_offset += 2;
     }
 }
 
@@ -285,6 +338,7 @@ function GputopTerm()
     this.zoom = 10; //seconds
 
     this.redraw_queued_ = false;
+    this.filter_queued_ = false;
 
     this.previous_zoom = 0;
 
@@ -300,6 +354,9 @@ function GputopTerm()
 
     this.current_metric_set = undefined;
 
+
+    this.flags = [ "Overview", "System", "Frame", "Batch", "Draw", "Indicate",
+                   "Tier1", "Tier2", "Tier3", "Tier4"];
 
     screen.title = "GPUTOP";
     this.screen = screen;
@@ -354,13 +411,6 @@ function GputopTerm()
         },
         style: {
             fg: 'white',
-            bg: 'magenta',
-            border: {
-                fg: '#f0f0f0'
-            },
-            hover: {
-                bg: 'green'
-            }
         }
     });
     this.sidenav.on('select', (item, i) => {
@@ -376,6 +426,8 @@ function GputopTerm()
             var prev_metric = this.current_metric_set;
             this.current_metric_set = metric;
 
+            this.filter_counters();
+
             metric.counters_scrollable.show();
 
             var config = prev_metric.open_config;
@@ -385,6 +437,8 @@ function GputopTerm()
             });
         } else {
             this.current_metric_set = metric;
+
+            this.filter_counters();
 
             metric.counters_scrollable.show();
 
@@ -397,7 +451,7 @@ function GputopTerm()
         parent: this.sidenav,
         top: '50%',
         left: 0,
-        height: '50%',
+        height: '50%-2',
         width: '100%-2',
         border: {
             type: 'line'
@@ -405,6 +459,31 @@ function GputopTerm()
         label: 'Filter options'
     });
 
+    function _add_filter_check(name, pos) {
+        var checkbox = blessed.checkbox({
+            parent: this.filter_box,
+            top: pos,
+            left: 1,
+            height: 1,
+            mouse: true,
+            text: name,
+        });
+        checkbox.on('check', () => {
+            this.filter_counters();
+        });
+        checkbox.on('uncheck', () => {
+            this.filter_counters();
+        });
+        this[name.toLowerCase() + "_check"] = checkbox;
+    }
+
+    _add_filter_check.call(this, "Active", 1);
+    this.flags.forEach((e, i) => {
+        _add_filter_check.call(this, e, i + 2);
+    });
+
+    this.active_check.checked = true;
+    this.overview_check.checked = true;
 
     this.log_tab = blessed.box({
         parent: screen,
@@ -456,21 +535,13 @@ function GputopTerm()
             top_widget: this.overview_tab,
         },
         {
-            name: "OA Metrics",
+            name: "Metrics",
             top_widget: this.metrics_tab,
             enter: () => {
                 this.sidenav.focus();
             },
             leave: () => {
             }
-        },
-        {
-            name: "GL Metrics",
-            top_widget: this.metrics_tab,
-        },
-        {
-            name: "GL Tuneables",
-            top_widget: this.metrics_tab,
         },
         {
             name: "Log",
@@ -630,6 +701,43 @@ GputopTerm.prototype.update_features = function(features)
     this.screen.render();
 }
 
+GputopTerm.prototype.filter_counters = function() {
+    if (this.current_metric_set === metric)
+        return;
+
+    var metric = this.current_metric_set;
+
+    var selected_flags = [];
+    var visible_counters = [];
+
+    this.flags.forEach((e, i) => {
+        if (this[e.toLowerCase() + "_check"].checked) {
+            selected_flags.push(e);
+        }
+    });
+
+    var results = metric.filter_counters({
+        flags: selected_flags,
+        debug: false,
+        active: this.active_check.checked
+    });
+
+    if (results.matched.length > 0) {
+        results.matched.forEach((counter) => {
+            counter.visible = true;
+        });
+
+        //this.select_counter(results.matched[0]);
+    }
+
+    results.others.forEach((counter) => {
+        counter.visible = false;
+    });
+
+    metric.queue_allocate = true;
+    this.queue_redraw();
+}
+
 /* Also returns the maximum OA exponent suitable for viewing at the given
  * zoom level */
 GputopTerm.prototype.update_metric_aggregation_period_for_zoom = function (metric) {
@@ -764,10 +872,12 @@ GputopTerm.prototype.update_oa_graphs = function(timestamp) {
             metric.start_gpu_timestamp = counter.updates[save_index][0];
         }
 
-        counter.sparkline.setContent(sparkline(counter.graph_percent_data.slice(-counter.sparkline.width),
-                                               { min: 0, max: counter.inferred_max }));
+        if (counter.visible) {
+            counter.sparkline.setContent(sparkline(counter.graph_percent_data.slice(-counter.sparkline.width),
+                                                   { min: 0, max: counter.inferred_max }));
+        }
 
-        if (counter.graph_check.checked) {
+        if (counter.include_in_graph) {
             counter.line_series.y = counter.graph_percent_data.slice(-counter.sparkline.width);
             counter.line_series.x = counter.graph_timestamps.slice(-counter.sparkline.width);
             line_chart_series.push(counter.line_series);
@@ -837,6 +947,14 @@ GputopTerm.prototype.update_counter = function(counter) {
                  "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
                  "threads":[" threads", " K threads", " M threads", " G threads"]};
 
+    if (counter.zero && counter.latest_value !== 0) {
+        counter.zero = false;
+        this.queue_filter_counters();
+    }
+
+    if (!counter.visible)
+        return;
+
     if ((units in scale)) {
         dp = 2;
         if (text_value >= giga) {
@@ -863,11 +981,11 @@ GputopTerm.prototype.update_counter = function(counter) {
         //counter.gauge.setContent(range_bar(100 * (bar_value / max), max, counter.gauge.width));
         counter.gauge.setContent(range_bar(100 * (bar_value / max), max, 10));
         //counter.gauge.setContent(range_bar(35, 100, 10));
-        counter.bar_text = text_value.toFixed(dp) + units_suffix;
+        counter.value_txt.setContent(text_value.toFixed(dp) + units_suffix);
     } else {
         //counter.gauge.setPercent(0);
         counter.gauge.setContent("");
-        counter.bar_text =text_value.toFixed(dp) + units_suffix;
+        counter.value_txt.setContent(text_value.toFixed(dp) + units_suffix);
     }
 }
 
@@ -875,6 +993,11 @@ GputopTerm.prototype.update = function(timestamp) {
     var metric = this.current_metric_set;
     if (metric == undefined)
         return;
+
+    if (this.filter_queued_) {
+        this.filter_counters();
+        this.filter_queued_ = false;
+    }
 
     if (metric.queue_allocate)
         metric.allocate_counter_widgets();
@@ -906,6 +1029,10 @@ GputopTerm.prototype.queue_redraw = function() {
     this.redraw_queued_ = true;
 }
 
+GputopTerm.prototype.queue_filter_counters = function() {
+    this.queue_redraw();
+    this.filter_queued_ = true;
+}
 
 //GputopTerm.prototype.log = function(message, level)
 //{

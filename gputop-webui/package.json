@@ -10,6 +10,7 @@
         "long": "^3.0.3",
         "bootstrap": "^3.3.6",
         "bootstrap-slider": "^6.0.16",
+        "bootstrap-toggle": "^2.2.2",
         "bootbox": "4.4.0",
         "jquery": "^2.2.0",
         "jqueryui-browser": "^1.10.2-1",

@@ -165,15 +165,16 @@ function Metric (gputopParent) {
     this.chipset_ = "not loaded";
 
     this.guid_ = "undefined";
+    this.metric_set_index_ = 0; //index into gputop.metrics[]
+
     this.xml_ = "<xml/>";
     this.supported_ = false;
-    this.cc_counters = []; /* Counters applicable to this system, supported via
-                              * gputop-web.c */
     this.counters_ = [];     /* All possible counters associated with this metric
                               * set (not necessarily all supported by the current
                               * system */
+    this.cc_counters = []; /* Counters applicable to this system, supported via
+                              * gputop-web.c */
     this.counters_map_ = {}; // Map of counters by with symbol_name
-    this.metric_set_ = 0;
 
     this.open_config = undefined;
     this.server_handle = 0;
@@ -281,6 +282,49 @@ Metric.prototype.set_paused = function(paused) {
     this.close(() => {
         _open_with_new_state.call(this, config);
     });
+}
+
+Metric.prototype.filter_counters = function(options) {
+    var flags = options.flags;
+    var results = {
+        matched: [],
+        others: []
+    };
+
+    var debug = false;
+    if (options.debug !== undefined)
+        debug = options.debug;
+
+    var active = true;
+    if (options.active !== undefined)
+        active = options.active;
+
+    for (var i = 0; i < this.cc_counters.length; i++) {
+        var counter = this.cc_counters[i];
+        var filter = true;
+
+        for (var j = 0; j < flags.length; j++) {
+            if (counter.flags.indexOf(flags[j]) < 0) {
+                filter = false;
+                break;
+            }
+        }
+
+        if (debug === false) {
+            if (counter.symbol_name === "GpuTime")
+                filter = false;
+        }
+
+        if (active && counter.zero)
+            filter = false;
+
+        if (filter)
+            results.matched.push(counter);
+        else
+            results.others.push(counter);
+    }
+
+    return results;
 }
 
 function Process_info () {
@@ -523,8 +567,8 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
 
     // We populate our array with metrics in the same order as the XML
     // The metric will already be defined when the features query finishes
-    metric.metric_set_ = Object.keys(this.metrics_).length;
-    this.metrics_[metric.metric_set_] = metric;
+    metric.metric_set_index_ = Object.keys(this.metrics_).length;
+    this.metrics_[metric.metric_set_index_] = metric;
 
     $(xml_elem).find("counter").each((i, elem) => {
         this.parse_counter_xml(metric, elem);
@@ -706,31 +750,34 @@ Metric.prototype.open = function(config,
     return stream;
 }
 
+Metric.prototype.destroy_stream = function () {
+    _gputop_cc_stream_destroy(this.cc_stream_ptr_);
+    delete this.gputop.cc_stream_ptr_to_obj_map[this.cc_stream_ptr_];
+    delete this.gputop.server_handle_to_obj[this.stream.server_handle];
+
+    this.cc_stream_ptr_ = 0;
+    this.open_config = undefined;
+
+    var stream = this.stream;
+    this.stream = undefined;
+}
+
 Metric.prototype.close = function(onclose) {
+    if (this.stream === undefined) {
+        this.gputop.log("Redundant OA metric close request", this.gputop.ERROR);
+        return;
+    }
+
     if (this.closing_ === true ) {
         var ev = { type: "error", msg: "Pile Up: ignoring repeated request to close oa metric set (already waiting for close ACK)" };
         this.stream.dispatchEvent(ev);
         return;
     }
 
-    if (this.stream === undefined) {
-        var ev = { type: "error", msg: "Redundant OA metric close request" };
-        this.stream.dispatchEvent(ev);
-        return;
-    }
-
     function _finish_close() {
-        cc._gputop_cc_stream_destroy(this.cc_stream_ptr_);
-        delete this.gputop.cc_stream_ptr_to_obj_map[this.cc_stream_ptr_];
-        delete this.gputop.server_handle_to_obj[this.stream.server_handle];
-
-        this.cc_stream_ptr_ = 0;
-        this.open_config = undefined;
+        this.destroy_stream();
 
         this.closing_ = false;
-
-        var stream = this.stream;
-        this.stream = undefined;
 
         if (onclose !== undefined)
             onclose();
@@ -819,7 +866,7 @@ var Stream = function(server_handle) {
 
 Stream.prototype = Object.create(EventTarget.prototype);
 
-Gputop.prototype.open_cpu_stats = function(config, callback) {
+Gputop.prototype.request_open_cpu_stats = function(config, callback) {
     var stream = new Stream(this.next_server_handle++);
 
     var cpu_stats = new this.gputop_proto_.CpuStatsInfo();
@@ -1165,6 +1212,8 @@ Gputop.prototype.request_features = function() {
 
 Gputop.prototype.process_features = function(features){
 
+    this.features = features;
+
     this.devinfo = features.devinfo;
 
     this.log("Features: ");
@@ -1289,7 +1338,7 @@ Gputop.prototype.dispose = function() {
 
     this.metrics_.forEach(function (metric) {
         if (!metric.closing_ && metric.cc_stream_ptr_)
-            _gputop_cc_stream_destroy(metric.cc_stream_ptr_);
+            metric.destroy_stream();
     });
 
     this.metrics_ = [];

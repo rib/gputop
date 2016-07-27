@@ -15,6 +15,7 @@
     <link rel="stylesheet" type="text/css" href="css/gputop.css">
     <link rel="stylesheet" type="text/css" href="css/custom.css">
     <link rel="stylesheet" type="text/css" href="css/bootstrap-slider.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-toggle.min.css">
 
     <script src="long.min.js"></script>
     <script src="bytebuffer.min.js"></script>
@@ -34,7 +35,7 @@ function gputop_wip_error() {
 </script>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
-        <div class="navbar-header ">
+        <div class="navbar-header col-sm-2">
           <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
             <span class="sr-only">Toggle navigation</span>
             <span class="icon-bar"></span>
@@ -44,9 +45,9 @@ function gputop_wip_error() {
           <img class="navbar-brand" src="/assets/gputop_logo_44.png" alt="Gputop Logo" >
         </div>
         <div id="navbar" class="navbar-collapse collapse">
-          <form class="navbar-form navbar-left" action="javascript:gputop.reconnect();">
+          <form class="navbar-form navbar-left" action="javascript:gputop.reconnect();" style="display: flex; flex-direction: row;">
               <input type="text" class="form-control" id="target_address" value="localhost" required placeholder="Target Hostname or IP Address">
-              <input type="number" class="form-control" id="target_port" value="7890" step="0" required placeholder="Port">
+              <input type="number" class="form-control" id="target_port" value="7890" style="min-width: 6em; flex: 0 0 6em;" step="0" required placeholder="Port">
               <button type="submit" class="btn btn-sm" id="target_connect">
                   <span class="glyphicon glyphicon-log-in"></span>
               </button>
@@ -61,39 +62,34 @@ function gputop_wip_error() {
       </div>
     </nav>
 
-    <!-- Modal -->
-    <div id="myModal" class="modal fade"><div class="modal-dialog"><div class="modal-content"></div></div></div>
-   <!-- /.modal -->
-
     <div class="container-fluid" >
       <div class="row" >
 
         <!-- Side navigation pane -->
-        <div class="col-sm-2 sidebar" style="margin-top:1em">
-          <ul class="nav nav-sidebar">
-            <li id="welcome"><a href="#gputop-welcome-panel" data-toggle="tab" id="welcome-tab-a">Welcome</a></li>
-            <li ><a href="#gputop-overview-panel" data-toggle="tab" id="overview-tab-a">Overview</a></li>
-            <li class="active" id="metrics-tab"><a id="metrics-tab-a" href="#gputop-metrics-panel" data-toggle="tab">Metrics</a>
-              <ul class="nav nav-stacked nav-pills navbar-custom" id="sidebar_right" data-toggle="tabs" style="list-style-type:none; padding-top:10px; padding-bottom:10px;">
-              </ul>
-            </li>
-            <li><a href="#log-panel" data-toggle="tab">App logs</a></li>
+        <div class="col-sm-2 sidebar" style="margin-top:1em;">
+          <ul class="nav nav-pills nav-stacked" style="height: 30vh;">
+            <li id="welcome"><a href="#welcome-tab-content" data-toggle="tab" id="welcome-tab-anchor">Welcome</a></li>
+            <li class="active"><a href="#overview-tab-content" data-toggle="tab" id="overview-tab-anchor">Overview</a></li>
+            <li><a href="#metrics-tab-content" data-toggle="tab" id="metrics-tab-anchor">Metrics</a></li>
+            <li><a href="#log-tab-content" data-toggle="tab" id="log-tab-anchor">Logs</a></li>
             <li role="separator" class="divider"></li>
           </ul>
+          <hr>
+          <div id="tab-sidebars"></div>
         </div>
 
         <!-- Main page content -->
         <div class="col-sm-10 main">
-          <div class="tab-content" id="gputop-panels">
-            <div class="tab-pane" id="gputop-welcome-panel">
+          <div class="tab-content" id="gputop-tab-contents">
+            <div class="tab-pane" id="welcome-tab-content">
               <p>Welcome didn't load yet</p>
             </div>
-            <div class="tab-pane" id="gputop-overview-panel">
+            <div class="tab-pane active" id="overview-tab-content">
               <p>Overview didn't load yet</p>
             </div>
-            <div class="tab-pane active" id="gputop-metrics-panel">
+            <div class="tab-pane" id="metrics-tab-content">
             </div>
-            <div class="tab-pane" id="log-panel">
+            <div class="tab-pane" id="log-tab-content">
                 <p/>
                 <h2 class="page-header">Log</h2>
                 <div id="log"></div>
@@ -102,7 +98,7 @@ function gputop_wip_error() {
         </div>
       </div> <!-- /row -->
 
-      <footer class="footer">
+      <div id="footer">
           <div class="container">
             <img src="/assets/gputop_logo.png" alt="GPUTOP LOGO" class="img-invert img-responsive center-block" />
             <p/>
@@ -114,7 +110,7 @@ function gputop_wip_error() {
                   </center></p>
               </div>
           </div>
-        </footer>
+      </div>
     </div>
 
     <div class="container navbar-fixed-bottom">
@@ -137,6 +133,7 @@ function gputop_wip_error() {
 
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <script src="bootstrap-slider.min.js"></script>
+    <script src="bootstrap-toggle.min.js"></script>
     <script src="bootbox.min.js"></script>
 
     <script src="gputop.js"></script>

@@ -1,440 +1,70 @@
-<!-- Pannel 2 -->
-<div id = "header-div">
-<h2 id="page-header-metrics">Metrics panel loading</h2>
-</div>
+<div style="display: flex;">
+    <div id="metrics-counters" style="display: flex; flex-direction: column; flex: 1 1;">
+        <div style="display: flex; flex-direction: row;">
+            <div style="display: flex; flex-direction: column; flex: 0 1 75%; align-items: center;">
+                <div style="display: flex; flex-direction: row; flex: 0 1; align-items: center;">
+                    <div class="dropdown" id="metrics-menu" style="padding-right: 1em;">
+                        <a class="dropdown-toggle" data-toggle="dropdown" id="metrics-dropdown-anchor" href="#">Metric Set<span class="caret"></span></a>
+                        <ul class="dropdown-menu" id="metrics-menu-list">
+                          <li>Loading... <span class="glyphicon glyphicon-refresh spinning"></span></li>
+                        </ul>
+                    </div>
+                    <button type="button" id="pause-button" class="btn" data-toggle="tooltip" title="Pause the capture of metrics" style="width: 3em; height: 3em;">
+                        <div id="pause-button-icon" class="glyphicon glyphicon-pause"></div>
+                    </button>
+                </div>
 
-<!-- Options bar -->
-<div class="well" id="options_bar" style="display: table">
-    <div style="display: table-cell; vertical-align: middle;" data-toggle="tooltip" title="Pause the capturing of data">
-    <label><b>Stop query</b></label>
-    <button type="button" id="button_stop" class="btn" onclick="buttonTogglePlay()" >
-        <div id="toggle-query" class="glyphicon glyphicon-pause"></div>
-    </button>
+                <div id="gpu-metrics-graph" style="min-height: 30vh; width: 100%; flex: 1 0;"></div>
+            </div>
+
+            <!-- Options bar -->
+            <div id="options_bar" style="display: flex; flex: 0 1 25%">
+                <div style="display: flex; flex-direction: row; align-items: center;">
+                    <button type="button" id="zoom-out" class="btn" data-toggle="tooltip" title="Zoom graph view in" style="width: 3em; height: 3em;">
+                        <div class="glyphicon glyphicon-zoom-out"></div>
+                    </button>
+                    <input type="text" class="form-control" id="graph-range-entry" value="10" required data-toggle="tooltip" title="Graph X axis time range" style="width: 5em;">
+                    <button type="button" id="zoom-in" class="btn" data-toggle="tooltip" title="Zoom graph view in" style="width: 3em; height: 3em;">
+                        <div class="glyphicon glyphicon-zoom-in"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main pannel with the counter metrics -->
+        <div style="display: flex; flex-direction: row;">
+            <div class="tab-content" id="counter_list" style="flex: 0 1 75%;"></div>
+
+            <div id="documentation" style="flex: 0 1 25%;">
+                <div id="counter-description"/>
+                <div id="equation"/>
+                <div id="max_equation"/>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div style="display: table-cell; padding-left:25px; vertical-align: middle">
-        <b>Zoom: &nbsp</b> <input type="text" value="10" data-slider-min="1" data-slider-max="20" data-slider-step="0.5" data-slider-value="10" data-slider-id="slider_style" id="zoom_slider">
+<div id="metrics-sidebar" style="display: flex;">
+    <div id="counter-filters" style="display: flex; flex-direction: column;">
+        <h3>Counter filters</h3>
+        <div class="checkbox"><label><input type="checkbox" id="active-check" class="checkbox_event" checked=true>Active</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="overview-check" class="checkbox_event" checked=true>Overview</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="system-check" class="checkbox_event">System</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="frame-check" class="checkbox_event">Frame</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="batch-check" class="checkbox_event">Batch</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="draw-check" class="checkbox_event">Draw</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="indicate-check" class="checkbox_event">Indicate</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="tier1-check" class="checkbox_event">Tier1</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="tier2-check" class="checkbox_event">Tier2</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="tier3-check" class="checkbox_event">Tier3</label></div>
+        <div class="checkbox"><label><input type="checkbox" id="tier4-check" class="checkbox_event">Tier4</label></div>
     </div>
-
-</div>
-
-<div class="well" id="flags_bar" style="display: table">
-
-</div>
-
-<!-- Main pannel with the counter metrics -->
-<div class = "tab-content" id = "counter_metrics"></div>
-<div class="well" id = "documentation" style = "min-width:25%; position:fixed; top: 370px; right: 2%">
-    <div id = "display_equation"/>
-    <div id = "display_max_equation"/>
 </div>
 
 <script>
-    function buttonTogglePlay(){
-        var iSelector = $("#toggle-query");
-        if(iSelector.hasClass('glyphicon-pause')) {
-            iSelector.removeClass('glyphicon-pause')
-            iSelector.addClass('glyphicon-play')
-            slider.setAttribute('min', 0.1);
-            slider.setValue(slider.getValue()); // update the slider visual position
-
-            gputop.set_paused(true);
-        } else {
-            iSelector.removeClass('glyphicon-play')
-            iSelector.addClass('glyphicon-pause')
-            slider.setAttribute('min', 1);
-            if (slider.getValue() < 1) {
-                slider.setValue(1);
-                gputop.set_zoom(slider.getValue());
-            } else
-                slider.setValue(slider.getValue());
-
-            gputop.set_paused(false);
-        }
-    }
-
-    var flag_order = ["Overview", "System", "Frame", "Batch", "Draw", "Indicate",
-                      "Tier1", "Tier2", "Tier3", "Tier4"];
-    var metric_order = [];
-    var selected_index;
-    var set_array = {};
-
-    function count(name, underscore_name, flags)
-    {
-        this.name = name;
-        this.underscore_name = underscore_name;
-        this.flags = flags;
-    }
-
-    function set(name, underscore_name, flags, counters)
-    {
-        this.name = name;
-        this.underscore_name = underscore_name;
-        this.flags = flags;
-        this.checked_flags = [];
-        this.counters = counters;
-    }
-
-    function add_counter(metric, counter) {
-        var $counter = counter.xml_;
-        var name = counter.name;
-        var symbol_name = counter.symbol_name;
-        var underscore_name = counter.underscore_name;
-        var description = counter.description;
-        var flags = $counter.attr("mdapi_usage_flags").split(" ");
-
-        selected_index = metric_order[metric_order.length - 1];
-        set_array[selected_index].counters.push(new count(name, symbol_name, flags));
-
-        var stripped_bar = "";
-        var initial_progress = "0%";
-        var flot_id = "flotcontainer_" + set_index + "_" + underscore_name;
-
-        var counter_name = '<a href = "#" class="equation" data-toggle="tooltip" title="' + description + '">' +name+ '</a>';
-
-        var div_id = 'div_counter_'+set_index + '_' + underscore_name;
-        var counter_bar_id = 'div_bar_counter_'+set_index + '_' + underscore_name;
-        var counter_text_bar_id = 'div_txt_'+set_index + '_' + underscore_name;
-
-        // add transition: none to progress bar css for no animation.
-        // display of counter bar metrics
-        counter_bars = '\
-        <div id = "' + set_array[selected_index].underscore_name + '_' + symbol_name + '"> \
-            <div class = "metric_row" id="' + div_id + '"> \
-                <div class = "counter_name ' +  symbol_name + '">' + counter_name + '</div> \
-                <div class="progress"> \
-                    <div id = "'+ counter_bar_id +'" class = "progress-bar progress-bar' + stripped_bar + ' active bar_adjust" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left"></div> \
-                </div> \
-                <div class = "progress_text" id = "' + counter_text_bar_id +'">' + 0 + '</div> \
-                <div class = "live_trace_dropdown">&nbsp\
-                    <a role="button" data-toggle="collapse" href="#collapse_graph_' + set_index + '_' + underscore_name + '" aria-expanded="false" aria-controls="collapseExample"> \
-                        <div id = "graph_button_' + set_index + '_' + underscore_name + '" class = "glyphicon expand_graph glyphicon-collapse-down"  data-toggle="tooltip" title="Show the time graph"></div> \
-                    </a> \
-                </div> \
-                <div class = "handle glyphicon glyphicon-move" data-toggle="tooltip" title="Reorder by drag and drop of the counters"></div> \
-            </div> \
-            <div class="collapse" id="collapse_graph_' + set_index + '_' + underscore_name + '"> \
-                <div class="well graph_container" id="' + flot_id + '"></div> \
-            </div> \
-        </div>';
-
-        $("#tab_number_" + set_index).append(counter_bars);
-
-        $('#' + counter_bar_id).css("width", "100%");
-        $('#' + div_id).data("counter", counter);
-        $('#' + flot_id).data("counter", counter);
-
-        counter.flot_container = $('#' + flot_id);
-
-        counter.div_id_ = div_id;
-        counter.div_bar_id_ = counter_bar_id;
-        counter.div_txt_id_ = counter_text_bar_id;
-    } // add_counter
-
-    function add_metric(metric) {
-
-        var name = metric.name;
-        var guid = metric.guid_;
-        var underscore_name = metric.underscore_name;
-
-        set_array[name] = new set(name, underscore_name, [], []);
-        metric_order.push(name);
-        if (!gputop.current_metric_set)
-            gputop.select_metric_set(guid);
-
-        var active = "";
-        if (set_index == 0) {
-            active = " active";
-            $('#page-header-metrics').text(name);
-        }
-
-        // contents of the sidebar menu
-        $("#sidebar_right").append('<li class="col-sm-10 ' + active + '"><a id="'+ guid +'" href="#tab_number_' + set_index + '" data-toggle="tab">' + name + '</a></li>');
-        $('#'+guid).click(function (e) {
-            $('#metrics-tab-a').trigger('click');
-
-            gputop.select_metric_set(guid);
-        });
-
-        // display of metrics tab-pane
-        $("#counter_metrics").append('<div class = "tab-pane' + active + '" id = "tab_number_' + set_index + '">');
-
-        for (var i = 0; i < metric.cc_counters.length; i++) {
-            add_counter(metric, metric.cc_counters[i]);
-        }
-
-        $("#counter_metrics").append("</div");
-
-        set_index++;
-
-        var last = set_array[name];
-        var counters = last.counters;
-        for (i = 0; i < counters.length; i++)
-        {
-            var flags = counters[i].flags;
-            for (ii = 0; ii < flags.length; ii++)
-            {
-                if (!(last.flags.indexOf(flags[ii]) > -1))
-                {
-                    last.flags.push(flags[ii]);
-                    last.checked_flags.push(flags[ii]);
-                }
-            }
-        }
-    } // read_metrics_set
-
-    function draw_filter_checkboxes()
-    {
-        var d1 = document.getElementById('flags_bar');
-        d1.innerHTML = "";
-        var current_drawn_flags = [];
-
-        var set = set_array[selected_index];
-        var flags = set.flags;
-        for (i = 0; i < flag_order.length; i++)
-        {
-            if (flags.indexOf(flag_order[i]) > -1)
-            {
-                current_drawn_flags.push(flag_order[i]);
-            }
-        }
-        for (i = 0; i < flags.length; i++)
-        {
-            if (current_drawn_flags.indexOf(flags[i]) > -1)
-                continue;
-            current_drawn_flags.push(flags[i]);
-        }
-
-        for (i = 0; i < current_drawn_flags.length; i++)
-        {
-            flags_c = '<div class="checkbox"> \
-                           <label> \
-                               <input type = "checkbox" id = "' + set.underscore_name + '_' + current_drawn_flags[i] + '" class="checkbox_event"> \
-                                   <b>' + current_drawn_flags[i] + '</b> \
-                           </label> \
-                       </div>';
-            d1.insertAdjacentHTML('beforeend', flags_c);
-
-        }
-
-        $('.checkbox_event').click(function() {
-            set.checked_flags.splice(0, set.checked_flags.length);
-            for (i = 0; i < flags.length; i++)
-            {
-                if (document.getElementById(set.underscore_name + '_' + flags[i]).checked)
-                set.checked_flags.push(flags[i]);
-            }
-            filter_counters();
-        });
-
-        for (i = 0; i < flags.length; i++)
-        {
-            if (set.checked_flags.indexOf(flags[i]) > -1) {
-                $("#" + set.underscore_name + "_" + current_drawn_flags[i]).prop('checked', true);
-            } else {
-                $("#" + set.underscore_name + "_" + current_drawn_flags[i]).prop('checked', false);
-            }
-        }
-    }
-
-    function filter_counters()
-    {
-        var set = set_array[selected_index];
-        var counters = set.counters;
-        for (i = 0; i < counters.length; i++)
-        {
-            var display = false;
-            for (ii = 0; ii < counters[i].flags.length; ii++)
-            {
-                if (set.checked_flags.indexOf(counters[i].flags[ii]) > -1)
-                {
-                    display = true;
-                    break;
-                }
-            }
-            if (display)
-                $("#" + set.underscore_name + "_" + counters[i].underscore_name).show();
-            else
-                $("#" + set.underscore_name + "_" + counters[i].underscore_name).hide();
-        }
-    }
-
-    function add_metrics() {
-        $("#sidebar_right").html("");
-        $("#overview-tab-a").html("Overview "+gputop.get_arch_pretty_name());
-
-        for (var key in set_array)
-            delete set_array[key];
-
-        metric_order.splice(0, metric_order.length);
-
-        for (var i = 0; i < gputop.metrics_.length; i++) {
-            add_metric(gputop.metrics_[i]);
-        }
-        if (metric_order.length < 1)
-            return;
-
-        selected_index = metric_order[0];
-        draw_filter_checkboxes();
-
-        for (var key in set_array)
-        {
-            var set = set_array[key];
-            set.checked_flags.splice(0, set.checked_flags.length);
-            set.checked_flags.push("Overview");
-            for (ii = 0; ii < set.flags.length; ii++)
-                $("#" + set.underscore_name + "_" + set.flags[ii]).prop('checked', false);
-            $("#" + set.underscore_name + "_Overview").prop('checked', true);
-        }
-        filter_counters();
-
-        $('#sidebar_right a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            e.target // newly activated tab
-            e.relatedTarget // previous active tab
-            $('#page-header-metrics').text(e.target.text);
-            selected_index = e.target.text;
-            draw_filter_checkboxes();
-            var set = set_array[selected_index];
-            var flags = set.flags;
-            for (i = 0; i < flags.length; i++)
-            {
-                $("#" + set.underscore_name + "_" + flags[i]).prop('checked', false);
-                if (set.checked_flags.indexOf(flags[i]) > -1)
-                {
-                    $("#" + set.underscore_name + "_" + flags[i]).prop('checked', true);
-                }
-            }
-            filter_counters();
-        });
-
-        $('.collapse').on('shown.bs.collapse', function(e) {
-            var $glyphicon = $(e.target).parent().find(".expand_graph");
-            var glyphicon_class = $glyphicon.attr("class").replace
-                ("glyphicon-collapse-down", "glyphicon-collapse-up");
-
-            $glyphicon.attr("class", glyphicon_class);
-            var id = $(e.target).find(".well");
-            var counter_id = id.attr("id");
-            var container = "#" + counter_id;
-            var counter = $(container).data("counter");
-            counter.record_data = true;
-            gputop.graph_array.push(counter_id);
-        });
-
-        $('.collapse').on('hidden.bs.collapse', function(e) {
-            var $glyphicon = $(e.target).parent().find(".expand_graph");
-            var glyphicon_class = $glyphicon.attr("class").replace
-                ("glyphicon-collapse-up", "glyphicon-collapse-down");
-
-            $glyphicon.attr("class", glyphicon_class);
-            var id = $(e.target).find(".well");
-            var index = gputop.graph_array.indexOf(id.attr("id")); // get the index of the required element to be removed
-            var container = "#" + gputop.graph_array[index];
-            var counter = $(container).data("counter");
-            counter.record_data = false;
-            counter.graph_data = [];
-            gputop.graph_array.splice(index, 1); // remove element from the graph array
-        })
-
-    } // add_metrics
-
-    // index of set + index of active counter forms an unique id for all counters
-    var set_index = 0;
-    var slider;
-
-    var toggle_mode = 1; // toggle between Overview and Live Tracing metrics
-
-    $('#documentation').hide(); // by default hide the equation container
-
-    slider = new Slider('#zoom_slider', {
-        formatter: function(value) {
-            return 'Current value: ' + value;
-        },
-        min: 1
-    });
-
-    $("#zoom_slider").on("slide change", function(slideEvt) {
-        gputop.set_zoom(slider.getValue());
-    });
-
-    // read counters from xml file and populate the website
-    add_metrics();
-
-    // display the new equation
-    $('.equation').click(function() {
-        var metric = gputop.current_metric_set;
-        var symbol = $(this).parent().attr("class").split(' ')[1]
-        var ctr = metric.find_counter_by_name(symbol);
-        $('#documentation').hide();
-        $('#display_equation').html("<math display='block'><mstyle mathsize='1.3em' mathcolor='#002080' mathvariant='italic'>"
-            + (ctr.eq_xml).prop('innerHTML') + "</mstyle></math>");
-        // First queue the mathjax processing, then queue the .show html,
-        // so that there will not be artifacts when changing equation
-        MathJax.Hub.Queue(["Typeset",MathJax.Hub, "display_equation"]);
-        if (ctr.max_eq_xml) {
-            $('#display_max_equation').show();
-            $('#display_max_equation').html("<math display='block'><mstyle mathsize='1.0em' mathcolor='#002080' mathvariant='italic'>"
-                + (ctr.max_eq_xml).prop('innerHTML') + "</mstyle></math>");
-            MathJax.Hub.Queue(["Typeset",MathJax.Hub, "display_max_equation"]);
-        }
-        else $('#display_max_equation').hide();
-        MathJax.Hub.Queue(function () {
-            $('#documentation').show();
-        });
-    });
-
-    // this is to prevent jumping at the top of the page when clicking counters
-    $('.equation').click(function(e) {
-        e.preventDefault();
-    });
-
-    // function that makes each counter pane draggable.
-    $(function(){
-        for (j = 0; j < set_index; j++) {
-            $('#tab_number_' + j).sortable({
-                handle: '.handle',
-                start: function(e, ui) {
-                    ui.placeholder.height(ui.item.height());
-                }
-            });
-        }
-
-    });
-
     $('.checkbox_event').click(function() {
-	if (typeof current_set_map === 'undefined') {
-	    return;
-	}
-
-        underscore_name = current_set_map[current_set];
-        checked_flags_map[underscore_name].splice(0, checked_flags_map[underscore_name].length);
-        for (i = 0; i < all_flags.length; i++)
-        {
-            if (document.getElementById('flags_' + all_flags[i]).checked)
-                checked_flags_map[underscore_name].push(all_flags[i]);
-        }
-        for (var k in counter_flags_map)
-        {
-            var values = counter_flags_map[k];
-            display = false;
-            for (v = 0; v < values.length; v++)
-            {
-                if (checked_flags_map[underscore_name].indexOf(values[v]) > -1)
-                {
-                    display = true;
-                    break;
-                }
-            }
-            if (display)
-                $("#" + underscore_name + "_" + k).show();
-            else
-                $("#" + underscore_name + "_" + k).hide();
-        }
+        gputop.filter_counters();
     });
-
-    if(gputop.fake_metrics) {
-        $('#options_bar').addClass('hidden');
-    }
 
     //# sourceURL=metrics.html
 </script>

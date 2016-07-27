@@ -38,6 +38,8 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+
 static inline void *
 xmalloc(size_t size)
 {

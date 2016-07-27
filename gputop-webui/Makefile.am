@@ -10,6 +10,7 @@ third_party_files = \
 	jquery.flot.navigate.js \
 	$(mathjax_files) \
 	bootstrap-slider.min.js \
+	bootstrap-toggle.min.js \
 	bootstrap/css/bootstrap.min.css \
 	bootstrap/css/bootstrap.min.css.map \
 	bootstrap/css/bootstrap-theme.min.css \
@@ -31,6 +32,7 @@ nobase_dist_remote_DATA = \
 	css/gputop.css \
 	css/custom.css \
 	css/bootstrap-slider.min.css \
+	css/bootstrap-toggle.min.css \
 	ajax/metrics.html \
 	ajax/overview.html \
 	ajax/welcome.html \
