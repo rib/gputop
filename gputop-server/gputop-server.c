@@ -1150,6 +1150,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__Features features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
+    char *notices[] = {
+        "RC6 power saving mode disabled"
+    };
 
     if (!gputop_perf_initialize()) {
         message.reply_uuid = request->uuid;
@@ -1220,6 +1223,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
     features.n_supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->len;
     features.supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->data;
 
+    features.n_notices = ARRAY_SIZE(notices);
+    features.notices = notices;
+
     message.reply_uuid = request->uuid;
     message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;
     message.features = &features;
@@ -1245,6 +1251,11 @@ handle_get_features(h2o_websocket_conn_t *conn,
     dbg("SYSTEM:\n");
     dbg("  Kernel Release = %s\n", features.kernel_release);
     dbg("  Kernel Build = %s\n", features.kernel_build);
+    dbg("NOTICES:\n");
+    for (int i = 0; i< features.n_notices; i++) {
+        const char *notice = features.notices[i];
+        dbg("  %s\n", notice);
+    }
 
     send_pb_message(conn, &message.base);
 
