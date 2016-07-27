@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import sys
 import os
 import os.path as path
 import glob
@@ -40,4 +41,4 @@ for xml in glob.glob(path.join(srcdir, 'oa-*.xml')):
     print("(GENXML) " + " ".join(cmd[2:]))
     ret = subprocess.call(cmd)
     if ret != 0:
-        process.exit(ret)
+        sys.exit(ret)
