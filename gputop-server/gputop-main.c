@@ -74,8 +74,6 @@ usage(void)
            "     --enable-gl-scissor-test      Enable 1x1 scissor test\n"
            "                                   glScissor(0, 0, 1, 1);\n");
 #endif
-    printf("     --ncurses                     Enable ncurses view of metrics\n");
-    printf("                                   (deprecated)\n\n");
     printf(" -h, --help                        Display this help\n\n"
            "\n"
            " Note: gputop is only a wrapper for setting environment variables\n"
@@ -85,8 +83,8 @@ usage(void)
            "\n"
            " Environment:\n"
            "\n"
-           "     GPUTOP_MODE={remote,ncurses}  The mode of accessing metrics\n"
-           "                                   (defaults to remote)\n\n"
+           "     GPUTOP_MODE=remote            Currently only one mode\n"
+           "\n"
 #ifdef SUPPORT_GL
            "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
            "                                   The gputop libGL.so and syscall\n"
@@ -376,12 +374,11 @@ main (int argc, char **argv)
 #define LIB_GL_OPT              (CHAR_MAX + 1)
 #define LIB_EGL_OPT             (CHAR_MAX + 2)
 #define DEBUG_CTX_OPT           (CHAR_MAX + 3)
-#define NCURSES_OPT             (CHAR_MAX + 4)
-#define DRY_RUN_OPT             (CHAR_MAX + 5)
-#define DISABLE_IOCTL_OPT       (CHAR_MAX + 6)
-#define FAKE_OPT                (CHAR_MAX + 7)
-#define GPUTOP_SCISSOR_TEST     (CHAR_MAX + 8)
-#define PORT_OPT                (CHAR_MAX + 9)
+#define DRY_RUN_OPT             (CHAR_MAX + 4)
+#define DISABLE_IOCTL_OPT       (CHAR_MAX + 5)
+#define FAKE_OPT                (CHAR_MAX + 6)
+#define GPUTOP_SCISSOR_TEST     (CHAR_MAX + 7)
+#define PORT_OPT                (CHAR_MAX + 8)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -397,7 +394,6 @@ main (int argc, char **argv)
         {"debug-gl-context",        no_argument,        0, DEBUG_CTX_OPT},
         {"enable-gl-scissor-test",  optional_argument,  0, GPUTOP_SCISSOR_TEST},
 #endif
-        {"ncurses",         no_argument,        0, NCURSES_OPT},
         {"port",            required_argument,  0, PORT_OPT},
         {0, 0, 0, 0}
     };
@@ -443,9 +439,6 @@ main (int argc, char **argv)
                 setenv("GPUTOP_GL_SCISSOR_TEST", "1", true);
                 break;
 #endif
-            case NCURSES_OPT:
-                setenv("GPUTOP_MODE", "ncurses", true);
-                break;
             case PORT_OPT:
                 setenv("GPUTOP_PORT", optarg, true);
                 break;
