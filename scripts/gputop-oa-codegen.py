@@ -76,7 +76,17 @@ def check_operand_type(arg):
     if arg.isdigit():
         return "\n<mn>" + arg + "</mn>"
     elif arg[0] == "$":
-        return "\n<maction actiontype='tooltip'>\n<mi>" + arg + "</mi>\n<mtext>placeholder</mtext>\n</maction>"
+        if arg in counter_vars:
+            description = counter_vars[arg].get('description')
+        elif arg in hw_vars and 'desc' in hw_vars[arg]:
+            description = hw_vars[arg]['desc'];
+        else:
+            description = None
+
+        if description != None:
+            return "\n<maction actiontype='tooltip'>\n<mi>" + arg + "</mi>\n<mtext>" + description + "</mtext>\n</maction>"
+        else:
+            return "<mi>" + arg + "</mi>"
     return arg
 
 mul_precedence = 2
@@ -225,16 +235,17 @@ exp_ops["ULT"]  = (2, splice_ult)
 exp_ops["&&"]   = (2, splice_logical_and)
 
 
-hw_vars = {}
-hw_vars["$EuCoresTotalCount"] = "devinfo->n_eus"
-hw_vars["$EuSlicesTotalCount"] = "devinfo->n_eu_slices"
-hw_vars["$EuSubslicesTotalCount"] = "devinfo->n_eu_sub_slices"
-hw_vars["$EuThreadsCount"] = "devinfo->eu_threads_count"
-hw_vars["$SliceMask"] = "devinfo->slice_mask"
-hw_vars["$SubsliceMask"] = "devinfo->subslice_mask"
-hw_vars["$GpuTimestampFrequency"] = "devinfo->timestamp_frequency"
-hw_vars["$GpuMinFrequency"] = "devinfo->gt_min_freq"
-hw_vars["$GpuMaxFrequency"] = "devinfo->gt_max_freq"
+hw_vars = {
+        "$EuCoresTotalCount": { 'c': "devinfo->n_eus", 'desc': "The total number of execution units" },
+        "$EuSlicesTotalCount": { 'c': "devinfo->n_eu_slices" },
+        "$EuSubslicesTotalCount": { 'c': "devinfo->n_eu_sub_slices" },
+        "$EuThreadsCount": { 'c': "devinfo->eu_threads_count" },
+        "$SliceMask": { 'c': "devinfo->slice_mask" },
+        "$SubsliceMask": { 'c': "devinfo->subslice_mask" },
+        "$GpuTimestampFrequency": { 'c': "devinfo->timestamp_frequency" },
+        "$GpuMinFrequency": { 'c': "devinfo->gt_min_freq" },
+        "$GpuMaxFrequency": { 'c': "devinfo->gt_max_freq" },
+}
 
 counter_vars = {}
 
@@ -276,7 +287,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                 operand = stack.pop()
                 if operand[0] == "$":
                     if operand in hw_vars:
-                        operand = hw_vars[operand]
+                        operand = hw_vars[operand]['c']
                     elif operand in counter_vars:
                         reference = counter_vars[operand]
                         operand = read_funcs[operand[1:]] + "(devinfo, metric_set, accumulator)"
@@ -296,7 +307,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
     value = stack.pop()
 
     if value in hw_vars:
-        value = hw_vars[value]
+        value = hw_vars[value]['c']
 
     c("\nreturn " + value + ";")
 
@@ -314,7 +325,7 @@ def splice_rpn_expression(set, counter, expression):
                 operand = stack.pop()
                 if operand[0] == "$":
                     if operand in hw_vars:
-                        operand = hw_vars[operand]
+                        operand = hw_vars[operand]['c']
                     else:
                         raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.get('name') + " :: " + counter.get('name'));
                 args.append(operand)
