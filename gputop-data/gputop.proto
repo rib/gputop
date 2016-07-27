@@ -73,6 +73,7 @@ message Features
     required bool fake_mode = 9;
     repeated string supported_oa_query_guids = 10;
     repeated string tracepoints = 11;
+    required int32 server_pid = 13;
 }
 
 message ProcessInfo

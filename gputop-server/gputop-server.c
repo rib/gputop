@@ -1159,6 +1159,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
         return;
     }
 
+    features.server_pid = getpid();
+
     devinfo.devid = gputop_devinfo.devid;
     devinfo.gen = gputop_devinfo.gen;
     devinfo.n_eus = gputop_devinfo.n_eus;
