@@ -25,9 +25,6 @@ import xml.etree.ElementTree as ET
 import argparse
 import sys
 
-symbol_to_perf_map = { 'RenderBasic' : '3D',
-                       'ComputeBasic' : 'COMPUTE' }
-
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
