@@ -478,7 +478,6 @@ gputop_perf_open_tracepoint(int pid,
     int event_fd;
     uint8_t *mmap_base;
     int expected_max_samples;
-    char *filename = NULL;
     size_t sample_size = 0;
 
     memset(&attr, 0, sizeof(attr));
