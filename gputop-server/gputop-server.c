@@ -64,6 +64,8 @@ static uv_tcp_t listener;
 
 static uv_timer_t timer;
 
+static bool update_queued;
+static uv_idle_t update_idle;
 
 
 enum {
@@ -552,12 +554,38 @@ flush_stream_samples(struct gputop_perf_stream *stream)
 }
 
 static void
-flush_streams(void)
+update_perf_head_pointers(struct gputop_perf_stream *stream)
+{
+    struct gputop_perf_header_buf *hdr_buf = &stream->perf.header_buf;
+
+    gputop_perf_update_header_offsets(stream);
+
+    if (!hdr_buf->full) {
+        Gputop__Message message = GPUTOP__MESSAGE__INIT;
+        Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
+
+        notify.query_id = stream->user.id;
+        notify.fill_percentage =
+            (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
+             (float)stream->perf.buffer_size) * 100.0f;
+        message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
+        message.fill_notify = &notify;
+
+        send_pb_message(h2o_conn, &message.base);
+        //dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
+    }
+}
+
+static void
+update_streams(void)
 {
     struct gputop_perf_stream *stream;
 
     gputop_list_for_each(stream, &streams, user.link) {
-        flush_stream_samples(stream);
+        if (stream->live_updates)
+            flush_stream_samples(stream);
+        else if (stream->type == GPUTOP_STREAM_PERF)
+            update_perf_head_pointers(stream);
     }
 }
 
@@ -581,45 +609,40 @@ forward_logs(void)
 }
 
 static void
-periodic_forward_cb(uv_timer_t *timer)
+update_cb(uv_idle_t *idle)
 {
-    flush_streams();
+    uv_idle_stop(&update_idle);
+    update_queued = false;
+
+    update_streams();
 
     forward_logs();
 }
 
+/* We may have a number of metric streams with events for available data being
+ * delievered via the libuv mainloop but to minimize the time spent responding
+ * and forwarding those metrics to any UI we consolidate the follow up work via
+ * an idle mainloop callback...
+ */
 static void
-periodic_update_head_pointers(uv_timer_t *timer)
+queue_update(void)
 {
-    struct gputop_perf_stream *stream;
+    if (update_queued)
+        return;
 
-    gputop_list_for_each(stream, &streams, user.link) {
-        struct gputop_perf_header_buf *hdr_buf;
+    uv_idle_start(&update_idle, update_cb);
+}
 
-        if (stream->type != GPUTOP_STREAM_PERF)
-            continue;
+static void
+periodic_update_cb(uv_timer_t *timer)
+{
+    queue_update();
+}
 
-        hdr_buf = &stream->perf.header_buf;
-
-        gputop_perf_update_header_offsets(stream);
-
-        if (!hdr_buf->full) {
-            Gputop__Message message = GPUTOP__MESSAGE__INIT;
-            Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
-
-            notify.query_id = stream->user.id;
-            notify.fill_percentage =
-                (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
-                 (float)stream->perf.buffer_size) * 100.0f;
-            message.cmd_case = GPUTOP__MESSAGE__CMD_FILL_NOTIFY;
-            message.fill_notify = &notify;
-
-            send_pb_message(h2o_conn, &message.base);
-            //dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
-        }
-    }
-
-    forward_logs();
+static void
+i915_perf_ready_cb(struct gputop_perf_stream *stream)
+{
+    queue_update();
 }
 
 static void
@@ -666,7 +689,8 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
     stream = gputop_open_i915_perf_oa_stream(metric_set,
                                              oa_query_info->period_exponent,
                                              ctx,
-                                             NULL,
+                                             (open_query->live_updates ?
+                                              i915_perf_ready_cb : NULL),
                                              open_query->overwrite,
                                              &error);
     if (stream) {
@@ -674,8 +698,7 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        if (open_query->live_updates)
-            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+        stream->live_updates = open_query->live_updates;
     } else {
         dbg("Failed to open perf query set=%s period=%d: %s\n",
             oa_query_info->guid, oa_query_info->period_exponent,
@@ -741,10 +764,7 @@ handle_open_tracepoint(h2o_websocket_conn_t *conn,
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        if (open_query->live_updates)
-            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-        else
-            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+        stream->live_updates = open_query->live_updates;
     } else {
         dbg("Failed to open trace %"PRIu32": %s\n", config->id, error);
         free(error);
@@ -796,10 +816,7 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        if (open_query->live_updates)
-            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
-        else
-            uv_timer_start(&timer, periodic_update_head_pointers, 200, 200);
+        stream->live_updates = open_query->live_updates;
     } else {
         dbg("Failed to open perf event: %s\n", error);
         free(error);
@@ -836,8 +853,7 @@ handle_open_cpu_stats(h2o_websocket_conn_t *conn,
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        if (open_query->live_updates)
-            uv_timer_start(&timer, periodic_forward_cb, 200, 200);
+        stream->live_updates = open_query->live_updates;
     }
 
     message.reply_uuid = request->uuid;
@@ -1378,6 +1394,8 @@ static void on_connect(uv_stream_t *server, int status)
         h2o_accept_ssl(&ctx, ctx.globalconf->hosts, sock, ssl_ctx);
     else
         h2o_http1_accept(&ctx, ctx.globalconf->hosts, sock);
+
+    uv_timer_start(&timer, periodic_update_cb, 200, 200);
 }
 
 static h2o_iovec_t cache_control;
@@ -1401,6 +1419,7 @@ bool gputop_server_run(void)
     loop = gputop_mainloop;
 
     uv_timer_init(gputop_mainloop, &timer);
+    uv_idle_init(gputop_mainloop, &update_idle);
 
     if ((r = uv_tcp_init(loop, &listener)) != 0) {
         dbg("uv_tcp_init:%s\n", uv_strerror(r));

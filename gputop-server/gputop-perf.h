@@ -180,6 +180,8 @@ struct gputop_perf_stream
     uv_timer_t fd_timer;
     void (*ready_cb)(struct gputop_perf_stream *);
 
+    bool live_updates;
+
     int n_closing_uv_handles;
     void (*on_close_cb)(struct gputop_perf_stream *stream);
     bool pending_close;
