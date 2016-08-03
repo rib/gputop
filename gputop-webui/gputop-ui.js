@@ -1230,7 +1230,7 @@ GputopUI.prototype.init_interface = function(callback) {
             $('#welcome-tab-content').load("ajax/welcome.html");
 
             $('#gputop-entries').prepend('<li class="dropdown" id="metric-menu"></li>');
-            $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Inspect metric set</a>');
+            $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Set Demo Platform</a>');
             $('#metric-menu').append('<ul id="demoMenu" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
 
             var arch_list = [
