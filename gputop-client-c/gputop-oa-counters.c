@@ -123,10 +123,10 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
     }
 
 
-    if (start[2] == 0x1fffff) {
+    if (start[2] == 0xffffffff) {
         dbg("switch away reason = 0x%x\n", start_reason);
     }
-    if (end[2] == 0x1fffff) {
+    if (end[2] == 0xffffffff) {
         dbg("switch away reason = 0x%x\n", end_reason);
     }
 
@@ -167,7 +167,7 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
             if (accumulator->first_timestamp == 0 &&
                 accumulator->last_ctx_id != start[2])
             {
-                if (start[2] == 0x1ffff) { /* this invalid ctx-id marks a switch-from */
+                if (start[2] == 0xffffffff) { /* this invalid ctx-id marks a switch-from */
                     ret = false;
                     goto exit;
                 } else
@@ -175,10 +175,10 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
             }
 
             if (start[2] != end[2]) {
-                if (end[2] == 0x1ffff) { /* this invalid ctx-id marks a switch-from */
+                if (end[2] == 0xffffffff) { /* this invalid ctx-id marks a switch-from */
                     accumulator->flags |= GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
                 } else {
-                    if (start[2] != 0x1fffff)
+                    if (start[2] != 0xffffffff)
                         dbg("accumulator: spurious per-ctx switch-to not preceded by switch-from");
 
                     ret = false;
