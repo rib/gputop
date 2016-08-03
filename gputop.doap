@@ -4,11 +4,11 @@
          xmlns="http://usefulinc.com/ns/doap#">
 
   <name xml:lang="en">GPU Top</name>
-  <shortdesc xml:lang="en">Tool for displaying GPU performance statistics</shortdesc>
-  <homepage rdf:resource="http://fixme" />
+  <shortdesc xml:lang="en">Tool suite for displaying GPU performance statistics</shortdesc>
+  <homepage rdf:resource="http://github.com/rib/gputop" />
   <license rdf:resource="http://usefulinc.com/doap/licenses/mit" />
-  <download-page rdf:resource="http://fixme" />
-  <bug-database rdf:resource="http://fixme" />
+  <download-page rdf:resource="http://github.com/rib/gputop" />
+  <bug-database rdf:resource="http://github.com/rib/gputop/issues" />
 
   <programming-language>C</programming-language>
 
