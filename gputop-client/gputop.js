@@ -1192,8 +1192,8 @@ Gputop.prototype.request_features = function() {
 
         demo_devinfo.set('n_eus', n_eus);
         demo_devinfo.set('eu_threads_count', n_eus * threads_per_eu);
-        demo_devinfo.set('gt_min_freq', 500);
-        demo_devinfo.set('gt_max_freq', 1100);
+        demo_devinfo.set('gt_min_freq', 500000000);
+        demo_devinfo.set('gt_max_freq', 1100000000);
 
         var demo_features = new this.gputop_proto_.Features();
 
