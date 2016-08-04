@@ -90,8 +90,8 @@ script:
     - ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make V=1 && make V=1 install
     - export GPUTOP_TRAVIS_MODE=1
     - cd $TRAVIS_BUILD_DIR/install/bin
-    - if [ "${CONFIG_OPTS/'enable-node-clients'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3; gputop-csv -m RenderBasic -c "Timestamp,GpuCoreClocks" & sleep 10; grep OpenQuery travis_log; cat travis_log; fi
-    - if [ "${CONFIG_OPTS/'enable-web-ui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3; firefox http://localhost:7890 & sleep 10; grep OpenQuery travis_log; cat travis_log; fi
+    - if [ "${CONFIG_OPTS/'enable-node-clients'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && ./gputop-csv -m RenderBasic -c "Timestamp,GpuCoreClocks" & sleep 10 && kill $! && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi
+    - if [ "${CONFIG_OPTS/'enable-web-ui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && firefox http://localhost:7890 & sleep 10 && killall firefox && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi
     - cd -
 
 deploy:
