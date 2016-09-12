@@ -748,6 +748,9 @@ init_dev_info(int drm_fd, uint32_t devid)
                     gputop_devinfo.timestamp_frequency = 19200123;
                 else
                     gputop_devinfo.timestamp_frequency = 12000000;
+            } else {
+                fprintf(stderr, "FIXME: unsupported system\n");
+                exit(1);
             }
 
             gp.param = I915_PARAM_EU_TOTAL;
