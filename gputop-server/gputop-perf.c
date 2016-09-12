@@ -403,7 +403,8 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
             // context creation then the kernel will simply fail with the
             // lookup.
             oa_stream_fd = ctx->fd;
-            dbg("opening per context i915 perf stream: fd = %d, ctx=%u\n", ctx->fd, ctx->id);
+            dbg("opening per context i915 perf stream: fd = %d, ctx=%u\n",
+                ctx->fd, ctx->id);
         }
 
         param.properties_ptr = (uint64_t)properties;
