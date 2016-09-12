@@ -138,8 +138,8 @@ exp_ops["&&"]   = (2, splice_logical_and)
 
 
 c_syms = {}
-c_syms["$SliceMask"] = "INTEL_INFO(dev_priv)->slice_mask"
-c_syms["$SubsliceMask"] = "INTEL_INFO(dev_priv)->subslice_mask"
+c_syms["$SliceMask"] = "INTEL_INFO(dev_priv)->sseu.slice_mask"
+c_syms["$SubsliceMask"] = "INTEL_INFO(dev_priv)->sseu.subslice_mask"
 c_syms["$SkuRevisionId"] = "dev_priv->drm.pdev->revision"
 
 mnemonic_syms = {}
