@@ -447,12 +447,12 @@ def output_sysfs_code(sets):
         c("};")
 
 
-    h("extern int i915_perf_init_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
+    h("extern int i915_perf_register_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
     h("\n")
 
     c("\n")
     c("int")
-    c("i915_perf_init_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
+    c("i915_perf_register_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
     c_indent(8)
     c("int ret;")
@@ -487,12 +487,12 @@ def output_sysfs_code(sets):
 
     c("}")
 
-    h("extern void i915_perf_deinit_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
+    h("extern void i915_perf_unregister_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
     h("\n")
 
     c("\n")
     c("void")
-    c("i915_perf_deinit_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
+    c("i915_perf_unregister_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
     c_indent(8)
     for set in sets:
