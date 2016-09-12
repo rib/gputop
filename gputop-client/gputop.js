@@ -183,7 +183,7 @@ function Metric (gputopParent) {
     // Aggregation period
     this.period_ns_ = 1000000000;
 
-    this.history = []; // buffer used when query is paused.
+    this.history = []; // buffer used when stream is paused.
     this.history_index = 0;
     this.history_size = 0;
 }
@@ -566,7 +566,6 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
     metric.chipset_ = $(xml_elem).attr("chipset");
 
     // We populate our array with metrics in the same order as the XML
-    // The metric will already be defined when the features query finishes
     metric.metric_set_index_ = Object.keys(this.metrics_).length;
     this.metrics_[metric.metric_set_index_] = metric;
 
@@ -726,22 +725,22 @@ Metric.prototype.open = function(config,
         stream.server_handle = 0;
         _finalize_open.call(this);
     } else {
-        var oa_query = new this.gputop.gputop_proto_.OAQueryInfo();
+        var oa_stream = new this.gputop.gputop_proto_.OAStreamInfo();
 
-        oa_query.guid = this.guid_;
-        oa_query.period_exponent = config.oa_exponent;
+        oa_stream.guid = this.guid_;
+        oa_stream.period_exponent = config.oa_exponent;
 
-        var open = new this.gputop.gputop_proto_.OpenQuery();
+        var open = new this.gputop.gputop_proto_.OpenStream();
 
         open.set('id', stream.server_handle);
-        open.set('oa_query', oa_query);
+        open.set('oa_stream', oa_stream);
         open.set('overwrite', false);   /* don't overwrite old samples */
         open.set('live_updates', true); /* send live updates */
         open.set('per_ctx_mode', config.per_ctx_mode);
 
         this.gputop.server_handle_to_obj[open.id] = this;
 
-        this.gputop.rpc_request('open_query', open, _finalize_open.bind(this));
+        this.gputop.rpc_request('open_stream', open, _finalize_open.bind(this));
 
         this.history = [];
         this.history_size = 0;
@@ -792,7 +791,7 @@ Metric.prototype.close = function(onclose) {
     if (this.stream.server_handle === 0) {
         _finish_close.call(this);
     } else {
-        this.gputop.rpc_request('close_query', this.stream.server_handle, (msg) => {
+        this.gputop.rpc_request('close_stream', this.stream.server_handle, (msg) => {
             _finish_close.call(this);
         });
     }
@@ -875,19 +874,19 @@ Gputop.prototype.request_open_cpu_stats = function(config, callback) {
     else
         cpu_stats.set('sample_period_ms', 10);
 
-    var open = new this.gputop_proto_.OpenQuery();
+    var open = new this.gputop_proto_.OpenStream();
     open.set('id', stream.server_handle);
     open.set('cpu_stats', cpu_stats);
     open.set('overwrite', false);   /* don't overwrite old samples */
     open.set('live_updates', true); /* send live updates */
 
-    /* FIXME: remove from OpenQuery - not relevant to opening cpu stats */
+    /* FIXME: remove from OpenStream - not relevant to opening cpu stats */
     open.set('per_ctx_mode', false);
 
     if (callback !== undefined)
         stream.on('open', callback);
 
-    this.rpc_request('open_query', open, () => {
+    this.rpc_request('open_stream', open, () => {
         this.server_handle_to_obj[open.id] = stream;
 
         var ev = { type: "open" };
@@ -1065,17 +1064,17 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, onopen, onc
 
         tracepoint.set('id', tracepoint_info.id);
 
-        var open = new this.gputop_proto_.OpenQuery();
+        var open = new this.gputop_proto_.OpenStream();
         open.set('id', stream.server_handle);
         open.set('tracepoint', tracepoint);
         open.set('overwrite', false);   /* don't overwrite old samples */
         open.set('live_updates', true); /* send live updates */
 
-        /* FIXME: remove from OpenQuery - not relevant to opening a tracepoint */
+        /* FIXME: remove from OpenStream - not relevant to opening a tracepoint */
         open.set('per_ctx_mode', false);
 
         console.log("REQUEST = " + JSON.stringify(open));
-        this.rpc_request('open_query', open, () => {
+        this.rpc_request('open_stream', open, () => {
             this.server_handle_to_obj[open.id] = stream;
 
             _finalize_open.call(this);
@@ -1204,7 +1203,7 @@ Gputop.prototype.request_features = function() {
         demo_features.set('cpu_model', 'Intel(R) Core(TM) i7-4500U CPU @ 1.80GHz');
         demo_features.set('kernel_release', '4.5.0-rc4');
         demo_features.set('fake_mode', false);
-        demo_features.set('supported_oa_query_guids', []);
+        demo_features.set('supported_oa_guids', []);
 
         this.process_features(demo_features);
     }
@@ -1270,12 +1269,12 @@ Gputop.prototype.process_features = function(features){
         else {
             this.metrics_.forEach(function (metric) { metric.supported_ = false; });
 
-            if (features.supported_oa_query_guids.length == 0) {
+            if (features.supported_oa_guids.length == 0) {
                 this.user_msg("No OA metrics are supported on this Kernel " +
                               features.get_kernel_release(), this.ERROR);
             } else {
                 this.log("Metrics:");
-                features.supported_oa_query_guids.forEach((guid, i, a) => {
+                features.supported_oa_guids.forEach((guid, i, a) => {
                     var metric = this.lookup_metric_for_guid(guid);
                     metric.supported_ = true;
                     this.log("  " + metric.name + " (guid = " + guid + ")");
@@ -1364,7 +1363,7 @@ function gputop_socket_on_message(evt) {
 
             var stream = this.server_handle_to_obj[server_handle];
 
-            // save messages in a buffer to replay when query is paused
+            // save messages in a buffer to replay when stream is paused
             /*
             metric.history.push(data);
             metric.history_size += data.length;
@@ -1434,7 +1433,7 @@ function gputop_socket_on_message(evt) {
 
             var metric = this.server_handle_to_obj[server_handle];
 
-            // save messages in a buffer to replay when query is paused
+            // save messages in a buffer to replay when stream is paused
             metric.history.push(data);
             metric.history_size += data.length;
             if (metric.history_size > 1048576) // 1 MB of data

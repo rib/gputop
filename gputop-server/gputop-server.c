@@ -564,7 +564,7 @@ update_perf_head_pointers(struct gputop_perf_stream *stream)
         Gputop__Message message = GPUTOP__MESSAGE__INIT;
         Gputop__BufferFillNotify notify = GPUTOP__BUFFER_FILL_NOTIFY__INIT;
 
-        notify.query_id = stream->user.id;
+        notify.stream_id = stream->user.id;
         notify.fill_percentage =
             (hdr_buf->offsets[(hdr_buf->head - 1) % hdr_buf->len] /
              (float)stream->perf.buffer_size) * 100.0f;
@@ -572,7 +572,6 @@ update_perf_head_pointers(struct gputop_perf_stream *stream)
         message.fill_notify = &notify;
 
         send_pb_message(h2o_conn, &message.base);
-        //dbg("XXX: %s > %d%% full\n", stream->query ? stream->query->name : "unknown", notify.fill_percentage);
     }
 }
 
@@ -646,12 +645,12 @@ i915_perf_ready_cb(struct gputop_perf_stream *stream)
 }
 
 static void
-handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
-                               Gputop__Request *request)
+handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
+                                Gputop__Request *request)
 {
-    Gputop__OpenQuery *open_query = request->open_query;
-    uint32_t id = open_query->id;
-    Gputop__OAQueryInfo *oa_query_info = open_query->oa_query;
+    Gputop__OpenStream *open_stream = request->open_stream;
+    uint32_t id = open_stream->id;
+    Gputop__OAStreamInfo *oa_stream_info = open_stream->oa_stream;
     struct gputop_metric_set *metric_set = NULL;
     struct gputop_hash_entry *entry = NULL;
     struct gputop_perf_stream *stream;
@@ -665,9 +664,9 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
         asprintf(&error, "Failed to initialize perf\n");
         goto err;
     }
-    dbg("handle_open_i915_perf_oa_query: id = %d\n", id);
+    dbg("handle_open_i915_perf_oa_stream: id = %d\n", id);
 
-    entry = gputop_hash_table_search(metrics, oa_query_info->guid);
+    entry = gputop_hash_table_search(metrics, oa_stream_info->guid);
     if (entry != NULL) {
         metric_set = entry->data;
     } else {
@@ -677,31 +676,31 @@ handle_open_i915_perf_oa_query(h2o_websocket_conn_t *conn,
 
     // TODO: (matt-auld)
     // Currently we don't support selectable contexts, so we just use the
-    // first one which is avaivable to us. Though this would only really
+    // first one which is available to us. Though this would only really
     // make sense if we could make the list of contexts visible to the user.
     // Maybe later the per_ctx_mode could become the context handle...
-    if (open_query->per_ctx_mode) {
+    if (open_stream->per_ctx_mode) {
         ctx = get_first_available_ctx(&error);
         if (!ctx)
             goto err;
     }
 
     stream = gputop_open_i915_perf_oa_stream(metric_set,
-                                             oa_query_info->period_exponent,
+                                             oa_stream_info->period_exponent,
                                              ctx,
-                                             (open_query->live_updates ?
+                                             (open_stream->live_updates ?
                                               i915_perf_ready_cb : NULL),
-                                             open_query->overwrite,
+                                             open_stream->overwrite,
                                              &error);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        stream->live_updates = open_query->live_updates;
+        stream->live_updates = open_stream->live_updates;
     } else {
-        dbg("Failed to open perf query set=%s period=%d: %s\n",
-            oa_query_info->guid, oa_query_info->period_exponent,
+        dbg("Failed to open perf stream set=%s period=%d: %s\n",
+            oa_stream_info->guid, oa_stream_info->period_exponent,
             error);
         goto err;
     }
@@ -726,9 +725,9 @@ static void
 handle_open_tracepoint(h2o_websocket_conn_t *conn,
                        Gputop__Request *request)
 {
-    Gputop__OpenQuery *open_query = request->open_query;
-    uint32_t id = open_query->id;
-    Gputop__TracepointConfig *config = open_query->tracepoint;
+    Gputop__OpenStream *open_stream = request->open_stream;
+    uint32_t id = open_stream->id;
+    Gputop__TracepointConfig *config = open_stream->tracepoint;
     struct gputop_perf_stream *stream;
     char *error = NULL;
     int buffer_size;
@@ -744,7 +743,7 @@ handle_open_tracepoint(h2o_websocket_conn_t *conn,
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
-    if (open_query->live_updates)
+    if (open_stream->live_updates)
         buffer_size = 128 * 1024;
     else
         buffer_size = 16 * 1024 * 1024;
@@ -757,14 +756,14 @@ handle_open_tracepoint(h2o_websocket_conn_t *conn,
                                               * that will fit in buffer */
                                          buffer_size,
                                          NULL,
-                                         open_query->overwrite,
+                                         open_stream->overwrite,
                                          &error);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        stream->live_updates = open_query->live_updates;
+        stream->live_updates = open_stream->live_updates;
     } else {
         dbg("Failed to open trace %"PRIu32": %s\n", config->id, error);
         free(error);
@@ -777,12 +776,12 @@ handle_open_tracepoint(h2o_websocket_conn_t *conn,
 }
 
 static void
-handle_open_generic_query(h2o_websocket_conn_t *conn,
+handle_open_generic_stream(h2o_websocket_conn_t *conn,
                           Gputop__Request *request)
 {
-    Gputop__OpenQuery *open_query = request->open_query;
-    uint32_t id = open_query->id;
-    Gputop__GenericEventInfo *generic_info = open_query->generic;
+    Gputop__OpenStream *open_stream = request->open_stream;
+    uint32_t id = open_stream->id;
+    Gputop__GenericEventInfo *generic_info = open_stream->generic;
     struct gputop_perf_stream *stream;
     char *error = NULL;
     int buffer_size;
@@ -798,7 +797,7 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
 
     /* NB: Perf buffer size must be a power of two.
      * We don't need a large buffer if we're periodically forwarding data */
-    if (open_query->live_updates)
+    if (open_stream->live_updates)
         buffer_size = 128 * 1024;
     else
         buffer_size = 16 * 1024 * 1024;
@@ -809,14 +808,14 @@ handle_open_generic_query(h2o_websocket_conn_t *conn,
                                               generic_info->config,
                                               buffer_size,
                                               NULL,
-                                              open_query->overwrite,
+                                              open_stream->overwrite,
                                               &error);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        stream->live_updates = open_query->live_updates;
+        stream->live_updates = open_stream->live_updates;
     } else {
         dbg("Failed to open perf event: %s\n", error);
         free(error);
@@ -832,9 +831,9 @@ static void
 handle_open_cpu_stats(h2o_websocket_conn_t *conn,
                       Gputop__Request *request)
 {
-    Gputop__OpenQuery *open_query = request->open_query;
-    uint32_t id = open_query->id;
-    Gputop__CpuStatsInfo *stats_info = open_query->cpu_stats;
+    Gputop__OpenStream *open_stream = request->open_stream;
+    uint32_t id = open_stream->id;
+    Gputop__CpuStatsInfo *stats_info = open_stream->cpu_stats;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     struct gputop_perf_stream *stream;
 
@@ -846,14 +845,14 @@ handle_open_cpu_stats(h2o_websocket_conn_t *conn,
         return;
     }
 
-    stream = gputop_perf_open_cpu_stats(open_query->overwrite,
+    stream = gputop_perf_open_cpu_stats(open_stream->overwrite,
                                         stats_info->sample_period_ms);
     if (stream) {
         stream->user.id = id;
         gputop_list_init(&stream->user.link);
         gputop_list_insert(streams.prev, &stream->user.link);
 
-        stream->live_updates = open_query->live_updates;
+        stream->live_updates = open_stream->live_updates;
     }
 
     message.reply_uuid = request->uuid;
@@ -863,23 +862,23 @@ handle_open_cpu_stats(h2o_websocket_conn_t *conn,
 }
 
 static void
-handle_open_query(h2o_websocket_conn_t *conn, Gputop__Request *request)
+handle_open_stream(h2o_websocket_conn_t *conn, Gputop__Request *request)
 {
-    Gputop__OpenQuery *open_query = request->open_query;
+    Gputop__OpenStream *open_stream = request->open_stream;
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
 
 
-    switch (open_query->type_case) {
-    case GPUTOP__OPEN_QUERY__TYPE_OA_QUERY:
-        handle_open_i915_perf_oa_query(conn, request);
+    switch (open_stream->type_case) {
+    case GPUTOP__OPEN_STREAM__TYPE_OA_STREAM:
+        handle_open_i915_perf_oa_stream(conn, request);
         break;
-    case GPUTOP__OPEN_QUERY__TYPE_TRACEPOINT:
+    case GPUTOP__OPEN_STREAM__TYPE_TRACEPOINT:
         handle_open_tracepoint(conn, request);
         break;
-    case GPUTOP__OPEN_QUERY__TYPE_GENERIC:
-        handle_open_generic_query(conn, request);
+    case GPUTOP__OPEN_STREAM__TYPE_GENERIC:
+        handle_open_generic_stream(conn, request);
         break;
-    case GPUTOP__OPEN_QUERY__TYPE_CPU_STATS:
+    case GPUTOP__OPEN_STREAM__TYPE_CPU_STATS:
         handle_open_cpu_stats(conn, request);
         break;
     default:
@@ -921,13 +920,13 @@ close_all_streams(void)
 }
 
 static void
-handle_close_query(h2o_websocket_conn_t *conn,
+handle_close_stream(h2o_websocket_conn_t *conn,
                    Gputop__Request *request)
 {
     struct gputop_perf_stream *stream;
-    uint32_t id = request->close_query;
+    uint32_t id = request->close_stream;
 
-    dbg("handle_close_query: id=%d, request_uuid=%s\n", id, request->uuid);
+    dbg("handle_close_stream: id=%d, request_uuid=%s\n", id, request->uuid);
 
     gputop_list_for_each(stream, &streams, user.link) {
         if (stream->user.id == id) {
@@ -1236,8 +1235,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     features.kernel_release = kernel_release;
     features.kernel_build = kernel_version;
-    features.n_supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->len;
-    features.supported_oa_query_guids = gputop_perf_oa_supported_metric_set_guids->data;
+    features.n_supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->len;
+    features.supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->data;
 
     features.n_notices = ARRAY_SIZE(notices);
     features.notices = notices;
@@ -1323,13 +1322,13 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
             fprintf(stderr, "GetFeatures request received\n");
             handle_get_features(conn, request);
             break;
-        case GPUTOP__REQUEST__REQ_OPEN_QUERY:
-            fprintf(stderr, "OpenQuery request received\n");
-            handle_open_query(conn, request);
+        case GPUTOP__REQUEST__REQ_OPEN_STREAM:
+            fprintf(stderr, "OpenStream request received\n");
+            handle_open_stream(conn, request);
             break;
-        case GPUTOP__REQUEST__REQ_CLOSE_QUERY:
-            fprintf(stderr, "CloseQuery request received\n");
-            handle_close_query(conn, request);
+        case GPUTOP__REQUEST__REQ_CLOSE_STREAM:
+            fprintf(stderr, "CloseStream request received\n");
+            handle_close_stream(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_TEST_LOG:
             fprintf(stderr, "TEST LOG: %s\n", request->test_log);

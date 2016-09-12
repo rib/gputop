@@ -1355,7 +1355,7 @@ GputopUI.prototype.close_cpu_stats = function(onclose) {
     if (this.cpu_stats_stream === undefined)
         return;
 
-    this.rpc_request('close_query', this.cpu_stats_stream.server_handle, (msg) => {
+    this.rpc_request('close_stream', this.cpu_stats_stream.server_handle, (msg) => {
         this.cpu_stats_stream = undefined;
         if (onclose !== undefined)
             onclose();

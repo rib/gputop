@@ -71,7 +71,7 @@ message Features
     required string kernel_release = 7;
     required string kernel_build = 8;
     required bool fake_mode = 9;
-    repeated string supported_oa_query_guids = 10;
+    repeated string supported_oa_guids = 10;
     repeated string tracepoints = 11;
     repeated string notices = 12;
     required int32 server_pid = 13;
@@ -102,7 +102,7 @@ message CloseNotify
 
 message BufferFillNotify
 {
-    required uint32 query_id=1;
+    required uint32 stream_id=1;
     required uint32 fill_percentage=2;
 }
 
@@ -154,7 +154,7 @@ message Message
 /*
  * From Browser
  */
-message OAQueryInfo
+message OAStreamInfo
 {
     required string guid = 1;
     //required uint32 format = 2;
@@ -181,13 +181,13 @@ message CpuStatsInfo
     required uint32 sample_period_ms = 1;
 }
 
-message OpenQuery
+message OpenStream
 {
     required uint32 id = 1;
 
     oneof type {
         uint32 gl_query = 2;
-        OAQueryInfo oa_query = 3;
+        OAStreamInfo oa_stream = 3;
         TracepointConfig tracepoint = 4;
         GenericEventInfo generic = 5;
         CpuStatsInfo cpu_stats = 9;
@@ -203,8 +203,8 @@ message Request
 
     oneof req {
         bool get_features = 2;
-        OpenQuery open_query = 3;
-        uint32 close_query = 4;
+        OpenStream open_stream = 3;
+        uint32 close_stream = 4;
         uint32 get_process_info = 5;
         string test_log=6;
         string get_tracepoint_info = 7;
