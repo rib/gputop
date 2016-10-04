@@ -182,7 +182,7 @@ enum i915_perf_record_type {
 #define I915_IOCTL_GEM_CONTEXT_DESTROY  _IOWR('d', 0x6e, struct drm_i915_gem_context_destroy)
 
 #define I915_IOCTL_GETPARAM         _IOWR('d', 0x46, i915_getparam_t)
-#define I915_IOCTL_PERF_OPEN        _IOWR('d', 0x76, struct i915_perf_open_param)
+#define I915_IOCTL_PERF_OPEN        _IOW('d', 0x76, struct i915_perf_open_param)
 
 #define I915_PERF_IOCTL_ENABLE      _IO('i', 0x0)
 #define I915_PERF_IOCTL_DISABLE     _IO('i', 0x1)
