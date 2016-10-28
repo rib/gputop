@@ -55,6 +55,9 @@ libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     $(PROTOBUF_DEP_CFLAGS) \
+    $(YAML_DEP_CFLAGS) \
+    $(CRYPTO_DEP_CFLAGS) \
+    $(SSL_DEP_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
@@ -64,11 +67,13 @@ libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \
     $(PROTOBUF_DEP_LIBS) \
+    $(YAML_DEP_LIBS) \
+    $(CRYPTO_DEP_LIBS) \
+    $(SSL_DEP_LIBS) \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
-    -ldl -lm -lrt \
-    -lssl -lcrypto -lyaml
+    -ldl -lm -lrt
 
 if SUPPORT_GL
 libgputop_la_SOURCES += \
