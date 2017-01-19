@@ -416,7 +416,7 @@ def output_sysfs_code(sets):
         c("\n")
         c("static struct device_attribute dev_attr_" + perf_name_lc + "_id = {")
         c_indent(8)
-        c(".attr = { .name = \"id\", .mode = S_IRUGO },")
+        c(".attr = { .name = \"id\", .mode = 0444 },")
         c(".show = show_" + perf_name_lc + "_id,")
         c(".store = NULL,")
         c_outdent(8)
@@ -546,6 +546,7 @@ if args.sysfs:
     c("\n")
 
 c("#include \"i915_drv.h\"\n")
+c("#include \"i915_oa_" + args.chipset + ".h\"\n")
 
 sets = []
 
