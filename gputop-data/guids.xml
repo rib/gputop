@@ -60,7 +60,7 @@
     <guid mdapi_config_hash="179e6a40c74a8401597b82383dacfd70" id="cbd09d71-3979-4f03-9e2b-33708b366fb9" chipset="bdw" name="MediaVmePipe" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="3ed20c9f7071cef87fd28d2f899c9e6c" id="ac57092f-06d2-451a-9b23-c018f2eee68f" chipset="bdw" name="HdcUrbCoalescing" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid config_hash="1203bab0824989fa756eae88a8ef18d3" mdapi_config_hash="d996104bf7531170226275d44a3602b6" id="4a534b07-cba3-414d-8d60-874830e883aa" chipset="chv" name="TestOa" />
-    <guid config_hash="cfb6a27a3f401c2e802807235abc6de0" mdapi_config_hash="02f306f17324fdd0cfa7bc3f12c0d5ba" id="9d8a3af5-c02c-4a4a-b947-f1672469e0fb" chipset="chv" name="RenderBasic" />
+    <guid config_hash="3ae71793316ba91c2d8e59a80c5e08e3" mdapi_config_hash="089852d3f5babff2175457f57214ce57" id="9d8a3af5-c02c-4a4a-b947-f1672469e0fb" chipset="chv" name="RenderBasic" />
     <guid config_hash="1e00fd146a0a54390229411f1d7f20fc" mdapi_config_hash="60375bf6570a28320cce512ab6d024e0" id="f522a89c-ecd1-4522-8331-3383c54af5f5" chipset="chv" name="ComputeBasic" />
     <guid config_hash="6bc677d442ac1bd717ac842fe05cade8" mdapi_config_hash="1466be3c679aeeb0627be174ead35e58" id="a9ccc03d-a943-4e6b-9cd6-13e063075927" chipset="chv" name="RenderPipeProfile" />
     <guid config_hash="9315ce27257f2a08a53fe8c459717962" mdapi_config_hash="f94fd6ba5bfa83bb965705f1c69f1d37" id="2cf0c064-68df-4fac-9b3f-57f51ca8a069" chipset="chv" name="HDCAndSF" />
@@ -73,7 +73,7 @@
     <guid config_hash="721ee22f038af45554408e0e8e27e332" mdapi_config_hash="e38e63da0d875958bc88a9deb8d529ba" id="b996a2b7-c59c-492d-877a-8cd54fd6df84" chipset="chv" name="Sampler_2" />
     <guid config_hash="937685b7717da760d04eab2691c29f74" mdapi_config_hash="c905876bdf561cc26c64363ced258c64" id="eb2fecba-b431-42e7-8261-fe9429a6e67a" chipset="chv" name="TDL_1" />
     <guid config_hash="cbc442d407bf40e1a53cdb7701fea69b" mdapi_config_hash="0000753d7f52fb3a0b0baa6b44052cff" id="60749470-a648-4a4b-9f10-dbfe1e36e44d" chipset="chv" name="TDL_2" />
-    <guid mdapi_config_hash="aaf44da941e898699d2713d92a1411cb" id="40fb316d-b961-4dda-891f-de0f58f203e7" chipset="chv" name="RenderDX1x" />
+    <guid mdapi_config_hash="17c8993b1a74c095a70077e56d72a8b8" id="40fb316d-b961-4dda-891f-de0f58f203e7" chipset="chv" name="RenderDX1x" />
     <guid mdapi_config_hash="5cc4d10d745060d0672ffb4ebf0d1687" id="22480aac-b81a-40ce-8770-1061ce51dff7" chipset="chv" name="StencilPmaHold" />
     <guid mdapi_config_hash="f3ae7e16e9b6aadac98179bc4c847246" id="f8315f64-668e-405e-a6d6-c52e4d9e8f1c" chipset="chv" name="MediaMemoryReads" />
     <guid mdapi_config_hash="ea98859ab4afdda2589be697455c7dc8" id="6df9f4c3-4775-4f47-be6a-991fba7a02c7" chipset="chv" name="MediaMemoryWrites" />
