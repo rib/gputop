@@ -145,11 +145,17 @@ for guid in guids_xml.findall(".//guid"):
 
 for arg in args.xml:
     internal = ET.parse(arg)
+
+    concurrent_group = internal.find(".//ConcurrentGroup")
+
     for internal_set in internal.findall(".//MetricSet"):
 
         v1_hash = get_v1_config_hash(internal_set)
 
         chipset = internal_set.get('SupportedHW').lower()
+        if concurrent_group.get('SupportedGT') != None:
+            chipset = chipset + concurrent_group.get('SupportedGT').lower()
+
         set_name = internal_set.get('SymbolName')
 
         name = chipset + "_" + set_name;
@@ -187,7 +193,7 @@ for arg in args.xml:
 
 
 
-chipsets = [ 'hsw', 'bdw', 'chv', 'skl', 'bxt' ]
+chipsets = [ 'hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt' ]
 
 for chipset in chipsets:
     public = ET.parse('oa-' + chipset + '.xml')

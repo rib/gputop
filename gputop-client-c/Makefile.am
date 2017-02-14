@@ -5,8 +5,14 @@ BUILT_SOURCES = \
     oa-bdw.c \
     oa-chv.h \
     oa-chv.c \
-    oa-skl.h \
-    oa-skl.c
+    oa-sklgt2.h \
+    oa-sklgt2.c \
+    oa-sklgt3.h \
+    oa-sklgt3.c \
+    oa-sklgt4.h \
+    oa-sklgt4.c \
+    oa-bxt.h \
+    oa-bxt.c
 
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts

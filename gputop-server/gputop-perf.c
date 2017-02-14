@@ -62,7 +62,10 @@
 #include "oa-hsw.h"
 #include "oa-bdw.h"
 #include "oa-chv.h"
-#include "oa-skl.h"
+#include "oa-sklgt2.h"
+#include "oa-sklgt3.h"
+#include "oa-sklgt4.h"
+#include "oa-bxt.h"
 
 
 /* Samples read() from i915 perf */
@@ -1494,9 +1497,22 @@ gputop_perf_initialize(void)
         } else if (IS_CHERRYVIEW(intel_dev.device)) {
             gputop_oa_add_metrics_chv(&gputop_devinfo);
         } else if (IS_SKYLAKE(intel_dev.device)) {
-            gputop_oa_add_metrics_skl(&gputop_devinfo);
-        } else
-            assert(0);
+            if (IS_SKL_GT2(intel_dev.device))
+                gputop_oa_add_metrics_sklgt2(&gputop_devinfo);
+            else if (IS_SKL_GT3(intel_dev.device))
+                gputop_oa_add_metrics_sklgt3(&gputop_devinfo);
+            else if (IS_SKL_GT4(intel_dev.device))
+                gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
+            else {
+                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Skylake GT size", -1);
+                return false;
+            }
+        } else if (IS_BROXTON(intel_dev.device)) {
+            gputop_oa_add_metrics_bxt(&gputop_devinfo);
+        } else {
+            gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform", -1);
+            return false;
+        }
 
         if (gputop_fake_mode)
             return gputop_enumerate_metrics_fake();

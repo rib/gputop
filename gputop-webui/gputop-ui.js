@@ -1237,7 +1237,10 @@ GputopUI.prototype.init_interface = function(callback) {
                 ["hsw", "Haswell"],
                 ["chv", "Cherryview"],
                 ["bdw", "Broadwell"],
-                ["skl", "Skylake"],
+                ["sklgt2", "Skylake GT2"],
+                ["sklgt3", "Skylake GT3"],
+                ["sklgt4", "Skylake GT4"],
+                ["bxt", "Broxton"],
             ];
 
             for (var i = 0; i < arch_list.length; i++)

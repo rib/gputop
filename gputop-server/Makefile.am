@@ -30,8 +30,14 @@ libgputop_la_SOURCES = \
     oa-bdw.c \
     oa-chv.h \
     oa-chv.c \
-    oa-skl.h \
-    oa-skl.c \
+    oa-sklgt2.h \
+    oa-sklgt2.c \
+    oa-sklgt3.h \
+    oa-sklgt3.c \
+    oa-sklgt4.h \
+    oa-sklgt4.c \
+    oa-bxt.h \
+    oa-bxt.c \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
@@ -124,8 +130,14 @@ BUILT_SOURCES = \
     oa-bdw.c \
     oa-chv.h \
     oa-chv.c \
-    oa-skl.h \
-    oa-skl.c \
+    oa-sklgt2.h \
+    oa-sklgt2.c \
+    oa-sklgt3.h \
+    oa-sklgt3.c \
+    oa-sklgt4.h \
+    oa-sklgt4.c \
+    oa-bxt.h \
+    oa-bxt.c \
     gputop.pb-c.h \
     gputop.pb-c.c
 

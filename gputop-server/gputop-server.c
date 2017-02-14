@@ -1198,7 +1198,14 @@ handle_get_features(h2o_websocket_conn_t *conn,
     } else if (IS_CHERRYVIEW(devinfo.devid)) {
         devinfo.devname = "chv";
     } else if (IS_SKYLAKE(devinfo.devid)) {
-        devinfo.devname = "skl";
+        if (IS_SKL_GT2(devinfo.devid))
+            devinfo.devname = "sklgt2";
+        else if (IS_SKL_GT3(devinfo.devid))
+            devinfo.devname = "sklgt3";
+        else if (IS_SKL_GT4(devinfo.devid))
+            devinfo.devname = "sklgt4";
+    } else if (IS_BROXTON(devinfo.devid)) {
+        devinfo.devname = "bxt";
     }
 
     features.fake_mode = gputop_fake_mode;

@@ -2,7 +2,10 @@ gputop_xml = \
 	gputop-hsw.xml \
 	gputop-bdw.xml \
 	gputop-chv.xml \
-	gputop-skl.xml
+	gputop-sklgt2.xml \
+	gputop-sklgt3.xml \
+	gputop-sklgt4.xml \
+	gputop-bxt.xml
 
 BUILT_SOURCES = $(gputop_xml)
 

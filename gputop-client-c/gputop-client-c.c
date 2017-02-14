@@ -48,7 +48,10 @@
 #include "oa-hsw.h"
 #include "oa-bdw.h"
 #include "oa-chv.h"
-#include "oa-skl.h"
+#include "oa-sklgt2.h"
+#include "oa-sklgt3.h"
+#include "oa-sklgt4.h"
+#include "oa-bxt.h"
 
 #define PERF_RECORD_SAMPLE 9
 
@@ -359,8 +362,19 @@ gputop_cc_update_system_metrics(void)
         gputop_oa_add_metrics_bdw(&gputop_devinfo);
     else if (IS_CHERRYVIEW(devid))
         gputop_oa_add_metrics_chv(&gputop_devinfo);
-    else if (IS_SKYLAKE(devid))
-        gputop_oa_add_metrics_skl(&gputop_devinfo);
+    else if (IS_SKYLAKE(devid)) {
+        if (IS_SKL_GT2(devid))
+            gputop_oa_add_metrics_sklgt2(&gputop_devinfo);
+        else if (IS_SKL_GT3(devid))
+            gputop_oa_add_metrics_sklgt3(&gputop_devinfo);
+        else if (IS_SKL_GT4(devid))
+            gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
+        else {
+            gputop_cr_console_error("Unsupported Skylake GT size");
+            assert_not_reached();
+        }
+    } else if (IS_BROXTON(devid))
+        gputop_oa_add_metrics_bxt(&gputop_devinfo);
     else
         assert_not_reached();
 }
