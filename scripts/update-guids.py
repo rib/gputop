@@ -152,24 +152,36 @@ for arg in args.xml:
         chipset = internal_set.get('SupportedHW').lower()
         set_name = internal_set.get('SymbolName')
 
+        name = chipset + "_" + set_name;
+
         if v1_hash in v1_guid_table:
             guid_obj = v1_guid_table[v1_hash]
 
             guid_obj['name'] = set_name
             guid_obj['chipset'] = chipset
             guid_obj['matched_mdapi'] = True
+        elif name in named_guid_table:
+            guid_obj = named_guid_table[name]
+
+            guid_obj['matched_mdapi'] = True
+            guid_obj['v1_hash'] = v1_hash
+            if 'v2_hash' in guid_obj:
+                del guid_obj['v2_hash']
+            guid_obj['comment'] = "WARNING: MDAPI XML config hash changed! If upstream, double check raw counter semantics unchanged"
+            print_err("WARNING: MDAPI XML config hash changed for \"" + set_name + "\" (" + chipset + ") If upstream, double check raw counter semantics unchanged")
         else:
             guid_obj = { 'v1_hash': v1_hash,
                          'id': str(uuid.uuid4()),
                          'name': set_name,
                          'chipset': chipset,
                          'unregistered': True,
-                         'matched_mdapi': True
+                         'matched_mdapi': True,
+                         'comment': "New"
                        }
             guid_index[guid_obj['id']] = guid_obj
             v1_guid_table[guid_obj['v1_hash']] = guid_obj
             guids.append(guid_obj)
-            print_err("Unregistered GUID for metric set = " + set_name + " (" + chipset + ")")
+            print_err("New GUID \"" + guid_obj['id'] + "\" for metric set = " + set_name + " (" + chipset + ")")
 
         named_guid_table[chipset + '_' + set_name] = guid_obj
 
@@ -201,8 +213,10 @@ for guid_obj in guids:
     line = "<guid"
 
     if 'matched_mdapi' not in guid_obj:
-        comment = "MDAPI register hash lookup failed! (maybe it was removed or the config was changed?)"
-        print_err("WARNING: guid = " + guid_obj['id'] + "  " + comment)
+        comment = "Not found in MDAPI XML file[s]; Existing entry copied unmodified (maybe removed from MDAPI or not all XML files given)"
+
+    if 'comment' in guid_obj:
+        comment = guid_obj['comment']
 
     if 'v2_hash' in guid_obj:
         line = line + ' config_hash="' + guid_obj['v2_hash'] + '"'    
