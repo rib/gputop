@@ -33,16 +33,17 @@
     <guid mdapi_config_hash="cf80117b63d376e87735b73e8f5ebc5b" id="69b42918-c915-439a-9e4b-a82fe3c9e1a3" chipset="hsw" name="MediaMemoryWrites" />
     <guid mdapi_config_hash="3566f20e9e3707cb9aefccff3ead7572" id="18024740-aa68-4d25-877e-082c9fdcb895" chipset="hsw" name="MediaVmePipe" />
     <guid config_hash="2e73cdfbee8b7e892aae2e51f792d274" mdapi_config_hash="961180e14745136637cfd0253c6c0a63" id="d6de6f55-e526-4f79-a6a6-d7315c09044e" chipset="bdw" name="TestOa" />
-    <guid config_hash="d35513f43b8f8031dee5836875239d14" mdapi_config_hash="1c9e576d99200cd27fb5e42d06c0fa59" id="b541bd57-0e0f-4154-b4c0-5858010a2bf7" chipset="bdw" name="RenderBasic" />
-    <guid config_hash="7aa20bf95e41a8c847f85f7de1a1e425" mdapi_config_hash="aa014738b09654618e15f78210771a3d" id="35fbc9b2-a891-40a6-a38d-022bb7057552" chipset="bdw" name="ComputeBasic" />
+    <guid config_hash="251b7e4c25616ed2ac71158c8aa2c882" mdapi_config_hash="b36cfb81b16abf7d07253d378c9bf942" id="b541bd57-0e0f-4154-b4c0-5858010a2bf7" chipset="bdw" name="RenderBasic" />
+    <guid config_hash="330ac8a8e9888f00a14c4b5129e8a011" mdapi_config_hash="d077cbe576b0658766c6c3f62506675a" id="35fbc9b2-a891-40a6-a38d-022bb7057552" chipset="bdw" name="ComputeBasic" />
     <guid config_hash="f78b433045d0d0b9d5bf69bb13b05e24" mdapi_config_hash="fbde7829568089b44b53a1eefbad9b0e" id="8fb61ba2-2fbb-454c-a136-2dec5a8a595e" chipset="bdw" name="ComputeExtra" />
-    <guid config_hash="c8527ca4146cf6f619ac227df83ec355" mdapi_config_hash="bffeab00cdb2b37ba6356b210f54f1dd" id="233d0544-fff7-4281-8291-e02f222aff72" chipset="bdw" name="RenderPipeProfile" />
+    <guid config_hash="71f10ebeab3bfa38fbfa55cf3dca4596" mdapi_config_hash="f0c3b043834e63d21ba6be573df02e32" id="233d0544-fff7-4281-8291-e02f222aff72" chipset="bdw" name="RenderPipeProfile" />
     <guid config_hash="353c068117d57099d1f75c2c73447c93" mdapi_config_hash="fa121c59e98aa4f860c797bfab097cd7" id="2b255d48-2117-4fef-a8f7-f151e1d25a2c" chipset="bdw" name="MemoryReads" />
     <guid config_hash="a3e04d55a2d6b6b56f5ec35f9cc1f7a2" mdapi_config_hash="7e324f6f7cb980832735ada1e12f7905" id="f7fd3220-b466-4a4d-9f98-b0caf3f2394c" chipset="bdw" name="MemoryWrites" />
-    <guid config_hash="ea1dd2d05e8b8a422ecb31a741ee1ce1" mdapi_config_hash="1e99b927bc1200bcffc65a0ea8891256" id="e99ccaca-821c-4df9-97a7-96bdb7204e43" chipset="bdw" name="ComputeExtended" />
-    <guid config_hash="48daa273aee7262b9e2a88cfcdeb90d5" mdapi_config_hash="71c2a08c9412b6afe00d73aee7990b85" id="27a364dc-8225-4ecb-b607-d6f1925598d9" chipset="bdw" name="ComputeL3Cache" />
+    <guid config_hash="030a5c41aaf80ce30679968d0efbcf1f" mdapi_config_hash="9225e0e043e9ee5d8ff56783022ebb66" id="e99ccaca-821c-4df9-97a7-96bdb7204e43" chipset="bdw" name="ComputeExtended" />
+    <guid config_hash="eb56f8cf0f8dafae1b639cbb3272221c" mdapi_config_hash="e9913c0dd30d6ccab98c5dec58dc7162" id="27a364dc-8225-4ecb-b607-d6f1925598d9" chipset="bdw" name="ComputeL3Cache" />
     <guid config_hash="7ce8d28d5bbf9794b1436b0e30680a70" mdapi_config_hash="875df3ca90886c816466082fe9483699" id="857fc630-2f09-4804-85f1-084adfadd5ab" chipset="bdw" name="DataPortReadsCoalescing" />
     <guid config_hash="85a352da675e04e2eaa9e455ba93faab" mdapi_config_hash="c4a46f51a3176be03a1116eac0904840" id="343ebc99-4a55-414c-8c17-d8e259cf5e20" chipset="bdw" name="DataPortWritesCoalescing" />
+    <guid config_hash="fbabf54ad7ee585615071bbaa311b17b" mdapi_config_hash="715fe2c431914b6b369970c0b897f7e2" id="e1743ca0-7fc8-410b-a066-de7bbb9280b7" chipset="bdw" name="VMEPipe" />
     <guid mdapi_config_hash="a5589479b360f6d4f5c8f70fe78b0e1d" id="34ba6308-6b16-4e5a-91d3-62cdcb96fc81" chipset="bdw" name="L3_1" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="0fc152bfbb920f90b16ed0445afe9e48" id="e76d619f-31f9-4c76-903c-6064ff8a8f92" chipset="bdw" name="L3_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="2afc3cdd7ffbb021fc0ae99681b138ab" id="29101fd9-399e-4212-949d-e4a4a0f78117" chipset="bdw" name="L3_3" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
@@ -52,7 +53,7 @@
     <guid mdapi_config_hash="e38e63da0d875958bc88a9deb8d529ba" id="1c40ae0c-51b6-4023-9c03-4df664e5a233" chipset="bdw" name="Sampler_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="c905876bdf561cc26c64363ced258c64" id="bf7af011-6c2f-46db-9ff0-3aa032694eee" chipset="bdw" name="TDL_1" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="0000753d7f52fb3a0b0baa6b44052cff" id="fd08c1ac-2c60-43c8-986d-6618617d83f7" chipset="bdw" name="TDL_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="620f33f850de9f269a9ef01424dd3be6" id="27cf5a80-b772-40aa-a1cc-9a22c5cc11e4" chipset="bdw" name="RenderDX1x" />
+    <guid mdapi_config_hash="abd5a9b491a1cb502a003b4b07d35e63" id="27cf5a80-b772-40aa-a1cc-9a22c5cc11e4" chipset="bdw" name="RenderDX1x" />
     <guid mdapi_config_hash="5cc4d10d745060d0672ffb4ebf0d1687" id="64a9f628-7236-4758-b566-47c37dbf36c9" chipset="bdw" name="StencilPmaHold" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="f3ae7e16e9b6aadac98179bc4c847246" id="b11c05c7-342a-48b1-aebd-57d414953cff" chipset="bdw" name="MediaMemoryReads" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid mdapi_config_hash="ea98859ab4afdda2589be697455c7dc8" id="b23d5768-b5b9-43d1-b6a5-3b4b5f04c3a0" chipset="bdw" name="MediaMemoryWrites" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->

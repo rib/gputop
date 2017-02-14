@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1467210024" merge_md5="">
+<metrics version="1487077547" merge_md5="">
   <set name="Render Metrics Basic Gen8"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -34,11 +34,24 @@
              mdapi_group="EU Array"
              mdapi_hw_unit_type="gpu"
              />
+    <counter name="L3 Misses"
+             description="The total number of L3 misses."
+             data_type="uint64"
+             equation="C 4 READ"
+             underscore_name="l3_misses"
+             units="messages"
+             symbol_name="L3Misses"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="L3/TAG"
+             />
     <counter name="GTI L3 Throughput"
              description="The total number of GPU memory bytes transferred between L3 caches and GTI."
              data_type="uint64"
              max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
-             equation="C 4 READ C 5 READ UADD 64 UMUL"
+             equation="$L3Misses 64 UMUL"
              underscore_name="gti_l3_throughput"
              units="bytes"
              symbol_name="GtiL3Throughput"
@@ -243,19 +256,6 @@
              mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
              mdapi_group="Sampler"
              mdapi_hw_unit_type="slice"
-             />
-    <counter name="L3 Misses"
-             description="The total number of L3 misses."
-             data_type="uint64"
-             equation="C 4 READ C 5 READ UADD"
-             underscore_name="l3_misses"
-             units="messages"
-             symbol_name="L3Misses"
-             semantic_type="event"
-             mdapi_supported_apis=""
-             mdapi_usage_flags="Tier3 Frame Batch Draw"
-             mdapi_hw_unit_type="gpu"
-             mdapi_group="L3/TAG"
              />
     <counter name="Samples Blended"
              description="The total number of blended samples or pixels written to all render targets."
@@ -695,6 +695,20 @@
              mdapi_group="Sampler"
              mdapi_hw_unit_type="slice"
              />
+    <counter name="GTI HDC TLB Lookup Throughput"
+             description="The total number of GPU memory bytes transferred between GTI and HDC, when HDC is doing TLB lookups."
+             data_type="uint64"
+             max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
+             equation="C 5 READ 64 UMUL"
+             underscore_name="gti_hdc_lookups_throughput"
+             units="bytes"
+             symbol_name="GtiHdcLookupsThroughput"
+             semantic_type="throughput"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Frame Batch Draw"
+             mdapi_group="GTI/L3"
+             mdapi_hw_unit_type="gpu"
+             />
     <counter name="GTI RCC Throughput"
              description="The total number of GPU memory bytes transferred between render color caches and GTI."
              data_type="uint64"
@@ -826,6 +840,7 @@
         <register type="NOA" address="0x00009888" value="0x14110014" />
         <register type="NOA" address="0x00009888" value="0x14310014" />
         <register type="NOA" address="0x00009888" value="0x14BF000F" />
+        <register type="NOA" address="0x00009888" value="0x118A0317" />
         <register type="NOA" address="0x00009888" value="0x13837BE0" />
         <register type="NOA" address="0x00009888" value="0x3B800060" />
         <register type="NOA" address="0x00009888" value="0x3D800005" />
@@ -874,11 +889,15 @@
         <register type="NOA" address="0x00009888" value="0x109F0002" />
         <register type="NOA" address="0x00009888" value="0x0AB94000" />
         <register type="NOA" address="0x00009888" value="0x0D888000" />
+        <register type="NOA" address="0x00009888" value="0x038A0380" />
+        <register type="NOA" address="0x00009888" value="0x058A000E" />
         <register type="NOA" address="0x00009888" value="0x018A8000" />
         <register type="NOA" address="0x00009888" value="0x0F8A8000" />
         <register type="NOA" address="0x00009888" value="0x198A8000" />
         <register type="NOA" address="0x00009888" value="0x1B8A00A0" />
-        <register type="NOA" address="0x00009888" value="0x238B0020" />
+        <register type="NOA" address="0x00009888" value="0x078A0000" />
+        <register type="NOA" address="0x00009888" value="0x098A0000" />
+        <register type="NOA" address="0x00009888" value="0x238B2820" />
         <register type="NOA" address="0x00009888" value="0x258B2550" />
         <register type="NOA" address="0x00009888" value="0x198C1000" />
         <register type="NOA" address="0x00009888" value="0x0B8D8000" />
@@ -888,13 +907,13 @@
         <register type="NOA" address="0x00009888" value="0x0D831021" />
         <register type="NOA" address="0x00009888" value="0x0F83572F" />
         <register type="NOA" address="0x00009888" value="0x01835680" />
-        <register type="NOA" address="0x00009888" value="0x038315AC" />
-        <register type="NOA" address="0x00009888" value="0x0583002A" />
+        <register type="NOA" address="0x00009888" value="0x0383002C" />
         <register type="NOA" address="0x00009888" value="0x11830000" />
         <register type="NOA" address="0x00009888" value="0x19835400" />
         <register type="NOA" address="0x00009888" value="0x1B830001" />
-        <register type="NOA" address="0x00009888" value="0x07830000" />
-        <register type="NOA" address="0x00009888" value="0x09830000" />
+        <register type="NOA" address="0x00009888" value="0x05830000" />
+        <register type="NOA" address="0x00009888" value="0x07834000" />
+        <register type="NOA" address="0x00009888" value="0x09834000" />
         <register type="NOA" address="0x00009888" value="0x0184C000" />
         <register type="NOA" address="0x00009888" value="0x07848000" />
         <register type="NOA" address="0x00009888" value="0x0984C000" />
@@ -912,7 +931,6 @@
         <register type="NOA" address="0x00009888" value="0x1F80C000" />
         <register type="NOA" address="0x00009888" value="0x1380C000" />
         <register type="NOA" address="0x00009888" value="0x15804000" />
-        <register type="NOA" address="0x00000D24" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x4D801110" />
         <register type="NOA" address="0x00009888" value="0x4F800331" />
         <register type="NOA" address="0x00009888" value="0x43800802" />
@@ -921,8 +939,8 @@
         <register type="NOA" address="0x00009888" value="0x53801111" />
         <register type="NOA" address="0x00009888" value="0x478014A5" />
         <register type="NOA" address="0x00009888" value="0x31800000" />
-        <register type="NOA" address="0x00009888" value="0x3F8014A5" />
-        <register type="NOA" address="0x00009888" value="0x41800005" />
+        <register type="NOA" address="0x00009888" value="0x3F800CA5" />
+        <register type="NOA" address="0x00009888" value="0x41800003" />
     </register_config>
     <register_config id="1"
                      availability="$SliceMask 0x02 AND"
@@ -932,6 +950,7 @@
         <register type="NOA" address="0x00009888" value="0x14BF000F" />
         <register type="NOA" address="0x00009888" value="0x14910014" />
         <register type="NOA" address="0x00009888" value="0x14B10014" />
+        <register type="NOA" address="0x00009888" value="0x118A0317" />
         <register type="NOA" address="0x00009888" value="0x13837BE0" />
         <register type="NOA" address="0x00009888" value="0x3B800060" />
         <register type="NOA" address="0x00009888" value="0x3D800005" />
@@ -982,8 +1001,12 @@
         <register type="NOA" address="0x00009888" value="0x16B30080" />
         <register type="NOA" address="0x00009888" value="0x01888000" />
         <register type="NOA" address="0x00009888" value="0x0D88B800" />
+        <register type="NOA" address="0x00009888" value="0x038A0380" />
+        <register type="NOA" address="0x00009888" value="0x058A000E" />
         <register type="NOA" address="0x00009888" value="0x1B8A0080" />
-        <register type="NOA" address="0x00009888" value="0x238B0040" />
+        <register type="NOA" address="0x00009888" value="0x078A0000" />
+        <register type="NOA" address="0x00009888" value="0x098A0000" />
+        <register type="NOA" address="0x00009888" value="0x238B2840" />
         <register type="NOA" address="0x00009888" value="0x258B26A0" />
         <register type="NOA" address="0x00009888" value="0x018C4000" />
         <register type="NOA" address="0x00009888" value="0x0F8C4000" />
@@ -999,13 +1022,13 @@
         <register type="NOA" address="0x00009888" value="0x0D831021" />
         <register type="NOA" address="0x00009888" value="0x0F83572F" />
         <register type="NOA" address="0x00009888" value="0x01835680" />
-        <register type="NOA" address="0x00009888" value="0x038315AC" />
-        <register type="NOA" address="0x00009888" value="0x0583002A" />
+        <register type="NOA" address="0x00009888" value="0x0383002C" />
         <register type="NOA" address="0x00009888" value="0x11830000" />
         <register type="NOA" address="0x00009888" value="0x19835400" />
         <register type="NOA" address="0x00009888" value="0x1B830001" />
-        <register type="NOA" address="0x00009888" value="0x07830000" />
-        <register type="NOA" address="0x00009888" value="0x09830000" />
+        <register type="NOA" address="0x00009888" value="0x05830000" />
+        <register type="NOA" address="0x00009888" value="0x07834000" />
+        <register type="NOA" address="0x00009888" value="0x09834000" />
         <register type="NOA" address="0x00009888" value="0x0184C000" />
         <register type="NOA" address="0x00009888" value="0x07848000" />
         <register type="NOA" address="0x00009888" value="0x0984C000" />
@@ -1023,23 +1046,23 @@
         <register type="NOA" address="0x00009888" value="0x1F80C000" />
         <register type="NOA" address="0x00009888" value="0x1380C000" />
         <register type="NOA" address="0x00009888" value="0x15804000" />
-        <register type="NOA" address="0x00000D24" value="0x00000000" />
-        <register type="NOA" address="0x00009888" value="0x4D805550" />
-        <register type="NOA" address="0x00009888" value="0x4F800335" />
+        <register type="NOA" address="0x00009888" value="0x4D801550" />
+        <register type="NOA" address="0x00009888" value="0x4F800331" />
         <register type="NOA" address="0x00009888" value="0x43800802" />
         <register type="NOA" address="0x00009888" value="0x51800400" />
         <register type="NOA" address="0x00009888" value="0x458004A1" />
         <register type="NOA" address="0x00009888" value="0x53805555" />
         <register type="NOA" address="0x00009888" value="0x47800421" />
         <register type="NOA" address="0x00009888" value="0x31800000" />
-        <register type="NOA" address="0x00009888" value="0x3F800421" />
-        <register type="NOA" address="0x00009888" value="0x41800841" />
+        <register type="NOA" address="0x00009888" value="0x3F801421" />
+        <register type="NOA" address="0x00009888" value="0x41800845" />
     </register_config>
     <register_config id="2">
         <register type="OA" address="0x00002710" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0x00800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002740" value="0x00000000" />
     </register_config>
     <register_config id="3">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
@@ -1778,6 +1801,7 @@
         <register type="OA" address="0x00002714" value="0x00800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002740" value="0x00000000" />
     </register_config>
     <register_config id="3">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
@@ -2682,6 +2706,7 @@
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0xF0800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002770" value="0x0007FFEA" />
         <register type="OA" address="0x00002774" value="0x00007FFC" />
         <register type="OA" address="0x00002778" value="0x0007AFFA" />
@@ -5315,6 +5340,7 @@
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0xF0800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002770" value="0x0007FC2A" />
         <register type="OA" address="0x00002774" value="0x0000BF00" />
         <register type="OA" address="0x00002778" value="0x0007FC6A" />
@@ -6252,6 +6278,7 @@
         <register type="OA" address="0x00002714" value="0x30800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002724" value="0x30800000" />
+        <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002770" value="0x0007FFFA" />
         <register type="OA" address="0x00002774" value="0x0000FEFE" />
         <register type="OA" address="0x00002778" value="0x0007FFFA" />
@@ -16069,6 +16096,262 @@
         <register type="FLEX" address="0x0000E45C" value="0x00050012" />
         <register type="FLEX" address="0x0000E55C" value="0x00052051" />
         <register type="FLEX" address="0x0000E65C" value="0x00000008" />
+    </register_config>
+  </set>
+
+  <set name="Media Vme Pipe Gen8"
+       mdapi_supported_apis="MEDIA IO BB"
+       underscore_name="vme_pipe"
+       hw_config_guid="e1743ca0-7fc8-410b-a066-de7bbb9280b7"
+       chipset="BDW"
+       symbol_name="VMEPipe"
+       >
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="EU Active"
+             description="The percentage of time in which the Execution Units were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 7 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_active"
+             units="percent"
+             symbol_name="EuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Both FPU Pipes Active"
+             description="The percentage of time in which both EU FPU pipelines were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 9 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_fpu_both_active"
+             units="percent"
+             symbol_name="EuFpuBothActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL  GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="CS Threads Dispatched"
+             description="The total number of compute shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 4 READ"
+             underscore_name="cs_threads"
+             units="threads"
+             symbol_name="CsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Compute Shader"
+             />
+    <counter name="EU Thread Occupancy"
+             description="The percentage of time in which hardware threads occupied EUs."
+             data_type="float"
+             max_equation="100"
+             equation="8 A 10 READ FMUL $EuThreadsCount FDIV $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_thread_occupancy"
+             units="percent"
+             symbol_name="EuThreadOccupancy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Stall"
+             description="The percentage of time in which the Execution Units were stalled."
+             data_type="float"
+             max_equation="100"
+             equation="A 8 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_stall"
+             units="percent"
+             symbol_name="EuStall"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VME Busy"
+             description="The percentage of time in which VME (IME or CRE) was actively processing data."
+             data_type="float"
+             max_equation="100"
+             equation="B 0 READ B 3 READ FADD 2 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vme_busy"
+             units="percent"
+             symbol_name="VMEBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Overview System Batch Tier2"
+             mdapi_group="VME Pipe"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GPU Busy"
+             description="The percentage of time in which the GPU has been processing GPU commands."
+             data_type="float"
+             max_equation="100"
+             equation="A 0 READ 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gpu_busy"
+             units="percent"
+             symbol_name="GpuBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config id="0">
+        <register type="NOA" address="0x00009888" value="0x14100812" />
+        <register type="NOA" address="0x00009888" value="0x14125800" />
+        <register type="NOA" address="0x00009888" value="0x161200C0" />
+        <register type="NOA" address="0x00009888" value="0x14300812" />
+        <register type="NOA" address="0x00009888" value="0x14325800" />
+        <register type="NOA" address="0x00009888" value="0x163200C0" />
+        <register type="NOA" address="0x00009888" value="0x005C4000" />
+        <register type="NOA" address="0x00009888" value="0x065C8000" />
+        <register type="NOA" address="0x00009888" value="0x085CC000" />
+        <register type="NOA" address="0x00009888" value="0x0A5CC000" />
+        <register type="NOA" address="0x00009888" value="0x0C5CC000" />
+        <register type="NOA" address="0x00009888" value="0x003D8000" />
+        <register type="NOA" address="0x00009888" value="0x0E3D8000" />
+        <register type="NOA" address="0x00009888" value="0x183D2800" />
+        <register type="NOA" address="0x00009888" value="0x00584000" />
+        <register type="NOA" address="0x00009888" value="0x06588000" />
+        <register type="NOA" address="0x00009888" value="0x0858C000" />
+        <register type="NOA" address="0x00009888" value="0x005B4000" />
+        <register type="NOA" address="0x00009888" value="0x0E5B4000" />
+        <register type="NOA" address="0x00009888" value="0x185B9400" />
+        <register type="NOA" address="0x00009888" value="0x1A5B002A" />
+        <register type="NOA" address="0x00009888" value="0x0C1F0800" />
+        <register type="NOA" address="0x00009888" value="0x0E1FAA00" />
+        <register type="NOA" address="0x00009888" value="0x101F002A" />
+        <register type="NOA" address="0x00009888" value="0x00384000" />
+        <register type="NOA" address="0x00009888" value="0x0E384000" />
+        <register type="NOA" address="0x00009888" value="0x16384000" />
+        <register type="NOA" address="0x00009888" value="0x18380155" />
+        <register type="NOA" address="0x00009888" value="0x00392000" />
+        <register type="NOA" address="0x00009888" value="0x06398000" />
+        <register type="NOA" address="0x00009888" value="0x0839A000" />
+        <register type="NOA" address="0x00009888" value="0x0A39A000" />
+        <register type="NOA" address="0x00009888" value="0x0C39A000" />
+        <register type="NOA" address="0x00009888" value="0x00100047" />
+        <register type="NOA" address="0x00009888" value="0x06101A80" />
+        <register type="NOA" address="0x00009888" value="0x10100000" />
+        <register type="NOA" address="0x00009888" value="0x0810C000" />
+        <register type="NOA" address="0x00009888" value="0x0811C000" />
+        <register type="NOA" address="0x00009888" value="0x08126151" />
+        <register type="NOA" address="0x00009888" value="0x10120000" />
+        <register type="NOA" address="0x00009888" value="0x00134000" />
+        <register type="NOA" address="0x00009888" value="0x0E134000" />
+        <register type="NOA" address="0x00009888" value="0x161300A0" />
+        <register type="NOA" address="0x00009888" value="0x0A301AC7" />
+        <register type="NOA" address="0x00009888" value="0x10300000" />
+        <register type="NOA" address="0x00009888" value="0x0C30C000" />
+        <register type="NOA" address="0x00009888" value="0x0C31C000" />
+        <register type="NOA" address="0x00009888" value="0x0C326151" />
+        <register type="NOA" address="0x00009888" value="0x10320000" />
+        <register type="NOA" address="0x00009888" value="0x16332A00" />
+        <register type="NOA" address="0x00009888" value="0x18330001" />
+        <register type="NOA" address="0x00009888" value="0x018A8000" />
+        <register type="NOA" address="0x00009888" value="0x0F8A8000" />
+        <register type="NOA" address="0x00009888" value="0x198A8000" />
+        <register type="NOA" address="0x00009888" value="0x1B8A2AA0" />
+        <register type="NOA" address="0x00009888" value="0x238B0020" />
+        <register type="NOA" address="0x00009888" value="0x258B5550" />
+        <register type="NOA" address="0x00009888" value="0x278B0001" />
+        <register type="NOA" address="0x00009888" value="0x1F850080" />
+        <register type="NOA" address="0x00009888" value="0x2185AAA0" />
+        <register type="NOA" address="0x00009888" value="0x23850002" />
+        <register type="NOA" address="0x00009888" value="0x01834000" />
+        <register type="NOA" address="0x00009888" value="0x0F834000" />
+        <register type="NOA" address="0x00009888" value="0x19835400" />
+        <register type="NOA" address="0x00009888" value="0x1B830015" />
+        <register type="NOA" address="0x00009888" value="0x01844000" />
+        <register type="NOA" address="0x00009888" value="0x07848000" />
+        <register type="NOA" address="0x00009888" value="0x0984C000" />
+        <register type="NOA" address="0x00009888" value="0x0B84C000" />
+        <register type="NOA" address="0x00009888" value="0x0D84C000" />
+        <register type="NOA" address="0x00009888" value="0x11804000" />
+        <register type="NOA" address="0x00009888" value="0x17808000" />
+        <register type="NOA" address="0x00009888" value="0x1980C000" />
+        <register type="NOA" address="0x00009888" value="0x1B80C000" />
+        <register type="NOA" address="0x00009888" value="0x1D80C000" />
+        <register type="NOA" address="0x00009888" value="0x4D800000" />
+        <register type="NOA" address="0x00009888" value="0x3D800800" />
+        <register type="NOA" address="0x00009888" value="0x4F800000" />
+        <register type="NOA" address="0x00009888" value="0x43800002" />
+        <register type="NOA" address="0x00009888" value="0x51800000" />
+        <register type="NOA" address="0x00009888" value="0x45800884" />
+        <register type="NOA" address="0x00009888" value="0x53800000" />
+        <register type="NOA" address="0x00009888" value="0x47800002" />
+        <register type="NOA" address="0x00009888" value="0x21800000" />
+        <register type="NOA" address="0x00009888" value="0x31800000" />
+    </register_config>
+    <register_config id="1">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0xF0800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x30800000" />
+        <register type="OA" address="0x00002770" value="0x00100030" />
+        <register type="OA" address="0x00002774" value="0x0000FFF9" />
+        <register type="OA" address="0x00002778" value="0x00000002" />
+        <register type="OA" address="0x0000277C" value="0x0000FFFC" />
+        <register type="OA" address="0x00002780" value="0x00000002" />
+        <register type="OA" address="0x00002784" value="0x0000FFF3" />
+        <register type="OA" address="0x00002788" value="0x00100180" />
+        <register type="OA" address="0x0000278C" value="0x0000FFCF" />
+        <register type="OA" address="0x00002790" value="0x00000002" />
+        <register type="OA" address="0x00002794" value="0x0000FFCF" />
+        <register type="OA" address="0x00002798" value="0x00000002" />
+        <register type="OA" address="0x0000279C" value="0x0000FF3F" />
+    </register_config>
+    <register_config id="2">
+        <register type="FLEX" address="0x0000E458" value="0x00005004" />
+        <register type="FLEX" address="0x0000E558" value="0x00008003" />
     </register_config>
   </set>
 
