@@ -51,11 +51,6 @@ ifeq ($(SYSFS), 1)
 KERNELGEN_ARGS += --sysfs
 endif
 
-MMIOWRAPPER=1
-ifeq ($(MMIOWRAPPER), 1)
-KERNELGEN_ARGS += --mmio-wrapper
-endif
-
 GUIDS=$(top_srcdir)/gputop-data/guids.xml
 
 all: $(oa_xml_files) $(drm_files)

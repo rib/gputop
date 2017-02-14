@@ -40,9 +40,6 @@ import hashlib
 
 default_set_blacklist = {}
 
-addr_prefix=""
-addr_postfix=""
-
 def underscore(name):
     s = re.sub('MHz', 'Mhz', name)
     s = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
@@ -223,7 +220,7 @@ def output_b_counter_config(set, config_tuple):
             val = int(reg.get('value'), 16)
             val_str = "0x%08x" % val
 
-            c("{ " + addr_prefix + addr_str + addr_postfix + ", " + val_str + " },")
+            c("{ _MMIO(" + addr_str + "), " + val_str + " },")
             n_regs = n_regs + 1
 
     c_outdent(8)
@@ -246,7 +243,7 @@ def output_flex_config(set, config_tuple):
             val = int(reg.get('value'), 16)
             val_str = "0x%08x" % val
 
-            c("{ " + addr_prefix + addr_str + addr_postfix + ", " + val_str + " },")
+            c("{ _MMIO(" + addr_str + "), " + val_str + " },")
             n_regs = n_regs + 1
 
     c_outdent(8)
@@ -300,7 +297,7 @@ def output_mux_configs(set, config_tuples):
                 val = int(reg.get('value'), 16)
                 val_str = "0x%08x" % val
 
-                c("{ " + addr_prefix + addr_str + addr_postfix + ", " + val_str + " },")
+                c("{ _MMIO(" + addr_str + "), " + val_str + " },")
         c_outdent(8)
 
         c("};")
@@ -516,7 +513,6 @@ parser.add_argument("--sysfs", action="store_true", help="Output code for sysfs"
 parser.add_argument("--whitelist", help="Override default metric set whitelist")
 parser.add_argument("--no-whitelist", action="store_true", help="Bypass default metric set whitelist")
 parser.add_argument("--blacklist", help="Don't generate anything for given metric sets")
-parser.add_argument("--mmio-wrapper", action="store_true", help="Required for new i915_reg_t MMIO register wrapper")
 
 args = parser.parse_args()
 
@@ -530,10 +526,6 @@ chipset = args.chipset.upper()
 
 header_file = open(args.h_out, 'w')
 c_file = open(args.c_out, 'w')
-
-if args.mmio_wrapper:
-    addr_prefix="_MMIO("
-    addr_postfix=")"
 
 h(copyright)
 h("#ifndef __I915_OA_" + chipset + "_H__\n")
