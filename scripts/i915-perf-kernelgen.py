@@ -637,11 +637,18 @@ for arg in args.xml:
                         flex_configs.append((config_id, config_priority, config))
                         is_flex_config = True
 
-        assert len(b_counter_configs) == 1
-        assert len(flex_configs) == 0 or len(flex_configs) == 1
         assert len(mux_configs) >= 1
 
+        if len(b_counter_configs) == 0:
+            empty = ET.Element('register_config')
+            b_counter_configs.append((0, 0, empty))
+
+        assert len(b_counter_configs) == 1
+
         output_b_counter_config(set, b_counter_configs[0])
+
+
+        assert len(flex_configs) == 0 or len(flex_configs) == 1
 
         flex_config = None
         if len(flex_configs) == 1:
