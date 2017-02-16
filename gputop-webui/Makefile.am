@@ -6,8 +6,6 @@ third_party_files = \
 	long.min.js \
 	jquery.min.js \
 	jquery-ui.js \
-	jquery.flot.js \
-	jquery.flot.navigate.js \
 	$(mathjax_files) \
 	bootstrap-slider.min.js \
 	bootstrap-toggle.min.js \

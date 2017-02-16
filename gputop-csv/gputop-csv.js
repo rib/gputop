@@ -56,7 +56,7 @@ GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
 GputopCSV.prototype.update_features = function(features)
 {
-    if (features.supported_oa_query_guids.length === 0) {
+    if (features.supported_oa_guids.length == 0) {
         log.error("No OA metrics supported");
         process.exit(1);
         return;
@@ -64,16 +64,16 @@ GputopCSV.prototype.update_features = function(features)
 
     if (args.metrics === 'list') {
         log.log("\nList of metric sets selectable with --metrics=...");
-        for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
-            var guid = features.supported_oa_query_guids[i];
+        for (var i = 0; i < features.supported_oa_guids.length; i++) {
+            var guid = features.supported_oa_guids[i];
             var metric = this.lookup_metric_for_guid(guid);
             log.log("" + metric.symbol_name + ": " + metric.name + ", hw-config-guid=" + guid);
         }
         process.exit(1);
     }
 
-    for (var i = 0; i < features.supported_oa_query_guids.length; i++) {
-        var guid = features.supported_oa_query_guids[i];
+    for (var i = 0; i < features.supported_oa_guids.length; i++) {
+        var guid = features.supported_oa_guids[i];
         var metric = this.lookup_metric_for_guid(guid);
 
         if (metric.symbol_name === args.metrics) {
@@ -102,7 +102,6 @@ GputopCSV.prototype.update_features = function(features)
         log.error("Counter aggregation period (" + args.aggregation_period + ") should be >= requested hardware sampling period (" + args.period + ")");
         process.exit(1);
     }
-    this.metric.set_aggregation_period(args.accumulation_period);
 
     if (args.columns === 'list') {
         var all = "Timestamp"
@@ -127,8 +126,8 @@ GputopCSV.prototype.update_features = function(features)
         if (name === "Timestamp") {
             this.counters_.push(this.dummy_timestamp_counter);
         } else if (name in counter_index) {
-            var counter = counter_index[name]
-                counter.record_data = true;
+            var counter = counter_index[name];
+            counter.record_data = true;
             this.reference_column = this.counters_.length;
             this.counters_.push(counter);
         } else {
@@ -143,8 +142,6 @@ GputopCSV.prototype.update_features = function(features)
         for (var i = 1; i < this.counters_.length; i++)
             columns += ",\"" + this.counters_[i].symbol_name + "\"";
 
-        this.stream.write(columns + this.endl);
-
         log.warn("\n\nCSV: Capture Settings:");
         log.warn("CSV:   Server: " + args.address);
         log.warn("CSV:   File: " + (args.file ? args.file : "STDOUT"));
@@ -155,21 +152,29 @@ GputopCSV.prototype.update_features = function(features)
         log.warn("CSV:   Accumulation period: " + args.accumulation_period);
         log.warn("\n\n");
 
-        this.metric.open({ oa_exponent: closest_oa_exponent });
+        this.metric.open({ oa_exponent: closest_oa_exponent,
+                           period: args.accumulation_period },
+                        () => { //onopen
+                            metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.accumulation_period });
+
+                            this.stream.write(columns + this.endl);
+                        },
+                        () => { // onerror
+                        },
+                        () => { // onclose
+                        });
     } else {
         log.error("Failed to find counters matching requested columns");
     }
 }
 
-function write_rows()
+function write_rows(metric, accumulator)
 {
-    var metric = this.metric;
-
-    if (metric === undefined)
-        return;
-
     var ref_counter = this.counters_[this.reference_column];
-    var n_rows = ref_counter.updates.length;
+    var ref_accumulated_counter =
+        accumulator.accumulated_counters[ref_counter.cc_counter_id_];
+
+    var n_rows = ref_accumulated_counter.updates.length;
 
     if (n_rows <= 1)
         return;
@@ -180,8 +185,8 @@ function write_rows()
 
     for (var r = 0; r < n_rows; r++) {
 
-        var start = ref_counter.updates[r][0];
-        var end = ref_counter.updates[r][1];
+        var start = ref_accumulated_counter.updates[r][0];
+        var end = ref_accumulated_counter.updates[r][1];
         var row_timestamp = start + (end - start) / 2;
 
         var row = "";
@@ -193,14 +198,16 @@ function write_rows()
             if (counter === this.dummy_timestamp_counter) {
                 val = row_timestamp;
             } else if (counter.record_data === true) {
-                start = counter.updates[r][0];
-                end = counter.updates[r][1];
-                var max = counter.updates[r][3];
+                var accumulated_counter = accumulator.accumulated_counters[counter.cc_counter_id_];
+
+                start = accumulated_counter.updates[r][0];
+                end = accumulated_counter.updates[r][1];
+                var max = accumulated_counter.updates[r][3];
                 var timestamp = start + (end - start) / 2;
 
                 log.assert(timestamp === row_timestamp, "Inconsistent row timestamp");
 
-                val = counter.updates[r][2];
+                val = accumulated_counter.updates[r][2];
             }
             /* NB: some columns may have placeholder counter objects (with
              * .record_data == false) if they aren't available on this
@@ -214,18 +221,25 @@ function write_rows()
 
     for (var c = 0; c < this.counters_.length; c++) {
         var counter = this.counters_[c];
-        if (counter.record_data === true)
-            counter.updates.splice(0, n_rows);
+        if (counter.record_data === true) {
+            var accumulated_counter =
+                accumulator.accumulated_counters[counter.cc_counter_id_];
+
+            accumulated_counter.updates.splice(0, n_rows);
+        }
     }
 }
 
-GputopCSV.prototype.notify_metric_updated = function(metric) {
+GputopCSV.prototype.notify_accumulator_events = function(metric, accumulator, events_mask) {
+    if (events_mask & 1) //period elapsed
+        this.accumulator_clear(accumulator);
+
     if (this.write_queued_)
         return;
 
     setTimeout(() => {
         this.write_queued_ = false;
-        write_rows.call(this);
+        write_rows.call(this, metric, accumulator);
     }, 0.2);
 
     this.write_queued_ = true;

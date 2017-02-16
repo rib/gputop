@@ -64,15 +64,10 @@ struct gputop_cc_tracepoint_field {
 struct gputop_cc_stream {
     enum gputop_cc_stream_type type;
 
-
     /*
      * OA streams...
      */
-    uint64_t aggregation_period;
-    bool per_ctx_mode;
-
     struct gputop_metric_set *oa_metric_set;
-    struct gputop_oa_accumulator oa_accumulator;
 
     /* Aggregation may happen accross multiple perf data messages
      * so we may need to copy the last report so that aggregation
@@ -94,25 +89,26 @@ struct gputop_cc_stream {
 
 int gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name);
 
-// function that resets the accumulator clock and the continuation_report
-void gputop_cc_reset_accumulator(struct gputop_cc_stream *stream);
 void gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
-                                        uint8_t *data, int len);
+                                        uint8_t *data, int data_len,
+                                        struct gputop_cc_oa_accumulator **accumulators,
+                                        int n_accumulators);
 
 void gputop_cc_reset_system_properties(void);
 void gputop_cc_set_system_property(const char *name, double value);
 void gputop_cc_update_system_metrics(void);
 
 struct gputop_cc_stream *
-gputop_cc_oa_stream_new(const char *guid,
-                        bool per_ctx_mode,
-                        uint32_t aggregation_period);
-
-void gputop_cc_update_stream_period(struct gputop_cc_stream *stream,
-                                    uint32_t aggregation_period);
-
+gputop_cc_oa_stream_new(const char *guid);
 void gputop_cc_stream_destroy(struct gputop_cc_stream *stream);
 
+struct gputop_cc_oa_accumulator *
+gputop_cc_oa_accumulator_new(struct gputop_cc_stream *stream,
+                             int aggregation_period,
+                             bool enable_ctx_switch_events);
+void gputop_cc_oa_accumulator_set_period(struct gputop_cc_oa_accumulator *accumulator,
+                                         uint32_t aggregation_period);
+void gputop_cc_oa_accumulator_destroy(struct gputop_cc_oa_accumulator *accumulator);
 
 struct gputop_cc_stream *gputop_cc_tracepoint_stream_new(void);
 void gputop_cc_tracepoint_add_field(struct gputop_cc_stream *stream,

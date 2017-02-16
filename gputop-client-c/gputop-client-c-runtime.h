@@ -49,21 +49,23 @@ void gputop_cr_console_assert(bool condition, const char *format, ...);
 
 void gputop_cr_index_metric_set(const char *guid, struct gputop_metric_set *metric_set);
 struct gputop_metric_set *gputop_cr_lookup_metric_set(const char *guid);
-enum update_reason {
-    UPDATE_REASON_PERIOD            = 1,
-    UPDATE_REASON_CTX_SWITCH_TO     = 2,
-    UPDATE_REASON_CTX_SWITCH_AWAY   = 4
+
+enum gputop_cr_accumulator_event {
+    ACCUMULATOR_EVENT_PERIOD_ELAPSED    = 1,
+    ACCUMULATOR_EVENT_CTX_SWITCH_TO     = 2,
+    ACCUMULATOR_EVENT_CTX_SWITCH_AWAY   = 4
 };
 
 struct gputop_cc_stream;
 
-void _gputop_cr_stream_start_update(struct gputop_cc_stream *stream,
-                                    double start_timestamp, double end_timestamp,
-                                    int reason);
-void _gputop_cr_stream_update_counter(struct gputop_cc_stream *stream,
-                                      int counter,
-                                      double max, double value);
-void _gputop_cr_stream_end_update(struct gputop_cc_stream *stream);
+/* If start returns false then the update can be skipped */
+bool _gputop_cr_accumulator_start_update(struct gputop_cc_stream *stream,
+                                         struct gputop_cc_oa_accumulator *accumulator,
+                                         uint32_t events,
+                                         double start_timestamp, double end_timestamp);
+void _gputop_cr_accumulator_append_count(int counter,
+                                         double max, double value);
+void _gputop_cr_accumulator_end_update(void);
 
 #ifdef __cplusplus
 }

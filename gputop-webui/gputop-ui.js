@@ -26,6 +26,17 @@
  * SOFTWARE.
  */
 
+
+function PlotlyGraph (counter, accumulated_counter) {
+
+    this.counter = counter;
+    this.accumulated_counter = accumulated_counter;
+    this.plotly_div = undefined;
+}
+
+//PlotlyGraph.prototype = Object.create(Object.prototype);
+
+
 function CounterUI (metricSetParent) {
     Counter.call(this, metricSetParent);
 
@@ -66,16 +77,10 @@ function CounterUI (metricSetParent) {
     this.bar_div_ = undefined;
     this.txt_value_div_ = undefined;
 
-    /* flot graph data */
-    this.graph_data = [];
-    this.graph_markings = [];
-    this.flot_container = undefined;
-
-    /* plotly.js graph data */
-    this.y_data = [];
-
     this.zero = true; /* reset once we see any value > 0 for the counter
                          so inactive counters can be hidden by default */
+
+    this.graph = undefined;
 }
 
 CounterUI.prototype = Object.create(Counter.prototype);
@@ -84,10 +89,6 @@ function MetricSetUI (gputopParent) {
     Metric.call(this, gputopParent);
 
     this.filtered_counters = [];
-
-    this.start_timestamp = 0;
-    this.start_gpu_timestamp = 0;
-    this.end_gpu_timestamp = 0;
 }
 
 MetricSetUI.prototype = Object.create(Metric.prototype);
@@ -99,19 +100,6 @@ MetricSetUI.prototype.add_counter = function (counter) {
     $('#counter_list').append('<div>' + counter.name + '</div>');
 }
 */
-
-// remove all the data from all opened graphs
-MetricSetUI.prototype.clear_metric_data = function() {
-
-    Metric.prototype.clear_metric_data.call(this);
-
-    this.start_timestamp = 0;
-
-    for (var i = 0; i < this.cc_counters.length; i++) {
-        var counter = this.cc_counters[i];
-        counter.graph_data = [];
-    }
-}
 
 var getUrlParameter = function(sParam) {
     var sPageURL = decodeURIComponent(window.location.search.substring(1)),
@@ -185,15 +173,7 @@ function GputopUI () {
 
     this.selected_counter = undefined;
 
-    this.graph_array = [];
     this.zoom = 10; //seconds
-
-    this.series = [{
-        lines: {
-            fill: true
-        },
-        color: "#6666ff"
-    }];
 
     this.redraw_queued_ = false;
     this.filter_queued_ = false;
@@ -207,10 +187,8 @@ function GputopUI () {
     this.cpu_stats = undefined;
     this.cpu_stats_div = undefined;
 
-    this.gpu_metrics_graph_div = undefined;
-    this.oa_counters_to_graph = [];
-
-    this.oa_timestamps = [];
+    this.all_graphs_div = undefined;
+    this.plotly_graphs = [];
 }
 
 GputopUI.prototype = Object.create(Gputop.prototype);
@@ -226,6 +204,7 @@ function create_default_markings(xaxis) {
     }
     return markings;
 }
+
 
 GputopUI.prototype.select_counter= function(counter) {
     var metric = counter.metric;
@@ -345,7 +324,19 @@ GputopUI.prototype.select_metric_set = function(metric) {
     $('.counter-stats-button').change((ev) => {
         var counter = $(ev.target).data("counter");
         counter.record_data = !$(ev.target).prop('checked');
-        this.gpu_metrics_graph_div = undefined;
+
+        for (var i = 0; i < this.plotly_graphs.length; i++) {
+            var graph = this.plotly_graphs[i];
+            if (graph.counter === counter) {
+                if (graph.plotly_div !== undefined) {
+                    graph.plotly_div.remove();
+                    graph.plotly_div = undefined;
+                }
+                graph.counter.graph = undefined;
+                this.plotly_graphs.splice(i, 1);
+                break;
+            }
+        }
     });
 
     $('.metric_row').click((ev) => {
@@ -359,67 +350,12 @@ GputopUI.prototype.select_metric_set = function(metric) {
 
     this.filter_counters();
 
-    /* XXX: hacky placeholder for now, but the demo mode should eventually
-     * work in terms of a fake connection receiving dummy data...
-     */
-    if (this.demo_mode && this.gpu_metrics_graph_div === undefined) {
-        this.gpu_metrics_graph_div = document.getElementById('gpu-metrics-graph');
-
-        var layout = {
-            margin: { b: 20, t: 20 },
-            xaxis: { range: [1000000000, 2000000000], autorange: false, rangemode: 'normal', ticks: '', showticklabels: false },
-            yaxis: { range: [0, 100], showgrid: false, title: "%" },
-            showLegend: true
-        };
-
-        var config = {
-            displayModeBar: false
-        };
-
-        var traces = [];
-
-        var counter = metric.cc_counters[0];
-
-        traces[0] = {
-            name: counter.name,
-            type: "scatter",
-            mode: "lines",
-            hoverinfo: "none",
-            x: [1990000000, 2000000000],
-            y: [0, 0],
-        };
-
-        Plotly.newPlot(this.gpu_metrics_graph_div,
-                       traces,
-                       layout,
-                       config);
-    }
-
-    var config = {
-        oa_exponent: this.update_metric_aggregation_period_for_zoom(metric),
-        paused: this.paused,
-    };
-
-    if (this.current_metric_set !== undefined &&
-        this.current_metric_set.open_config !== undefined)
-    {
-        var prev_metric = this.current_metric_set;
-
-        this.current_metric_set = metric;
-
-        prev_metric.close((ev) => {
-            metric.open(config);
-        });
-    } else {
-        this.current_metric_set = metric;
-
-        metric.open(config);
-    }
+    this.update_metric_set_stream(metric);
 }
 
-/* Also returns the maximum OA exponent suitable for viewing at the given
- * zoom level */
-GputopUI.prototype.update_metric_aggregation_period_for_zoom = function (metric) {
+/* Returns: the duration that a single graph pixel corresponds to
+ */
+GputopUI.prototype.calculate_pixel_period_for_zoom = function () {
     var hack_graph_size_px = 1000;
 
     /* We want to set an aggregation period such that we get ~1 update per
@@ -432,222 +368,132 @@ GputopUI.prototype.update_metric_aggregation_period_for_zoom = function (metric)
      * assuming 1000 pixels.
      */
 
-    var ns_per_pixel = this.zoom * 1000000000 / hack_graph_size_px;
+    return this.zoom * 1000000000 / hack_graph_size_px;
+}
 
-    /* XXX maybe this function should refuse to reduce the aggregation
-     * period lower than is valid with the current HW exponent */
-    metric.set_aggregation_period(ns_per_pixel);
+/* Returns: the maximum OA exponent suitable for viewing at the current
+ * zoom level
+ */
+GputopUI.prototype.calculate_max_exponent_for_zoom = function () {
+
+    var ns_per_pixel = this.calculate_pixel_period_for_zoom();
 
     return this.calculate_max_exponent_for_period(ns_per_pixel);
 }
 
+/* Handles opening or re-opening a metric set stream, but is
+ * also careful to avoid some redundant re-opens.
+ */
+GputopUI.prototype.update_metric_set_stream = function(metric) {
+    var config = {
+        oa_exponent: this.calculate_max_exponent_for_zoom(),
+        paused: this.paused,
+    };
+
+    function _handle_stream_gone() {
+        if (metric.graph_accumulator !== undefined) {
+            metric.destroy_oa_accumulator(metric.graph_accumulator);
+            metric.graph_accumulator = undefined;
+        }
+        if (metric.bars_accumulator !== undefined) {
+            metric.destroy_oa_accumulator(metric.bars_accumulator);
+            metric.bars_accumulator = undefined;
+        }
+    }
+
+    function _do_open() {
+        metric.open(config,
+            () => { // onopen
+                var ns_per_pixel = this.calculate_pixel_period_for_zoom();
+
+                metric.graph_accumulator = metric.create_oa_accumulator({ period_ns: ns_per_pixel });
+                metric.graph_accumulator.oa_timestamps = [];
+                metric.graph_accumulator.start_timestamp = 0;
+                metric.graph_accumulator.start_gpu_timestamp = 0;
+                metric.graph_accumulator.end_gpu_timestamp = 0;
+
+                /* We always want the labels to be readable regardless of the sampling
+                 * frequency...
+                 */
+                metric.bars_accumulator = metric.create_oa_accumulator({ period_ns: 500000000 });
+
+                if (metric.open_config.paused)
+                    this.replay_i915_perf_history(metric);
+
+                this.queue_redraw();
+            },
+            _handle_stream_gone.bind(this), //onclose
+            _handle_stream_gone.bind(this)); //onerror
+    }
+
+    if (this.current_metric_set !== undefined &&
+        this.current_metric_set.open_config !== undefined)
+    {
+        var current_metric = this.current_metric_set;
+        var current_config = this.current_metric_set.open_config;
+
+        if (current_metric !== metric) {
+            // Re-create the graphs...
+            for (var i = 0; i < this.plotly_graphs.length; i++) {
+                var graph = this.plotly_graphs[i];
+                if (graph.plotly_div !== undefined) {
+                    graph.plotly_div.remove();
+                    graph.plotly_div = undefined;
+                }
+                graph.counter.graph = undefined;
+            }
+            this.plotly_graphs = [];
+        }
+
+        if (current_metric !== metric ||
+            current_config.paused !== config.paused ||
+            current_config.oa_exponent !== config.oa_exponent)
+        {
+            this.current_metric_set = metric;
+
+            current_metric.close((ev) => {
+                _do_open.call(this);
+            });
+        } else {
+            var ns_per_pixel = this.calculate_pixel_period_for_zoom();
+
+            /* No need to re-open the stream in this case but we do need to
+             * update the graph accumulator in case the zoom level has changed.
+             */
+
+            metric.set_oa_accumulator_period(metric.graph_accumulator,
+                                             ns_per_pixel);
+        }
+    } else {
+        this.current_metric_set = metric;
+
+        _do_open.call(this);
+    }
+}
+
 GputopUI.prototype.set_zoom = function(zoom) {
+    if (this.zoom === zoom)
+        return;
     this.zoom = zoom;
 
     var metric = this.current_metric_set;
     if (metric === undefined)
         return;
 
-    // Note: we have to update the aggregation period even if we are in a
-    // paused state where we are replying previously captured metric data.
-    var exponent = this.update_metric_aggregation_period_for_zoom(metric);
-
-    if (metric.open_config !== undefined) {
-        if (exponent != metric.open_config.oa_exponent && !metric.open_config.paused) {
-
-            var config = metric.open_config;
-            metric.close((ev) => {
-                config.oa_exponent = exponent;
-                metric.open(config);
-            });
-        }
-
-        if (metric.open_config.paused)
-            metric.replay_buffer();
-
-        this.queue_redraw();
-    }
+    this.update_metric_set_stream(metric);
 }
 
 GputopUI.prototype.set_paused = function(paused) {
     if (this.paused === paused)
         return;
 
-    var metric = this.current_metric_set;
-    if (metric === undefined)
-        return;
-
-    this.gpu_metrics_graph_div = undefined;
-
-    metric.set_paused(paused);
-
     this.paused = paused;
-}
-
-GputopUI.prototype.update_oa_graphs_paused = function (timestamp) {
-    var metric = this.current_metric_set;
-    if (metric === undefined)
-        return;
-
-    var n_counters = metric.cc_counters.length;
-    if (n_counters === 0)
-        return;
-
-    var first_counter = undefined;
-    for (var i = 0; i < metric.cc_counters.length; i++) {
-        first_counter = metric.cc_counters[i];
-        if (first_counter.record_data === true)
-            break;
-    }
-    if (!first_counter)
-        return;
-
-    var n_updates = first_counter.updates.length;
-
-    if (n_updates === 0)
-        return;
-
-    metric.start_gpu_timestamp = first_counter.updates[0][0];
-    metric.end_gpu_timestamp = first_counter.updates[n_updates - 1][1];
-
-    var time_range = this.zoom * 1000000000;
-    var margin = time_range * 0.05;
-
-    var x_max = metric.end_gpu_timestamp;
-    var x_min = x_max - time_range;
-
-    for (var i = 0; i < n_counters; i++) {
-        var counter = metric.cc_counters[i];
-        if (!counter.record_data)
-            continue;
-
-        var container = counter.flot_container;
-        if (!container)
-            continue;
-
-        for (var j = 0; j < n_updates; j++) {
-            var start = counter.updates[j][0];
-            var end = counter.updates[j][1];
-            var val = counter.updates[j][2];
-            var max = counter.updates[j][3];
-            var mid = start + (end - start) / 2;
-
-            counter.graph_data.push([mid, val]);
-            counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
-        }
-
-        // adjust the min and max (start and end of the graph)
-        counter.graph_options.xaxis.min = x_min + margin;
-        counter.graph_options.xaxis.max = x_max;
-        counter.graph_options.xaxis.label = this.zoom + ' seconds';
-        counter.graph_options.xaxis.panRange = [null, null];
-
-        var default_markings = create_default_markings(counter.graph_options.xaxis);
-        counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
-
-        this.series[0].data = counter.graph_data;
-        $.plot(container, this.series, counter.graph_options);
-
-        counter.updates = [];
-    }
-}
-
-GputopUI.prototype.update_oa_graphs = function(timestamp) {
-    this.timestamp = timestamp;
 
     var metric = this.current_metric_set;
     if (metric === undefined)
         return;
 
-    var n_counters = metric.cc_counters.length;
-    if (n_counters === 0)
-        return;
-
-    var first_counter = undefined;
-    for (var i = 0; i < metric.cc_counters.length; i++) {
-        first_counter = metric.cc_counters[i];
-        if (first_counter.record_data === true)
-            break;
-    }
-    if (!first_counter)
-        return;
-
-    var n_updates = first_counter.updates.length;
-
-    if (n_updates === 0)
-        return;
-
-    var latest_gpu_timestamp = first_counter.updates[n_updates - 1][1];
-
-    if (metric.start_timestamp === 0) {
-        metric.start_timestamp = timestamp;
-        metric.start_gpu_timestamp = latest_gpu_timestamp;
-    }
-    var elapsed = (timestamp - metric.start_timestamp) * 1000000;
-
-    var time_range = this.zoom * 1000000000;
-    var margin = time_range * 0.05;
-
-    var x_max = metric.start_gpu_timestamp + elapsed;
-    var x_min = x_max - time_range;
-
-    // data is saved in the graph for an interval of 20 seconds regardless
-    // of the zoom value
-    var max_graph_data = x_max - 20000000000;
-
-    for (var i = 0; i < n_counters; i++) {
-        var counter = metric.cc_counters[i];
-        if (!counter.record_data)
-            continue;
-
-        var container = counter.flot_container;
-        if (!container)
-            continue;
-
-        // remove the old samples from the graph data
-        for (var j = 0; j < counter.graph_data.length &&
-            counter.graph_data[j][0] < max_graph_data; j++) {}
-        if (j > 0)
-            counter.graph_data = counter.graph_data.slice(j);
-
-        // remove old markings from the graph
-        for (var j = 0; j < counter.graph_markings.length &&
-             counter.graph_markings[j].xaxis.from < max_graph_data; j++) {}
-        if (j > 0)
-            counter.graph_markings = counter.graph_markings.slice(j);
-
-        for (var j = 0; j < n_updates; j++) {
-            var start = counter.updates[j][0];
-            var end = counter.updates[j][1];
-            var val = counter.updates[j][2];
-            var max = counter.updates[j][3];
-            var mid = start + (end - start) / 2;
-
-            counter.graph_data.push([mid, val]);
-            counter.graph_options.yaxis.max = 1.10 * counter.inferred_max; // add another 10% to the Y axis
-        }
-
-        counter.graph_options.xaxis.min = x_min + margin;
-        counter.graph_options.xaxis.max = x_max - margin;
-        counter.graph_options.xaxis.label = this.zoom + ' seconds';
-        counter.graph_options.xaxis.panRange = false;
-
-        var default_markings = create_default_markings(counter.graph_options.xaxis);
-        counter.graph_options.grid.markings = default_markings.concat(counter.graph_markings);
-
-        this.series[0].data = counter.graph_data;
-        $.plot(container, this.series, counter.graph_options);
-
-        counter.updates = [];
-    }
-
-    /* XXX: we currently have to come up with new synchronization points
-     * periodically otherwise the clocks drift apart too much...
-     */
-    if (elapsed > 5000000000) {
-        metric.start_timestamp = timestamp;
-        metric.start_gpu_timestamp = latest_gpu_timestamp;
-    }
+    this.update_metric_set_stream(metric);
 }
 
 GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
@@ -657,119 +503,71 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
     if (metric === undefined)
         return;
 
-    var n_counters = metric.cc_counters.length;
+    if (metric.graph_accumulator === undefined) {
+        this.log("Skipping GPU metrics graph update while graph_accumulator undefined", this.WARN);
+        return;
+    }
+
+    var n_counters = metric.graph_accumulator.accumulated_counters.length;
     if (n_counters === 0)
         return;
 
-    var first_counter = undefined;
-    for (var i = 0; i < metric.cc_counters.length; i++) {
-        first_counter = metric.cc_counters[i];
-        if (first_counter.record_data === true)
+    var first = undefined;
+    for (var i = 0; i < n_counters; i++) {
+        first = metric.graph_accumulator.accumulated_counters[i];
+        if (first.counter.record_data === true)
             break;
     }
-    if (!first_counter)
+    if (!first)
         return;
 
-    var n_updates = first_counter.updates.length;
+    var n_updates = first.updates.length;
 
     if (n_updates === 0)
         return;
 
     if (this.paused) {
-        metric.start_gpu_timestamp = first_counter.updates[0][0];
-        metric.end_gpu_timestamp = first_counter.updates[n_updates - 1][1];
+        metric.graph_accumulator.start_gpu_timestamp = first.updates[0][0];
+        metric.graph_accumulator.end_gpu_timestamp = first.updates[n_updates - 1][1];
 
         var time_range = this.zoom * 1000000000;
         var margin = time_range * 0.05;
 
-        var x_max = metric.end_gpu_timestamp;
+        var x_max = metric.graph_accumulator.end_gpu_timestamp;
         var x_min = x_max - time_range;
     } else {
-        var latest_gpu_timestamp = first_counter.updates[n_updates - 1][1];
+        var latest_gpu_timestamp = first.updates[n_updates - 1][1];
 
-        if (metric.start_timestamp === 0) {
-            metric.start_timestamp = timestamp;
-            metric.start_gpu_timestamp = latest_gpu_timestamp;
+        if (metric.graph_accumulator.start_timestamp === 0) {
+            metric.graph_accumulator.start_timestamp = timestamp;
+            metric.graph_accumulator.start_gpu_timestamp = latest_gpu_timestamp;
         }
-        var elapsed = (timestamp - metric.start_timestamp) * 1000000;
+        var elapsed = (timestamp - metric.graph_accumulator.start_timestamp) * 1000000;
 
         var time_range = this.zoom * 1000000000;
         var margin = time_range * 0.05;
 
-        var x_max = metric.start_gpu_timestamp + elapsed;
+        var x_max = metric.graph_accumulator.start_gpu_timestamp + elapsed;
         var x_min = x_max - time_range;
     }
 
-    var counters = [];
-    for (var i = 0; i < n_counters; i++) {
-        var counter = metric.cc_counters[i];
-        if (counter.record_data)
-            counters.push(counter);
+
+    var timestamps = metric.graph_accumulator.oa_timestamps;
+    for (var clip = 0, dlen = timestamps.length;
+         clip < dlen && timestamps[clip] < x_min; clip++)
+    {
+        // continue
     }
-    n_counters = counters.length;
-
-    if (this.gpu_metrics_graph_div === undefined) {
-        this.gpu_metrics_graph_div = document.getElementById('gpu-metrics-graph');
-
-        var layout = {
-            margin: { b: 20, t: 20 },
-            //title: "GPU Metrics",
-            xaxis: { range: [x_min + margin, x_max - margin], autorange: false, rangemode: 'normal', ticks: '', showticklabels: false },
-            yaxis: { range: [0, 100], showgrid: false, title: "%" },
-            showLegend: true
-        };
-
-        var config = {
-            displayModeBar: false
-        };
-
-        if (this.paused) {
-            layout.showticklabels = true;
-            config.scrollZoom = true;
-        }
-
-        var traces = [];
-
-        for (var i = 0; i < n_counters; i++) {
-            var counter = counters[i];
-
-            traces[i] = {
-                name: counter.name,
-                type: "scatter",
-                mode: "lines",
-                hoverinfo: "none",
-                x: [],
-                y: [],
-            };
-        }
-
-        Plotly.newPlot(this.gpu_metrics_graph_div,
-                       traces,
-                       layout,
-                       config);
-    }
-
-    var new_layout = {
-        'xaxis.range': [x_min + margin, x_max - margin],
-    };
-    Plotly.relayout(this.gpu_metrics_graph_div, new_layout);
-
-
-    var timestamps = this.oa_timestamps;
-    for (var clip = 0, dlen = timestamps.length; clip < dlen && timestamps[clip] < x_min; clip++) {}
     if (clip > 0)
         timestamps = timestamps.slice(clip);
 
     for (var i = 0; i < n_updates; i++) {
-        var start = first_counter.updates[i][0];
-        var end = first_counter.updates[i][1];
+        var start = first.updates[i][0];
+        var end = first.updates[i][1];
         var mid = start + (end - start) / 2;
 
         timestamps.push(mid);
     }
-
-    var y_updates = [];
-    var x_updates = [];
 
     /* Some counters may not have any y_data yet if they've only just been
      * added and this is the length that counter.y_data needs to be
@@ -778,12 +576,77 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
      */
     var clip_len = timestamps.length - n_updates;
 
+
+    var accumulated_counters = [];
     for (var i = 0; i < n_counters; i++) {
-        var counter = counters[i];
+        var accumulated_counter = metric.graph_accumulator.accumulated_counters[i];
+        if (accumulated_counter.counter.record_data)
+            accumulated_counters.push(accumulated_counter);
+    }
+    n_counters = accumulated_counters.length;
+
+    if (this.all_graphs_div === undefined)
+        this.all_graphs_div = document.getElementById('gpu-metrics-graph');
+
+    for (var i = 0; i < n_counters; i++) {
+        var accumulated_counter = accumulated_counters[i];
+        var counter = accumulated_counter.counter;
+
+        if (counter.graph === undefined) {
+            counter.graph = new PlotlyGraph(counter, accumulated_counter);
+            this.plotly_graphs.push(counter.graph);
+        }
+
+        var graph = counter.graph;
+
+        if (graph.plotly_div === undefined) {
+            graph.plotly_div = document.createElement('div');
+            graph.plotly_div.style.height = "10em";
+            this.all_graphs_div.appendChild(graph.plotly_div);
+
+            var layout = {
+                margin: { b: 10, t: 30 },
+                title: counter.name,
+                xaxis: { range: [x_min + margin, x_max - margin], autorange: false, rangemode: 'normal', ticks: '', showticklabels: false },
+                yaxis: { range: [0, counter.inferred_max], showgrid: false, title: counter.units },
+                showLegend: true
+            };
+
+            var config = {
+                displayModeBar: false
+            };
+
+            if (this.paused) {
+                layout.showticklabels = true;
+                config.scrollZoom = true;
+            }
+
+            var traces = [];
+
+            traces[0] = {
+                name: counter.name,
+                type: "scatter",
+                mode: "lines",
+                hoverinfo: "none",
+                x: [],
+                y: [],
+            };
+
+            Plotly.newPlot(graph.plotly_div,
+                           traces,
+                           layout,
+                           config);
+        } else {
+            var new_layout = {
+                'xaxis.range': [x_min + margin, x_max - margin],
+            };
+            Plotly.relayout(graph.plotly_div, new_layout);
+        }
 
         /* make sure each series of counter data has the same length
-         * as timestamps[] */
-        var y_data = counter.y_data;
+         * as timestamps[]
+         */
+        var y_data = accumulated_counter.y_data;
         if (y_data === undefined)
             y_data = [];
         if (y_data.length < clip_len) {
@@ -794,35 +657,36 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
             y_data = y_data.slice(clip);
 
         for (var j = 0; j < n_updates; j++) {
-            var val = counter.updates[j][2];
+            var val = accumulated_counter.updates[j][2];
 
             y_data.push(val);
         }
 
-        x_updates[i] = timestamps;
-        y_updates[i] = y_data;
+        var y_updates = [ y_data ];
+        var x_updates = [ timestamps ];
 
-        counter.updates = [];
-        counter.y_data = y_data;
+        var update = { x: x_updates, y: y_updates };
+        Plotly.restyle(graph.plotly_div, update);
+
+        accumulated_counter.updates = [];
+        accumulated_counter.y_data = y_data;
     }
 
-    var update = { x: x_updates, y: y_updates };
-    Plotly.restyle(this.gpu_metrics_graph_div, update);
-
-    this.oa_timestamps = timestamps;
+    metric.graph_accumulator.oa_timestamps = timestamps;
 
     /* XXX: we currently have to come up with new synchronization points
      * periodically otherwise the clocks drift apart too much...
      */
     if (this.paused === false && elapsed > 5000000000) {
-        metric.start_timestamp = timestamp;
-        metric.start_gpu_timestamp = latest_gpu_timestamp;
+        metric.graph_accumulator.start_timestamp = timestamp;
+        metric.graph_accumulator.start_gpu_timestamp = latest_gpu_timestamp;
     }
 }
 
-GputopUI.prototype.update_counter = function(counter) {
-    var bar_value = counter.latest_value;
-    var text_value = counter.latest_value;
+GputopUI.prototype.update_counter_bar = function(accumulated_counter) {
+    var counter = accumulated_counter.counter;
+    var bar_value = accumulated_counter.latest_value;
+    var text_value = accumulated_counter.latest_value;
     var max = counter.inferred_max;
     var units = counter.units;
     var units_suffix = "";
@@ -838,10 +702,11 @@ GputopUI.prototype.update_counter = function(counter) {
                  "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
                  "threads":[" threads", " K threads", " M threads", " G threads"]};
 
-    if (counter.row_div_ === undefined)
+    if (counter.row_div_ === undefined) {
         return;
+    }
 
-    if (counter.zero && counter.latest_value !== 0) {
+    if (counter.zero && accumulated_counter.latest_value !== 0) {
         counter.zero = false;
         this.queue_filter_counters();
     }
@@ -978,22 +843,16 @@ GputopUI.prototype.update = function(timestamp) {
         this.filter_queued_ = false;
     }
 
-    if (metric.stream !== undefined) {
+    if (metric.stream !== undefined)
         this.update_gpu_metrics_graph(timestamp);
-
-        /*
-        if (metric.open_config.paused)
-            this.update_oa_graphs_paused(timestamp);
-        else
-            this.update_oa_graphs(timestamp);
-            */
-    }
 
     this.update_cpu_stats(timestamp);
 
-    for (var i = 0, l = metric.cc_counters.length; i < l; i++) {
-        var counter = metric.cc_counters[i];
-        this.update_counter(counter);
+    if (metric.bars_accumulator) {
+        for (var i = 0, l = metric.bars_accumulator.accumulated_counters.length; i < l; i++) {
+            var accumulated_counter = metric.bars_accumulator.accumulated_counters[i];
+            this.update_counter_bar(accumulated_counter);
+        }
     }
 
     /* We want smooth graph panning and bar graph updates while we have
@@ -1018,7 +877,10 @@ GputopUI.prototype.queue_filter_counters = function() {
     this.filter_queued_ = true;
 }
 
-GputopUI.prototype.notify_metric_updated = function() {
+GputopUI.prototype.notify_accumulator_events = function(metric, accumulator, events_mask) {
+    if (events_mask & 1) //period elapsed
+        this.accumulator_clear(accumulator);
+
     this.queue_redraw();
 }
 
@@ -1263,8 +1125,10 @@ GputopUI.prototype.init_interface = function(callback) {
     this.load_overview_panel(callback);
 
     $(window).resize(() => {
-        if (this.gpu_metrics_graph_div !== undefined)
-            Plotly.Plots.resize(this.gpu_metrics_graph_div);
+        for (var i = 0; i < this.plotly_graphs.length; i++) {
+            var graph_div = this.plotly_graphs[i].plotly_div;
+            Plotly.Plots.resize(graph_div);
+        }
     });
 }
 
@@ -1350,6 +1214,7 @@ GputopUI.prototype.open_cpu_stats_stream = function() {
                 }
             }
             this.cpu_stats_last = stats;
+            this.queue_redraw();
         });
     });
 }

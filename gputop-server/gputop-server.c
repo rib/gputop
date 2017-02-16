@@ -679,7 +679,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     // first one which is available to us. Though this would only really
     // make sense if we could make the list of contexts visible to the user.
     // Maybe later the per_ctx_mode could become the context handle...
-    if (open_stream->per_ctx_mode) {
+    if (oa_stream_info->per_ctx_mode) {
         ctx = get_first_available_ctx(&error);
         if (!ctx)
             goto err;
