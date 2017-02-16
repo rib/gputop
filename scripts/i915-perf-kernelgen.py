@@ -383,17 +383,16 @@ def output_b_and_flex_configs_select(set, b_counter_config_tuple, flex_config_tu
     c("ARRAY_SIZE(b_counter_config_" + set['perf_name_lc']  + ");")
     c_outdent(8)
 
-    if flex_config_tuple:
-        id, priority, config = flex_config_tuple
-        c("\n")
-        c("dev_priv->perf.oa.flex_regs =")
-        c_indent(8)
-        c("flex_eu_config_" + set['perf_name_lc']  + ";")
-        c_outdent(8)
-        c("dev_priv->perf.oa.flex_regs_len =")
-        c_indent(8)
-        c("ARRAY_SIZE(flex_eu_config_" + set['perf_name_lc']  + ");")
-        c_outdent(8)
+    id, priority, config = flex_config_tuple
+    c("\n")
+    c("dev_priv->perf.oa.flex_regs =")
+    c_indent(8)
+    c("flex_eu_config_" + set['perf_name_lc']  + ";")
+    c_outdent(8)
+    c("dev_priv->perf.oa.flex_regs_len =")
+    c_indent(8)
+    c("ARRAY_SIZE(flex_eu_config_" + set['perf_name_lc']  + ");")
+    c_outdent(8)
 
 
 def output_sysfs_code(sets):
@@ -642,18 +641,14 @@ for arg in args.xml:
         if len(b_counter_configs) == 0:
             empty = ET.Element('register_config')
             b_counter_configs.append((0, 0, empty))
-
         assert len(b_counter_configs) == 1
-
         output_b_counter_config(set, b_counter_configs[0])
 
-
-        assert len(flex_configs) == 0 or len(flex_configs) == 1
-
-        flex_config = None
-        if len(flex_configs) == 1:
-            flex_config = flex_configs[0]
-            output_flex_config(set, flex_config)
+        if len(flex_configs) == 0:
+            empty = ET.Element('register_config')
+            flex_configs.append((0, 0, empty))
+        assert len(flex_configs) == 1
+        output_flex_config(set, flex_configs[0])
 
         mux_configs.sort(key=itemgetter(0, 1))
         output_mux_configs(set, mux_configs)
@@ -707,7 +702,7 @@ for set in sets:
     c("}")
 
     c("")
-    output_b_and_flex_configs_select(set, b_counter_configs[0], flex_config)
+    output_b_and_flex_configs_select(set, b_counter_configs[0], flex_configs[0])
     c("\n")
     c("return 0;")
     c_outdent(8)
