@@ -1286,9 +1286,7 @@ get_card_for_fd(int drm_fd)
     int mjr, mnr;
     char buffer[128];
     DIR *drm_dir;
-    int entry_size;
-    struct dirent *entry1, *entry2;
-    int name_max;
+    struct dirent *entry;
     int retval = -1;
 
     if (fstat(drm_fd, &sb)) {
@@ -1304,22 +1302,15 @@ get_card_for_fd(int drm_fd)
     drm_dir = opendir(buffer);
     assert(drm_dir != NULL);
 
-    name_max = pathconf(buffer, _PC_NAME_MAX);
-
-    if (name_max == -1)
-        name_max = 255;
-
-    entry_size = offsetof(struct dirent, d_name) + name_max + 1;
-    entry1 = alloca(entry_size);
-
-    while ((readdir_r(drm_dir, entry1, &entry2) == 0) && entry2 != NULL) {
-        if (entry2->d_type == DT_DIR && strncmp(entry2->d_name, "card", 4) == 0) {
-	    retval=strtoull(entry2->d_name + 4, NULL, 10);
+    while ((entry = readdir(drm_dir))) {
+        if (entry->d_type == DT_DIR && strncmp(entry->d_name, "card", 4) == 0) {
+	    retval = strtoull(entry->d_name + 4, NULL, 10);
             break;
         }
     }
 
     closedir(drm_dir);
+
     return retval;
 }
 
@@ -1382,10 +1373,8 @@ bool
 gputop_enumerate_metrics_via_sysfs(void)
 {
     DIR *metrics_dir;
-    struct dirent *entry1, *entry2;
+    struct dirent *entry;
     char buffer[128];
-    int name_max;
-    int entry_size;
 
     assert(drm_card >= 0);
     snprintf(buffer, sizeof(buffer), "/sys/class/drm/card%d/metrics", drm_card);
@@ -1394,24 +1383,15 @@ gputop_enumerate_metrics_via_sysfs(void)
     if (metrics_dir == NULL)
         return false;
 
-    name_max = pathconf(buffer, _PC_NAME_MAX);
-
-    if (name_max == -1)
-        name_max = 255;
-
-    entry_size = offsetof(struct dirent, d_name) + name_max + 1;
-    entry1 = alloca(entry_size);
-
-    while ((readdir_r(metrics_dir, entry1, &entry2) == 0) && entry2 != NULL)
-    {
+    while ((entry = readdir(metrics_dir))) {
         struct gputop_metric_set *metric_set;
         struct gputop_hash_entry *metrics_entry;
 
-        if (entry2->d_type != DT_DIR || entry2->d_name[0] == '.')
+        if (entry->d_type != DT_DIR || entry->d_name[0] == '.')
             continue;
 
         metrics_entry =
-            gputop_hash_table_search(metrics, entry2->d_name);
+            gputop_hash_table_search(metrics, entry->d_name);
 
         if (metrics_entry == NULL)
             continue;
@@ -1420,7 +1400,7 @@ gputop_enumerate_metrics_via_sysfs(void)
 
         snprintf(buffer, sizeof(buffer),
                  "/sys/class/drm/card%d/metrics/%s/id",
-                 drm_card, entry2->d_name);
+                 drm_card, entry->d_name);
 
         metric_set->perf_oa_metrics_set = gputop_read_file_uint64(buffer);
         array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->hw_config_guid);
