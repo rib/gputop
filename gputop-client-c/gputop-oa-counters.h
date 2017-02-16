@@ -55,11 +55,13 @@ enum gputop_accumulator_flags {
     GPUTOP_ACCUMULATOR_CTX_TIMER_SEEN   = 4,
 };
 
-struct gputop_oa_accumulator
+struct gputop_cc_oa_accumulator
 {
     struct gputop_metric_set *metric_set;
 
-    uint64_t period_ns;
+    uint64_t aggregation_period;
+    bool enable_ctx_switch_events;
+
     uint64_t first_timestamp;
     uint64_t last_timestamp;
 #define MAX_RAW_OA_COUNTERS 62
@@ -67,6 +69,10 @@ struct gputop_oa_accumulator
     enum gputop_accumulator_flags flags;
     struct gputop_u32_clock clock;
     uint32_t last_ctx_id;
+
+    /* Can be used for binding structure into JavaScript, e.g. to
+     * associate a corresponding v8::Object... */
+    void *js_priv;
 };
 
 void gputop_u32_clock_init(struct gputop_u32_clock *clock, uint32_t u32_start);
@@ -74,13 +80,14 @@ uint64_t gputop_u32_clock_get_time(struct gputop_u32_clock *clock);
 void gputop_u32_clock_progress(struct gputop_u32_clock *clock,
                                uint32_t u32_timestamp);
 
-void gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
-                                struct gputop_metric_set *metric_set);
-void gputop_oa_accumulator_clear(struct gputop_oa_accumulator *accumulator);
-bool gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
-                                  const uint8_t *report0,
-                                  const uint8_t *report1,
-                                  bool per_ctx_mode);
+void gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
+                                   struct gputop_metric_set *metric_set,
+                                   bool enable_ctx_switch_events,
+                                   int aggregation_period);
+void gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator);
+bool gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
+                                     const uint8_t *report0,
+                                     const uint8_t *report1);
 
 #ifdef __cplusplus
 }

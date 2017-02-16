@@ -103,61 +103,59 @@ gputop_cr_lookup_metric_set(const char *guid)
     return _guid_to_metric_set_map[guid];
 }
 
-void
-_gputop_cr_stream_start_update(struct gputop_cc_stream *stream,
-                               double start_timestamp, double end_timestamp,
-                               int reason)
+bool
+_gputop_cr_accumulator_start_update(struct gputop_cc_stream *stream,
+                                    struct gputop_cc_oa_accumulator *accumulator,
+                                    uint32_t events,
+                                    double start_timestamp, double end_timestamp)
 {
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope(isolate);
 
     Local<Object> gputop = Local<Object>::New(isolate, gputop_cc_singleton);
-    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "stream_start_update")));
+    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "accumulator_start_update")));
 
-    JSPriv *js_priv = static_cast<JSPriv *>(stream->js_priv);
-    Local<Object> stream_js = Local<Object>::New(isolate, js_priv->js_obj);
+    JSPriv *stream_js_priv = static_cast<JSPriv *>(stream->js_priv);
+    Local<Object> stream_js = Local<Object>::New(isolate, stream_js_priv->js_obj);
+    JSPriv *accumulator_js_priv = static_cast<JSPriv *>(accumulator->js_priv);
+    Local<Object> accumulator_js = Local<Object>::New(isolate, accumulator_js_priv->js_obj);
 
     Local<Value> argv[] = { stream_js,
+                            accumulator_js,
+                            Number::New(isolate, events),
                             Number::New(isolate, start_timestamp),
-                            Number::New(isolate, end_timestamp),
-                            Number::New(isolate, reason) };
-    fn->Call(gputop, ARRAY_LENGTH(argv), argv);
+                            Number::New(isolate, end_timestamp) };
+    Local<Value> ret = fn->Call(gputop, ARRAY_LENGTH(argv), argv);
+
+    return ret.ToBoolean(isolate);
 }
 
 void
-_gputop_cr_stream_update_counter(struct gputop_cc_stream *stream,
-                                 int counter,
-                                 double max, double value)
+_gputop_cr_accumulator_update_counter(int counter,
+                                      double max, double value)
 {
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope(isolate);
 
     Local<Object> gputop = Local<Object>::New(isolate, gputop_cc_singleton);
-    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "stream_update_counter")));
+    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "accumulator_append_count")));
 
-    JSPriv *js_priv = static_cast<JSPriv *>(stream->js_priv);
-    Local<Object> stream_js = Local<Object>::New(isolate, js_priv->js_obj);
-
-    Local<Value> argv[] = { stream_js,
-                            Number::New(isolate, counter),
+    Local<Value> argv[] = { Number::New(isolate, counter),
                             Number::New(isolate, max),
                             Number::New(isolate, value) };
     fn->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
 
 void
-_gputop_cr_stream_end_update(struct gputop_cc_stream *stream)
+_gputop_cr_accumulator_end_update(void)
 {
     Isolate* isolate = Isolate::GetCurrent();
     HandleScope scope(isolate);
 
     Local<Object> gputop = Local<Object>::New(isolate, gputop_cc_singleton);
-    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "stream_end_update")));
+    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "accumulator_end_update")));
 
-    JSPriv *js_priv = static_cast<JSPriv *>(stream->js_priv);
-    Local<Object> stream_js = Local<Object>::New(isolate, js_priv->js_obj);
-
-    Local<Value> argv[] = { stream_js  };
+    Local<Value> argv[] = { };
     fn->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
 

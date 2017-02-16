@@ -106,23 +106,6 @@ gputop_cc_get_counter_id_binding(const v8::FunctionCallbackInfo<Value>& args)
 }
 
 void
-gputop_cc_reset_accumulator_binding(const v8::FunctionCallbackInfo<Value>& args)
-{
-    Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope(isolate);
-
-    if (args.Length() < 1) {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
-        return;
-    }
-
-    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
-    struct gputop_cc_stream *stream = (struct gputop_cc_stream *)ptr->ptr_;
-
-    gputop_cc_reset_accumulator(stream);
-}
-
-void
 gputop_cc_handle_i915_perf_message_binding(const v8::FunctionCallbackInfo<Value>& args)
 {
     Isolate* isolate = Isolate::GetCurrent();
@@ -219,23 +202,7 @@ gputop_cc_oa_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
     HandleScope scope(isolate);
 
     struct gputop_cc_stream *stream =
-        gputop_cc_oa_stream_new(*String::Utf8Value(args[0]), /* guid */
-                                args[1]->BooleanValue(), /* per-ctx-mode */
-                                args[2]->NumberValue()); /* aggregation period */
-
-    Local<Object> stream_obj = bind_c_struct(isolate, stream, &stream->js_priv);
-
-    args.GetReturnValue().Set(stream_obj);
-}
-
-void
-gputop_cc_tracepoint_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
-{
-    Isolate* isolate = Isolate::GetCurrent();
-    HandleScope scope(isolate);
-
-    struct gputop_cc_stream *stream =
-        gputop_cc_tracepoint_stream_new();
+        gputop_cc_oa_stream_new(*String::Utf8Value(args[0])); /* guid */
 
     Local<Object> stream_obj = bind_c_struct(isolate, stream, &stream->js_priv);
 
@@ -255,6 +222,100 @@ gputop_cc_stream_destroy_binding(const v8::FunctionCallbackInfo<Value>& args)
     stream->js_priv = nullptr;
 
     gputop_cc_stream_destroy(stream);
+}
+
+void
+gputop_cc_oa_accumulator_new_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    if (args.Length() < 3) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    }
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_stream *stream = static_cast<struct gputop_cc_stream *>(ptr->ptr_);
+
+    struct gputop_cc_oa_accumulator *accumulator =
+        gputop_cc_oa_accumulator_new(stream,
+                                     args[1]->NumberValue(), // aggregation period
+                                     args[2]->ToBoolean()); //enable_ctx_switch_events
+
+    Local<Object> accumulator_obj = bind_c_struct(isolate, accumulator, &accumulator->js_priv);
+    args.GetReturnValue().Set(accumulator_obj);
+}
+
+void
+gputop_cc_oa_accumulator_set_period_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    if (args.Length() < 2) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    }
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_oa_accumulator *accumulator = static_cast<struct gputop_cc_oa_accumulator *>(ptr->ptr_);
+
+    unsigned int period = args[1]->NumberValue();
+
+    gputop_cc_oa_accumulator_set_period(accumulator, period);
+}
+
+void
+gputop_cc_oa_accumulator_clear_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    if (args.Length() < 1) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    }
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_oa_accumulator *accumulator = static_cast<struct gputop_cc_oa_accumulator *>(ptr->ptr_);
+
+    gputop_cc_oa_accumulator_clear(accumulator);
+}
+
+void
+gputop_cc_oa_accumulator_destroy_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    if (args.Length() < 1) {
+        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    }
+
+    CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(args[0]->ToObject());
+    struct gputop_cc_oa_accumulator *accumulator = static_cast<struct gputop_cc_oa_accumulator *>(ptr->ptr_);
+    JSPriv *js_priv = static_cast<JSPriv *>(accumulator->js_priv);
+
+    delete js_priv;
+    accumulator->js_priv = nullptr;
+
+    gputop_cc_oa_accumulator_destroy(accumulator);
+}
+
+void
+gputop_cc_tracepoint_stream_new_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    struct gputop_cc_stream *stream =
+        gputop_cc_tracepoint_stream_new();
+
+    Local<Object> stream_obj = bind_c_struct(isolate, stream, &stream->js_priv);
+
+    args.GetReturnValue().Set(stream_obj);
 }
 
 void

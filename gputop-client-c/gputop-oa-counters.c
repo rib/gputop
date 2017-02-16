@@ -68,18 +68,18 @@ gputop_u32_clock_progress(struct gputop_u32_clock *clock,
 }
 
 static void
-gputop_oa_accumulate_uint32(const uint32_t *report0,
-                            const uint32_t *report1,
-                            uint64_t *deltas)
+accumulate_uint32(const uint32_t *report0,
+                  const uint32_t *report1,
+                  uint64_t *deltas)
 {
    *deltas += (uint32_t)(*report1 - *report0);
 }
 
 static void
-gputop_oa_accumulate_uint40(int a_index,
-                            const uint32_t *report0,
-                            const uint32_t *report1,
-                            uint64_t *deltas)
+accumulate_uint40(int a_index,
+                  const uint32_t *report0,
+                  const uint32_t *report1,
+                  uint64_t *deltas)
 {
     const uint8_t *high_bytes0 = (uint8_t *)(report0 + 40);
     const uint8_t *high_bytes1 = (uint8_t *)(report1 + 40);
@@ -98,10 +98,9 @@ gputop_oa_accumulate_uint40(int a_index,
 }
 
 bool
-gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
-                             const uint8_t *report0,
-                             const uint8_t *report1,
-                             bool per_ctx_mode)
+gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
+                                const uint8_t *report0,
+                                const uint8_t *report1)
 {
     struct gputop_metric_set *metric_set = accumulator->metric_set;
     uint64_t *deltas = accumulator->deltas;
@@ -139,9 +138,9 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
                 PRIu32" end = %"PRIu32"\n",
                 start_reason, end_reason);
 
-        /* While in per-ctx-mode we aim to detect and flag context switches to
-         * and from the specific context being filtered for so the caller can
-         * optionally update the UI at these key points and reset accumulation.
+        /* In this case we aim to detect and flag context switches to and from
+         * the specific context being filtered for so the caller can optionally
+         * update the UI at these key points and reset accumulation.
          *
          * More specificically:
          * - we flag the accumulation with _CTX_SW_TO_SEEN only if
@@ -152,7 +151,7 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
          *   is a switch-to then we skip over accumulation since the deltas
          *   relate to the work of other contexts.
          */
-        if (per_ctx_mode) {
+        if (accumulator->enable_ctx_switch_events) {
             /* the switch-from state may be transient if the caller doesn't
              * decide to clear the accumulator after seeing the switch-from */
             accumulator->flags &= ~GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN;
@@ -187,22 +186,20 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
             }
         }
 
-        gputop_oa_accumulate_uint32(start + 1, end + 1, deltas + idx++); /* timestamp */
-        gputop_oa_accumulate_uint32(start + 3, end + 3, deltas + idx++); /* clock */
+        accumulate_uint32(start + 1, end + 1, deltas + idx++); /* timestamp */
+        accumulate_uint32(start + 3, end + 3, deltas + idx++); /* clock */
 
         /* 32x 40bit A counters... */
         for (i = 0; i < 32; i++)
-            gputop_oa_accumulate_uint40(i, start, end, deltas + idx++);
+            accumulate_uint40(i, start, end, deltas + idx++);
 
         /* 4x 32bit A counters... */
         for (i = 0; i < 4; i++)
-            gputop_oa_accumulate_uint32(start + 36 + i, end + 36 + i,
-                                        deltas + idx++);
+            accumulate_uint32(start + 36 + i, end + 36 + i, deltas + idx++);
 
         /* 8x 32bit B counters + 8x 32bit C counters... */
         for (i = 0; i < 16; i++)
-            gputop_oa_accumulate_uint32(start + 48 + i, end + 48 + i,
-                                        deltas + idx++);
+            accumulate_uint32(start + 48 + i, end + 48 + i, deltas + idx++);
         break;
 
     case I915_OA_FORMAT_A45_B8_C8:
@@ -212,11 +209,10 @@ gputop_oa_accumulate_reports(struct gputop_oa_accumulator *accumulator,
         if (start[1] == 0 || end[1] == 0)
             dbg("i915_oa: spurious report with timestamp of zero\n");
 
-        gputop_oa_accumulate_uint32(start + 1, end + 1, deltas); /* timestamp */
+        accumulate_uint32(start + 1, end + 1, deltas); /* timestamp */
 
         for (i = 0; i < 61; i++)
-            gputop_oa_accumulate_uint32(start + 3 + i, end + 3 + i,
-                                        deltas + 1 + i);
+            accumulate_uint32(start + 3 + i, end + 3 + i, deltas + 1 + i);
         break;
     default:
         assert(0);
@@ -237,7 +233,7 @@ exit:
 }
 
 void
-gputop_oa_accumulator_clear(struct gputop_oa_accumulator *accumulator)
+gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator)
 {
     memset(accumulator->deltas, 0, sizeof(accumulator->deltas));
     accumulator->first_timestamp = 0;
@@ -246,8 +242,10 @@ gputop_oa_accumulator_clear(struct gputop_oa_accumulator *accumulator)
 }
 
 void
-gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
-                           struct gputop_metric_set *metric_set)
+gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
+                              struct gputop_metric_set *metric_set,
+                              bool enable_ctx_switch_events,
+                              int aggregation_period)
 {
     assert(accumulator);
     assert(metric_set);
@@ -255,4 +253,6 @@ gputop_oa_accumulator_init(struct gputop_oa_accumulator *accumulator,
 
     memset(accumulator, 0, sizeof(*accumulator));
     accumulator->metric_set = metric_set;
+    accumulator->aggregation_period = aggregation_period;
+    accumulator->enable_ctx_switch_events = enable_ctx_switch_events;
 }

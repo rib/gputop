@@ -91,20 +91,22 @@ gputop_cc_get_counter_id(const char *hw_config_guid, const char *counter_symbol_
 }
 
 static void
-forward_stream_update(struct gputop_cc_stream *stream,
-                      enum update_reason reason)
+forward_oa_accumulator_events(struct gputop_cc_stream *stream,
+                              struct gputop_cc_oa_accumulator *oa_accumulator,
+                              uint32_t events)
 {
     struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
-    struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
     int i;
 
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
-    //        stream->start_timestamp, stream->end_timestamp, stream->aggregation_period);
+    //        stream->start_timestamp, stream->end_timestamp, oa_accumulator->aggregation_period);
 
-    _gputop_cr_stream_start_update(stream,
-                                   oa_accumulator->first_timestamp,
-                                   oa_accumulator->last_timestamp,
-                                   reason);
+    if (!_gputop_cr_accumulator_start_update(stream,
+                                             oa_accumulator,
+                                             events,
+                                             oa_accumulator->first_timestamp,
+                                             oa_accumulator->last_timestamp))
+        return;
 
     for (i = 0; i < oa_metric_set->n_counters; i++) {
         uint64_t u53_check;
@@ -140,10 +142,10 @@ forward_stream_update(struct gputop_cc_stream *stream,
                 break;
         }
 
-        _gputop_cr_stream_update_counter(stream, i, max, d_value);
+        _gputop_cr_accumulator_append_count(i, max, d_value);
     }
 
-    _gputop_cr_stream_end_update(stream);
+    _gputop_cr_accumulator_end_update();
 }
 
 void EMSCRIPTEN_KEEPALIVE
@@ -182,32 +184,32 @@ gputop_cc_handle_tracepoint_message(struct gputop_cc_stream *stream,
     gputop_cr_console_log("FIXME: parse perf tracepoint data");
 }
 
-// function that resets the accumulator clock and the continuation_report
-void EMSCRIPTEN_KEEPALIVE
-gputop_cc_reset_accumulator(struct gputop_cc_stream *stream)
-{
-    stream->continuation_report = NULL;
-    (&stream->oa_accumulator)->clock.initialized = false;
-}
-
 void EMSCRIPTEN_KEEPALIVE
 gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
-                                     uint8_t *data, int len)
+                                   uint8_t *data, int data_len,
+                                   struct gputop_cc_oa_accumulator **accumulators,
+                                   int n_accumulators)
 {
-    struct gputop_oa_accumulator *oa_accumulator = &stream->oa_accumulator;
     const struct i915_perf_record_header *header;
     uint8_t *last = NULL;
 
     assert(stream);
-    assert(oa_accumulator);
 
     if (stream->continuation_report)
         last = stream->continuation_report;
-    else
-        gputop_oa_accumulator_clear(oa_accumulator);
+    else {
+        for (int i = 0; i < n_accumulators; i++) {
+            struct gputop_cc_oa_accumulator *oa_accumulator =
+                accumulators[i];
 
+            assert(oa_accumulator);
+            gputop_cc_oa_accumulator_clear(oa_accumulator);
+        }
+    }
+
+    //int i = 0;
     for (header = (void *)data;
-         (uint8_t *)header < (data + len);
+         (uint8_t *)header < (data + data_len);
          header = (void *)(((uint8_t *)header) + header->size))
     {
 #if 0
@@ -231,26 +233,32 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
             struct oa_sample *sample = (struct oa_sample *)header;
-            enum update_reason reason = 0;
 
             if (last) {
-                if (gputop_oa_accumulate_reports(oa_accumulator,
-                                                 last, sample->oa_report,
-                                                 stream->per_ctx_mode))
-                {
-                    uint64_t elapsed = (oa_accumulator->last_timestamp -
-                                        oa_accumulator->first_timestamp);
+                gputop_cr_console_log("i915_oa: n accumulators = %d\n", n_accumulators);
+                for (int i = 0; i < n_accumulators; i++) {
+                    struct gputop_cc_oa_accumulator *oa_accumulator =
+                        accumulators[i];
 
-                    if (elapsed > stream->aggregation_period)
-                        reason = UPDATE_REASON_PERIOD;
-                    if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN)
-                        reason = UPDATE_REASON_CTX_SWITCH_TO;
-                    if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN)
-                        reason = UPDATE_REASON_CTX_SWITCH_AWAY;
+                    assert(oa_accumulator);
 
-                    if (reason) {
-                        forward_stream_update(stream, reason);
-                        gputop_oa_accumulator_clear(oa_accumulator);
+                    if (gputop_cc_oa_accumulate_reports(oa_accumulator,
+                                                        last, sample->oa_report))
+                    {
+                        uint64_t elapsed = (oa_accumulator->last_timestamp -
+                                            oa_accumulator->first_timestamp);
+                        uint32_t events = 0;
+                        gputop_cr_console_log("i915_oa: accumulated reports\n");
+
+                        if (elapsed > oa_accumulator->aggregation_period)
+                            events |= ACCUMULATOR_EVENT_PERIOD_ELAPSED;
+                        if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN)
+                            events |= ACCUMULATOR_EVENT_CTX_SWITCH_TO;
+                        if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN)
+                            events |= ACCUMULATOR_EVENT_CTX_SWITCH_AWAY;
+
+                        if (events)
+                            forward_oa_accumulator_events(stream, oa_accumulator, events);
                     }
                 }
             }
@@ -380,9 +388,7 @@ gputop_cc_update_system_metrics(void)
 }
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
-gputop_cc_oa_stream_new(const char *hw_config_guid,
-                        bool per_ctx_mode,
-                        uint32_t aggregation_period)
+gputop_cc_oa_stream_new(const char *hw_config_guid)
 {
     struct gputop_cc_stream *stream = malloc(sizeof(*stream));
 
@@ -391,17 +397,50 @@ gputop_cc_oa_stream_new(const char *hw_config_guid,
     memset(stream, 0, sizeof(*stream));
 
     stream->type = STREAM_TYPE_OA;
-    stream->aggregation_period = aggregation_period;
-    stream->per_ctx_mode = per_ctx_mode;
 
     stream->oa_metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
     assert(stream->oa_metric_set);
     assert(stream->oa_metric_set->perf_oa_format);
 
-    gputop_oa_accumulator_init(&stream->oa_accumulator, stream->oa_metric_set);
-
     return stream;
 }
+
+struct gputop_cc_oa_accumulator * EMSCRIPTEN_KEEPALIVE
+gputop_cc_oa_accumulator_new(struct gputop_cc_stream *stream,
+                             int aggregation_period,
+                             bool enable_ctx_switch_events)
+{
+    struct gputop_cc_oa_accumulator *accumulator = malloc(sizeof(*accumulator));
+
+    assert(accumulator);
+    assert(stream);
+
+    gputop_cc_oa_accumulator_init(accumulator,
+                                  stream->oa_metric_set,
+                                  enable_ctx_switch_events,
+                                  aggregation_period);
+    return accumulator;
+}
+
+void EMSCRIPTEN_KEEPALIVE
+gputop_cc_oa_accumulator_set_period(struct gputop_cc_oa_accumulator *accumulator,
+                                    uint32_t aggregation_period)
+{
+    assert(accumulator);
+
+    accumulator->aggregation_period = aggregation_period;
+}
+
+void EMSCRIPTEN_KEEPALIVE
+gputop_cc_oa_accumulator_destroy(struct gputop_cc_oa_accumulator *accumulator)
+{
+    assert(accumulator);
+
+    gputop_cr_console_log("Freeing client-c OA accumulator %p\n", accumulator);
+
+    free(accumulator);
+}
+
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
 gputop_cc_tracepoint_stream_new(void)
@@ -415,13 +454,6 @@ gputop_cc_tracepoint_stream_new(void)
     stream->type = STREAM_TYPE_TRACEPOINT;
 
     return stream;
-}
-
-void EMSCRIPTEN_KEEPALIVE
-gputop_cc_update_stream_period(struct gputop_cc_stream *stream,
-                                 uint32_t aggregation_period)
-{
-    stream->aggregation_period = aggregation_period;
 }
 
 void EMSCRIPTEN_KEEPALIVE
