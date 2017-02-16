@@ -235,7 +235,6 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
             struct oa_sample *sample = (struct oa_sample *)header;
 
             if (last) {
-                gputop_cr_console_log("i915_oa: n accumulators = %d\n", n_accumulators);
                 for (int i = 0; i < n_accumulators; i++) {
                     struct gputop_cc_oa_accumulator *oa_accumulator =
                         accumulators[i];
@@ -248,14 +247,12 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                         uint64_t elapsed = (oa_accumulator->last_timestamp -
                                             oa_accumulator->first_timestamp);
                         uint32_t events = 0;
-                        gputop_cr_console_log("i915_oa: accumulated reports\n");
+                        //gputop_cr_console_log("i915_oa: accumulated reports\n");
 
-                        if (elapsed > oa_accumulator->aggregation_period)
+                        if (elapsed > oa_accumulator->aggregation_period) {
+                            //gputop_cr_console_log("i915_oa: PERIOD ELAPSED (%d)\n", (int)oa_accumulator->aggregation_period);
                             events |= ACCUMULATOR_EVENT_PERIOD_ELAPSED;
-                        if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN)
-                            events |= ACCUMULATOR_EVENT_CTX_SWITCH_TO;
-                        if (oa_accumulator->flags & GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN)
-                            events |= ACCUMULATOR_EVENT_CTX_SWITCH_AWAY;
+                        }
 
                         if (events)
                             forward_oa_accumulator_events(stream, oa_accumulator, events);

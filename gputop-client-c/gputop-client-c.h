@@ -108,7 +108,6 @@ gputop_cc_oa_accumulator_new(struct gputop_cc_stream *stream,
                              bool enable_ctx_switch_events);
 void gputop_cc_oa_accumulator_set_period(struct gputop_cc_oa_accumulator *accumulator,
                                          uint32_t aggregation_period);
-void gputop_cc_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator);
 void gputop_cc_oa_accumulator_destroy(struct gputop_cc_oa_accumulator *accumulator);
 
 struct gputop_cc_stream *gputop_cc_tracepoint_stream_new(void);

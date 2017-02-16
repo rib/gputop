@@ -68,7 +68,6 @@ struct gputop_cc_oa_accumulator
     uint64_t deltas[MAX_RAW_OA_COUNTERS];
     enum gputop_accumulator_flags flags;
     struct gputop_u32_clock clock;
-    uint32_t last_ctx_id;
 
     /* Can be used for binding structure into JavaScript, e.g. to
      * associate a corresponding v8::Object... */

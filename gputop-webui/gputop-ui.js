@@ -517,7 +517,7 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
     if (n_counters === 0)
         return;
 
-    var first_counter = undefined;
+    var first = undefined;
     for (var i = 0; i < n_counters; i++) {
         first = metric.graph_accumulator.accumulated_counters[i];
         if (first.counter.record_data === true)
@@ -699,8 +699,9 @@ GputopUI.prototype.update_counter_bar = function(accumulated_counter) {
                  "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
                  "threads":[" threads", " K threads", " M threads", " G threads"]};
 
-    if (counter.row_div_ === undefined)
+    if (counter.row_div_ === undefined) {
         return;
+    }
 
     if (counter.zero && accumulated_counter.latest_value !== 0) {
         counter.zero = false;
@@ -873,7 +874,7 @@ GputopUI.prototype.queue_filter_counters = function() {
 
 GputopUI.prototype.notify_accumulator_events = function(metric, accumulator, events_mask) {
     if (events_mask & 1) //period elapsed
-        cc._gputop_cc_oa_accumulator_clear(accumulator.cc_accumulator_ptr_);
+        this.accumulator_clear(accumulator);
 
     this.queue_redraw();
 }

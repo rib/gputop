@@ -550,14 +550,16 @@ Gputop.prototype.accumulator_append_count = function (counter_id,
     var accumulator = update.accumulator;
 
     var counter = metric.cc_counters[counter_id];
+
     if (counter_id >= accumulator.accumulated_counters.length) {
-        for (var i = 0; i <= counter_id; i++)
+        for (var i = 0; i <= counter_id; i++) {
             accumulator.accumulated_counters[i] = {
-                counter: counter,
+                counter: metric.cc_counters[i],
                 latest_value: 0,
                 latest_max: 0,
                 updates: [],
             };
+        }
     }
 
     var accumulated_counter = accumulator.accumulated_counters[counter_id];
@@ -571,7 +573,7 @@ Gputop.prototype.accumulator_append_count = function (counter_id,
     value *= counter.units_scale;
     max *= counter.units_scale;
 
-    if (counter.duration_dependent && (duration != 0)) {
+    if (counter.duration_dependent && (duration !== 0)) {
         var per_sec_scale = 1000000000 / duration;
         value *= per_sec_scale;
         max *= per_sec_scale;
@@ -585,8 +587,8 @@ Gputop.prototype.accumulator_append_count = function (counter_id,
         }
     }
 
-    if (accumulated_counter.latest_value != value ||
-        accumulated_counter.latest_max != max)
+    if (accumulated_counter.latest_value !== value ||
+        accumulated_counter.latest_max !== max)
     {
         accumulated_counter.latest_value = value;
         accumulated_counter.latest_max = max;
@@ -614,9 +616,8 @@ Gputop.prototype.accumulator_end_update = function () {
                                    update.events_mask);
 }
 
-Gputop.prototype.notify_metric_updated = function (metric, accumulator, events_mask) {
-    if (events_mask & 1) //period elapsed
-        cc._gputop_cc_oa_accumulator_clear(accumulator.cc_accumulator_ptr_);
+Gputop.prototype.accumulator_clear = function (accumulator) {
+    cc._gputop_cc_oa_accumulator_clear(accumulator.cc_accumulator_ptr_);
 }
 
 Gputop.prototype.parse_xml_metrics = function(xml) {
@@ -746,9 +747,11 @@ Metric.prototype.create_oa_accumulator = function(config) {
     }
 
     if (config.period_ns === undefined)
-        config.period_ns === 1000000000;
+        config.period_ns = 1000000000;
     if (config.enable_ctx_switch_events === undefined)
         config.enable_ctx_switch_events = false;
+
+    this.gputop.log("Creating accumulator with aggregation period of " + config.period_ns + "ns", this.gputop.LOG);
 
     var accumulator = {};
 
@@ -778,7 +781,8 @@ Metric.prototype.set_oa_accumulator_period = function(accumulator, period_ns) {
         return;
     }
 
-    cc._gputop_cc_accumulator_set_period(accumulator.cc_accumulator_ptr_, period_ns);
+    this.gputop.log("Setting aggregation period to " + period_ns + "ns", this.gputop.LOG);
+    cc._gputop_cc_oa_accumulator_set_period(accumulator.cc_accumulator_ptr_, period_ns);
 }
 
 Metric.prototype.destroy_oa_accumulator = function(accumulator) {
