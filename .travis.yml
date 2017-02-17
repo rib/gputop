@@ -8,18 +8,15 @@ os:
     - linux
 
 compiler:
-    - gcc
+    - clang
 
 addons:
     apt:
-        sources:
-            - ubuntu-toolchain-r-test
         packages:
-            - gcc-4.9
-            - g++-4.9
             - autopoint
             - python-lxml
             - libgl1-mesa-dev
+            - binutils-gold
 
 cache:
     directories:
@@ -43,23 +40,15 @@ env:
 
 before_install:
     - node --version
-    # Use a more recent toolchain so we can rely on C11
-    - export CC=gcc-4.9 CXX=g++-4.9
     # Travis limits us to 50 minute builds, but unfortunately LLVM takes ages
     # and we sometimes have to limit the builds to doing one thing at a time to
     # repopulate the build caches
-    - if test -z $RECACHE_STEPS_LEFT; then export RECACHE_STEPS_LEFT=100; fi
-    # Kind of annoying how awkward it is to get a recent version of cmake on Travis a.t.m :-/
-    - (if test -f cmake-3.7.2/bin/cmake; then echo OK; elif test $RECACHE_STEPS_LEFT -gt 0; then
-           git clone --branch v3.7.2 --single-branch --depth 1 git://cmake.org/cmake.git cmake-3.7.2-src &&
-           cd cmake-3.7.2-src &&
-           ./configure --prefix=$TRAVIS_BUILD_DIR/cmake-3.7.2 &&
-           make &&
-           make install;
+    - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
+           wget https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
+           mv cmake-3.7.2-Linux-x86_64 cmake-3.7.2;
        fi)
-    - RECACHE_STEPS_LEFT=$((RECACHE_STEPS_LEFT-1))
     # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
-    - (if test -d llvm-fastcomp/bin; then echo OK; elif test $RECACHE_STEPS_LEFT -gt 0; then
+    - (if test -d llvm-fastcomp/bin; then echo OK; else
            git clone https://github.com/kripken/emscripten-fastcomp &&
            git clone https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
            mkdir emscripten-fastcomp/build &&
@@ -68,15 +57,11 @@ before_install:
            make -j4 &&
            make install;
        fi)
-    - RECACHE_STEPS_LEFT=$((RECACHE_STEPS_LEFT-1))
     - export LLVM="$TRAVIS_BUILD_DIR/llvm-fastcomp/bin"
     - export PATH="$TRAVIS_BUILD_DIR/emscripten:$PATH"
-    - (if test $RECACHE_STEPS_LEFT -gt 0; then
-           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten &&
-           emcc -v;
-       fi)
-    - RECACHE_STEPS_LEFT=$((RECACHE_STEPS_LEFT-1))
-    - (if test -d protobuf/lib; then echo OK; elif test $RECACHE_STEPS_LEFT -gt 0; then
+    - git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten
+    - emcc -v
+    - (if test -d protobuf/lib; then echo OK; else
             git clone --single-branch --branch master --depth 1 https://github.com/google/protobuf protobuf-src &&
             cd protobuf-src &&
             ./autogen.sh &&
@@ -97,12 +82,10 @@ before_script:
 
 script:
     - export GPUTOP_TRAVIS_MODE=1 
-    - (if test $RECACHE_STEPS_LEFT -gt 0; then
-            ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make V=1 && make V=1 install &&
-            cd $TRAVIS_BUILD_DIR/install/bin &&
-            if [ "${CONFIG_OPTS/'enable-node-clients'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && ./gputop-csv -m RenderBasic -c "Timestamp,GpuCoreClocks" & sleep 10 && kill $! && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi &&
-            if [ "${CONFIG_OPTS/'enable-web-ui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && firefox http://localhost:7890 & sleep 10 && killall firefox && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi;
-       fi)
+    - ./configure $CONFIG_OPTS --prefix=$TRAVIS_BUILD_DIR/install && make V=1 && make V=1 install
+    - cd $TRAVIS_BUILD_DIR/install/bin
+    - if [ "${CONFIG_OPTS/'enable-node-clients'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && ./gputop-csv -m RenderBasic -c "Timestamp,GpuCoreClocks" & sleep 10 && kill $! && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi
+    - if [ "${CONFIG_OPTS/'enable-web-ui'}" != "$CONFIG_OPTS" ]; then ./gputop --fake 2> travis_log & sleep 3 && firefox http://localhost:7890 & sleep 10 && killall firefox && killall gputop-system && grep OpenQuery travis_log; cat travis_log; fi
 
 deploy:
     provider: script
