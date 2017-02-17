@@ -827,7 +827,7 @@ Metric.prototype.dispose = function () {
 
     if (this.stream) {
         if (this.stream.cc_stream_ptr_ !== 0) {
-            cc._gputop_cc_stream_destroy(this.cc_stream_ptr_);
+            cc._gputop_cc_stream_destroy(this.stream.cc_stream_ptr_);
             delete this.gputop.cc_stream_ptr_to_obj_map[this.stream.cc_stream_ptr_];
             this.stream.cc_stream_ptr_ = 0;
         }

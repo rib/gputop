@@ -499,6 +499,8 @@ gputop_cc_stream_destroy(struct gputop_cc_stream *stream)
 {
     gputop_cr_console_log("Freeing client-c stream %p\n", stream);
 
+    assert(stream);
+
     free(stream->continuation_report);
     free(stream);
 }

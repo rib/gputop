@@ -512,6 +512,11 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
     if (metric === undefined)
         return;
 
+    if (metric.graph_accumulator === undefined) {
+        this.log("Skipping GPU metrics graph update while graph_accumulator undefined", this.WARN);
+        return;
+    }
+
     var n_counters = metric.graph_accumulator.accumulated_counters.length;
     if (n_counters === 0)
         return;
@@ -844,9 +849,11 @@ GputopUI.prototype.update = function(timestamp) {
 
     this.update_cpu_stats(timestamp);
 
-    for (var i = 0, l = metric.bars_accumulator.accumulated_counters.length; i < l; i++) {
-        var accumulated_counter = metric.bars_accumulator.accumulated_counters[i];
-        this.update_counter_bar(accumulated_counter);
+    if (metric.bars_accumulator) {
+        for (var i = 0, l = metric.bars_accumulator.accumulated_counters.length; i < l; i++) {
+            var accumulated_counter = metric.bars_accumulator.accumulated_counters[i];
+            this.update_counter_bar(accumulated_counter);
+        }
     }
 
     /* We want smooth graph panning and bar graph updates while we have
