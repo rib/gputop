@@ -17,8 +17,6 @@ addons:
             - llvm-toolchain-precise-3.9
         packages:
             - clang-3.9
-            - gcc-4.9
-            - g++-4.9
             - autopoint
             - python-lxml
             - libgl1-mesa-dev
@@ -63,7 +61,7 @@ before_install:
            git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
            mkdir emscripten-fastcomp/build &&
            cd emscripten-fastcomp/build &&
-           PATH="$TRAVIS_BUILD_DIR/cmake-3.7.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -G ninja -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF &&
+           PATH="$TRAVIS_BUILD_DIR/cmake-3.7.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF &&
            ninja &&
            ninja install;
        fi)
