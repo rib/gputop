@@ -44,7 +44,7 @@ before_install:
     # and we sometimes have to limit the builds to doing one thing at a time to
     # repopulate the build caches
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
-           wget https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
+           wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
            mv cmake-3.7.2-Linux-x86_64 cmake-3.7.2;
        fi)
     # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
