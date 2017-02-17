@@ -816,7 +816,12 @@ Metric.prototype.dispose = function () {
      */
     for (var i = 0; i < this.oa_accumulators.length; i++) {
         var accumulator = this.oa_accumulators[i];
-        this.destroy_oa_accumulator(accumulator);
+
+        /* array may be sparse if individual accumulator was destroyed
+         * via metric.destroy_oa_accumulator()
+         */
+        if (accumulator !== undefined)
+            this.destroy_oa_accumulator(accumulator);
     }
     this.oa_accumulators = [];
 

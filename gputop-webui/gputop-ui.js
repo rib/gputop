@@ -79,10 +79,6 @@ function MetricSetUI (gputopParent) {
     Metric.call(this, gputopParent);
 
     this.filtered_counters = [];
-
-    this.start_timestamp = 0;
-    this.start_gpu_timestamp = 0;
-    this.end_gpu_timestamp = 0;
 }
 
 MetricSetUI.prototype = Object.create(Metric.prototype);
@@ -417,8 +413,6 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
     };
 
     function _handle_stream_gone() {
-        var ns_per_pixel = this.calculate_pixel_period_for_zoom();
-
         metric.destroy_oa_accumulator(metric.graph_accumulator);
         metric.graph_accumulator = undefined;
         metric.destroy_oa_accumulator(metric.bars_accumulator);
@@ -428,8 +422,13 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
     function _do_open() {
         metric.open(config,
                     () => { // onopen
+                        var ns_per_pixel = this.calculate_pixel_period_for_zoom();
+
                         metric.graph_accumulator = metric.create_oa_accumulator({ period_ns: ns_per_pixel });
                         metric.graph_accumulator.oa_timestamps = [];
+                        metric.graph_accumulator.start_timestamp = 0;
+                        metric.graph_accumulator.start_gpu_timestamp = 0;
+                        metric.graph_accumulator.end_gpu_timestamp = 0;
 
                         /* We always want the labels to be readable regardless of the sampling
                          * frequency...
@@ -490,7 +489,7 @@ GputopUI.prototype.set_zoom = function(zoom) {
     if (metric === undefined)
         return;
 
-    this.update_metric_set_stream(metric, oa_exponent);
+    this.update_metric_set_stream(metric);
 }
 
 GputopUI.prototype.set_paused = function(paused) {
@@ -533,12 +532,12 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
 
     if (this.paused) {
         metric.graph_accumulator.start_gpu_timestamp = first.updates[0][0];
-        metric.end_gpu_timestamp = first.updates[n_updates - 1][1];
+        metric.graph_accumulator.end_gpu_timestamp = first.updates[n_updates - 1][1];
 
         var time_range = this.zoom * 1000000000;
         var margin = time_range * 0.05;
 
-        var x_max = metric.end_gpu_timestamp;
+        var x_max = metric.graph_accumulator.end_gpu_timestamp;
         var x_min = x_max - time_range;
     } else {
         var latest_gpu_timestamp = first.updates[n_updates - 1][1];
@@ -560,7 +559,7 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
     for (var i = 0; i < n_counters; i++) {
         var accumulated_counter = metric.graph_accumulator.accumulated_counters[i];
         if (accumulated_counter.counter.record_data)
-            accumulated_counters.push(counter);
+            accumulated_counters.push(accumulated_counter);
     }
     n_counters = accumulated_counters.length;
 
