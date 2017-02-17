@@ -43,6 +43,7 @@ before_install:
     # Travis limits us to 50 minute builds, but unfortunately LLVM takes ages
     # and we sometimes have to limit the builds to doing one thing at a time to
     # repopulate the build caches
+    - export CC=clang CXX=clang
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
            tar -xvf cmake-3.7.2-Linux-x86_64.tar.gz > /dev/null &&
