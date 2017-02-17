@@ -12,7 +12,10 @@ compiler:
 
 addons:
     apt:
+        sources:
+            - ubuntu-toolchain-r-test
         packages:
+            - clang
             - autopoint
             - python-lxml
             - libgl1-mesa-dev
@@ -43,22 +46,16 @@ before_install:
     # Travis limits us to 50 minute builds, but unfortunately LLVM takes ages
     # and we sometimes have to limit the builds to doing one thing at a time to
     # repopulate the build caches
-    - export CC=clang CXX=clang
+    - export CC=clang CXX=clang++
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
            tar -xvf cmake-3.7.2-Linux-x86_64.tar.gz > /dev/null &&
-           file ./cmake-3.7.2-Linux-x86_64/bin/cmake &&
-           ls -aslh ./cmake-3.7.2-Linux-x86_64/bin &&
-           ./cmake-3.7.2-Linux-x86_64/bin/cmake --version &&
-           mv cmake-3.7.2-Linux-x86_64/* $TRAVIS_BUILD_DIR/cmake-3.7.2 &&
-           file $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake &&
-           ls -salh $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake &&
-           $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake --version;
+           mv cmake-3.7.2-Linux-x86_64/* $TRAVIS_BUILD_DIR/cmake-3.7.2;
        fi)
     # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
     - (if test -d llvm-fastcomp/bin; then echo OK; else
-           git clone https://github.com/kripken/emscripten-fastcomp &&
-           git clone https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
+           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp &&
+           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
            mkdir emscripten-fastcomp/build &&
            cd emscripten-fastcomp/build &&
            PATH="$TRAVIS_BUILD_DIR/cmake-3.7.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF &&
