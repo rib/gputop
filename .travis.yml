@@ -1,4 +1,5 @@
-sudo: false
+sudo: required
+dist: trusty
 
 language: node_js
 node_js:
@@ -45,10 +46,13 @@ env:
 
 before_install:
     - node --version
-    # Travis limits us to 50 minute builds, but unfortunately LLVM takes ages
-    # and we sometimes have to limit the builds to doing one thing at a time to
-    # repopulate the build caches
     - export CC=clang-3.8 CXX=clang++-3.8 LD=gold
+    - mkdir -p ~/bin/gold
+    - echo '#!/bin/bash' > ~/bin/gold/ld
+    - echo 'gold "$@"' >> ~/bin/gold/ld
+    - chmod a+x ~/bin/gold/ld
+    - export CFLAGS="-B$HOME/bin/gold $CFLAGS"
+    - export CXXFLAGS="-B$HOME/bin/gold $CXXFLAGS"
     - $CC --version
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
