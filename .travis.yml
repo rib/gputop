@@ -45,11 +45,11 @@ before_install:
     # repopulate the build caches
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
-           tar -xvf cmake-3.7.2-Linux-x86_64.tar.gz &&
+           tar -xvf cmake-3.7.2-Linux-x86_64.tar.gz > /dev/null &&
            file ./cmake-3.7.2-Linux-x86_64/bin/cmake &&
            ls -aslh ./cmake-3.7.2-Linux-x86_64/bin &&
            ./cmake-3.7.2-Linux-x86_64/bin/cmake --version &&
-           mv cmake-3.7.2-Linux-x86_64 $TRAVIS_BUILD_DIR/cmake-3.7.2 &&
+           mv cmake-3.7.2-Linux-x86_64/* $TRAVIS_BUILD_DIR/cmake-3.7.2 &&
            file $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake &&
            ls -salh $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake &&
            $TRAVIS_BUILD_DIR/cmake-3.7.2/bin/cmake --version;
