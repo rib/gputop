@@ -48,7 +48,7 @@ before_install:
     # Travis limits us to 50 minute builds, but unfortunately LLVM takes ages
     # and we sometimes have to limit the builds to doing one thing at a time to
     # repopulate the build caches
-    - export CC=clang-3.9 CXX=clang++-3.9
+    - export CC=clang-3.9 CXX=clang++-3.9 LD=gold
     - $CC --version
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
@@ -57,8 +57,8 @@ before_install:
        fi)
     # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
     - (if test -d llvm-fastcomp/bin; then echo OK; else
-           git clone --single-branch --branch 1.36.0 --depth 1 https://github.com/kripken/emscripten-fastcomp &&
-           git clone --single-branch --branch 1.36.0 --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
+           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp &&
+           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
            mkdir emscripten-fastcomp/build &&
            cd emscripten-fastcomp/build &&
            PATH="$TRAVIS_BUILD_DIR/cmake-3.7.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF &&
