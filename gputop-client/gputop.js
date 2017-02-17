@@ -141,10 +141,6 @@ function Metric (gputopParent) {
     this.server_handle = 0;
 
     this.oa_accumulators = [];
-
-    this.history = []; // buffer used when stream is paused.
-    this.history_index = 0;
-    this.history_size = 0;
 }
 
 Metric.prototype.find_counter_by_name = function(symbol_name) {
@@ -173,23 +169,6 @@ Metric.prototype.add_counter = function(counter) {
 
     this.counters_map_[symbol_name] = counter;
     this.counters_.push(counter);
-}
-
-Metric.prototype.replay_buffer = function() {
-    this.clear_metric_data();
-
-    for (var i = 0; i < this.history.length; i++) {
-        var data = this.history[i];
-
-        var sp = cc.Runtime.stackSave();
-
-        var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
-
-        cc._gputop_cc_handle_i915_perf_message(this.cc_stream_ptr_,
-                                               stack_data,
-                                               data.length);
-        cc.Runtime.stackRestore(sp);
-    }
 }
 
 Metric.prototype.filter_counters = function(options) {
@@ -486,6 +465,31 @@ Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
     });
 }
 
+Gputop.prototype.clear_accumulated_metrics = function() {
+    for (var i = 0; i < accumulator.accumulated_counters.length; i++) {
+        var accumulated_counter = accumulator.accumulated_counters[i];
+
+        accumulated_counter.updates = [];
+    }
+}
+
+Gputop.prototype.replay_i915_perf_history = function() {
+    this.clear_accumulated_metrics();
+
+    for (var i = 0; i < this.i915_perf_history.length; i++) {
+        var data = this.i915_perf_history[i];
+
+        var sp = cc.Runtime.stackSave();
+
+        var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
+
+        cc._gputop_cc_handle_i915_perf_message(this.cc_stream_ptr_,
+                                               stack_data,
+                                               data.length);
+        cc.Runtime.stackRestore(sp);
+    }
+}
+
 Gputop.prototype.accumulator_filter_events = function (metric, accumulator, events_mask) {
     if (events_mask & 1) //period elapsed
         return true;
@@ -729,8 +733,8 @@ Metric.prototype.open = function(config,
 
         this.gputop.rpc_request('open_stream', open, _finalize_open.bind(this));
 
-        this.history = [];
-        this.history_size = 0;
+        this.gputop.i915_perf_history = [];
+        this.gputop.i915_perf_history_size = 0;
     }
 
     return stream;
@@ -1445,13 +1449,13 @@ function gputop_socket_on_message(evt) {
 
             var stream = this.server_handle_to_obj[server_handle];
 
-            // save messages in a buffer to replay when stream is paused
+            // TODO: save messages in a buffer to replay when stream is paused
             /*
-            metric.history.push(data);
-            metric.history_size += data.length;
-            if (metric.history_size > 1048576) // 1 MB of data
-                metric.history.shift();
-                */
+            this.tracepoint_history.push(data);
+            this.tracepoint_history_size += data.length;
+            if (this.tracepoint_history_size > 1048576) // 1 MB of data
+                this.tracepoint_history.shift();
+            */
 
             cc._gputop_cc_handle_tracepoint_message(stream.cc_stream_ptr_,
                                                     stack_data,
@@ -1512,10 +1516,10 @@ function gputop_socket_on_message(evt) {
             var metric = this.server_handle_to_obj[server_handle];
 
             // save messages in a buffer to replay when stream is paused
-            metric.history.push(data);
-            metric.history_size += data.length;
-            if (metric.history_size > 1048576) // 1 MB of data
-                metric.history.shift();
+            this.i915_perf_history.push(data);
+            this.i915_perf_history_size += data.length;
+            if (this.i915_perf_history_size > 1048576) // 1 MB of data
+                this.i915_perf_history.shift();
 
             var sp = cc.Runtime.stackSave();
 

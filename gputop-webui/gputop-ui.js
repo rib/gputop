@@ -66,11 +66,10 @@ function CounterUI (metricSetParent) {
     this.bar_div_ = undefined;
     this.txt_value_div_ = undefined;
 
-    /* plotly.js graph data */
-    this.y_data = [];
-
     this.zero = true; /* reset once we see any value > 0 for the counter
                          so inactive counters can be hidden by default */
+
+    this.needs_new_plot = true;
 }
 
 CounterUI.prototype = Object.create(Counter.prototype);
@@ -163,15 +162,7 @@ function GputopUI () {
 
     this.selected_counter = undefined;
 
-    this.graph_array = [];
     this.zoom = 10; //seconds
-
-    this.series = [{
-        lines: {
-            fill: true
-        },
-        color: "#6666ff"
-    }];
 
     this.redraw_queued_ = false;
     this.filter_queued_ = false;
@@ -186,7 +177,7 @@ function GputopUI () {
     this.cpu_stats_div = undefined;
 
     this.all_graphs_div = undefined;
-    this.oa_counters_to_graph = [];
+    this.counter_to_graph_map = {};
 }
 
 GputopUI.prototype = Object.create(Gputop.prototype);
@@ -322,7 +313,13 @@ GputopUI.prototype.select_metric_set = function(metric) {
     $('.counter-stats-button').change((ev) => {
         var counter = $(ev.target).data("counter");
         counter.record_data = !$(ev.target).prop('checked');
-        this.all_graphs_div = undefined;
+
+        counter.needs_new_plot = true;
+        if (counter in this.counter_to_graph_map) {
+            var graph_div = this.counter_to_graph_map[counter];
+            graph_div.remove();
+            delete this.counter_to_graph_map[counter]
+        }
     });
 
     $('.metric_row').click((ev) => {
@@ -339,6 +336,7 @@ GputopUI.prototype.select_metric_set = function(metric) {
     /* XXX: hacky placeholder for now, but the demo mode should eventually
      * work in terms of a fake connection receiving dummy data...
      */
+    /*
     if (this.demo_mode && this.all_graphs_div === undefined) {
         this.all_graphs_div = document.getElementById('gpu-metrics-graph');
 
@@ -371,6 +369,7 @@ GputopUI.prototype.select_metric_set = function(metric) {
                        layout,
                        config);
     }
+    */
 
     this.update_metric_set_stream(metric);
 }
@@ -436,10 +435,16 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
                         metric.bars_accumulator = metric.create_oa_accumulator({ period_ns: 1000000000 });
 
                         if (metric.open_config.paused) {
-                            // Re-create the graphs...
-                            this.all_graphs_div = undefined;
 
-                            metric.replay_buffer();
+                            // Re-create the graphs...
+                            counter.needs_new_plot = true;
+                            if (counter in this.counter_to_graph_map) {
+                                var graph_div = this.counter_to_graph_map[counter];
+                                graph_div.remove();
+                                delete this.counter_to_graph_map[counter]
+                            }
+
+                            this.replay_i915_perf_history();
                         }
 
                         this.queue_redraw();
@@ -560,60 +565,6 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
         var x_min = x_max - time_range;
     }
 
-    var accumulated_counters = [];
-    for (var i = 0; i < n_counters; i++) {
-        var accumulated_counter = metric.graph_accumulator.accumulated_counters[i];
-        if (accumulated_counter.counter.record_data)
-            accumulated_counters.push(accumulated_counter);
-    }
-    n_counters = accumulated_counters.length;
-
-    if (this.all_graphs_div === undefined) {
-        this.all_graphs_div = document.getElementById('gpu-metrics-graph');
-
-        var layout = {
-            margin: { b: 20, t: 20 },
-            //title: "GPU Metrics",
-            xaxis: { range: [x_min + margin, x_max - margin], autorange: false, rangemode: 'normal', ticks: '', showticklabels: false },
-            yaxis: { range: [0, 100], showgrid: false, title: "%" },
-            showLegend: true
-        };
-
-        var config = {
-            displayModeBar: false
-        };
-
-        if (this.paused) {
-            layout.showticklabels = true;
-            config.scrollZoom = true;
-        }
-
-        var traces = [];
-
-        for (var i = 0; i < n_counters; i++) {
-            var counter = accumulated_counters[i].counter;
-
-            traces[i] = {
-                name: counter.name,
-                type: "scatter",
-                mode: "lines",
-                hoverinfo: "none",
-                x: [],
-                y: [],
-            };
-        }
-
-        Plotly.newPlot(this.all_graphs_div,
-                       traces,
-                       layout,
-                       config);
-    }
-
-    var new_layout = {
-        'xaxis.range': [x_min + margin, x_max - margin],
-    };
-    Plotly.relayout(this.all_graphs_div, new_layout);
-
 
     var timestamps = metric.graph_accumulator.oa_timestamps;
     for (var clip = 0, dlen = timestamps.length;
@@ -632,9 +583,6 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
         timestamps.push(mid);
     }
 
-    var y_updates = [];
-    var x_updates = [];
-
     /* Some counters may not have any y_data yet if they've only just been
      * added and this is the length that counter.y_data needs to be
      * initialized too before appending updates so that we end up with
@@ -642,11 +590,73 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
      */
     var clip_len = timestamps.length - n_updates;
 
+
+    var accumulated_counters = [];
     for (var i = 0; i < n_counters; i++) {
-        var accumulated_counter = accumulated_counters[i];
+        var accumulated_counter = metric.graph_accumulator.accumulated_counters[i];
+        if (accumulated_counter.counter.record_data)
+            accumulated_counters.push(accumulated_counter);
+    }
+    n_counters = accumulated_counters.length;
+
+    if (this.all_graphs_div === undefined)
+        this.all_graphs_div = document.getElementById('gpu-metrics-graph');
+
+    for (var i = 0; i < n_counters; i++) {
+        var counter = accumulated_counters[i].counter;
+        var counter_graph_div = this.counter_to_graph_map[counter];
+
+        if (counter_graph_div === undefined) {
+            counter_graph_div = this.all_graphs_div.createElement('div');
+            this.counter_to_graph_map[counter] = counter_graph_div;
+            counter.needs_new_plot = true;
+        }
+
+        if (counter.needs_new_plot) {
+            var layout = {
+                margin: { b: 20, t: 20 },
+                title: counter.name,
+                xaxis: { range: [x_min + margin, x_max - margin], autorange: false, rangemode: 'normal', ticks: '', showticklabels: false },
+                yaxis: { range: [0, counter.inferred_max], showgrid: false, title: "%" },
+                showLegend: true
+            };
+
+            var config = {
+                displayModeBar: false
+            };
+
+            if (this.paused) {
+                layout.showticklabels = true;
+                config.scrollZoom = true;
+            }
+
+            var traces = [];
+
+            traces[0] = {
+                name: counter.name,
+                type: "scatter",
+                mode: "lines",
+                hoverinfo: "none",
+                x: [],
+                y: [],
+            };
+
+            Plotly.newPlot(counter_graphs_div,
+                           traces,
+                           layout,
+                           config);
+
+            counter.needs_new_plot = false;
+        } else {
+            var new_layout = {
+                'xaxis.range': [x_min + margin, x_max - margin],
+            };
+            Plotly.relayout(counter_graph_div, new_layout);
+        }
 
         /* make sure each series of counter data has the same length
-         * as timestamps[] */
+         * as timestamps[]
+         */
         var y_data = accumulated_counter.y_data;
         if (y_data === undefined)
             y_data = [];
@@ -663,15 +673,15 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
             y_data.push(val);
         }
 
-        x_updates[i] = timestamps;
-        y_updates[i] = y_data;
+        var y_updates = [ timestamps ];
+        var x_updates = [ y_data ];
+
+        var update = { x: x_updates, y: y_updates };
+        Plotly.restyle(counter_graph_div, update);
 
         accumulated_counter.updates = [];
         accumulated_counter.y_data = y_data;
     }
-
-    var update = { x: x_updates, y: y_updates };
-    Plotly.restyle(this.all_graphs_div, update);
 
     metric.graph_accumulator.oa_timestamps = timestamps;
 
@@ -1126,8 +1136,9 @@ GputopUI.prototype.init_interface = function(callback) {
     this.load_overview_panel(callback);
 
     $(window).resize(() => {
-        if (this.all_graphs_div !== undefined)
-            Plotly.Plots.resize(this.all_graphs_div);
+        for (var graph_div in this.counter_to_graph_map) {
+            Plotly.Plots.resize(graph_div);
+        }
     });
 }
 
