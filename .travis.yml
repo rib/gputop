@@ -16,6 +16,8 @@ addons:
             - ubuntu-toolchain-r-test
         packages:
             - clang
+            - gcc-4.9
+            - g++-4.9
             - autopoint
             - python-lxml
             - libgl1-mesa-dev
