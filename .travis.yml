@@ -45,13 +45,13 @@ env:
 
 before_install:
     - node --version
-    - export CC=gcc-4.9 CXX=g++-4.9 LD=gold
-    - mkdir -p ~/bin/gold
-    - echo '#!/bin/bash' > ~/bin/gold/ld
-    - echo 'gold "$@"' >> ~/bin/gold/ld
-    - chmod a+x ~/bin/gold/ld
-    - export CFLAGS="-B$HOME/bin/gold $CFLAGS"
-    - export CXXFLAGS="-B$HOME/bin/gold $CXXFLAGS"
+    - export CC=gcc-4.9 CXX=g++-4.9
+      #- mkdir -p ~/bin/gold
+      #- echo '#!/bin/bash' > ~/bin/gold/ld
+      #- echo 'gold "$@"' >> ~/bin/gold/ld
+      #- chmod a+x ~/bin/gold/ld
+      #- export CFLAGS="-B$HOME/bin/gold $CFLAGS"
+      #- export CXXFLAGS="-B$HOME/bin/gold $CXXFLAGS"
     - $CC --version
     - (if test -f cmake-3.7.2/bin/cmake; then echo OK; else
            wget --no-check-certificate https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz &&
@@ -60,8 +60,8 @@ before_install:
        fi)
     # Building llvm-fastcomp manually helps us minimize the size of the directory we cache between builds...
     - (if test -d llvm-fastcomp/bin; then echo OK; else
-           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp &&
-           git clone --single-branch --branch master --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
+           git clone --single-branch --branch 1.36.0 --depth 1 https://github.com/kripken/emscripten-fastcomp &&
+           git clone --single-branch --branch 1.36.0 --depth 1 https://github.com/kripken/emscripten-fastcomp-clang emscripten-fastcomp/tools/clang &&
            mkdir emscripten-fastcomp/build &&
            cd emscripten-fastcomp/build &&
            PATH="$TRAVIS_BUILD_DIR/cmake-3.7.2/bin:$PATH" LDFLAGS="-s" CFLAGS="-Os" CXXFLAGS="-Os" cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/llvm-fastcomp -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF -DLLVM_BUILD_DOCS=OFF &&
