@@ -201,7 +201,6 @@ gputop-client-c/Makefile
 gputop-webui/Makefile
 gputop-csv/Makefile
 gputop-tracepoints/Makefile
-gputop-term/Makefile
 )
 
 echo ""
