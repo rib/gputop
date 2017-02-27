@@ -117,7 +117,6 @@ dnl ================================================================
 dnl Required third-party dependencies
 dnl ================================================================
 PKG_CHECK_MODULES(PROTOBUF_DEP, [protobuf])
-PKG_CHECK_MODULES(YAML_DEP, [yaml-0.1])
 PKG_CHECK_MODULES(CRYTPO_DEP, [libcrypto])
 PKG_CHECK_MODULES(SSL_DEP, [libssl])
 

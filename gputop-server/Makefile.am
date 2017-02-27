@@ -61,7 +61,6 @@ libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     $(PROTOBUF_DEP_CFLAGS) \
-    $(YAML_DEP_CFLAGS) \
     $(CRYPTO_DEP_CFLAGS) \
     $(SSL_DEP_CFLAGS) \
     -I$(top_srcdir)/libuv/include \
