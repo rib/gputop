@@ -601,7 +601,7 @@ Gputop.prototype.accumulator_append_count = function (counter_id,
     var counter = metric.cc_counters[counter_id];
 
     if (counter_id >= accumulator.accumulated_counters.length) {
-        for (var i = 0; i <= counter_id; i++) {
+        for (var i = accumulator.accumulated_counters.length; i <= counter_id; i++) {
             accumulator.accumulated_counters[i] = {
                 counter: metric.cc_counters[i],
                 latest_value: 0,
