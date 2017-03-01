@@ -170,9 +170,16 @@ GputopCSV.prototype.update_features = function(features)
 
 function write_rows(metric, accumulator)
 {
+    /* Note: this ref[erence] counter is pre-dermined to be one with
+     * counter.record_data === true which we know we have valid timestamp
+     * information for that we can use for the whole row.
+     */
     var ref_counter = this.counters_[this.reference_column];
     var ref_accumulated_counter =
         accumulator.accumulated_counters[ref_counter.cc_counter_id_];
+
+    log.assert(ref_accumulated_counter.counter === ref_counter,
+               "Spurious reference counter state");
 
     var n_rows = ref_accumulated_counter.updates.length;
 
@@ -185,9 +192,9 @@ function write_rows(metric, accumulator)
 
     for (var r = 0; r < n_rows; r++) {
 
-        var start = ref_accumulated_counter.updates[r][0];
-        var end = ref_accumulated_counter.updates[r][1];
-        var row_timestamp = start + (end - start) / 2;
+        var row_start = ref_accumulated_counter.updates[r][0];
+        var row_end = ref_accumulated_counter.updates[r][1];
+        var row_timestamp = row_start + (row_end - row_start) / 2;
 
         var row = "";
 
@@ -200,12 +207,15 @@ function write_rows(metric, accumulator)
             } else if (counter.record_data === true) {
                 var accumulated_counter = accumulator.accumulated_counters[counter.cc_counter_id_];
 
-                start = accumulated_counter.updates[r][0];
-                end = accumulated_counter.updates[r][1];
-                var max = accumulated_counter.updates[r][3];
+                var start = accumulated_counter.updates[r][0];
+                var end = accumulated_counter.updates[r][1];
+                //var max = accumulated_counter.updates[r][3];
                 var timestamp = start + (end - start) / 2;
 
-                log.assert(timestamp === row_timestamp, "Inconsistent row timestamp");
+                log.assert(accumulated_counter.counter === counter, "Accumulated counter doesn't match column counter");
+                log.assert(timestamp === row_timestamp,
+                           "Inconsistent timestamp: row ts: " + row_timestamp + "(" + row_start + ", " + row_end + ") != " +
+                           "counter ts: " + timestamp + "(" + start + "," + end + ")");
 
                 val = accumulated_counter.updates[r][2];
             }
