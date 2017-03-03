@@ -1451,7 +1451,7 @@ Gputop.prototype.load_emscripten = function(callback) {
          * code can call methods on it...
          */
         cc._gputop_cc_set_singleton(this);
-        console.log("Initialized gputop_singleton");
+        this.log("Initialized gputop_singleton");
         callback();
     }
 }

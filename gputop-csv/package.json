@@ -6,7 +6,8 @@
     "license": "MIT",
     "dependencies": {
         "gputop": "file:../gputop-client",
-        "argparse": "^1.0.7"
+        "argparse": "^1.0.7",
+        "sprintf": "^0.1.5"
     },
     "bin": {
         "gputop-csv": "gputop-csv.js"

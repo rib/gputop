@@ -26,6 +26,10 @@
 const Gputop = require('gputop');
 const fs = require('fs');
 const ArgumentParser = require('argparse').ArgumentParser;
+const sp = require('sprintf');
+
+/* Don't want to pollute CSV output to stdout with log messages... */
+var stderr_log = new console.Console(process.stderr, process.stderr);
 
 function GputopCSV()
 {
@@ -50,24 +54,58 @@ function GputopCSV()
 
     this.write_queued_ = false;
     this.endl = process.platform === "win32" ? "\r\n" : "\n";
+
+    this.console = {
+        log: (msg) => {
+            if (args.debug)
+                stderr_log.log(msg);
+        },
+        warn: (msg) => {
+            if (args.debug)
+                stderr_log.warn(msg);
+        },
+        error: (msg) => {
+            stderr_log.error(msg);
+        },
+    };
 }
 
 GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
+GputopCSV.prototype.list_metric_set_counters = function(metric) {
+    var all_counters = [{ symbol_name: "Timestamp", name: "Timestamp", desc: "Sample timestamp" }];
+    var all = "Timestamp"
+
+    metric.cc_counters.forEach((counter, idx, arr) => {
+        all_counters.push({ symbol_name: counter.symbol_name, name: counter.name, desc: counter.description });
+        all += "," + counter.symbol_name;
+    });
+    all_counters.sort((a, b) => {
+        return a.symbol_name > b.symbol_name;
+    });
+    for (var i = 0, len = all_counters.length; i < len; i++) {
+        stderr_log.log(sp.sprintf("%-25s:%-25s - %s",
+                       all_counters[i].symbol_name,
+                       all_counters[i].name,
+                       all_counters[i].desc));
+    }
+    stderr_log.log("\nALL: " + all);
+}
+
 GputopCSV.prototype.update_features = function(features)
 {
     if (features.supported_oa_guids.length == 0) {
-        log.error("No OA metrics supported");
+        stderr_log.error("No OA metrics supported");
         process.exit(1);
         return;
     }
 
     if (args.metrics === 'list') {
-        log.log("\nList of metric sets selectable with --metrics=...");
+        stderr_log.log("\nList of metric sets selectable with --metrics=...");
         for (var i = 0; i < features.supported_oa_guids.length; i++) {
             var guid = features.supported_oa_guids[i];
             var metric = this.lookup_metric_for_guid(guid);
-            log.log("" + metric.symbol_name + ": " + metric.name + ", hw-config-guid=" + guid);
+            stderr_log.log("" + metric.symbol_name + ": " + metric.name + ", hw-config-guid=" + guid);
         }
         process.exit(1);
     }
@@ -83,35 +121,29 @@ GputopCSV.prototype.update_features = function(features)
     }
 
     if (this.metric === undefined) {
-        log.error('Failed to look up metric set "' + args.metrics + '"');
+        stderr_log.error('Failed to look up metric set "' + args.metrics + '"');
         process.exit(1);
         return;
     }
 
     if (args.period < 0 || args.period > 1000000000) {
-        log.error('Sampling period out of range [0, 1000000000]');
+        stderr_log.error('Sampling period out of range [0, 1000000000]');
         process.exit(1);
         return;
     }
     var closest_oa_exponent = gputop.calculate_max_exponent_for_period(args.period);
 
     if (args.period > 40000000)
-        log.warn("WARNING: EU counters may overflow 32 bits with a long sampling period (recommend < 40 millisecond period)");
+        stderr_log.warn("WARNING: EU counters may overflow 32 bits with a long sampling period (recommend < 40 millisecond period)");
 
     if (args.accumulation_period === 0 || args.accumulation_period < args.period) {
-        log.error("Counter aggregation period (" + args.aggregation_period + ") should be >= requested hardware sampling period (" + args.period + ")");
+        stderr_log.error("Counter aggregation period (" + args.aggregation_period + ") should be >= requested hardware sampling period (" + args.period + ")");
         process.exit(1);
     }
 
     if (args.columns === 'list') {
-        var all = "Timestamp"
-        log.log("\nList of counters selectable with --columns=... (comma separated)");
-        log.log("Timestamp: Sample timestamp");
-        this.metric.cc_counters.forEach((counter, idx, arr) => {
-            log.log("" + counter.symbol_name + ": " + counter.name + " - " + counter.description);
-            all += "," + counter.symbol_name;
-        });
-        log.log("\nALL: " + all);
+        stderr_log.log("\nList of counters selectable with --columns=... (comma separated):\n");
+        this.list_metric_set_counters(this.metric);
         process.exit(1);
     }
 
@@ -130,9 +162,17 @@ GputopCSV.prototype.update_features = function(features)
             counter.record_data = true;
             this.reference_column = this.counters_.length;
             this.counters_.push(counter);
-        } else {
+        } else if (args.allow_unknown_columns) {
             var skip = { symbol_name: name, record_data: false };
             this.counters_.push(skip);
+        } else {
+            stderr_log.warn("Unsupported counter \"" + name + "\" - possible reasons:");
+            stderr_log.warn("> Typo?");
+            stderr_log.warn("> The counter might be conditional on a hardware feature - e.g. GT2 vs GT3 vs GT4");
+            stderr_log.warn("> The counter isn't part of the the \"" + this.metric.name + "\" metric set");
+            stderr_log.warn("\nThese are the available \"" + this.metric.name + "\" counters:\n");
+            this.list_metric_set_counters(this.metric);
+            process.exit(1);
         }
     }
 
@@ -142,15 +182,15 @@ GputopCSV.prototype.update_features = function(features)
         for (var i = 1; i < this.counters_.length; i++)
             columns += ",\"" + this.counters_[i].symbol_name + "\"";
 
-        log.warn("\n\nCSV: Capture Settings:");
-        log.warn("CSV:   Server: " + args.address);
-        log.warn("CSV:   File: " + (args.file ? args.file : "STDOUT"));
-        log.warn("CSV:   Metric Set: " + this.metric.name);
-        log.warn("CSV:   Columns: " + columns);
-        log.warn("CSV:   OA Hardware Period requested: " + args.period);
-        log.warn("CSV:   OA Hardware Sampling Exponent: " + closest_oa_exponent);
-        log.warn("CSV:   Accumulation period: " + args.accumulation_period);
-        log.warn("\n\n");
+        stderr_log.warn("\n\nCSV: Capture Settings:");
+        stderr_log.warn("CSV:   Server: " + args.address);
+        stderr_log.warn("CSV:   File: " + (args.file ? args.file : "STDOUT"));
+        stderr_log.warn("CSV:   Metric Set: " + this.metric.name);
+        stderr_log.warn("CSV:   Columns: " + args.columns);
+        stderr_log.warn("CSV:   OA Hardware Period requested: " + args.period);
+        stderr_log.warn("CSV:   OA Hardware Sampling Exponent: " + closest_oa_exponent);
+        stderr_log.warn("CSV:   Accumulation period: " + args.accumulation_period);
+        stderr_log.warn("\n\n");
 
         this.metric.open({ oa_exponent: closest_oa_exponent,
                            period: args.accumulation_period },
@@ -164,7 +204,7 @@ GputopCSV.prototype.update_features = function(features)
                         () => { // onclose
                         });
     } else {
-        log.error("Failed to find counters matching requested columns");
+        stderr_log.error("Failed to find counters matching requested columns");
     }
 }
 
@@ -178,7 +218,7 @@ function write_rows(metric, accumulator)
     var ref_accumulated_counter =
         accumulator.accumulated_counters[ref_counter.cc_counter_id_];
 
-    log.assert(ref_accumulated_counter.counter === ref_counter,
+    stderr_log.assert(ref_accumulated_counter.counter === ref_counter,
                "Spurious reference counter state");
 
     var n_rows = ref_accumulated_counter.updates.length;
@@ -212,10 +252,10 @@ function write_rows(metric, accumulator)
                 //var max = accumulated_counter.updates[r][3];
                 var timestamp = start + (end - start) / 2;
 
-                log.assert(accumulated_counter.counter === counter, "Accumulated counter doesn't match column counter");
-                log.assert(timestamp === row_timestamp,
-                           "Inconsistent timestamp: row ts: " + row_timestamp + "(" + row_start + ", " + row_end + ") != " +
-                           "counter ts: " + timestamp + "(" + start + "," + end + ")");
+                stderr_log.assert(accumulated_counter.counter === counter, "Accumulated counter doesn't match column counter");
+                stderr_log.assert(timestamp === row_timestamp,
+                                  "Inconsistent timestamp: row ts: " + row_timestamp + "(" + row_start + ", " + row_end + ") != " +
+                                  "counter ts: " + timestamp + "(" + start + "," + end + ")");
 
                 val = accumulated_counter.updates[r][2];
             }
@@ -310,13 +350,28 @@ parser.addArgument(
     }
 );
 
+parser.addArgument(
+    [ '-u', '--allow-unknown-columns' ],
+    {
+        help: "For automated profiling compatibility: report unsupported counter columns as zero",
+        action: 'storeTrue',
+        defaultValue: false
+    }
+);
+
+parser.addArgument(
+    [ '-d', '--debug' ],
+    {
+        help: "Verbose debug output",
+        action: 'storeTrue',
+        defaultValue: false
+    }
+);
+
 var args = parser.parseArgs();
 
 var gputop;
 var stream = null;
-
-/* Don't want to polute CSV output to stdout with log messages... */
-var log = new console.Console(process.stderr, process.stderr);
 
 function init() {
     gputop = new GputopCSV();
@@ -325,7 +380,7 @@ function init() {
     gputop.requested_columns_ = args.columns.split(",");
 
     gputop.connect(args.address, () => {
-        log.warn("connected"); //use warn to write to stderr
+        stderr_log.log("Connected");
     });
 
 }
@@ -342,7 +397,7 @@ if (args.file) {
 
 function close_and_exit(signo) {
     if (args.file) {
-        log.log("Closing CSV file...");
+        stderr_log.log("Closing CSV file...");
         stream.end(() => {
             process.exit(128 + signo);
         });
