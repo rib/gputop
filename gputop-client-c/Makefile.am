@@ -17,11 +17,18 @@ BUILT_SOURCES = \
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts
 
-oa-%.h oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
+# XXX: note that we daisy chain these oa-*.[ch] dependencies so
+# only the header directly depends on the script to be generated and
+# the .c file depends on the header instead of using a multi target
+# rule.  This ensures that a parallel make won't resort to running the
+# script twice (with the risk that the two runs trample on each other
+# generating the same files).
+oa-%.h: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py Makefile.am
 	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
 	    --header=$(builddir)/oa-$(*).h \
 	    --code=$(builddir)/oa-$(*).c \
 	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
+oa-%.c: oa-%.h
 
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote
