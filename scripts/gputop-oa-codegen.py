@@ -21,9 +21,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import xml.etree.ElementTree as ET
 import argparse
 import sys
+
+import xml.etree.cElementTree as ET
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
