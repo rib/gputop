@@ -31,14 +31,18 @@ const sp = require('sprintf');
 /* Don't want to pollute CSV output to stdout with log messages... */
 var stderr_log = new console.Console(process.stderr, process.stderr);
 
-function GputopCSV()
+function GputopCSV(pretty_print)
 {
     Gputop.Gputop.call(this);
+
+    this.pretty_print_csv_ = pretty_print;
 
     this.stream = undefined;
     this.metric = undefined;
 
     this.requested_columns_ = [];
+    this.col_width_ = 20;
+
     this.counters_ = [];
 
     this.dummy_timestamp_counter = {
@@ -73,11 +77,16 @@ function GputopCSV()
 GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
 GputopCSV.prototype.list_metric_set_counters = function(metric) {
-    var all_counters = [{ symbol_name: "Timestamp", name: "Timestamp", desc: "Sample timestamp" }];
+    var all_counters = [{ symbol_name: "Timestamp", name: "Timestamp", desc: "Sample timestamp (nanosecond resolution)" }];
     var all = "Timestamp"
 
     metric.cc_counters.forEach((counter, idx, arr) => {
-        all_counters.push({ symbol_name: counter.symbol_name, name: counter.name, desc: counter.description });
+        var units = counter.units;
+
+        if (counter.duration_dependent)
+            units += '/s';
+
+        all_counters.push({ symbol_name: counter.symbol_name, name: counter.name, desc: counter.description + " (" + units + ")" });
         all += "," + counter.symbol_name;
     });
     all_counters.sort((a, b) => {
@@ -177,10 +186,37 @@ GputopCSV.prototype.update_features = function(features)
     }
 
     if (this.reference_column > 0) {
-        var columns = this.counters_[0].symbol_name;
+        var columns = "";
 
-        for (var i = 1; i < this.counters_.length; i++)
-            columns += ",\"" + this.counters_[i].symbol_name + "\"";
+        for (var i = 0; i < this.counters_.length; i++) {
+            var counter = this.counters_[i];
+
+            if (this.pretty_print_csv_) {
+                if (counter.symbol_name !== "Timestamp") {
+                    var units = counter.units;
+
+                    if (counter.duration_dependent)
+                        units += '/s';
+                    units = " (" + units + ")"
+                } else
+                    units = "";
+
+                var title = "\"" + this.counters_[i].symbol_name + units + "\",";
+                if (title.length > this.col_width_) {
+                    this.col_width_ = title.length + 1;
+
+                    /* restart */
+                    columns = "";
+                    i = -1;
+                    continue;
+                }
+
+                var col = sp.sprintf("%-" + this.col_width_ + "s ", title);
+                columns += col;
+            } else
+                columns += "\"" + this.counters_[i].symbol_name + "\",";
+        }
+        columns = columns.trim().slice(0, -1); // drop trailing comma
 
         stderr_log.warn("\n\nCSV: Capture Settings:");
         stderr_log.warn("CSV:   Server: " + args.address);
@@ -243,7 +279,10 @@ function write_rows(metric, accumulator)
             var val = 0;
 
             if (counter === this.dummy_timestamp_counter) {
-                val = row_timestamp;
+                if (this.pretty_print_csv_)
+                    row += sp.sprintf("%-" + this.col_width_ + "s ", row_timestamp + ",");
+                else
+                    row += row_timestamp + ",";
             } else if (counter.record_data === true) {
                 var accumulated_counter = accumulator.accumulated_counters[counter.cc_counter_id_];
 
@@ -258,15 +297,25 @@ function write_rows(metric, accumulator)
                                   "counter ts: " + timestamp + "(" + start + "," + end + ")");
 
                 val = accumulated_counter.updates[r][2];
-            }
-            /* NB: some columns may have placeholder counter objects (with
-             * .record_data == false) if they aren't available on this
-             * system */
 
-            row += val + ",";
+                if (this.pretty_print_csv_) {
+                    var formatted_value = this.format_counter_value(accumulated_counter);
+                    row += sp.sprintf("%-" + this.col_width_ + "s ", formatted_value + ",");
+                } else
+                    row += val + ","
+            } else {
+                /* NB: some columns may have placeholder counter objects (with
+                 * .record_data == false) if they aren't available on this
+                 * system
+                 */
+                if (this.pretty_print_csv_)
+                    row += sp.sprintf("%-" + this.col_width_ + "s ", formatted_value + ",");
+                else
+                    row += "0,";
+            }
         }
 
-        this.stream.write(row.slice(0, -1) + this.endl);
+        this.stream.write(row.trim().slice(0, -1) + this.endl);
     }
 
     for (var c = 0; c < this.counters_.length; c++) {
@@ -373,8 +422,8 @@ var args = parser.parseArgs();
 var gputop;
 var stream = null;
 
-function init() {
-    gputop = new GputopCSV();
+function init(pretty_print) {
+    gputop = new GputopCSV(pretty_print);
 
     gputop.stream = stream;
     gputop.requested_columns_ = args.columns.split(",");
@@ -388,11 +437,11 @@ function init() {
 if (args.file) {
     stream = fs.createWriteStream(args.file);
     stream.once('open', (fd) => {
-        init();
+        init(false);
     });
-} else{
+} else {
     stream = process.stdout;
-    init();
+    init(true);
 }
 
 function close_and_exit(signo) {
