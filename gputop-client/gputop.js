@@ -669,6 +669,48 @@ Gputop.prototype.accumulator_clear = function (accumulator) {
     cc._gputop_cc_oa_accumulator_clear(accumulator.cc_accumulator_ptr_);
 }
 
+Gputop.prototype.format_counter_value = function(accumulated_counter) {
+    var counter = accumulated_counter.counter;
+    var value = accumulated_counter.latest_value;
+    var max = counter.inferred_max;
+    var units = counter.units;
+    var units_suffix = "";
+    var dp = 0;
+    var kilo = counter.units === "bytes" ? 1024 : 1000;
+    var mega = kilo * kilo;
+    var giga = mega * kilo;
+    var scale = {"bytes":["B", "KiB", "MiB", "GiB"],
+                 "ns":["ns", "μs", "ms", "s"],
+                 "hz":["Hz", "KHz", "MHz", "GHz"],
+                 "texels":[" texels", " K texels", " M texels", " G texels"],
+                 "pixels":[" pixels", " K pixels", " M pixels", " G pixels"],
+                 "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
+                 "threads":[" threads", " K threads", " M threads", " G threads"]};
+
+    if ((units in scale)) {
+        dp = 2;
+        if (value >= giga) {
+            units_suffix = scale[units][3];
+            value /= giga;
+        } else if (value >= mega) {
+            units_suffix = scale[units][2];
+            value /= mega;
+        } else if (value >= kilo) {
+            units_suffix = scale[units][1];
+            value /= kilo;
+        } else
+            units_suffix = scale[units][0];
+    } else if (units === 'percent') {
+        units_suffix = '%';
+        dp = 2;
+    }
+
+    if (counter.duration_dependent)
+        units_suffix += '/s';
+
+    return value.toFixed(dp) + units_suffix;
+}
+
 Gputop.prototype.parse_xml_metrics = function(xml) {
     this.metrics_xml_ = xml;
 
@@ -927,15 +969,67 @@ Metric.prototype.close = function(onclose) {
     }
 }
 
-Gputop.prototype.calculate_max_exponent_for_period = function(nsec) {
-    for (var i = 0; i < 64; i++) {
-        var period = (1<<i) * 1000000000 / this.system_properties.timestamp_frequency;
+Gputop.prototype.oa_exponent_to_nsec = function(exponent) {
+    return (1 << exponent) * 1000000000 / this.system_properties.timestamp_frequency;
+}
 
-        if (period > nsec)
-            return Math.max(0, i - 1);
+/* NB: the OA unit only has a limited exponential scale for what sampling
+ * periods it supports, so a requested accumulation period might need to be
+ * based on multiple higher-frequency samples.
+ *
+ * NB: we may impose a maximum limit on the hardware sampling period to ensure
+ * we can account for 32bit counter overflow.
+ *
+ * Searches for an exponent that factors to within @margin nanoseconds of the
+ * requested period.
+ *
+ * Be careful to consider that too strict of a margin along with a short
+ * sampling period could result in an excessively high sampling frequency.
+ *
+ * The margin should be >= 1% of the period since that's the limit of the
+ * searching done here.
+ */
+Gputop.prototype.calculate_sample_state_for_accumulation_period = function(requested_period, max_hw_period, margin) {
+
+    for (var f = 1; f < 101; f++) {
+        for (var e = 0; e < 64; e++) {
+            var hw_period = this.oa_exponent_to_nsec(e);
+            var factored_period = hw_period * f;
+
+            if (hw_period > max_hw_period)
+                break;
+
+            if (factored_period < (requested_period + margin) &&
+                factored_period > (requested_period - margin))
+            {
+                /* Once we manage to get within the requested margin the
+                 * exponent is fixed but the multiplication factor may
+                 * still be refined...
+                 */
+                var best_factor = f;
+                var best_difference = Math.abs(factored_period - requested_period);
+
+                for (f++; f < 101; f++) {
+                    var factored_period = hw_period * f;
+                    var difference = Math.abs(factored_period - requested_period);
+
+                    if (difference < best_difference) {
+                        best_factor = f;
+                        best_difference = difference;
+                    } else
+                        break;
+                }
+
+                return { oa_exponent: e, period: hw_period, factor: best_factor };
+            }
+        }
     }
 
-    return i;
+    for (var j = 0; j < 64; j++) {
+    }
+
+    console.assert(0, "Requested margin for finding OA exponent was too low");
+    return undefined;
 }
 
 var EventTarget = function() {
