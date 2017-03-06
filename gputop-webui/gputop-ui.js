@@ -685,59 +685,25 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
 
 GputopUI.prototype.update_counter_bar = function(accumulated_counter) {
     var counter = accumulated_counter.counter;
-    var bar_value = accumulated_counter.latest_value;
-    var text_value = accumulated_counter.latest_value;
+    var value = accumulated_counter.latest_value;
     var max = counter.inferred_max;
-    var units = counter.units;
-    var units_suffix = "";
-    var dp = 0;
-    var kilo = 1000;
-    var mega = kilo * 1000;
-    var giga = mega * 1000;
-    var scale = {"bytes":["B", "KB", "MB", "GB"],
-                 "ns":["ns", "μs", "ms", "s"],
-                 "hz":["Hz", "KHz", "MHz", "GHz"],
-                 "texels":[" texels", " K texels", " M texels", " G texels"],
-                 "pixels":[" pixels", " K pixels", " M pixels", " G pixels"],
-                 "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
-                 "threads":[" threads", " K threads", " M threads", " G threads"]};
 
-    if (counter.row_div_ === undefined) {
+    if (counter.row_div_ === undefined)
         return;
-    }
 
     if (counter.zero && accumulated_counter.latest_value !== 0) {
         counter.zero = false;
         this.queue_filter_counters();
     }
 
-    if ((units in scale)) {
-        dp = 2;
-        if (text_value >= giga) {
-            units_suffix = scale[units][3];
-            text_value /= 1000000000;
-        } else if (text_value >= mega) {
-            units_suffix = scale[units][2];
-            text_value /= 1000000;
-        } else if (text_value >= kilo) {
-            units_suffix = scale[units][1];
-            text_value /= 1000;
-        } else
-            units_suffix = scale[units][0];
-    } else if (units === 'percent') {
-        units_suffix = '%';
-        dp = 2;
-    }
-
-    if (counter.duration_dependent)
-        units_suffix += '/s';
+    var formatted_value = this.format_counter_value(accumulated_counter);
 
     if (max != 0) {
-        counter.bar_div_.css("width", 100 * bar_value / max + "%");
-        counter.txt_value_div_.text(text_value.toFixed(dp) + units_suffix);
+        counter.bar_div_.css("width", 100 * value / max + "%");
+        counter.txt_value_div_.text(formatted_value);
     } else {
         counter.bar_div_.css("width", "0%");
-        counter.txt_value_div_.text(text_value.toFixed(dp) + units_suffix);
+        counter.txt_value_div_.text(formatted_value);
     }
 }
 
