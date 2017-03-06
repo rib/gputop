@@ -1,4 +1,4 @@
-BUILT_SOURCES = \
+OA_GEN_SOURCES = \
     oa-hsw.h \
     oa-hsw.c \
     oa-bdw.h \
@@ -17,18 +17,18 @@ BUILT_SOURCES = \
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts
 
-# XXX: note that we daisy chain these oa-*.[ch] dependencies so
-# only the header directly depends on the script to be generated and
-# the .c file depends on the header instead of using a multi target
-# rule.  This ensures that a parallel make won't resort to running the
-# script twice (with the risk that the two runs trample on each other
-# generating the same files).
+# Note: we avoid using a multi target rule here and outputting both the
+# .c and .h files in one go so we don't hit problems with parallel
+# make and multiple invocations of the same script trying to write
+# to the same files.
 oa-%.h: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py Makefile.am
 	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
 	    --header=$(builddir)/oa-$(*).h \
+	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
+oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py Makefile.am
+	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
 	    --code=$(builddir)/oa-$(*).c \
 	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
-oa-%.c: oa-%.h
 
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote
@@ -36,16 +36,15 @@ nobase_dist_remote_DATA = \
     gputop-web.js \
     gputop-web.js.map
 
-BUILT_SOURCES += \
+BUILT_SOURCES = \
+	$(OA_GEN_SOURCES) \
 	gputop-web.js
 
 # Automake seems awkward to use for running the emscripten toolchain so
 # we have a plain GNU Makefile that we proxy too instead...
 EMCC_PROXY_MAKEFLAGS=-f $(srcdir)/Makefile.emscripten $(AM_MAKEFLAGS) top_srcdir=$(top_srcdir)
 
-gputop-web.js.map:
-	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js.map
-gputop-web.js:
+gputop-web.js: $(OA_GEN_SOURCES)
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) gputop-web.js
 
 all-local:
