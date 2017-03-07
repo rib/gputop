@@ -371,24 +371,38 @@ GputopUI.prototype.calculate_pixel_period_for_zoom = function () {
     return this.zoom * 1000000000 / hack_graph_size_px;
 }
 
-/* Returns: the maximum OA exponent suitable for viewing at the current
- * zoom level
+/* Returns: the most suitable OA exponent suitable for viewing at the current
+ * zoom level and a corresponding accumulation period.
  */
-GputopUI.prototype.calculate_max_exponent_for_zoom = function () {
+GputopUI.prototype.calculate_sample_state_for_zoom = function () {
 
     var ns_per_pixel = this.calculate_pixel_period_for_zoom();
 
-    return this.calculate_max_exponent_for_period(ns_per_pixel);
+    var sampling_state =
+        this.calculate_sample_state_for_accumulation_period(ns_per_pixel,
+                                                            40000000, // limit for handling 32 bit counter overflow
+                                                            (ns_per_pixel / 10)); // 10% error margin
+
+    return { oa_exponent: sampling_state.oa_exponent,
+             accumulation_period: sampling_state.period * sampling_state.factor };
 }
 
 /* Handles opening or re-opening a metric set stream, but is
  * also careful to avoid some redundant re-opens.
  */
 GputopUI.prototype.update_metric_set_stream = function(metric) {
+    var sampling_state = this.calculate_sample_state_for_zoom();
     var config = {
-        oa_exponent: this.calculate_max_exponent_for_zoom(),
+        oa_exponent: sampling_state.oa_exponent,
         paused: this.paused,
     };
+
+    /* The accumulator will keep going until the total period from
+     * combining hw samples is >= the requested accumulation
+     * period, so we slightly reduce what we request to avoid
+     * overshooting.
+     */
+    var accumulation_period = sampling_state.accumulation_period * 0.9999;
 
     function _handle_stream_gone() {
         if (metric.graph_accumulator !== undefined) {
@@ -404,9 +418,9 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
     function _do_open() {
         metric.open(config,
             () => { // onopen
-                var ns_per_pixel = this.calculate_pixel_period_for_zoom();
-
-                metric.graph_accumulator = metric.create_oa_accumulator({ period_ns: ns_per_pixel });
+                metric.graph_accumulator = metric.create_oa_accumulator({
+                    period_ns: accumulation_period
+                });
                 metric.graph_accumulator.oa_timestamps = [];
                 metric.graph_accumulator.start_timestamp = 0;
                 metric.graph_accumulator.start_gpu_timestamp = 0;
@@ -455,14 +469,11 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
                 _do_open.call(this);
             });
         } else {
-            var ns_per_pixel = this.calculate_pixel_period_for_zoom();
-
             /* No need to re-open the stream in this case but we do need to
              * update the graph accumulator in case the zoom level has changed.
              */
-
             metric.set_oa_accumulator_period(metric.graph_accumulator,
-                                             ns_per_pixel);
+                                             accumulator_period);
         }
     } else {
         this.current_metric_set = metric;

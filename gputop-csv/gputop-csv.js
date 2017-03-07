@@ -140,14 +140,29 @@ GputopCSV.prototype.update_features = function(features)
         process.exit(1);
         return;
     }
-    var closest_oa_exponent = gputop.calculate_max_exponent_for_period(args.period);
 
-    if (args.period > 40000000)
-        stderr_log.warn("WARNING: EU counters may overflow 32 bits with a long sampling period (recommend < 40 millisecond period)");
+    if (args.oa_sample_exponent >= 0) {
+        if (args.oa_sample_exponent > 31) {
+            stderr_log.error('OA exponent out of range [0, 31]');
+            process.exit(1);
+            return;
+        }
 
-    if (args.accumulation_period === 0 || args.accumulation_period < args.period) {
-        stderr_log.error("Counter aggregation period (" + args.aggregation_period + ") should be >= requested hardware sampling period (" + args.period + ")");
-        process.exit(1);
+        var hw_period = this.oa_exponent_to_nsec(args.oa_sample_exponent);
+
+        if (hw_period > 40000000)
+            stderr_log.warn("WARNING: EU counters may overflow 32 bits with a long hardware sampling period (recommend < 40 millisecond period)");
+
+        var oa_sampling_state = {
+            oa_exponent: args.oa_sample_exponent,
+            period: hw_period,
+            factor: Math.ceil(args.period / hw_period)
+        };
+    } else {
+        var oa_sampling_state =
+            this.calculate_sample_state_for_accumulation_period(args.period,
+                                                                40000000, // max period to account for 32bit counter overflow
+                                                                args.period / 10); // 10% error margin
     }
 
     if (args.columns === 'list') {
@@ -223,15 +238,24 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   File: " + (args.file ? args.file : "STDOUT"));
         stderr_log.warn("CSV:   Metric Set: " + this.metric.name);
         stderr_log.warn("CSV:   Columns: " + args.columns);
-        stderr_log.warn("CSV:   OA Hardware Period requested: " + args.period);
-        stderr_log.warn("CSV:   OA Hardware Sampling Exponent: " + closest_oa_exponent);
-        stderr_log.warn("CSV:   Accumulation period: " + args.accumulation_period);
+        stderr_log.warn("CSV:   OA Hardware Sampling Exponent: " + oa_sampling_state.oa_exponent);
+        stderr_log.warn("CSV:   OA Hardware Period: " + oa_sampling_state.period + "ns");
+        stderr_log.warn("CSV:   Accumulation period (requested): " + args.period + "ns");
+
+        var real_accumulation_period = oa_sampling_state.factor * oa_sampling_state.period;
+        stderr_log.warn("CSV:   Accumulation period (actual): " + real_accumulation_period + "ns (" + oa_sampling_state.period + "ns * " + oa_sampling_state.factor + ")");
+
         stderr_log.warn("\n\n");
 
-        this.metric.open({ oa_exponent: closest_oa_exponent,
-                           period: args.accumulation_period },
+        this.metric.open({ oa_exponent: oa_sampling_state.oa_exponent },
                         () => { //onopen
-                            metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.accumulation_period });
+
+                            /* The accumulator will keep going until the total
+                             * period from combining hw samples is >= the
+                             * requested accumulation period, so we slightly
+                             * reduce what we request to avoid overshooting.
+                             */
+                            metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.period * 0.9999 });
 
                             this.stream.write(columns + this.endl);
                         },
@@ -377,18 +401,18 @@ parser.addArgument(
 parser.addArgument(
     [ '-p', '--period' ],
     {
-        help: 'Maximum hardware sampling period, in nanoseconds - actual period may be shorter (default 40 milliseconds)',
+        help: 'Accumulate HW samples over this period (in nanoseconds) before writting a CSV row. Actual accumulation period may overrun by up 10%%. (default = one second)',
         type: 'int',
-        defaultValue: 40000000
+        defaultValue: 1000000000
     }
 );
 
 parser.addArgument(
-    [ '-g', '--accumulation-period' ],
+    [ '--oa-sample-exponent' ],
     {
-        help: 'Accumulate HW samples over this period before calculating a CSV row sample (real period will be >= closest multiple of the hardware sampling period)',
+        help: 'Not recommended to override. Determines the OA unit sampling period. By default (-1) automatically equates to a period close to the accumulation period or less then ~40 milliseconds to account for 32bit counter overflow',
         type: 'int',
-        defaultValue: 1000000000
+        defaultValue: -1
     }
 );
 
