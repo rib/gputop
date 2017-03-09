@@ -59,6 +59,8 @@ function GputopCSV(pretty_print)
     this.write_queued_ = false;
     this.endl = process.platform === "win32" ? "\r\n" : "\n";
 
+    this.term_row_ = 0;
+
     this.console = {
         log: (msg) => {
             if (args.debug)
@@ -207,31 +209,30 @@ GputopCSV.prototype.update_features = function(features)
             var counter = this.counters_[i];
 
             if (this.pretty_print_csv_) {
-                if (counter.symbol_name !== "Timestamp") {
+                if (counter.symbol_name === "Timestamp") {
+                    units = "";
+                    var title = "\"Timestamp\",";
+                    counter.col_width_ = 16;
+                } else {
                     var units = counter.units;
+
+                    if (units === "percent")
+                        units = "%";
 
                     if (counter.duration_dependent)
                         units += '/s';
                     units = " (" + units + ")"
-                } else
-                    units = "";
-
-                var title = "\"" + this.counters_[i].symbol_name + units + "\",";
-                if (title.length > this.col_width_) {
-                    this.col_width_ = title.length + 1;
-
-                    /* restart */
-                    columns = "";
-                    i = -1;
-                    continue;
+                    var title = "\"" + this.counters_[i].symbol_name + units + "\",";
+                    counter.col_width_ = Math.max(title.length, 10);
                 }
 
-                var col = sp.sprintf("%-" + this.col_width_ + "s ", title);
+                var col = sp.sprintf("%-" + counter.col_width_ + "s ", title);
                 columns += col;
             } else
                 columns += "\"" + this.counters_[i].symbol_name + "\",";
         }
-        columns = columns.trim().slice(0, -1); // drop trailing comma
+
+        this.column_titles_ = columns.trim().slice(0, -1); // drop trailing comma
 
         stderr_log.warn("\n\nCSV: Capture Settings:");
         stderr_log.warn("CSV:   Server: " + args.address);
@@ -241,9 +242,33 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   OA Hardware Sampling Exponent: " + oa_sampling_state.oa_exponent);
         stderr_log.warn("CSV:   OA Hardware Period: " + oa_sampling_state.period + "ns");
         stderr_log.warn("CSV:   Accumulation period (requested): " + args.period + "ns");
-
         var real_accumulation_period = oa_sampling_state.factor * oa_sampling_state.period;
         stderr_log.warn("CSV:   Accumulation period (actual): " + real_accumulation_period + "ns (" + oa_sampling_state.period + "ns * " + oa_sampling_state.factor + ")");
+
+        stderr_log.warn("\nCSV: OS Info:");
+        stderr_log.warn("CSV:   Kernel Build: " + features.get_kernel_build().trim());
+        stderr_log.warn("CSV:   Kernel Release: " + features.get_kernel_release().trim());
+
+        stderr_log.warn("\nCSV: CPU Info:");
+        stderr_log.warn("CSV:   Model: " + features.get_cpu_model().trim());
+        stderr_log.warn("CSV:   N Cores: " + features.get_n_cpus());
+
+        stderr_log.warn("\nCSV: GPU Info:");
+        stderr_log.warn("CSV:   Model: " + this.get_arch_pretty_name());
+        stderr_log.warn("CSV:   N EUs: " + features.devinfo.get_n_eus().toInt());
+        stderr_log.warn("CSV:   N EU Slices: " + features.devinfo.get_n_eu_slices().toInt());
+        stderr_log.warn("CSV:   N EU Sub Slices Per Slice: " + features.devinfo.get_n_eu_sub_slices().toInt());
+        stderr_log.warn("CSV:   EU Threads Count (total): " + features.devinfo.get_eu_threads_count().toInt());
+        stderr_log.warn("CSV:   Min Frequncy: " + features.devinfo.get_gt_min_freq().toInt() + "Hz");
+        stderr_log.warn("CSV:   Max Frequncy: " + features.devinfo.get_gt_max_freq().toInt() + "Hz");
+        stderr_log.warn("CSV:   Timestamp Frequncy: " + features.devinfo.get_timestamp_frequency().toInt() + "Hz");
+
+        if (features.notices.length >= 0) {
+            stderr_log.warn("\n\nCSV: Capture Notices:");
+            features.notices.forEach((notice, i) => {
+                stderr_log.warn("CSV:   - " + notice);
+            });
+        }
 
         stderr_log.warn("\n\n");
 
@@ -257,7 +282,7 @@ GputopCSV.prototype.update_features = function(features)
                              */
                             metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.period * 0.9999 });
 
-                            this.stream.write(columns + this.endl);
+                            this.stream.write(this.column_titles_ + this.endl);
                         },
                         () => { // onerror
                         },
@@ -304,7 +329,7 @@ function write_rows(metric, accumulator)
 
             if (counter === this.dummy_timestamp_counter) {
                 if (this.pretty_print_csv_)
-                    row += sp.sprintf("%-" + this.col_width_ + "s ", row_timestamp + ",");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s ", row_timestamp + ",");
                 else
                     row += row_timestamp + ",";
             } else if (counter.record_data === true) {
@@ -324,7 +349,7 @@ function write_rows(metric, accumulator)
 
                 if (this.pretty_print_csv_) {
                     var formatted_value = this.format_counter_value(accumulated_counter);
-                    row += sp.sprintf("%-" + this.col_width_ + "s ", formatted_value + ",");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s ", formatted_value + ",");
                 } else
                     row += val + ","
             } else {
@@ -333,13 +358,18 @@ function write_rows(metric, accumulator)
                  * system
                  */
                 if (this.pretty_print_csv_)
-                    row += sp.sprintf("%-" + this.col_width_ + "s ", formatted_value + ",");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s ", "N/A,");
                 else
                     row += "0,";
             }
         }
 
         this.stream.write(row.trim().slice(0, -1) + this.endl);
+        this.term_row_++;
+        if (this.pretty_print_csv_ && this.term_row_ >= (process.stdout.rows - 1)) {
+            this.stream.write(this.column_titles_ + this.endl);
+            this.term_row_ = 0;
+        }
     }
 
     for (var c = 0; c < this.counters_.length; c++) {
@@ -401,7 +431,7 @@ parser.addArgument(
 parser.addArgument(
     [ '-p', '--period' ],
     {
-        help: 'Accumulate HW samples over this period (in nanoseconds) before writting a CSV row. Actual accumulation period may overrun by up 10%%. (default = one second)',
+        help: 'Accumulate HW samples over this period (in nanoseconds) before writting a CSV row. Actual accumulation period may overrun by up to 10%%. (default = one second)',
         type: 'int',
         defaultValue: 1000000000
     }
@@ -410,7 +440,7 @@ parser.addArgument(
 parser.addArgument(
     [ '--oa-sample-exponent' ],
     {
-        help: 'Not recommended to override. Determines the OA unit sampling period. By default (-1) automatically equates to a period close to the accumulation period or less then ~40 milliseconds to account for 32bit counter overflow',
+        help: 'Not recommended to override. Determines the OA unit sampling period. By default (-1) automatically finds a period that factors neatly into the accumulation period (within 10%%) but is low enough to account for 32bit counter overflow',
         type: 'int',
         defaultValue: -1
     }
@@ -480,4 +510,3 @@ function close_and_exit(signo) {
 
 process.on('SIGINT', () => { close_and_exit(2); });
 process.on('SIGTERM', () => { close_and_exit(15); });
-
