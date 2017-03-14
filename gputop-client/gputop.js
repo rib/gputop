@@ -669,7 +669,7 @@ Gputop.prototype.accumulator_clear = function (accumulator) {
     cc._gputop_cc_oa_accumulator_clear(accumulator.cc_accumulator_ptr_);
 }
 
-Gputop.prototype.format_counter_value = function(accumulated_counter) {
+Gputop.prototype.format_counter_value = function(accumulated_counter, compact) {
     var counter = accumulated_counter.counter;
     var value = accumulated_counter.latest_value;
     var max = counter.inferred_max;
@@ -679,16 +679,26 @@ Gputop.prototype.format_counter_value = function(accumulated_counter) {
     var kilo = counter.units === "bytes" ? 1024 : 1000;
     var mega = kilo * kilo;
     var giga = mega * kilo;
-    var scale = {"bytes":["B", "KiB", "MiB", "GiB"],
-                 "ns":["ns", "μs", "ms", "s"],
-                 "hz":["Hz", "KHz", "MHz", "GHz"],
-                 "texels":[" texels", " K texels", " M texels", " G texels"],
-                 "pixels":[" pixels", " K pixels", " M pixels", " G pixels"],
-                 "cycles":[" cycles", " K cycles", " M cycles", " G cycles"],
-                 "threads":[" threads", " K threads", " M threads", " G threads"]};
+    if (compact === false) {
+        var scale = {"bytes":["B", "KiB", "MiB", "GiB"],
+                     "ns":["ns", "μs", "ms", "s"],
+                     "hz":["Hz", "KHz", "MHz", "GHz"],
+                     "texels":[" texels", "K texels", "M texels", "G texels"],
+                     "pixels":[" pixels", "K pixels", "M pixels", "G pixels"],
+                     "cycles":[" cycles", "K cycles", "M cycles", "G cycles"],
+                     "threads":[" threads", "K threads", "M threads", "G threads"]};
+    } else {
+        var scale = {"bytes":["", "KiB", "MiB", "GiB"],
+                     "ns":["", "μs", "ms", "s"],
+                     "hz":["", "KHz", "MHz", "GHz"],
+                     "texels":["", "KT", " MT", "GT"],
+                     "pixels":["", "KP", " MP", "GP"],
+                     "cycles":["", "ᴇ3", "ᴇ6", "ᴇ9"],
+                     "threads":["", "ᴇ3", "ᴇ6", "ᴇ9"]};
+    }
 
     if ((units in scale)) {
-        dp = 2;
+        dp = 1;
         if (value >= giga) {
             units_suffix = scale[units][3];
             value /= giga;
@@ -701,11 +711,11 @@ Gputop.prototype.format_counter_value = function(accumulated_counter) {
         } else
             units_suffix = scale[units][0];
     } else if (units === 'percent') {
-        units_suffix = '%';
-        dp = 2;
+        units_suffix = compact === true ? '' : '%';
+        dp = 1;
     }
 
-    if (counter.duration_dependent)
+    if (compact !== true && counter.duration_dependent)
         units_suffix += '/s';
 
     return value.toFixed(dp) + units_suffix;
