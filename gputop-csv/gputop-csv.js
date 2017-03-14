@@ -41,7 +41,6 @@ function GputopCSV(pretty_print)
     this.metric = undefined;
 
     this.requested_columns_ = [];
-    this.col_width_ = 20;
 
     this.counters_ = [];
 
@@ -204,35 +203,70 @@ GputopCSV.prototype.update_features = function(features)
 
     if (this.reference_column > 0) {
         var columns = "";
+        var all_col_units = "";
+        var title_lines = [];
+        var current_titles_width = 0;
 
         for (var i = 0; i < this.counters_.length; i++) {
             var counter = this.counters_[i];
+            var col_width = 0;
 
             if (this.pretty_print_csv_) {
                 if (counter.symbol_name === "Timestamp") {
-                    units = "";
-                    var title = "\"Timestamp\",";
-                    counter.col_width_ = 16;
+                    var units = "(ns)";
+                    var camel_name = "TimeStamp";
+                    var min_width = 15;
                 } else {
                     var units = counter.units;
 
-                    if (units === "percent")
+                    if (units === "percent") {
+                        var min_width = 6;
                         units = "%";
+                    } else {
+                        var min_width = 8;
+                    }
 
                     if (counter.duration_dependent)
                         units += '/s';
-                    units = " (" + units + ")"
-                    var title = "\"" + this.counters_[i].symbol_name + units + "\",";
-                    counter.col_width_ = Math.max(title.length, 10);
+                    units = "(" + units + ")"
+
+                    var camel_name = this.counters_[i].symbol_name;
                 }
 
-                var col = sp.sprintf("%-" + counter.col_width_ + "s ", title);
-                columns += col;
+                col_width = min_width;
+
+                var col_title_lines = camel_name.split(/(?=[A-Z])/).map((sym) => {
+                    return sym.toUpperCase();
+                });
+
+                for (var l = title_lines.length; l < col_title_lines.length; l++)
+                    title_lines[l] = sp.sprintf("%" + current_titles_width + "s", "");
+
+                for (var l = 0; l < col_title_lines.length; l++) {
+                    if (col_title_lines[l].length >= col_width)
+                        col_width = col_title_lines[l].length + 1;
+                }
+
+                if (units.length >= col_width)
+                    col_width = units.length + 1;
+
+                for (var l = 0; l < col_title_lines.length; l++)
+                    title_lines[l] = sp.sprintf("%-" + current_titles_width + "s%s", title_lines[l], col_title_lines[l]);
+
+                counter.col_width_ = col_width;
+                var col_units = sp.sprintf("%-" + col_width + "s", units);
+                all_col_units += col_units
+
+                current_titles_width += col_width;
             } else
-                columns += "\"" + this.counters_[i].symbol_name + "\",";
+                columns += this.counters_[i].symbol_name + ",";
         }
 
-        this.column_titles_ = columns.trim().slice(0, -1); // drop trailing comma
+        if (this.pretty_print_csv_) {
+            this.column_titles_ = title_lines;
+            this.column_units_ = all_col_units.trim();
+        } else
+            this.column_titles_ = [ columns.trim().slice(0, -1) ]; // drop trailing comma
 
         stderr_log.warn("\n\nCSV: Capture Settings:");
         stderr_log.warn("CSV:   Server: " + args.address);
@@ -282,7 +316,11 @@ GputopCSV.prototype.update_features = function(features)
                              */
                             metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.period * 0.9999 });
 
-                            this.stream.write(this.column_titles_ + this.endl);
+                            this.column_titles_.map((line) => {
+                                this.stream.write(line + this.endl);
+                            });
+                            if (this.pretty_print_csv_)
+                                this.stream.write(this.column_units_ + this.endl);
                         },
                         () => { // onerror
                         },
@@ -329,7 +367,7 @@ function write_rows(metric, accumulator)
 
             if (counter === this.dummy_timestamp_counter) {
                 if (this.pretty_print_csv_)
-                    row += sp.sprintf("%-" + counter.col_width_ + "s ", row_timestamp + ",");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s", row_timestamp + ",");
                 else
                     row += row_timestamp + ",";
             } else if (counter.record_data === true) {
@@ -348,8 +386,8 @@ function write_rows(metric, accumulator)
                 val = accumulated_counter.updates[r][2];
 
                 if (this.pretty_print_csv_) {
-                    var formatted_value = this.format_counter_value(accumulated_counter);
-                    row += sp.sprintf("%-" + counter.col_width_ + "s ", formatted_value + ",");
+                    var formatted_value = this.format_counter_value(accumulated_counter, true);
+                    row += sp.sprintf("%-" + counter.col_width_ + "s", formatted_value + ",");
                 } else
                     row += val + ","
             } else {
@@ -358,7 +396,7 @@ function write_rows(metric, accumulator)
                  * system
                  */
                 if (this.pretty_print_csv_)
-                    row += sp.sprintf("%-" + counter.col_width_ + "s ", "N/A,");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s", "N/A,");
                 else
                     row += "0,";
             }
@@ -367,7 +405,10 @@ function write_rows(metric, accumulator)
         this.stream.write(row.trim().slice(0, -1) + this.endl);
         this.term_row_++;
         if (this.pretty_print_csv_ && this.term_row_ >= (process.stdout.rows - 1)) {
-            this.stream.write(this.column_titles_ + this.endl);
+            this.column_titles_.map((line) => {
+                this.stream.write(line + this.endl);
+            });
+            this.stream.write(this.column_units_ + this.endl);
             this.term_row_ = 0;
         }
     }
