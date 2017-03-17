@@ -30,57 +30,28 @@
 #
 
 
-import xml.etree.ElementTree as ET
-from operator import itemgetter
 import argparse
-import sys
-import re
 import copy
 import hashlib
+from operator import itemgetter
+import re
+import sys
+
+import xml.etree.cElementTree as ET
+
+import pylibs.codegen as codegen
 
 default_set_blacklist = {}
+
 
 def underscore(name):
     s = re.sub('MHz', 'Mhz', name)
     s = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s).lower()
 
+
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
-
-c_file = None
-_c_indent = 0
-
-def c(*args):
-    if c_file:
-        code = ' '.join(map(str,args))
-        for line in code.splitlines():
-            indent = ''.rjust(_c_indent).replace('        ', '\t')
-            text = indent + line
-            c_file.write(text.rstrip() + "\n")
-
-def c_indent(n):
-    global _c_indent
-    _c_indent = _c_indent + n
-def c_outdent(n):
-    global _c_indent
-    _c_indent = _c_indent - n
-
-header_file = None
-_h_indent = 0
-
-def h(*args):
-    if header_file:
-        code = ' '.join(map(str,args))
-        for line in code.splitlines():
-            indent = ''.rjust(_c_indent).replace('        ', '\t')
-            text = indent + line
-            header_file.write(text.rstrip() + "\n")
-
-def h_indent(n):
-    _h_indent = _h_indent + n
-def h_outdent(n):
-    _h_indent = _h_indent - n
 
 
 # Tries to avoid fragility from ET.tostring() by normalizing into CSV string first
@@ -210,7 +181,7 @@ def output_b_counter_config(set, config_tuple):
 
     c("\nstatic const struct i915_oa_reg b_counter_config_" + set['perf_name_lc'] + "[] = {")
 
-    c_indent(8)
+    c.indent(8)
 
     n_regs = 0
     for reg in config.findall("register"):
@@ -223,7 +194,7 @@ def output_b_counter_config(set, config_tuple):
             c("{ _MMIO(" + addr_str + "), " + val_str + " },")
             n_regs = n_regs + 1
 
-    c_outdent(8)
+    c.outdent(8)
 
     c("};")
 
@@ -233,7 +204,7 @@ def output_flex_config(set, config_tuple):
 
     c("\nstatic const struct i915_oa_reg flex_eu_config_" + set['perf_name_lc'] + "[] = {")
 
-    c_indent(8)
+    c.indent(8)
 
     n_regs = 0
     for reg in config.findall("register"):
@@ -246,7 +217,7 @@ def output_flex_config(set, config_tuple):
             c("{ _MMIO(" + addr_str + "), " + val_str + " },")
             n_regs = n_regs + 1
 
-    c_outdent(8)
+    c.outdent(8)
 
     c("};")
 
@@ -289,7 +260,7 @@ def output_mux_configs(set, config_tuples):
 
         c("\nstatic const struct i915_oa_reg mux_config_" + set['perf_name_lc'] + infix + "[] = {")
 
-        c_indent(8)
+        c.indent(8)
         for reg in config.findall("register"):
             if reg.get('type') == 'NOA':
                 addr = int(reg.get('address'), 16)
@@ -298,7 +269,7 @@ def output_mux_configs(set, config_tuples):
                 val_str = "0x%08x" % val
 
                 c("{ _MMIO(" + addr_str + "), " + val_str + " },")
-        c_outdent(8)
+        c.outdent(8)
 
         c("};")
 
@@ -308,11 +279,11 @@ def output_mux_config_get_func(set, mux_config_tuples):
     c("static const struct i915_oa_reg *")
     fname = "get_" + set['perf_name_lc']  + "_mux_config"
     c(fname + "(struct drm_i915_private *dev_priv,")
-    c_indent(len(fname) + 1)
+    c.indent(len(fname) + 1)
     c("int *len)")
-    c_outdent(len(fname) + 1)
+    c.outdent(len(fname) + 1)
     c("{")
-    c_indent(8)
+    c.indent(8)
 
     needs_close_if_block = 0
     i = 0
@@ -341,18 +312,18 @@ def output_mux_config_get_func(set, mux_config_tuples):
                 c(else_prefix + "if (" + lines[0] + ") {")
             else:
                 c(else_prefix + "if (" + lines[0] + " &&")
-                c_indent(subexp_indent)
+                c.indent(subexp_indent)
                 for i in range(1, (n_lines - 1)):
                     print_err(lines[i] + " &&")
                 c(lines[(n_lines - 1)] + ") {")
-                c_outdent(subexp_indent)
-            c_indent(8)
+                c.outdent(subexp_indent)
+            c.indent(8)
 
             array_name = "mux_config_" + set['perf_name_lc']  + infix
             c("*len = ARRAY_SIZE(" + array_name + ");")
             c("return " + array_name + ";")
 
-            c_outdent(8)
+            c.outdent(8)
         else:
             # Unconditonal MUX config
             array_name = "mux_config_" + set['perf_name_lc']
@@ -367,7 +338,7 @@ def output_mux_config_get_func(set, mux_config_tuples):
         c("*len = 0;");
         c("return NULL;");
 
-    c_outdent(8)
+    c.outdent(8)
     c("}")
 
 
@@ -375,24 +346,24 @@ def output_b_and_flex_configs_select(set, b_counter_config_tuple, flex_config_tu
     id, priority, config = b_counter_config_tuple
     c("\n")
     c("dev_priv->perf.oa.b_counter_regs =")
-    c_indent(8)
+    c.indent(8)
     c("b_counter_config_" + set['perf_name_lc']  + ";")
-    c_outdent(8)
+    c.outdent(8)
     c("dev_priv->perf.oa.b_counter_regs_len =")
-    c_indent(8)
+    c.indent(8)
     c("ARRAY_SIZE(b_counter_config_" + set['perf_name_lc']  + ");")
-    c_outdent(8)
+    c.outdent(8)
 
     id, priority, config = flex_config_tuple
     c("\n")
     c("dev_priv->perf.oa.flex_regs =")
-    c_indent(8)
+    c.indent(8)
     c("flex_eu_config_" + set['perf_name_lc']  + ";")
-    c_outdent(8)
+    c.outdent(8)
     c("dev_priv->perf.oa.flex_regs_len =")
-    c_indent(8)
+    c.indent(8)
     c("ARRAY_SIZE(flex_eu_config_" + set['perf_name_lc']  + ");")
-    c_outdent(8)
+    c.outdent(8)
 
 
 def output_sysfs_code(sets):
@@ -404,34 +375,34 @@ def output_sysfs_code(sets):
         c("static ssize_t")
         c("show_" + perf_name_lc + "_id(struct device *kdev, struct device_attribute *attr, char *buf)")
         c("{")
-        c_indent(8)
+        c.indent(8)
         c("return sprintf(buf, \"%d\\n\", METRIC_SET_ID_" + perf_name + ");")
-        c_outdent(8)
+        c.outdent(8)
         c("}")
 
         c("\n")
         c("static struct device_attribute dev_attr_" + perf_name_lc + "_id = {")
-        c_indent(8)
+        c.indent(8)
         c(".attr = { .name = \"id\", .mode = 0444 },")
         c(".show = show_" + perf_name_lc + "_id,")
         c(".store = NULL,")
-        c_outdent(8)
+        c.outdent(8)
         c("};")
 
         c("\n")
         c("static struct attribute *attrs_" + perf_name_lc + "[] = {")
-        c_indent(8)
+        c.indent(8)
         c("&dev_attr_" + perf_name_lc + "_id.attr,")
         c("NULL,")
-        c_outdent(8)
+        c.outdent(8)
         c("};")
 
         c("\n")
         c("static struct attribute_group group_" + perf_name_lc + " = {")
-        c_indent(8)
+        c.indent(8)
         c(".name = \"" + set['guid'] + "\",")
         c(".attrs =  attrs_" + perf_name_lc + ",")
-        c_outdent(8)
+        c.outdent(8)
         c("};")
 
 
@@ -442,27 +413,27 @@ def output_sysfs_code(sets):
     c("int")
     c("i915_perf_register_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
-    c_indent(8)
+    c.indent(8)
     c("int mux_len;")
     c("int ret = 0;")
     c("\n")
 
     for set in sets:
         c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len)) {")
-        c_indent(8)
+        c.indent(8)
         c("ret = sysfs_create_group(dev_priv->perf.metrics_kobj, &group_" + set['perf_name_lc'] + ");")
         c("if (ret)")
-        c_indent(8)
+        c.indent(8)
         c("goto error_" + set['perf_name_lc'] + ";")
-        c_outdent(8)
-        c_outdent(8)
+        c.outdent(8)
+        c.outdent(8)
         c("}")
 
     c("\n")
     c("return 0;")
     c("\n")
 
-    c_outdent(8)
+    c.outdent(8)
     prev_set = None
     rev_sets = sets[:]
     rev_sets.reverse()
@@ -470,16 +441,16 @@ def output_sysfs_code(sets):
         set0 = rev_sets[i]
         set1 = rev_sets[i + 1]
         c("error_" + set0['perf_name_lc'] + ":")
-        c_indent(8)
+        c.indent(8)
         c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
-        c_indent(8)
+        c.indent(8)
         c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + set1['perf_name_lc'] + ");")
-        c_outdent(8)
-        c_outdent(8)
+        c.outdent(8)
+        c.outdent(8)
     c("error_" + rev_sets[-1]['perf_name_lc'] + ":")
-    c_indent(8)
+    c.indent(8)
     c("return ret;")
-    c_outdent(8)
+    c.outdent(8)
 
     c("}")
 
@@ -490,15 +461,15 @@ def output_sysfs_code(sets):
     c("void")
     c("i915_perf_unregister_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
-    c_indent(8)
+    c.indent(8)
     c("int mux_len;")
     c("\n")
     for set in sets:
         c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
-        c_indent(8)
+        c.indent(8)
         c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + set['perf_name_lc'] + ");")
-        c_outdent(8)
-    c_outdent(8)
+        c.outdent(8)
+    c.outdent(8)
     c("}")
 
    
@@ -523,8 +494,11 @@ for guid in guids_xml.findall(".//guid"):
 
 chipset = args.chipset.upper()
 
-header_file = open(args.h_out, 'w')
-c_file = open(args.c_out, 'w')
+# Note: either filename argument may == None
+h = codegen.Codegen(args.h_out);
+h.use_tabs = True
+c = codegen.Codegen(args.c_out);
+c.use_tabs = True
 
 h(copyright)
 h("#ifndef __I915_OA_" + chipset + "_H__\n")
@@ -586,12 +560,12 @@ for arg in args.xml:
         sets.append(set)
 
     c("\nenum metric_set_id {")
-    c_indent(8)
+    c.indent(8)
     c("METRIC_SET_ID_" + sets[0]['perf_name'] + " = 1,");
     for set in sets[1:]:
         c("METRIC_SET_ID_" + set['perf_name'] + ",");
 
-    c_outdent(8)
+    c.outdent(8)
     c("};")
 
     h("extern int i915_oa_n_builtin_metric_sets_" + chipset.lower() + ";\n\n")
@@ -669,7 +643,7 @@ h("\n")
 c("\n")
 c("int i915_oa_select_metric_set_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
 c("{")
-c_indent(8)
+c.indent(8)
 
 c("dev_priv->perf.oa.mux_regs = NULL;")
 c("dev_priv->perf.oa.mux_regs_len = 0;")
@@ -687,17 +661,17 @@ for set in sets:
     perf_name_lc = set['perf_name_lc']
 
     c("case METRIC_SET_ID_" + perf_name + ":")
-    c_indent(8)
+    c.indent(8)
     c("dev_priv->perf.oa.mux_regs =")
-    c_indent(8)
+    c.indent(8)
     fname = "get_" + perf_name_lc + "_mux_config"
     c(fname + "(dev_priv,")
-    c_indent(len(fname) + 1)
+    c.indent(len(fname) + 1)
     c("&dev_priv->perf.oa.mux_regs_len);")
-    c_outdent(len(fname) + 1)
-    c_outdent(8)
+    c.outdent(len(fname) + 1)
+    c.outdent(8)
     c("if (!dev_priv->perf.oa.mux_regs) {")
-    c_indent(8)
+    c.indent(8)
     c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + set['perf_name'] + "\\\" metric set\");\n")
     c("\n")
     c("/* EINVAL because *_register_sysfs already checked this")
@@ -705,22 +679,22 @@ for set in sets:
     c(" * so shouldn't have been requested")
     c(" */")
     c("return -EINVAL;")
-    c_outdent(8)
+    c.outdent(8)
     c("}")
 
     c("")
     output_b_and_flex_configs_select(set, b_counter_configs[0], flex_configs[0])
     c("\n")
     c("return 0;")
-    c_outdent(8)
+    c.outdent(8)
 
 c("default:")
-c_indent(8)
+c.indent(8)
 c("return -ENODEV;")
-c_outdent(8)
+c.outdent(8)
 
 c("}")
-c_outdent(8)
+c.outdent(8)
 c("}")
 
 if args.sysfs:

@@ -26,49 +26,10 @@ import sys
 
 import xml.etree.cElementTree as ET
 
-def print_err(*args):
-    sys.stderr.write(' '.join(map(str,args)) + '\n')
+import pylibs.codegen as codegen
 
-c_file = None
+
 xml_equations = None
-_c_indent = 0
-
-def c(*args):
-    if c_file:
-        code = ' '.join(map(str,args))
-        for line in code.splitlines():
-            text = ''.rjust(_c_indent) + line
-            c_file.write(text.rstrip() + "\n")
-
-#without indenting or new lines
-def c_frag(*args):
-    code = ' '.join(map(str,args))
-    c_file.write(code)
-
-def c_indent(n):
-    global _c_indent
-    _c_indent = _c_indent + n
-def c_outdent(n):
-    global _c_indent
-    _c_indent = _c_indent - n
-
-header_file = None
-_h_indent = 0
-
-def h(*args):
-    if header_file:
-        code = ' '.join(map(str,args))
-        for line in code.splitlines():
-            text = ''.rjust(_h_indent) + line
-            header_file.write(text.rstrip() + "\n")
-
-def h_indent(n):
-    global _c_indent
-    _h_indent = _h_indent + n
-def h_outdent(n):
-    global _c_indent
-    _h_indent = _h_indent - n
-
 
 def check_operand_type(arg):
     if arg.isdigit():
@@ -349,17 +310,17 @@ def output_counter_read(set, counter, counter_vars):
     c("static " + ret_type)
     read_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__read"
     c(read_sym + "(struct gputop_devinfo *devinfo,\n")
-    c_indent(len(read_sym) + 1)
+    c.indent(len(read_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
-    c_outdent(len(read_sym) + 1)
+    c.outdent(len(read_sym) + 1)
 
     c("{")
-    c_indent(3)
+    c.indent(3)
 
     output_rpn_equation_code(set, counter, counter.get('equation'), counter_vars)
 
-    c_outdent(3)
+    c.outdent(3)
     c("}")
 
     return read_sym
@@ -379,17 +340,17 @@ def output_counter_max(set, counter, counter_vars):
     c("static uint64_t")
     max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__max"
     c(max_sym + "(struct gputop_devinfo *devinfo,\n")
-    c_indent(len(max_sym) + 1)
+    c.indent(len(max_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
-    c_outdent(len(max_sym) + 1)
+    c.outdent(len(max_sym) + 1)
 
     c("{")
-    c_indent(3)
+    c.indent(3)
 
     output_rpn_equation_code(set, counter, max_eq, counter_vars)
 
-    c_outdent(3)
+    c.outdent(3)
     c("}")
 
     return max_sym + ";"
@@ -425,12 +386,12 @@ def output_counter_report(set, counter):
             c("if (" + lines[0] + ") {")
         else:
             c("if (" + lines[0] + " &&")
-            c_indent(4)
+            c.indent(4)
             for i in range(1, (n_lines - 1)):
                 c(lines[i] + " &&")
             c(lines[(n_lines - 1)] + ") {")
-            c_outdent(4)
-        c_indent(4)
+            c.outdent(4)
+        c.indent(4)
 
     c("counter = &metric_set->counters[metric_set->n_counters++];\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
@@ -442,7 +403,7 @@ def output_counter_report(set, counter):
     c("counter->max = " + max_funcs[counter.get('symbol_name')] + "\n")
 
     if availability:
-        c_outdent(4)
+        c.outdent(4)
         c("}\n")
 
 
@@ -457,11 +418,9 @@ args = parser.parse_args()
 
 chipset = args.chipset.lower()
 
-if args.header:
-    header_file = open(args.header, 'w')
-
-if args.code:
-    c_file = open(args.code, 'w')
+# Note: either arg may == None
+h = codegen.Codegen(args.header)
+c = codegen.Codegen(args.code)
 
 tree = ET.parse(args.xml)
 if args.xml_out:
@@ -567,7 +526,7 @@ for set in tree.findall(".//set"):
     c("\nstatic void\n")
     c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo)\n")
     c("{\n")
-    c_indent(3)
+    c.indent(3)
 
     c("struct gputop_metric_set *metric_set;\n")
     c("struct gputop_metric_set_counter *counter;\n\n")
@@ -607,7 +566,7 @@ metric_set->c_offset = metric_set->b_offset + 8;
 
     c("\n\ngputop_register_oa_metric_set(metric_set);\n")
 
-    c_outdent(3)
+    c.outdent(3)
     c("}\n")
 
 if args.xml_out:
@@ -618,10 +577,10 @@ h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo);\n
 c("\nvoid")
 c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo)")
 c("{")
-c_indent(4)
+c.indent(4)
 
 for set in tree.findall(".//set"):
     c("add_" + set.get('underscore_name') + "_metric_set(devinfo);")
 
-c_outdent(4)
+c.outdent(4)
 c("}")
