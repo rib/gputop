@@ -569,7 +569,7 @@ for arg in args.xml:
 
         v2_hash = get_v2_config_hash(metricset)
         if v2_hash not in guids:
-            print_err("WARNING: No GUID found for metric set " + chipset + ", " + metricset.get('name') + " (SKIPPING)")
+            print_err("WARNING: No GUID found for metric set " + chipset + ", " + metricset.get('name') + " (hash = " + v2_hash + ") (SKIPPING)")
             continue
 
         perf_name_lc = underscore(set_name)
