@@ -339,8 +339,10 @@ gputop_perf_stream_close(struct gputop_perf_stream *stream,
         break;
     }
 
-    if (!stream->n_closing_uv_handles)
+    if (!stream->n_closing_uv_handles) {
+        fprintf(stderr, "gputop_perf_stream_close finishing with no unclosed uv handles to wait for\n");
         finish_stream_close(stream);
+    }
 }
 
 void
