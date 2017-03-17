@@ -42,16 +42,16 @@
 
 
 
-import xml.etree.ElementTree as ET
-import xml.sax.saxutils as saxutils
-import time
-import sys
-import re
 import argparse
-import hashlib
 import copy
+import hashlib
+import re
+import sys
+import time
 import uuid
 
+import xml.etree.ElementTree as ET
+import xml.sax.saxutils as saxutils
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
@@ -115,7 +115,11 @@ named_guid_table = {} # indexed by name=<chipset>_<symbol_name>
 guids_xml = ET.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
     guid_obj = {}
-    guid_obj['id'] = guid.get('id')
+
+    if guid.get('id') != None:
+        guid_obj['id'] = guid.get('id')
+    else:
+        guid_obj['id'] = str(uuid.uuid4())
 
     if guid.get('mdapi_config_hash') != None:
         guid_obj['v1_hash'] = guid.get('mdapi_config_hash')
@@ -128,7 +132,8 @@ for guid in guids_xml.findall(".//guid"):
         guid_obj['name'] = guid.get('name')
         named_guid_table[guid_obj['chipset'] + "_" + guid_obj['name']] = guid_obj
 
-    v1_guid_table[guid_obj['v1_hash']] = guid_obj
+    if 'v1_hash' in guid_obj:
+        v1_guid_table[guid_obj['v1_hash']] = guid_obj
 
     guids.append(guid_obj)
 
