@@ -25,8 +25,8 @@
 # - Automatically add template entries for unregistered metric sets diescovered
 #   in new mdapi xml files.
 # - Once mdapi-convert-xml.py has been run to output register configs for new
-#   metric sets then re-running this script can add the 'v2' config hash to
-#   corresponding registry entries.
+#   metric sets then re-running this script can add the config_hash attribute
+#   to corresponding registry entries.
 #
 # The script is designed to allow incremental updates/fixups of the guid
 # registry by working in terms of:
@@ -37,63 +37,25 @@
 #
 # The script should gracefully handle incomplete guid entries, which is
 # important when considering how the mdapi-xml-convert.py script depends on the
-# 'v1' mdapi config hash while the second 'v2' hash depends on the configs
-# output by mdapi-xml-convert.py.
+# 'mdapi_config_hash' attribute while adding the 'config_hash' attribute
+# depends on the configs output by mdapi-xml-convert.py.
 
 
 
 import argparse
-import copy
-import hashlib
 import re
 import sys
 import time
 import uuid
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 import xml.sax.saxutils as saxutils
+
+import pylibs.oa_guid_registry as oa_registry
+
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
-
-
-# The V1 hash is based on a hash of the register configs as described in
-# MDAPI XML files.
-def get_v1_config_hash(mdapi_metric_set):
-    config = ET.Element('config')
-    for registers in mdapi_metric_set.findall(".//RegConfigStart"):
-        config.append(copy.deepcopy(registers))
-    registers_str = ET.tostring(config)
-
-    return hashlib.md5(registers_str).hexdigest()
-
-
-# The V2 hash is based on a hash of the register configs as described in
-# oa-*.xml files output by mdapi-xml-convert.py
-#
-# Tries to avoid fragility from ET.tostring() by normalizing into CSV string first
-# FIXME: avoid copying between scripts!
-def get_v2_config_hash(metric_set):
-    registers_str = ""
-    for config in metric_set.findall(".//register_config"):
-        if config.get('id') == None:
-            config_id = '0'
-        else:
-            config_id = config.get('id')
-        if config.get('priority') == None:
-            config_priority = '0'
-        else:
-            config_priority = config.get('priority')
-        if config.get('availability') == None:
-            config_availability = ""
-        else:
-            config_availability = config.get('availability')
-        for reg in config.findall("register"):
-            addr = int(reg.get('address'), 16)
-            value = int(reg.get('value'), 16)
-            registers_str = registers_str + config_id + ',' + config_priority + ',' + config_availability + ',' + str(addr) + ',' + str(value) + '\n'
-
-    return hashlib.md5(registers_str).hexdigest()
 
 
 parser = argparse.ArgumentParser()
@@ -105,14 +67,14 @@ args = parser.parse_args()
 
 guids = []
 guid_index = {} # guid objects indexed by id
-v1_guid_table = {} # indexed by the v1 hash
+mdapi_config_hash_guid_table = {} # indexed by MDAPI XML register config hash
 named_guid_table = {} # indexed by name=<chipset>_<symbol_name>
 
 
 
 # 1) read everything we have currently
 #
-guids_xml = ET.parse(args.guids)
+guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
     guid_obj = {}
 
@@ -122,9 +84,9 @@ for guid in guids_xml.findall(".//guid"):
         guid_obj['id'] = str(uuid.uuid4())
 
     if guid.get('mdapi_config_hash') != None:
-        guid_obj['v1_hash'] = guid.get('mdapi_config_hash')
+        guid_obj['mdapi_config_hash'] = guid.get('mdapi_config_hash')
     if guid.get('config_hash') != None:
-        guid_obj['v2_hash'] = guid.get('config_hash')
+        guid_obj['config_hash'] = guid.get('config_hash')
 
     if guid.get('chipset') != None:
         guid_obj['chipset'] = guid.get('chipset')
@@ -132,8 +94,8 @@ for guid in guids_xml.findall(".//guid"):
         guid_obj['name'] = guid.get('name')
         named_guid_table[guid_obj['chipset'] + "_" + guid_obj['name']] = guid_obj
 
-    if 'v1_hash' in guid_obj:
-        v1_guid_table[guid_obj['v1_hash']] = guid_obj
+    if 'mdapi_config_hash' in guid_obj:
+        mdapi_config_hash_guid_table[guid_obj['mdapi_config_hash']] = guid_obj
 
     guids.append(guid_obj)
 
@@ -149,24 +111,24 @@ for guid in guids_xml.findall(".//guid"):
 
 
 for arg in args.xml:
-    internal = ET.parse(arg)
+    internal = et.parse(arg)
 
     concurrent_group = internal.find(".//ConcurrentGroup")
 
-    for internal_set in internal.findall(".//MetricSet"):
+    for mdapi_set in internal.findall(".//MetricSet"):
 
-        v1_hash = get_v1_config_hash(internal_set)
+        mdapi_config_hash = oa_registry.Registry.mdapi_hw_config_hash(mdapi_set)
 
-        chipset = internal_set.get('SupportedHW').lower()
+        chipset = mdapi_set.get('SupportedHW').lower()
         if concurrent_group.get('SupportedGT') != None:
             chipset = chipset + concurrent_group.get('SupportedGT').lower()
 
-        set_name = internal_set.get('SymbolName')
+        set_name = mdapi_set.get('SymbolName')
 
         name = chipset + "_" + set_name;
 
-        if v1_hash in v1_guid_table:
-            guid_obj = v1_guid_table[v1_hash]
+        if mdapi_config_hash in mdapi_config_hash_guid_table:
+            guid_obj = mdapi_config_hash_guid_table[mdapi_config_hash]
 
             guid_obj['name'] = set_name
             guid_obj['chipset'] = chipset
@@ -175,13 +137,13 @@ for arg in args.xml:
             guid_obj = named_guid_table[name]
 
             guid_obj['matched_mdapi'] = True
-            guid_obj['v1_hash'] = v1_hash
-            if 'v2_hash' in guid_obj:
-                del guid_obj['v2_hash']
+            guid_obj['mdapi_config_hash'] = mdapi_config_hash
+            if 'config_hash' in guid_obj:
+                del guid_obj['config_hash']
             guid_obj['comment'] = "WARNING: MDAPI XML config hash changed! If upstream, double check raw counter semantics unchanged"
             print_err("WARNING: MDAPI XML config hash changed for \"" + set_name + "\" (" + chipset + ") If upstream, double check raw counter semantics unchanged")
         else:
-            guid_obj = { 'v1_hash': v1_hash,
+            guid_obj = { 'mdapi_config_hash': mdapi_config_hash,
                          'id': str(uuid.uuid4()),
                          'name': set_name,
                          'chipset': chipset,
@@ -190,7 +152,7 @@ for arg in args.xml:
                          'comment': "New"
                        }
             guid_index[guid_obj['id']] = guid_obj
-            v1_guid_table[guid_obj['v1_hash']] = guid_obj
+            mdapi_config_hash_guid_table[guid_obj['mdapi_config_hash']] = guid_obj
             guids.append(guid_obj)
             print_err("New GUID \"" + guid_obj['id'] + "\" for metric set = " + set_name + " (" + chipset + ")")
 
@@ -201,18 +163,18 @@ for arg in args.xml:
 chipsets = [ 'hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt' ]
 
 for chipset in chipsets:
-    public = ET.parse('oa-' + chipset + '.xml')
+    public = et.parse('oa-' + chipset + '.xml')
 
     for metricset in public.findall(".//set"):
 
         set_name = metricset.get('symbol_name')
 
-        v2_hash = get_v2_config_hash(metricset)
+        config_hash = oa_registry.Registry.hw_config_hash(metricset)
 
         guid_key = chipset + "_" + set_name
         if guid_key in named_guid_table:
             guid_obj = named_guid_table[guid_key]
-            guid_obj['v2_hash'] = v2_hash
+            guid_obj['config_hash'] = config_hash
 
 
 #
@@ -229,10 +191,10 @@ for guid_obj in guids:
     if 'comment' in guid_obj:
         comment = guid_obj['comment']
 
-    if 'v2_hash' in guid_obj:
-        line = line + ' config_hash="' + guid_obj['v2_hash'] + '"'    
-    if 'v1_hash' in guid_obj:
-        line = line + ' mdapi_config_hash="' + guid_obj['v1_hash'] + '"'
+    if 'config_hash' in guid_obj:
+        line = line + ' config_hash="' + guid_obj['config_hash'] + '"'
+    if 'mdapi_config_hash' in guid_obj:
+        line = line + ' mdapi_config_hash="' + guid_obj['mdapi_config_hash'] + '"'
 
     line = line + ' id="' + guid_obj['id'] + '"'
 

@@ -36,15 +36,19 @@
 #
 
 
-import xml.etree.ElementTree as ET
-import xml.sax.saxutils as saxutils
-import time
-import sys
-import re
 import argparse
-import hashlib
 import copy
+import hashlib
+import re
+import sys
+import time
 import uuid
+
+import xml.etree.ElementTree as et
+import xml.sax.saxutils as saxutils
+
+import pylibs.oa_guid_registry as oa_registry
+
 
 # MDAPI configs include writes to some non-config registers,
 # thus the blacklists...
@@ -280,8 +284,8 @@ parser.add_argument("--dry-run", action="store_true",
 
 args = parser.parse_args()
 
-metrics = ET.Element('metrics')
-tree = ET.ElementTree(metrics)
+metrics = et.Element('metrics')
+tree = et.ElementTree(metrics)
 
 def apply_aliases(text, aliases):
     if aliases == None:
@@ -339,40 +343,6 @@ def expand_macros(equation):
     return equation
 
 
-def get_v1_config_hash(mdapi_metric_set):
-    config = ET.Element('config')
-    for registers in mdapi_metric_set.findall(".//RegConfigStart"):
-        config.append(copy.deepcopy(registers))
-    registers_str = ET.tostring(config)
-
-    return hashlib.md5(registers_str).hexdigest()
-
-
-# Try to avoid fragility from ET.tostring() by normalizing into CSV string first
-# FIXME: avoid copying between scripts!
-def get_v2_config_hash(metric_set):
-    registers_str = ""
-    for config in metric_set.findall(".//register_config"):
-        if config.get('id') == None:
-            config_id = '0'
-        else:
-            config_id = config.get('id')
-        if config.get('priority') == None:
-            config_priority = '0'
-        else:
-            config_priority = config.get('priority')
-        if config.get('availability') == None:
-            config_availability = ""
-        else:
-            config_availability = config.get('availability')
-        for reg in config.findall("register"):
-            addr = int(reg.get('address'), 16)
-            value = int(reg.get('value'), 16)
-            registers_str = registers_str + config_id + ',' + config_priority + ',' + config_availability + ',' + str(addr) + ',' + str(value) + '\n'
-
-    return hashlib.md5(registers_str).hexdigest()
-
-
 # The MDAPI XML files sometimes duplicate the same Flex EU/OA regs
 # between configs with different AvailabilityEquations even though the
 # availability checks are only expected to affect the MUX configs
@@ -413,7 +383,7 @@ def filter_single_config_registers_of_type(mdapi_metric_set, type):
 
 
 def add_register_config(set, id, priority, availability, regs, type):
-    reg_config = ET.SubElement(set, 'register_config')
+    reg_config = et.SubElement(set, 'register_config')
 
     reg_config.set('id', str(id))
     reg_config.set('priority', str(reg_config_priority))
@@ -422,7 +392,7 @@ def add_register_config(set, id, priority, availability, regs, type):
         reg_config.set('availability', availability)
 
     for reg in regs:
-        elem = ET.SubElement(reg_config, 'register')
+        elem = et.SubElement(reg_config, 'register')
         elem.set('type', type)
         elem.set('address', "0x%08X" % reg[0])
         elem.set('value', "0x%08X" % reg[1])
@@ -434,12 +404,12 @@ sets = {}
 
 guids = {}
 
-guids_xml = ET.parse(args.guids)
+guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
     guids[guid.get('mdapi_config_hash')] = guid.get('id')
 
 for arg in args.xml:
-    mdapi = ET.parse(arg)
+    mdapi = et.parse(arg)
 
     concurrent_group = mdapi.find(".//ConcurrentGroup")
 
@@ -475,7 +445,7 @@ for arg in args.xml:
 
         assert mdapi_set.get('SnapshotReportSize') == "256"
 
-        set = ET.SubElement(metrics, 'set')
+        set = et.SubElement(metrics, 'set')
 
         set.set('chipset', chipset)
 
@@ -576,15 +546,15 @@ for arg in args.xml:
             add_register_config(set, max_id + 1, 0, None, flex_regs, "FLEX")
             max_id = max_id + 1
 
-        v1_config_hash = get_v1_config_hash(mdapi_set)
-        v2_config_hash = get_v2_config_hash(set)
+        mdapi_hw_config_hash = oa_registry.Registry.mdapi_hw_config_hash(mdapi_set)
+        hw_config_hash = oa_registry.Registry.hw_config_hash(set)
 
-        if v1_config_hash in guids:
-            set.set('hw_config_guid', guids[v1_config_hash])
+        if mdapi_hw_config_hash in guids:
+            set.set('hw_config_guid', guids[mdapi_hw_config_hash])
         else:
             print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_symbol_name + " (SKIPPING)")
             print_err("WARNING: If this is a new config add the following to guids.xml:")
-            print_err("<guid config_hash=\"" + v2_config_hash + "\" mdapi_config_hash=\"" + v1_config_hash + "\" id=\"" + str(uuid.uuid4()) + "\" chipset=\"" + chipset.lower() + "\" name=\"" + set_symbol_name + "\" />")
+            print_err("<guid config_hash=\"" + hw_config_hash + "\" mdapi_config_hash=\"" + mdapi_hw_config_hash + "\" id=\"" + str(uuid.uuid4()) + "\" chipset=\"" + chipset.lower() + "\" name=\"" + set_symbol_name + "\" />")
             metrics.remove(set)
             continue
 
@@ -655,7 +625,7 @@ for arg in args.xml:
 
             symbol_name = mdapi_counter.get('SymbolName')
 
-            counter = ET.SubElement(set, 'counter')
+            counter = et.SubElement(set, 'counter')
             counter.set('name', apply_aliases(mdapi_counter.get('ShortName'), aliases))
             counter.set('symbol_name', mdapi_counter.get('SymbolName'))
             counter.set('underscore_name', underscore(mdapi_counter.get('SymbolName')))
@@ -873,7 +843,7 @@ if args.dry_run:
 
 # Merge in any custom meta data we have...
 if args.merge:
-    merge = ET.parse(args.merge)
+    merge = et.parse(args.merge)
     merge_metrics = merge.getroot()
 
     for merge_set in merge.findall(".//set"):

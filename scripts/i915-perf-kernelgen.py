@@ -40,6 +40,7 @@ import sys
 import xml.etree.cElementTree as et
 
 import pylibs.codegen as codegen
+import pylibs.oa_guid_registry as oa_registry
 
 default_set_blacklist = {}
 
@@ -52,31 +53,6 @@ def underscore(name):
 
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
-
-
-# Tries to avoid fragility from et.tostring() by normalizing into CSV string first
-# FIXME: avoid copying between scripts!
-def get_v2_config_hash(metric_set):
-    registers_str = ""
-    for config in metric_set.findall(".//register_config"):
-        if config.get('id') == None:
-            config_id = '0'
-        else:
-            config_id = config.get('id')
-        if config.get('priority') == None:
-            config_priority = '0'
-        else:
-            config_priority = config.get('priority')
-        if config.get('availability') == None:
-            config_availability = ""
-        else:
-            config_availability = config.get('availability')
-        for reg in config.findall("register"):
-            addr = int(reg.get('address'), 16)
-            value = int(reg.get('value'), 16)
-            registers_str = registers_str + config_id + ',' + config_priority + ',' + config_availability + ',' + str(addr) + ',' + str(value) + '\n'
-
-    return hashlib.md5(registers_str).hexdigest()
 
 
 def brkt(subexp):
@@ -541,9 +517,9 @@ for arg in args.xml:
             print_err("WARNING: Missing register configuration for set \"" + metricset.get('name') + "\" (SKIPPING)")
             continue
 
-        v2_hash = get_v2_config_hash(metricset)
-        if v2_hash not in guids:
-            print_err("WARNING: No GUID found for metric set " + chipset + ", " + metricset.get('name') + " (hash = " + v2_hash + ") (SKIPPING)")
+        hw_config_hash = oa_registry.Registry.hw_config_hash(metricset)
+        if hw_config_hash not in guids:
+            print_err("WARNING: No GUID found for metric set " + chipset + ", " + metricset.get('name') + " (expected config_hash = " + hw_config_hash + ") (SKIPPING)")
             continue
 
         perf_name_lc = underscore(set_name)
@@ -554,7 +530,7 @@ for arg in args.xml:
                 'chipset_lc': chipset.lower(),
                 'perf_name_lc': perf_name_lc,
                 'perf_name': perf_name,
-                'guid': guids[v2_hash],
+                'guid': guids[hw_config_hash],
                 'configs': configs
               }
         sets.append(set)
