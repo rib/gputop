@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1487082182" merge_md5="">
+<metrics version="1490233727" merge_md5="">
   <set name="Render Metrics Basic Gen8LP"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -802,7 +802,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x59800000" />
         <register type="NOA" address="0x00009888" value="0x59800001" />
         <register type="NOA" address="0x00009888" value="0x285A0006" />
@@ -875,14 +875,14 @@
         <register type="NOA" address="0x00009888" value="0x57800000" />
         <register type="NOA" address="0x00009888" value="0x59800000" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0x00800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002724" value="0x00800000" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -1468,7 +1468,7 @@
              mdapi_group="EU Array/Pipes"
              mdapi_hw_unit_type="gpu"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x59800000" />
         <register type="NOA" address="0x00009888" value="0x59800001" />
         <register type="NOA" address="0x00009888" value="0x2E5800E0" />
@@ -1511,13 +1511,13 @@
         <register type="NOA" address="0x00009888" value="0x5580000E" />
         <register type="NOA" address="0x00009888" value="0x59800000" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002710" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0x00800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002724" value="0x00800000" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00000003" />
         <register type="FLEX" address="0x0000E658" value="0x00002001" />
@@ -2304,7 +2304,7 @@
              mdapi_group="EU Array/Vertex Shader"
              mdapi_hw_unit_type="gpu"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x59800000" />
         <register type="NOA" address="0x00009888" value="0x59800001" />
         <register type="NOA" address="0x00009888" value="0x261E0000" />
@@ -2386,7 +2386,7 @@
         <register type="NOA" address="0x00009888" value="0x5780010A" />
         <register type="NOA" address="0x00009888" value="0x59800000" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002724" value="0xF0800000" />
         <register type="OA" address="0x00002720" value="0x00000000" />
         <register type="OA" address="0x00002714" value="0xF0800000" />
@@ -2408,7 +2408,7 @@
         <register type="OA" address="0x000027A8" value="0x0003FFFA" />
         <register type="OA" address="0x000027AC" value="0x00005F7F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00015014" />
         <register type="FLEX" address="0x0000E658" value="0x00025024" />
@@ -3110,7 +3110,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x105C0232" />
         <register type="NOA" address="0x00009888" value="0x10580232" />
         <register type="NOA" address="0x00009888" value="0x10380232" />
@@ -3208,7 +3208,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x418014A4" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -3218,7 +3218,7 @@
         <register type="OA" address="0x00002770" value="0x00000002" />
         <register type="OA" address="0x00002774" value="0x0000FFF7" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -3876,7 +3876,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x10BF03DA" />
         <register type="NOA" address="0x00009888" value="0x14BF0001" />
         <register type="NOA" address="0x00009888" value="0x12980340" />
@@ -3967,7 +3967,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800060" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -3991,7 +3991,7 @@
         <register type="OA" address="0x000027A8" value="0x00000402" />
         <register type="OA" address="0x000027AC" value="0x0000FD3F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -4649,7 +4649,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x103F03DA" />
         <register type="NOA" address="0x00009888" value="0x143F0001" />
         <register type="NOA" address="0x00009888" value="0x12180340" />
@@ -4727,7 +4727,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800060" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -4751,7 +4751,7 @@
         <register type="OA" address="0x000027A8" value="0x00000402" />
         <register type="OA" address="0x000027AC" value="0x0000FD3F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -5409,7 +5409,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x121B0340" />
         <register type="NOA" address="0x00009888" value="0x103F0274" />
         <register type="NOA" address="0x00009888" value="0x123F0000" />
@@ -5503,7 +5503,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800045" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -5527,7 +5527,7 @@
         <register type="OA" address="0x000027A8" value="0x00000402" />
         <register type="OA" address="0x000027AC" value="0x0000FD3F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -6185,7 +6185,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x121A0340" />
         <register type="NOA" address="0x00009888" value="0x103F0017" />
         <register type="NOA" address="0x00009888" value="0x123F0020" />
@@ -6278,7 +6278,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800044" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -6302,7 +6302,7 @@
         <register type="OA" address="0x000027A8" value="0x00000402" />
         <register type="OA" address="0x000027AC" value="0x0000FD3F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -7050,7 +7050,7 @@
              mdapi_group="GPU/3D Pipe"
              mdapi_hw_unit_type="slice"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x143B000E" />
         <register type="NOA" address="0x00009888" value="0x043C55C0" />
         <register type="NOA" address="0x00009888" value="0x0A1E0280" />
@@ -7164,7 +7164,7 @@
         <register type="NOA" address="0x00009888" value="0x3F800000" />
         <register type="NOA" address="0x00009888" value="0x41800840" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -7184,7 +7184,7 @@
         <register type="OA" address="0x00002798" value="0x00000018" />
         <register type="OA" address="0x0000279C" value="0x0000FFFC" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -7872,7 +7872,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x18921400" />
         <register type="NOA" address="0x00009888" value="0x149500AB" />
         <register type="NOA" address="0x00009888" value="0x18B21400" />
@@ -7998,7 +7998,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800C02" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -8012,7 +8012,7 @@
         <register type="OA" address="0x00002780" value="0x00000C00" />
         <register type="OA" address="0x00002784" value="0x0000FE7F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -8700,7 +8700,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x18121400" />
         <register type="NOA" address="0x00009888" value="0x141500AB" />
         <register type="NOA" address="0x00009888" value="0x18321400" />
@@ -8814,7 +8814,7 @@
         <register type="NOA" address="0x00009888" value="0x4F800000" />
         <register type="NOA" address="0x00009888" value="0x41800C02" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -8828,7 +8828,7 @@
         <register type="OA" address="0x00002780" value="0x00000C00" />
         <register type="OA" address="0x00002784" value="0x0000FE7F" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -9606,7 +9606,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x16154D60" />
         <register type="NOA" address="0x00009888" value="0x16352E60" />
         <register type="NOA" address="0x00009888" value="0x16554D60" />
@@ -9757,7 +9757,7 @@
         <register type="NOA" address="0x00009888" value="0x3F8014A4" />
         <register type="NOA" address="0x00009888" value="0x41801042" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -9777,7 +9777,7 @@
         <register type="OA" address="0x00002798" value="0x00000000" />
         <register type="OA" address="0x0000279C" value="0x0000FFF9" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -10555,7 +10555,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x16150000" />
         <register type="NOA" address="0x00009888" value="0x16350000" />
         <register type="NOA" address="0x00009888" value="0x16550000" />
@@ -10710,7 +10710,7 @@
         <register type="NOA" address="0x00009888" value="0x3F800002" />
         <register type="NOA" address="0x00009888" value="0x41800C62" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002710" value="0x00000000" />
@@ -10730,7 +10730,7 @@
         <register type="OA" address="0x00002798" value="0x00000002" />
         <register type="OA" address="0x0000279C" value="0x0000FFFD" />
     </register_config>
-    <register_config id="2">
+    <register_config type="FLEX">
         <register type="FLEX" address="0x0000E458" value="0x00005004" />
         <register type="FLEX" address="0x0000E558" value="0x00010003" />
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
@@ -10905,7 +10905,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="GPU"
              />
-    <register_config id="0">
+    <register_config type="NOA">
         <register type="NOA" address="0x00009888" value="0x59800000" />
         <register type="NOA" address="0x00009888" value="0x59800001" />
         <register type="NOA" address="0x00009888" value="0x338B0000" />
@@ -10918,7 +10918,7 @@
         <register type="NOA" address="0x001823A4" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x59800000" />
     </register_config>
-    <register_config id="1">
+    <register_config type="OA">
         <register type="OA" address="0x00002740" value="0x00000000" />
         <register type="OA" address="0x00002744" value="0x00800000" />
         <register type="OA" address="0x00002714" value="0xF0800000" />
