@@ -1,10 +1,11 @@
 <!--
-     These unique register config identifiers represent a specific OA unit
-     register configuration that userspace can reliably map to corresponding
+     These unique identifiers represent a specific OA unit hardware
+     configuration that userspace can reliably map to corresponding
      normalization equations and meta data.
 
-     If a register configuration ever changes in an backwards incompatible way
-     then it must be given a new GUID.
+     If a hardware configuration ever changes in a backwards incompatible way
+     (changing the semantics and/or layout of the raw counters) then it must be
+     given a new GUID.
 
      mdapi-xml-convert.py will associate metric sets with a GUID from this file
      based on an md5 hash of the hardware register configuration and skip a
@@ -18,6 +19,31 @@
      the register configuration was changed. It's possible that the change is
      benign (e.g. a comment change) and in that case the config_hash for the
      corresponding metric set below should be updated.
+
+     The update-guids.py script is the recommended way of managing updates to
+     this file by generate a temporary file with proposed updates that you
+     can compare with the current guids.xml.
+
+     E.g. to check for new Broadwell metrics from VPG:
+     update-guids.py \-\-guids=guids.xml mdapi/MetricsXML_BDW.xml &gt; guids.xml.updates
+
+     Then use a graphical diff editor to compare guids.xml.updates and guids.xml
+     and cherry-pick the automatically derived update suggestions.
+
+     update-guids.py can help with:
+     - Recognising new metrics from VPG's MDAPI XML files (NOTE: these will
+       initially be missing the config_hash_MD5_HASH attribute until
+       mdapi-xml-convert.py is used to generate a corresponding oa-*.xml
+       config description)
+     - Adding a config_hash=MD5_HASH attribute to recently added metrics after
+       mdapi-xml-convert.py has been run.
+     - Allocating a guid for a custom metric that doesn't have a counterpart
+       in VPG's MDAPI XML files. Add stub entry like &lt;guid name="Foo" /&gt; to
+       guids.xml and update-guids.py will output a corresponding line with the
+       addition of an id=UUID attribute.
+
+     Also see README.md for details of importing new metrics from VPG's MDAPI
+     files.
 -->
 <guids>
     <guid config_hash="576c9404f0f6f6781d64e297c17c8e81" mdapi_config_hash="c675607e7d1b0083729e4b1621fd25f8" id="403d8832-1a27-4aa6-a64e-f5389ce7b212" chipset="hsw" name="RenderBasic" />
