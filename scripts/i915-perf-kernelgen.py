@@ -37,7 +37,7 @@ from operator import itemgetter
 import re
 import sys
 
-import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as et
 
 import pylibs.codegen as codegen
 
@@ -54,7 +54,7 @@ def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
 
-# Tries to avoid fragility from ET.tostring() by normalizing into CSV string first
+# Tries to avoid fragility from et.tostring() by normalizing into CSV string first
 # FIXME: avoid copying between scripts!
 def get_v2_config_hash(metric_set):
     registers_str = ""
@@ -488,7 +488,7 @@ args = parser.parse_args()
 
 guids = {}
 
-guids_xml = ET.parse(args.guids)
+guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
     guids[guid.get('config_hash')] = guid.get('id')
 
@@ -516,7 +516,7 @@ c("#include \"i915_oa_" + args.chipset + ".h\"\n")
 sets = []
 
 for arg in args.xml:
-    xml = ET.parse(arg)
+    xml = et.parse(arg)
 
     for metricset in xml.findall(".//set"):
 
@@ -620,13 +620,13 @@ for arg in args.xml:
 
 
         if len(b_counter_configs) == 0:
-            empty = ET.Element('register_config')
+            empty = et.Element('register_config')
             b_counter_configs.append((0, 0, empty))
         assert len(b_counter_configs) == 1
         output_b_counter_config(set, b_counter_configs[0])
 
         if len(flex_configs) == 0:
-            empty = ET.Element('register_config')
+            empty = et.Element('register_config')
             flex_configs.append((0, 0, empty))
         assert len(flex_configs) == 1
         output_flex_config(set, flex_configs[0])

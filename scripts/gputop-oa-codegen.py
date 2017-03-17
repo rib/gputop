@@ -22,13 +22,19 @@
 # IN THE SOFTWARE.
 
 import argparse
+import os
 import sys
+import textwrap
 
-import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as et
 
 import pylibs.codegen as codegen
 
+h = None
+c = None
 
+max_funcs = {}
+read_funcs = {}
 xml_equations = None
 
 def check_operand_type(arg):
@@ -102,56 +108,56 @@ def mathml_splice_min(args):
     return ["\n<mtext>min ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
 
 def emit_fadd(tmp_id, args):
-    c("double tmp" + str(tmp_id) +" = " + args[1] + " + " + args[0] + ";")
+    c("double tmp{0} = {1} + {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 # Be careful to check for divide by zero...
 def emit_fdiv(tmp_id, args):
-    c("double tmp" + str(tmp_id) +" = " + args[1] + ";")
-    c("double tmp" + str(tmp_id + 1) +" = " + args[0] + ";")
-    c("double tmp" + str(tmp_id + 2) +" = tmp" + str(tmp_id + 1)  + " ? tmp" + str(tmp_id) + " / tmp" + str(tmp_id + 1) + " : 0;")
+    c("double tmp{0} = {1};".format(tmp_id, args[1]))
+    c("double tmp{0} = {1};".format(tmp_id + 1, args[0]))
+    c("double tmp{0} = tmp{1} ? tmp{2} / tmp{1} : 0;".format(tmp_id + 2, tmp_id + 1, tmp_id))
     return tmp_id + 3
 
 def emit_fmax(tmp_id, args):
-    c("double tmp" + str(tmp_id) +" = " + args[1] + ";")
-    c("double tmp" + str(tmp_id + 1) +" = " + args[0] + ";")
-    c("double tmp" + str(tmp_id + 2) +" = MAX(tmp" + str(tmp_id) + ", tmp" + str(tmp_id + 1) + ");")
+    c("double tmp{0} = {1};".format(tmp_id, args[1]))
+    c("double tmp{0} = {1};".format(tmp_id + 1, args[0]))
+    c("double tmp{0} = MAX(tmp{1}, tmp{2});".format(tmp_id + 2, tmp_id, tmp_id + 1))
     return tmp_id + 3
 
 def emit_fmul(tmp_id, args):
-    c("double tmp" + str(tmp_id) +" = " + args[1] + " * " + args[0] + ";")
+    c("double tmp{0} = {1} * {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 def emit_fsub(tmp_id, args):
-    c("double tmp" + str(tmp_id) +" = " + args[1] + " - " + args[0] + ";")
+    c("double tmp{0} = {1} - {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 def emit_read(tmp_id, args):
     type = args[1].lower()
-    c("uint64_t tmp" + str(tmp_id) + " = accumulator[metric_set->" + type + "_offset + " + args[0] + "];")
+    c("uint64_t tmp{0} = accumulator[metric_set->{1}_offset + {2}];".format(tmp_id, type, args[0]))
     return tmp_id + 1
 
 def emit_uadd(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" = " + args[1] + " + " + args[0] + ";")
+    c("uint64_t tmp{0} = {1} + {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 # Be careful to check for divide by zero...
 def emit_udiv(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" = " + args[1] + ";")
-    c("uint64_t tmp" + str(tmp_id + 1) +" = " + args[0] + ";")
-    c("uint64_t tmp" + str(tmp_id + 2) +" = tmp" + str(tmp_id + 1)  + " ? tmp" + str(tmp_id) + " / tmp" + str(tmp_id + 1) + " : 0;")
+    c("uint64_t tmp{0} = {1};".format(tmp_id, args[1]))
+    c("uint64_t tmp{0} = {1};".format(tmp_id + 1, args[0]))
+    c("uint64_t tmp{0} = tmp{1} ? tmp{2} / tmp{1} : 0;".format(tmp_id + 2, tmp_id + 1, tmp_id))
     return tmp_id + 3
 
 def emit_umul(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" = " + args[1] + " * " + args[0] + ";")
+    c("uint64_t tmp{0} = {1} * {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 def emit_usub(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" = " + args[1] + " - " + args[0] + ";")
+    c("uint64_t tmp{0} = {1} - {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 def emit_umin(tmp_id, args):
-    c("uint64_t tmp" + str(tmp_id) +" = MIN(" + args[1] + ", " + args[0] + ");")
+    c("uint64_t tmp{0} = MIN({1}, {2});".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
 ops = {}
@@ -255,7 +261,8 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                 args.append(operand)
 
             tmp_id = callback(tmp_id, args)
-            tmp = "tmp" + str(tmp_id - 1)
+
+            tmp = "tmp{0}".format(tmp_id - 1)
             stack.append(tmp)
 
     if len(stack) != 1:
@@ -263,7 +270,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                 counter.get('name') + ".\nThis is probably due to some unhandled RPN function, in the equation \"" +
                 equation + "\"")
 
-    value = stack.pop()
+    value = stack[-1]
 
     if value in hw_vars:
         value = hw_vars[value]['c']
@@ -298,17 +305,26 @@ def splice_rpn_expression(set, counter, expression):
                 counter.get('name') + ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
                 expression + "\"")
 
-    return stack.pop()
+    return stack[-1]
+
+
+def data_type_to_ctype(ret_type):
+    if ret_type == "uint64":
+        return "uint64_t"
+    elif ret_type == "float":
+        return "double"
+    else:
+        raise Exception("Unhandled case for mapping \"" + ret_type + "\" to a C type")
+
 
 def output_counter_read(set, counter, counter_vars):
     c("\n")
-    c("/* " + set.get('name') + " :: " + counter.get('name') + " */")
+    c("/* {0} :: {1} */".format(set.get('name'), counter.get('name')))
     ret_type = counter.get('data_type')
-    if ret_type == "uint64":
-        ret_type = "uint64_t"
+    ret_ctype = data_type_to_ctype(ret_type)
 
-    c("static " + ret_type)
-    read_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__read"
+    c("static " + ret_ctype)
+    read_sym = "{0}__{1}__{2}__read".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
     c(read_sym + "(struct gputop_devinfo *devinfo,\n")
     c.indent(len(read_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
@@ -332,13 +348,16 @@ def output_counter_max(set, counter, counter_vars):
     if not max_eq:
         return "NULL; /* undefined */"
 
+    ret_type = counter.get('data_type')
+    ret_ctype = data_type_to_ctype(ret_type)
+
     if max_eq == "100":
-        return "percentage_max_callback;"
+        return "percentage_max_callback_" + ret_type + ";"
 
     c("\n")
-    c("/* " + set.get('name') + " :: " + counter.get('name') + " */")
-    c("static uint64_t")
-    max_sym = set.get('chipset').lower() + "__" + set.get('underscore_name') + "__" + counter.get('underscore_name') + "__max"
+    c("/* {0} :: {1} */".format(set.get('name'), counter.get('name')))
+    c("static " + ret_ctype)
+    max_sym = "{0}__{1}__{2}__max".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
     c(max_sym + "(struct gputop_devinfo *devinfo,\n")
     c.indent(len(max_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
@@ -400,187 +419,208 @@ def output_counter_report(set, counter):
     c("counter->desc = \"" + counter.get('description') + "\";\n")
     c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
-    c("counter->max = " + max_funcs[counter.get('symbol_name')] + "\n")
+    c("counter->max_" + data_type + " = " + max_funcs[counter.get('symbol_name')] + "\n")
 
     if availability:
         c.outdent(4)
         c("}\n")
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("xml", help="XML description of metrics")
-parser.add_argument("--header", help="Header file to write")
-parser.add_argument("--code", help="C file to write")
-parser.add_argument("--chipset", help="Chipset to generate code for")
-parser.add_argument("--xml-out", help="Output XML filename")
+def main():
+    global c
+    global h
+    global max_funcs
+    global read_funcs
+    global xml_equations
 
-args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("xml", help="XML description of metrics")
+    parser.add_argument("--header", help="Header file to write")
+    parser.add_argument("--code", help="C file to write")
+    parser.add_argument("--chipset", help="Chipset to generate code for", required=True)
+    parser.add_argument("--xml-out", help="Output XML filename")
 
-chipset = args.chipset.lower()
+    args = parser.parse_args()
 
-# Note: either arg may == None
-h = codegen.Codegen(args.header)
-c = codegen.Codegen(args.code)
+    chipset = args.chipset.lower()
 
-tree = ET.parse(args.xml)
-if args.xml_out:
-    open(args.xml_out, 'w')
+    # Note: either arg may == None
+    h = codegen.Codegen(args.header)
+    c = codegen.Codegen(args.code)
+
+    tree = et.parse(args.xml)
+    if args.xml_out:
+        open(args.xml_out, 'w')
 
 
-copyright = """/* Autogenerated file, DO NOT EDIT manually!
- *
- * Copyright (c) 2015 Intel Corporation
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- */
+    copyright = textwrap.dedent("""\
+        /* Autogenerated file, DO NOT EDIT manually! generated by {}
+         *
+         * Copyright (c) 2015 Intel Corporation
+         *
+         * Permission is hereby granted, free of charge, to any person obtaining a
+         * copy of this software and associated documentation files (the "Software"),
+         * to deal in the Software without restriction, including without limitation
+         * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+         * and/or sell copies of the Software, and to permit persons to whom the
+         * Software is furnished to do so, subject to the following conditions:
+         *
+         * The above copyright notice and this permission notice (including the next
+         * paragraph) shall be included in all copies or substantial portions of the
+         * Software.
+         *
+         * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+         * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+         * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+         * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+         * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+         * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+         * DEALINGS IN THE SOFTWARE.
+         */
 
-"""
+        """).format(os.path.basename(__file__))
 
-h(copyright)
-h("""#pragma once
+    h(copyright)
+    h(textwrap.dedent("""\
+        #pragma once
 
-#include "gputop-oa-metrics.h"
+        #include "gputop-oa-metrics.h"
 
-""")
+        """))
 
-c(copyright)
-c(
-"""
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
+    c(copyright)
+    c(textwrap.dedent("""\
+        #include <stddef.h>
+        #include <stdint.h>
+        #include <stdbool.h>
+        #include <assert.h>
 
-""")
+        """))
 
-c("#include \"oa-" + chipset + ".h\"")
+    c("#include \"oa-" + chipset + ".h\"")
 
-c(
-"""
-#include <stdlib.h>
-#include <string.h>
+    c(textwrap.dedent("""\
+        #include <stdlib.h>
+        #include <string.h>
 
-#include "gputop-oa-metrics.h"
+        #include "gputop-oa-metrics.h"
 
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+        #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+        #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-extern void gputop_register_oa_metric_set(struct gputop_metric_set *metric_set);
+        extern void gputop_register_oa_metric_set(struct gputop_metric_set *metric_set);
 
-static inline void *
-xmalloc0(size_t size)
-{
-    void *ret = malloc(size);
-    if (!ret)
-        exit(1);
-    memset(ret, 0, size);
-    return ret;
-}
+        static inline void *
+        xmalloc0(size_t size)
+        {
+            void *ret = malloc(size);
+            if (!ret)
+                exit(1);
+            memset(ret, 0, size);
+            return ret;
+        }
 
-static uint64_t
-percentage_max_callback(struct gputop_devinfo *devinfo,
-                        const struct gputop_metric_set *metric_set,
-                        uint64_t *accumulator)
-{
-   return 100;
-}
+        static double
+        percentage_max_callback_float(struct gputop_devinfo *devinfo,
+                                      const struct gputop_metric_set *metric_set,
+                                      uint64_t *accumulator)
+        {
+           return 100;
+        }
 
-""")
+        static uint64_t
+        percentage_max_callback_uint64(struct gputop_devinfo *devinfo,
+                                       const struct gputop_metric_set *metric_set,
+                                       uint64_t *accumulator)
+        {
+           return 100;
+        }
 
-for set in tree.findall(".//set"):
-    max_funcs = {}
-    read_funcs = {}
-    counter_vars = {}
-    counters = set.findall("counter")
+        """))
 
-    assert set.get('chipset').lower() == chipset
+    for set in tree.findall(".//set"):
+        max_funcs = {}
+        read_funcs = {}
+        counter_vars = {}
+        counters = set.findall("counter")
 
-    for counter in counters:
-        empty_vars = {}
-        read_funcs[counter.get('symbol_name')] = output_counter_read(set, counter, counter_vars)
-        max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
-        counter_vars["$" + counter.get('symbol_name')] = counter
-        xml_equation = splice_mathml_expression(counter.get('equation'), "EQ")
-        counter.append(ET.fromstring(xml_equation))
-        if counter.get('max_equation'):
-            xml_max_equation = splice_mathml_expression(counter.get('max_equation'), "MAX_EQ")
-            counter.append(ET.fromstring(xml_max_equation))
+        assert set.get('chipset').lower() == chipset
 
-    c("\nstatic void\n")
-    c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo)\n")
-    c("{\n")
-    c.indent(3)
+        for counter in counters:
+            empty_vars = {}
+            read_funcs[counter.get('symbol_name')] = output_counter_read(set, counter, counter_vars)
+            max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
+            counter_vars["$" + counter.get('symbol_name')] = counter
+            xml_equation = splice_mathml_expression(counter.get('equation'), "EQ")
+            counter.append(et.fromstring(xml_equation))
+            if counter.get('max_equation'):
+                xml_max_equation = splice_mathml_expression(counter.get('max_equation'), "MAX_EQ")
+                counter.append(et.fromstring(xml_max_equation))
 
-    c("struct gputop_metric_set *metric_set;\n")
-    c("struct gputop_metric_set_counter *counter;\n\n")
+        c("\nstatic void\n")
+        c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo)\n")
+        c("{\n")
+        c.indent(3)
 
-    c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
-    c("metric_set->name = \"" + set.get('name') + "\";\n")
-    c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
-    c("metric_set->hw_config_guid = \"" + set.get('hw_config_guid') + "\";\n")
-    c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
-    c("metric_set->n_counters = 0;\n")
-    c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
+        c("struct gputop_metric_set *metric_set;\n")
+        c("struct gputop_metric_set_counter *counter;\n\n")
 
-    if chipset == "hsw":
-        c("""metric_set->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
+        c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
+        c("metric_set->name = \"" + set.get('name') + "\";\n")
+        c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
+        c("metric_set->hw_config_guid = \"" + set.get('hw_config_guid') + "\";\n")
+        c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
+        c("metric_set->n_counters = 0;\n")
+        c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
 
-metric_set->perf_raw_size = 256;
-metric_set->gpu_time_offset = 0;
-metric_set->a_offset = 1;
-metric_set->b_offset = metric_set->a_offset + 45;
-metric_set->c_offset = metric_set->b_offset + 8;
+        if chipset == "hsw":
+            c(textwrap.dedent("""\
+                metric_set->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
 
-""")
-    else:
-        c("""metric_set->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
+                metric_set->perf_raw_size = 256;
+                metric_set->gpu_time_offset = 0;
+                metric_set->a_offset = 1;
+                metric_set->b_offset = metric_set->a_offset + 45;
+                metric_set->c_offset = metric_set->b_offset + 8;
 
-metric_set->perf_raw_size = 256;
-metric_set->gpu_time_offset = 0;
-metric_set->gpu_clock_offset = 1;
-metric_set->a_offset = 2;
-metric_set->b_offset = metric_set->a_offset + 36;
-metric_set->c_offset = metric_set->b_offset + 8;
+                """))
+        else:
+            c(textwrap.dedent("""\
+                metric_set->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
 
-""")
+                metric_set->perf_raw_size = 256;
+                metric_set->gpu_time_offset = 0;
+                metric_set->gpu_clock_offset = 1;
+                metric_set->a_offset = 2;
+                metric_set->b_offset = metric_set->a_offset + 36;
+                metric_set->c_offset = metric_set->b_offset + 8;
 
-    for counter in counters:
-        output_counter_report(set, counter)
+                """))
 
-    c("\n\ngputop_register_oa_metric_set(metric_set);\n")
+        for counter in counters:
+            output_counter_report(set, counter)
 
-    c.outdent(3)
-    c("}\n")
+        c("\n\ngputop_register_oa_metric_set(metric_set);\n")
 
-if args.xml_out:
-    tree.write(args.xml_out)
+        c.outdent(3)
+        c("}\n")
 
-h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo);\n")
+    if args.xml_out:
+        tree.write(args.xml_out)
 
-c("\nvoid")
-c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo)")
-c("{")
-c.indent(4)
+    h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo);\n")
 
-for set in tree.findall(".//set"):
-    c("add_" + set.get('underscore_name') + "_metric_set(devinfo);")
+    c("\nvoid")
+    c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo)")
+    c("{")
+    c.indent(4)
 
-c.outdent(4)
-c("}")
+    for set in tree.findall(".//set"):
+        c("add_" + set.get('underscore_name') + "_metric_set(devinfo);")
+
+    c.outdent(4)
+    c("}")
+
+
+if __name__ == '__main__':
+    main()

@@ -79,17 +79,22 @@ struct gputop_metric_set_counter
    const char *desc;
    gputop_counter_type_t type;
    gputop_counter_data_type_t data_type;
-   uint64_t (*max)(struct gputop_devinfo *devinfo,
-                   const struct gputop_metric_set *metric_set,
-                   uint64_t *deltas);
+   union {
+       uint64_t (*max_uint64)(struct gputop_devinfo *devinfo,
+                              const struct gputop_metric_set *metric_set,
+                              uint64_t *deltas);
+       double (*max_float)(struct gputop_devinfo *devinfo,
+                           const struct gputop_metric_set *metric_set,
+                           uint64_t *deltas);
+   };
 
    union {
       uint64_t (*oa_counter_read_uint64)(struct gputop_devinfo *devinfo,
                                          const struct gputop_metric_set *metric_set,
                                          uint64_t *deltas);
-      float (*oa_counter_read_float)(struct gputop_devinfo *devinfo,
-                                     const struct gputop_metric_set *metric_set,
-                                     uint64_t *deltas);
+      double (*oa_counter_read_float)(struct gputop_devinfo *devinfo,
+                                      const struct gputop_metric_set *metric_set,
+                                      uint64_t *deltas);
    };
 };
 

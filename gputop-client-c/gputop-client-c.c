@@ -114,13 +114,19 @@ forward_oa_accumulator_events(struct gputop_cc_stream *stream,
         uint64_t max = 0;
 
         struct gputop_metric_set_counter *counter = &oa_metric_set->counters[i];
-        if (counter->max) {
-            max = counter->max(&gputop_devinfo, oa_metric_set,
-                               oa_accumulator->deltas);
-        }
 
         switch(counter->data_type) {
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
+                if (counter->max_uint64) {
+                    u53_check = counter->max_uint64(&gputop_devinfo, oa_metric_set,
+                                                    oa_accumulator->deltas);
+                    if (u53_check > JS_MAX_SAFE_INTEGER) {
+                        gputop_cr_console_error("'Max' value is to large to represent in JavaScript: %s ", counter->symbol_name);
+                        u53_check = JS_MAX_SAFE_INTEGER;
+                    }
+                    max = u53_check;
+                }
+
                 u53_check = counter->oa_counter_read_uint64(&gputop_devinfo,
                                                             oa_metric_set,
                                                             oa_accumulator->deltas);
@@ -131,6 +137,11 @@ forward_oa_accumulator_events(struct gputop_cc_stream *stream,
                 d_value = u53_check;
                 break;
             case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
+                if (counter->max_float) {
+                    max = counter->max_float(&gputop_devinfo, oa_metric_set,
+                                             oa_accumulator->deltas);
+                }
+
                 d_value = counter->oa_counter_read_float(&gputop_devinfo,
                                                          oa_metric_set,
                                                          oa_accumulator->deltas);
