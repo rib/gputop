@@ -637,6 +637,13 @@ for arg in args.xml:
                         is_flex_config = True
 
         assert len(mux_configs) >= 1
+        mux_config_ids = {}
+        for mux_cfg_tuple in mux_configs:
+            (mux_id, mux_pri, mux_cfg) = mux_cfg_tuple
+            mux_config_ids[mux_id] = True
+        if len(mux_config_ids) > 1:
+            print("ERROR: " + chipset + "::" + set_name + " has multiple NOA config IDs: NOT CORRECTLY HANDLED")
+
 
         if len(b_counter_configs) == 0:
             empty = ET.Element('register_config')
