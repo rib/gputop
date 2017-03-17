@@ -691,7 +691,7 @@ for set in sets:
     c_outdent(8)
     c("if (!dev_priv->perf.oa.mux_regs) {")
     c_indent(8)
-    c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + set['perf_name'] + "\\\" metric set\");")
+    c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + set['perf_name'] + "\\\" metric set\");\n")
     c("\n")
     c("/* EINVAL because *_register_sysfs already checked this")
     c(" * and so it wouldn't have been advertised so userspace and")
