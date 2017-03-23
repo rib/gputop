@@ -1,4 +1,4 @@
-OA_GEN_SOURCES = \
+BUILT_SOURCE = \
     oa-hsw.h \
     oa-hsw.c \
     oa-bdw.h \
@@ -36,8 +36,7 @@ nobase_dist_remote_DATA = \
     gputop-web.js \
     gputop-web.js.map
 
-BUILT_SOURCES = \
-	$(OA_GEN_SOURCES) \
+BUILT_SOURCES += \
 	gputop-web.js
 
 # Automake seems awkward to use for running the emscripten toolchain so
