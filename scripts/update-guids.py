@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# coding=utf-8 
 
 # Copyright (C) 2016 Intel Corporation
 #
@@ -186,7 +187,7 @@ for guid_obj in guids:
     line = "<guid"
 
     if 'matched_mdapi' not in guid_obj:
-        comment = "Not found in MDAPI XML file[s]; Existing entry copied unmodified (maybe removed from MDAPI or not all XML files given)"
+        comment = "Not found in MDAPI XML file[s]; Entry copied unmodified (maybe removed from MDAPI XML or not all files given on command line)"
 
     if 'comment' in guid_obj:
         comment = guid_obj['comment']
@@ -206,10 +207,8 @@ for guid_obj in guids:
 
     line = line + ' />'
 
-    if 'unregistered' in guid_obj:
-        line = "<!-- " + line + " -->"
     if comment != None:
-        line = line + " <!-- " + comment + " -->"
+        print("    <!-- ↓" + comment + " -->")
 
     print("    " + line)
 print("</guids>")
