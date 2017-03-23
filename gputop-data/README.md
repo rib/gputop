@@ -1,3 +1,53 @@
+# About guids.xml
+
+This is the authoritive registry of unique identifers for different OA unit
+hardware configurations. Userspace can reliably use these identifiers to map a
+configuration to corresponding normalization equations and counter meta data.
+
+If a hardware configuration ever changes in a backwards incompatible way
+(changing the semantics and/or layout of the raw counters) then it must be
+given a new GUID.
+
+mdapi-xml-convert.py will match metric sets with a GUID from this file based on
+an md5 hash of the hardware register configuration and skip a metric set with a
+warning if no GUID could be found.
+
+All new metric sets need to be allocated a GUID here before
+mdapi-xml-convert.py or i915-perf-kernelgen.py will output anything for that
+metric set. This ensures we don't automatically import new metric sets without
+some explicit review that that's appropriate.
+
+A failure to find a GUID for an older metric set most likely implies that the
+register configuration was changed. It's possible that the change is benign
+(e.g. a comment change) and in that case the mdapi_config_hash for the
+corresponding metric set below can be updated.
+
+The update-guids.py script is the recommended way of managing updates to this
+file by generate a temporary file with proposed updates that you can compare
+with the current guids.xml.
+
+
+# update-guids.xml
+
+update-guids.py can help with:
+
+* Recognising new metrics from VPG's MDAPI XML files
+
+  *(NOTE: new guids.xml entries will initially be missing the
+  config_hash=MD5_HASH attribute until mdapi-xml-convert.py is used to generate
+  a corresponding oa-*.xml config description)*
+
+* Adding a config_hash=MD5_HASH attribute to recently added guids.xml entries
+  after mdapi-xml-convert.py has been run.
+
+* Allocating a GUID for a custom metric that doesn't have a counterpart in
+  VPG's MDAPI XML files.
+
+  For this case you can add a stub entry with only a name like `<guid
+  name="Foo">` to guids.xml and then running update-guids.py will output a
+  corresponding line with the addition of an id=UUID attribute.
+
+
 # How to sync the oa-\*.xml files with latest internal MDAPI XML files
 
 1. E.g. copy a new `MetricsXML_BDW.xml` to `mdapi/MetricsXML_BDW.xml`
