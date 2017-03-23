@@ -1,49 +1,14 @@
 <!--
-     These unique identifiers represent a specific OA unit hardware
-     configuration that userspace can reliably map to corresponding
-     normalization equations and meta data.
+    This is the authoritive registry of unique identifers for different OA unit
+    hardware configurations. Userspace can reliably use these identifiers to
+    map a configuration to corresponding normalization equations and counter
+    meta data.
 
-     If a hardware configuration ever changes in a backwards incompatible way
-     (changing the semantics and/or layout of the raw counters) then it must be
-     given a new GUID.
+    Most maintenance is done using the update-guids.py helper script to generate
+    a temporary guids.xml.update file which should then be manually compared with
+    a visual diff tool to cherry pick the final changes into guids.xml.
 
-     mdapi-xml-convert.py will associate metric sets with a GUID from this file
-     based on an md5 hash of the hardware register configuration and skip a
-     metric set with a warning if no GUID could be found.
-
-     All new metric sets need to be allocated a GUID here before
-     mdapi-xml-convert.py or i915-perf-kernelgen.py will output anything for
-     that metric set.
-
-     A failure to find a GUID for an older metric set most likely implies that
-     the register configuration was changed. It's possible that the change is
-     benign (e.g. a comment change) and in that case the config_hash for the
-     corresponding metric set below should be updated.
-
-     The update-guids.py script is the recommended way of managing updates to
-     this file by generate a temporary file with proposed updates that you
-     can compare with the current guids.xml.
-
-     E.g. to check for new Broadwell metrics from VPG:
-     update-guids.py \-\-guids=guids.xml mdapi/MetricsXML_BDW.xml &gt; guids.xml.updates
-
-     Then use a graphical diff editor to compare guids.xml.updates and guids.xml
-     and cherry-pick the automatically derived update suggestions.
-
-     update-guids.py can help with:
-     - Recognising new metrics from VPG's MDAPI XML files (NOTE: these will
-       initially be missing the config_hash_MD5_HASH attribute until
-       mdapi-xml-convert.py is used to generate a corresponding oa-*.xml
-       config description)
-     - Adding a config_hash=MD5_HASH attribute to recently added metrics after
-       mdapi-xml-convert.py has been run.
-     - Allocating a guid for a custom metric that doesn't have a counterpart
-       in VPG's MDAPI XML files. Add stub entry like &lt;guid name="Foo" /&gt; to
-       guids.xml and update-guids.py will output a corresponding line with the
-       addition of an id=UUID attribute.
-
-     Also see README.md for details of importing new metrics from VPG's MDAPI
-     files.
+    See README.md for more details.
 -->
 <guids>
     <guid config_hash="576c9404f0f6f6781d64e297c17c8e81" mdapi_config_hash="c675607e7d1b0083729e4b1621fd25f8" id="403d8832-1a27-4aa6-a64e-f5389ce7b212" chipset="hsw" name="RenderBasic" />
@@ -70,21 +35,6 @@
     <guid config_hash="7ce8d28d5bbf9794b1436b0e30680a70" mdapi_config_hash="875df3ca90886c816466082fe9483699" id="857fc630-2f09-4804-85f1-084adfadd5ab" chipset="bdw" name="DataPortReadsCoalescing" />
     <guid config_hash="85a352da675e04e2eaa9e455ba93faab" mdapi_config_hash="c4a46f51a3176be03a1116eac0904840" id="343ebc99-4a55-414c-8c17-d8e259cf5e20" chipset="bdw" name="DataPortWritesCoalescing" />
     <guid config_hash="fbabf54ad7ee585615071bbaa311b17b" mdapi_config_hash="715fe2c431914b6b369970c0b897f7e2" id="e1743ca0-7fc8-410b-a066-de7bbb9280b7" chipset="bdw" name="VMEPipe" />
-    <guid mdapi_config_hash="a5589479b360f6d4f5c8f70fe78b0e1d" id="34ba6308-6b16-4e5a-91d3-62cdcb96fc81" chipset="bdw" name="L3_1" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="0fc152bfbb920f90b16ed0445afe9e48" id="e76d619f-31f9-4c76-903c-6064ff8a8f92" chipset="bdw" name="L3_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="2afc3cdd7ffbb021fc0ae99681b138ab" id="29101fd9-399e-4212-949d-e4a4a0f78117" chipset="bdw" name="L3_3" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="032c9ab7c2c6d056da82e4ee1b159c18" id="f8dbcc16-afaa-4e45-a1e9-f7f59c3b6cdd" chipset="bdw" name="L3_4" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="b2454e1eef8d38d83cb95ba2b3d85431" id="269824bd-6784-4a80-a04a-190388bb6c6b" chipset="bdw" name="RasterizerAndPixelBackend" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="6fb026e2926fbd3a507e55a7bf0a3687" id="1323b625-cb6f-42e0-a64c-bc64a7c63f06" chipset="bdw" name="Sampler_1" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="e38e63da0d875958bc88a9deb8d529ba" id="1c40ae0c-51b6-4023-9c03-4df664e5a233" chipset="bdw" name="Sampler_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="c905876bdf561cc26c64363ced258c64" id="bf7af011-6c2f-46db-9ff0-3aa032694eee" chipset="bdw" name="TDL_1" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="0000753d7f52fb3a0b0baa6b44052cff" id="fd08c1ac-2c60-43c8-986d-6618617d83f7" chipset="bdw" name="TDL_2" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="abd5a9b491a1cb502a003b4b07d35e63" id="27cf5a80-b772-40aa-a1cc-9a22c5cc11e4" chipset="bdw" name="RenderDX1x" />
-    <guid mdapi_config_hash="5cc4d10d745060d0672ffb4ebf0d1687" id="64a9f628-7236-4758-b566-47c37dbf36c9" chipset="bdw" name="StencilPmaHold" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="f3ae7e16e9b6aadac98179bc4c847246" id="b11c05c7-342a-48b1-aebd-57d414953cff" chipset="bdw" name="MediaMemoryReads" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="ea98859ab4afdda2589be697455c7dc8" id="b23d5768-b5b9-43d1-b6a5-3b4b5f04c3a0" chipset="bdw" name="MediaMemoryWrites" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="179e6a40c74a8401597b82383dacfd70" id="cbd09d71-3979-4f03-9e2b-33708b366fb9" chipset="bdw" name="MediaVmePipe" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
-    <guid mdapi_config_hash="3ed20c9f7071cef87fd28d2f899c9e6c" id="ac57092f-06d2-451a-9b23-c018f2eee68f" chipset="bdw" name="HdcUrbCoalescing" /> <!-- MDAPI register hash lookup failed! (maybe it was removed or the config was changed?) -->
     <guid config_hash="1203bab0824989fa756eae88a8ef18d3" mdapi_config_hash="d996104bf7531170226275d44a3602b6" id="4a534b07-cba3-414d-8d60-874830e883aa" chipset="chv" name="TestOa" />
     <guid config_hash="3ae71793316ba91c2d8e59a80c5e08e3" mdapi_config_hash="089852d3f5babff2175457f57214ce57" id="9d8a3af5-c02c-4a4a-b947-f1672469e0fb" chipset="chv" name="RenderBasic" />
     <guid config_hash="1e00fd146a0a54390229411f1d7f20fc" mdapi_config_hash="60375bf6570a28320cce512ab6d024e0" id="f522a89c-ecd1-4522-8331-3383c54af5f5" chipset="chv" name="ComputeBasic" />
@@ -179,30 +129,4 @@
     <guid config_hash="1a3d8b0983894a395370ae13ac42aed0" mdapi_config_hash="f9ae90355e5abe786bf5e81f1c4222c0" id="a5aa857d-e8f0-4dfa-8981-ce340fa748fd" chipset="sklgt4" name="ComputeExtra" />
     <guid config_hash="e8958b59b3922a747fbd149a7a3f4e90" mdapi_config_hash="cafc4d5abc6807434093d4f47fe83292" id="0e8d8b86-4ee7-4cdd-aaaa-58adc92cb29e" chipset="sklgt4" name="VMEPipe" />
     <guid config_hash="b9cc1b937282a2c3af30f69669b610e3" mdapi_config_hash="051007cbfaffa4151d7c9365edde7bff" id="882fa433-1f4a-4a67-a962-c741888fe5f5" chipset="sklgt4" name="TestOa" />
-
-    <!-- <guid mdapi_config_hash="3c37ae93494dd0871e96a0495e138caa" id="7ff93c8a-2d89-4d1e-affe-e179c9911834" chipset="bdw" name="RenderLegacyHswGt2" /> -->
-    <!-- <guid mdapi_config_hash="f64e129eccd39a03ed86031fa9fb2a60" id="739852b3-66b7-4388-84fc-7a394bf49a8c" chipset="bdw" name="RenderTier3_gt2_1" /> -->
-    <!-- <guid mdapi_config_hash="46ec26a865817b01edd84bca85567f77" id="ef99076c-f5de-4a1e-933c-74ede55dc85f" chipset="bdw" name="RenderTier3_gt2_2" /> -->
-    <!-- <guid mdapi_config_hash="b34c9f1eaebb9a0fa262f5cb37654459" id="68fa6257-da26-4a73-b042-3b95335c8dfc" chipset="bdw" name="RenderTier3_gt2_3" /> -->
-    <!-- <guid mdapi_config_hash="bc6d51280108509a144b0109029444eb" id="12006221-c008-4ca5-ad89-1bf2b8dc6dd1" chipset="bxt" name="RenderDX1x" /> -->
-    <!-- <guid mdapi_config_hash="6c7b832978514b44321679298be8e084" id="2f4eb202-623e-4a30-95e8-9281e95e944d" chipset="chv" name="RasterizerAndPixelBackend" /> -->
-    <!-- <guid mdapi_config_hash="15ee12cf00be7a0a6faf5c4cfa67dd54" id="8ed18e04-55bc-4891-b6b6-f13b1086e5d3" chipset="bdw skl" name="McRequests" /> -->
-    <!-- <guid mdapi_config_hash="171b6c469f2d8015e649fa4c8493f04e" id="74e96c60-6439-42d9-b5f3-b52025a98380" chipset="skl" name="EDRAM traffic" /> -->
-    <!-- <guid mdapi_config_hash="afb54044d188293fde2bafb081b152b4" id="c2e4b702-27d6-45b2-be08-c212a8dea24e" chipset="kbl" name="RenderBasic" /> -->
-    <!-- <guid mdapi_config_hash="d669cbf5829fe06721e8b20eebeb776e" id="0328b674-4409-49a9-a151-8329bf040f47" chipset="kbl" name="ComputeBasic" /> -->
-    <!-- <guid mdapi_config_hash="2a1bff44de61c8318286742de72a9985" id="adbff480-c028-45c4-9978-f0d3404dd9a3" chipset="kbl" name="RenderPipeProfile" /> -->
-    <!-- <guid mdapi_config_hash="0779bba85f8be3baef98ecc5c66fd369" id="1f75dacf-90d7-4b72-82c6-46855241198d" chipset="kbl" name="MemoryReads" /> -->
-    <!-- <guid mdapi_config_hash="26eb749438ad7d42e34342048c1019c5" id="d67af4ad-83ad-4013-96bd-aa843a717bde" chipset="kbl" name="MemoryWrites" /> -->
-    <!-- <guid mdapi_config_hash="0138397c6d1914548a034faa850cc960" id="ebf02af6-2046-4a22-a53d-4acd08ac60da" chipset="kbl" name="ComputeExtended" /> -->
-    <!-- <guid mdapi_config_hash="6c9fc0e4724c7d4549a8eab6b4c804f9" id="e0a4f264-2a0f-4e14-88a2-f56f8f9fb9f4" chipset="kbl" name="ComputeL3Cache" /> -->
-    <!-- <guid mdapi_config_hash="c056251351b0b1f5beb4f6863484854b" id="7ebcf3aa-31c3-4da2-a800-1c27ce8a5ca5" chipset="kbl" name="HDCAndSF" /> -->
-    <!-- <guid mdapi_config_hash="17d38bff109de8e5622ff29bead0bbcf" id="a02fc533-f978-4c78-83a5-f1f2041aecd7" chipset="kbl" name="L3_1" /> -->
-    <!-- <guid mdapi_config_hash="1a88f6816aea2c42dae9f10d4233cb74" id="190c7290-21be-4c92-acb2-d5ae59257cc0" chipset="kbl" name="L3_2" /> -->
-    <!-- <guid mdapi_config_hash="ae28a594b1a6fd3864272da8dbe873f5" id="cfbdb227-eb52-4614-b7da-0d336bf5ecc4" chipset="kbl" name="L3_3" /> -->
-    <!-- <guid mdapi_config_hash="d1b2421e43a489ffcdfeeaf271b2f12f" id="a273576a-829c-4593-8583-757509a5f20d" chipset="kbl" name="RasterizerAndPixelBackend" /> -->
-    <!-- <guid mdapi_config_hash="8d5f977be4f4d21e97e9e67786958495" id="3fa8da0f-da9b-4ca7-aa46-fe71dbe69bca" chipset="kbl" name="Sampler" /> -->
-    <!-- <guid mdapi_config_hash="cbef2ea0f1c6e30bd37cea22a87e8373" id="4ba86fe0-42c2-44c2-a686-755eb5f4403b" chipset="kbl" name="TDL_1" /> -->
-    <!-- <guid mdapi_config_hash="b685ab8fe6fc020e85f189f55fdf6e05" id="aa7f8d4d-1633-4a0a-a694-0f8acfebed81" chipset="kbl" name="TDL_2" /> -->
-    <!-- <guid mdapi_config_hash="4be337ed83e3c95aebf66553ed685602" id="08c8dd48-c212-4c9d-81d0-5f951e52233a" chipset="skl" name="ComputeExtra" /> -->
-    <!-- <guid mdapi_config_hash="5f4afc2f159098e96b8fd90a85979ae3" id="d055aa8b-6027-419e-8d21-17ae2e258681" chipset="kbl" name="TestOa" /> -->
 </guids>
