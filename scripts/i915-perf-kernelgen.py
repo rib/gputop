@@ -120,7 +120,7 @@ copyright = """/*
 """
 
 
-def splice_rpn_expression(set, expression, symbols):
+def splice_rpn_expression(metric_set, expression, symbols):
     tokens = expression.split()
     stack = []
 
@@ -137,7 +137,7 @@ def splice_rpn_expression(set, expression, symbols):
                         operand = symbols[operand]
                     else:
                         raise Exception("Failed to resolve variable " + operand +
-                                        " in expression " + expression + " for " + set['metricset'].get('name'));
+                                        " in expression " + expression + " for " + metric_set['set_element'].get('name'));
                 args.append(operand)
 
             subexp = callback(args)
@@ -145,53 +145,51 @@ def splice_rpn_expression(set, expression, symbols):
             stack.append(subexp)
 
     if len(stack) != 1:
-        raise Exception("Spurious empty rpn expression for " + set['metricset'].get('name') +
+        raise Exception("Spurious empty rpn expression for " + metric_set['set_element'].get('name') +
                         ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
                         expression + "\"")
 
     return stack.pop()
 
 
-def output_b_counter_config(set, config_tuple):
-    id, priority, config = config_tuple
-
-    c("\nstatic const struct i915_oa_reg b_counter_config_" + set['perf_name_lc'] + "[] = {")
+def output_b_counter_config(metric_set, config):
+    c("\nstatic const struct i915_oa_reg b_counter_config_" + metric_set['perf_name_lc'] + "[] = {")
 
     c.indent(8)
 
     n_regs = 0
     for reg in config.findall("register"):
-        if reg.get('type') == 'OA':
-            addr = int(reg.get('address'), 16)
-            addr_str = "0x%x" % addr
-            val = int(reg.get('value'), 16)
-            val_str = "0x%08x" % val
+        assert reg.get('type') == 'OA'
 
-            c("{ _MMIO(" + addr_str + "), " + val_str + " },")
-            n_regs = n_regs + 1
+        addr = int(reg.get('address'), 16)
+        addr_str = "0x%x" % addr
+        val = int(reg.get('value'), 16)
+        val_str = "0x%08x" % val
+
+        c("{ _MMIO(" + addr_str + "), " + val_str + " },")
+        n_regs = n_regs + 1
 
     c.outdent(8)
 
     c("};")
 
 
-def output_flex_config(set, config_tuple):
-    id, priority, config = config_tuple
-
-    c("\nstatic const struct i915_oa_reg flex_eu_config_" + set['perf_name_lc'] + "[] = {")
+def output_flex_config(metric_set, config):
+    c("\nstatic const struct i915_oa_reg flex_eu_config_" + metric_set['perf_name_lc'] + "[] = {")
 
     c.indent(8)
 
     n_regs = 0
     for reg in config.findall("register"):
-        if reg.get('type') == 'FLEX':
-            addr = int(reg.get('address'), 16)
-            addr_str = "0x%x" % addr
-            val = int(reg.get('value'), 16)
-            val_str = "0x%08x" % val
+        assert reg.get('type') == 'FLEX'
 
-            c("{ _MMIO(" + addr_str + "), " + val_str + " },")
-            n_regs = n_regs + 1
+        addr = int(reg.get('address'), 16)
+        addr_str = "0x%x" % addr
+        val = int(reg.get('value'), 16)
+        val_str = "0x%08x" % val
+
+        c("{ _MMIO(" + addr_str + "), " + val_str + " },")
+        n_regs = n_regs + 1
 
     c.outdent(8)
 
@@ -220,40 +218,43 @@ def count_config_mux_registers(config):
     return n_regs
 
 
-def output_mux_configs(set, config_tuples):
+def output_mux_configs(metric_set, config_tuples):
 
-    for config_tuple in config_tuples:
-        id, priority, config = config_tuple
+    configs.sort(key=itemgetter(0))
 
+    for (priority, config) in config_tuples:
         availability = config.get('availability')
 
         if availability:
-            mnemonic_exp = splice_rpn_expression(set, availability, mnemonic_syms)
+            mnemonic_exp = splice_rpn_expression(metric_set, availability, mnemonic_syms)
             mnemonic_exp = exp_to_symbol(mnemonic_exp)
-            infix = "_" + str(id) + "_" + str(priority) + "_" + mnemonic_exp
+            infix = "_" + str(priority) + "_" + mnemonic_exp
         else:
+            # It wouldn't make sense to have an unconditional config with
+            # a higher priority than any other config
+            assert config == config_tuples[-1][1]
             infix = ""
 
-        c("\nstatic const struct i915_oa_reg mux_config_" + set['perf_name_lc'] + infix + "[] = {")
+        c("\nstatic const struct i915_oa_reg mux_config_" + metric_set['perf_name_lc'] + infix + "[] = {")
 
         c.indent(8)
         for reg in config.findall("register"):
-            if reg.get('type') == 'NOA':
-                addr = int(reg.get('address'), 16)
-                addr_str = "0x%x" % addr
-                val = int(reg.get('value'), 16)
-                val_str = "0x%08x" % val
+            assert reg.get('type') == 'NOA'
+            addr = int(reg.get('address'), 16)
+            addr_str = "0x%x" % addr
+            val = int(reg.get('value'), 16)
+            val_str = "0x%08x" % val
 
-                c("{ _MMIO(" + addr_str + "), " + val_str + " },")
+            c("{ _MMIO(" + addr_str + "), " + val_str + " },")
         c.outdent(8)
 
         c("};")
 
 
-def output_mux_config_get_func(set, mux_config_tuples):
+def output_mux_config_get_func(metric_set, mux_config_tuples):
     c("\n")
     c("static const struct i915_oa_reg *")
-    fname = "get_" + set['perf_name_lc']  + "_mux_config"
+    fname = "get_" + metric_set['perf_name_lc']  + "_mux_config"
     c(fname + "(struct drm_i915_private *dev_priv,")
     c.indent(len(fname) + 1)
     c("int *len)")
@@ -261,26 +262,24 @@ def output_mux_config_get_func(set, mux_config_tuples):
     c("{")
     c.indent(8)
 
-    needs_close_if_block = 0
+    seen_conditional_config = 0
     i = 0
     for config_tuple in mux_config_tuples:
-        id, priority, config = config_tuple
+        priority, config = config_tuple
+
+        # If there's more than one config then they are implicitly conditional
+        if i > 0:
+            else_prefix = "} else "
+        else:
+            else_prefix = ""
 
         availability = config.get('availability')
-
         if availability:
-            needs_close_if_block = 1
-            code_exp = splice_rpn_expression(set, availability, c_syms)
-            mnemonic_exp = splice_rpn_expression(set, availability, mnemonic_syms)
+            seen_conditional_config = 1
+            code_exp = splice_rpn_expression(metric_set, availability, c_syms)
+            mnemonic_exp = splice_rpn_expression(metric_set, availability, mnemonic_syms)
             mnemonic_exp = exp_to_symbol(mnemonic_exp)
-            infix = "_" + str(id) + "_" + str(priority) + "_" + mnemonic_exp
-
-            if i > 0:
-                else_prefix = "} else "
-                subexp_indent = 11
-            else:
-                else_prefix = ""
-                subexp_indent = 4
+            infix = "_" + str(priority) + "_" + mnemonic_exp
 
             lines = code_exp.split(' && ')
             n_lines = len(lines)
@@ -288,6 +287,10 @@ def output_mux_config_get_func(set, mux_config_tuples):
                 c(else_prefix + "if (" + lines[0] + ") {")
             else:
                 c(else_prefix + "if (" + lines[0] + " &&")
+                if i > 0:
+                    subexp_indent = 11
+                else:
+                    subexp_indent = 4
                 c.indent(subexp_indent)
                 for i in range(1, (n_lines - 1)):
                     print_err(lines[i] + " &&")
@@ -295,20 +298,32 @@ def output_mux_config_get_func(set, mux_config_tuples):
                 c.outdent(subexp_indent)
             c.indent(8)
 
-            array_name = "mux_config_" + set['perf_name_lc']  + infix
+            array_name = "mux_config_" + metric_set['perf_name_lc']  + infix
             c("*len = ARRAY_SIZE(" + array_name + ");")
             c("return " + array_name + ";")
 
             c.outdent(8)
         else:
             # Unconditonal MUX config
-            array_name = "mux_config_" + set['perf_name_lc']
+            #
+            # It wouldn't make sense to have an unconditional config with
+            # a higher priority than any other config
+            assert config == mux_config_tuples[-1][1]
+
+            if seen_conditional_config:
+                c(else_prefix + "{")
+                c.indent(8)
+
+            array_name = "mux_config_" + metric_set['perf_name_lc']
             c("*len = ARRAY_SIZE(" + array_name + ");")
             c("return " + array_name + ";")
 
+            if seen_conditional_config:
+                c.outdent(8)
+
         i = i + 1
 
-    if needs_close_if_block:
+    if seen_conditional_config:
         c("}")
         c("\n");
         c("*len = 0;");
@@ -318,34 +333,32 @@ def output_mux_config_get_func(set, mux_config_tuples):
     c("}")
 
 
-def output_b_and_flex_configs_select(set, b_counter_config_tuple, flex_config_tuple):
-    id, priority, config = b_counter_config_tuple
+def output_b_and_flex_configs_select(metric_set, b_counter_config, flex_config):
     c("\n")
     c("dev_priv->perf.oa.b_counter_regs =")
     c.indent(8)
-    c("b_counter_config_" + set['perf_name_lc']  + ";")
+    c("b_counter_config_" + metric_set['perf_name_lc']  + ";")
     c.outdent(8)
     c("dev_priv->perf.oa.b_counter_regs_len =")
     c.indent(8)
-    c("ARRAY_SIZE(b_counter_config_" + set['perf_name_lc']  + ");")
+    c("ARRAY_SIZE(b_counter_config_" + metric_set['perf_name_lc']  + ");")
     c.outdent(8)
 
-    id, priority, config = flex_config_tuple
     c("\n")
     c("dev_priv->perf.oa.flex_regs =")
     c.indent(8)
-    c("flex_eu_config_" + set['perf_name_lc']  + ";")
+    c("flex_eu_config_" + metric_set['perf_name_lc']  + ";")
     c.outdent(8)
     c("dev_priv->perf.oa.flex_regs_len =")
     c.indent(8)
-    c("ARRAY_SIZE(flex_eu_config_" + set['perf_name_lc']  + ");")
+    c("ARRAY_SIZE(flex_eu_config_" + metric_set['perf_name_lc']  + ");")
     c.outdent(8)
 
 
 def output_sysfs_code(sets):
-    for set in sets:
-        perf_name = set['perf_name']
-        perf_name_lc = set['perf_name_lc']
+    for metric_set in sets:
+        perf_name = metric_set['perf_name']
+        perf_name_lc = metric_set['perf_name_lc']
 
         c("\n")
         c("static ssize_t")
@@ -376,7 +389,7 @@ def output_sysfs_code(sets):
         c("\n")
         c("static struct attribute_group group_" + perf_name_lc + " = {")
         c.indent(8)
-        c(".name = \"" + set['guid'] + "\",")
+        c(".name = \"" + metric_set['guid'] + "\",")
         c(".attrs =  attrs_" + perf_name_lc + ",")
         c.outdent(8)
         c("};")
@@ -394,13 +407,13 @@ def output_sysfs_code(sets):
     c("int ret = 0;")
     c("\n")
 
-    for set in sets:
-        c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len)) {")
+    for metric_set in sets:
+        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len)) {")
         c.indent(8)
-        c("ret = sysfs_create_group(dev_priv->perf.metrics_kobj, &group_" + set['perf_name_lc'] + ");")
+        c("ret = sysfs_create_group(dev_priv->perf.metrics_kobj, &group_" + metric_set['perf_name_lc'] + ");")
         c("if (ret)")
         c.indent(8)
-        c("goto error_" + set['perf_name_lc'] + ";")
+        c("goto error_" + metric_set['perf_name_lc'] + ";")
         c.outdent(8)
         c.outdent(8)
         c("}")
@@ -418,7 +431,7 @@ def output_sysfs_code(sets):
         set1 = rev_sets[i + 1]
         c("error_" + set0['perf_name_lc'] + ":")
         c.indent(8)
-        c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
+        c("if (get_" + set1['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
         c.indent(8)
         c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + set1['perf_name_lc'] + ");")
         c.outdent(8)
@@ -440,10 +453,10 @@ def output_sysfs_code(sets):
     c.indent(8)
     c("int mux_len;")
     c("\n")
-    for set in sets:
-        c("if (get_" + set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
+    for metric_set in sets:
+        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
         c.indent(8)
-        c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + set['perf_name_lc'] + ");")
+        c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + metric_set['perf_name_lc'] + ");")
         c.outdent(8)
     c.outdent(8)
     c("}")
@@ -494,11 +507,11 @@ sets = []
 for arg in args.xml:
     xml = et.parse(arg)
 
-    for metricset in xml.findall(".//set"):
+    for set_element in xml.findall(".//set"):
 
-        assert metricset.get('chipset') == chipset
+        assert set_element.get('chipset') == chipset
 
-        set_name = metricset.get('symbol_name')
+        set_name = set_element.get('symbol_name')
 
         if args.whitelist:
             set_whitelist = args.whitelist.split()
@@ -512,34 +525,35 @@ for arg in args.xml:
         if set_name in set_blacklist:
             continue
 
-        configs = metricset.findall("register_config")
+        configs = set_element.findall("register_config")
         if len(configs) == 0:
-            print_err("WARNING: Missing register configuration for set \"" + metricset.get('name') + "\" (SKIPPING)")
+            print_err("WARNING: Missing register configuration for set \"" + set_element.get('name') + "\" (SKIPPING)")
             continue
 
-        hw_config_hash = oa_registry.Registry.hw_config_hash(metricset)
+        hw_config_hash = oa_registry.Registry.hw_config_hash(set_element)
         if hw_config_hash not in guids:
-            print_err("WARNING: No GUID found for metric set " + chipset + ", " + metricset.get('name') + " (expected config_hash = " + hw_config_hash + ") (SKIPPING)")
+            print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_element.get('name') + " (expected config_hash = " + hw_config_hash + ") (SKIPPING)")
             continue
 
         perf_name_lc = underscore(set_name)
         perf_name = perf_name_lc.upper()
 
-        set = { 'name': set_name,
-                'metricset': metricset,
+        metric_set = {
+                'name': set_name,
+                'set_element': set_element,
                 'chipset_lc': chipset.lower(),
                 'perf_name_lc': perf_name_lc,
                 'perf_name': perf_name,
                 'guid': guids[hw_config_hash],
                 'configs': configs
               }
-        sets.append(set)
+        sets.append(metric_set)
 
     c("\nenum metric_set_id {")
     c.indent(8)
     c("METRIC_SET_ID_" + sets[0]['perf_name'] + " = 1,");
-    for set in sets[1:]:
-        c("METRIC_SET_ID_" + set['perf_name'] + ",");
+    for metric_set in sets[1:]:
+        c("METRIC_SET_ID_" + metric_set['perf_name'] + ",");
 
     c.outdent(8)
     c("};")
@@ -547,70 +561,42 @@ for arg in args.xml:
     h("extern int i915_oa_n_builtin_metric_sets_" + chipset.lower() + ";\n\n")
     c("\nint i915_oa_n_builtin_metric_sets_" + chipset.lower() + " = " + str(len(sets)) + ";\n")
 
-    for set in sets:
-
-        set_name = set['name']
-
-        configs = set['configs']
+    for metric_set in sets:
+        set_name = metric_set['name']
+        configs = metric_set['configs']
 
         mux_configs = []
         b_counter_configs = []
         flex_configs = []
         for config in configs:
-
-            config_id = int(config.get('id'))
-            if config.get('priority'):
-                config_priority = int(config.get('priority'))
-            else:
-                config_priority = 0
-
-            is_mux_config = False
-            is_b_counter_config = False
-            is_flex_config = False
-
-            for reg in config.findall("register"):
-                reg_type = reg.get('type')
-                if reg_type == 'NOA':
-                    if is_mux_config == False:
-                        mux_configs.append((config_id, config_priority, config))
-                        is_mux_config = True
-                elif reg_type == 'OA':
-                    if is_b_counter_config == False:
-                        assert config.get('availability') == None
-                        b_counter_configs.append((config_id, config_priority, config))
-                        is_b_counter_config = True
-                elif reg_type == 'FLEX':
-                    if is_flex_config == False:
-                        assert chipset != 'HSW'
-                        assert config.get('availability') == None
-                        flex_configs.append((config_id, config_priority, config))
-                        is_flex_config = True
-
-        assert len(mux_configs) >= 1
-        mux_config_ids = {}
-        for mux_cfg_tuple in mux_configs:
-            (mux_id, mux_pri, mux_cfg) = mux_cfg_tuple
-            mux_config_ids[mux_id] = True
-        if len(mux_config_ids) > 1:
-            print("ERROR: " + chipset + "::" + set_name + " has multiple NOA config IDs: NOT CORRECTLY HANDLED")
-
+            config_type = config.get('type')
+            if config_type == "NOA":
+                if config.get('priority') != None:
+                    priority = int(config.get('priority'))
+                else:
+                    priority = 0
+                mux_configs.append((priority, config))
+            elif config_type == "OA":
+                b_counter_configs.append(config)
+            elif config_type == "FLEX":
+                flex_configs.append(config)
 
         if len(b_counter_configs) == 0:
             empty = et.Element('register_config')
-            b_counter_configs.append((0, 0, empty))
+            b_counter_configs.append(empty)
         assert len(b_counter_configs) == 1
-        output_b_counter_config(set, b_counter_configs[0])
+        output_b_counter_config(metric_set, b_counter_configs[0])
 
         if len(flex_configs) == 0:
             empty = et.Element('register_config')
-            flex_configs.append((0, 0, empty))
+            flex_configs.append(empty)
         assert len(flex_configs) == 1
-        output_flex_config(set, flex_configs[0])
+        output_flex_config(metric_set, flex_configs[0])
 
-        mux_configs.sort(key=itemgetter(0, 1))
-        output_mux_configs(set, mux_configs)
+        assert len(mux_configs) >= 1
+        output_mux_configs(metric_set, mux_configs)
 
-        output_mux_config_get_func(set, mux_configs)
+        output_mux_config_get_func(metric_set, mux_configs)
 
 
 h("extern int i915_oa_select_metric_set_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
@@ -632,9 +618,9 @@ c("\n")
 
 c("switch (dev_priv->perf.oa.metrics_set) {")
 
-for set in sets:
-    perf_name = set['perf_name']
-    perf_name_lc = set['perf_name_lc']
+for metric_set in sets:
+    perf_name = metric_set['perf_name']
+    perf_name_lc = metric_set['perf_name_lc']
 
     c("case METRIC_SET_ID_" + perf_name + ":")
     c.indent(8)
@@ -648,7 +634,7 @@ for set in sets:
     c.outdent(8)
     c("if (!dev_priv->perf.oa.mux_regs) {")
     c.indent(8)
-    c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + set['perf_name'] + "\\\" metric set\");\n")
+    c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + metric_set['perf_name'] + "\\\" metric set\");\n")
     c("\n")
     c("/* EINVAL because *_register_sysfs already checked this")
     c(" * and so it wouldn't have been advertised so userspace and")
@@ -659,7 +645,7 @@ for set in sets:
     c("}")
 
     c("")
-    output_b_and_flex_configs_select(set, b_counter_configs[0], flex_configs[0])
+    output_b_and_flex_configs_select(metric_set, b_counter_configs[0], flex_configs[0])
     c("\n")
     c("return 0;")
     c.outdent(8)
