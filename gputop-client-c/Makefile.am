@@ -1,4 +1,4 @@
-BUILT_SOURCE = \
+BUILT_SOURCES = \
     oa-hsw.h \
     oa-hsw.c \
     oa-bdw.h \
