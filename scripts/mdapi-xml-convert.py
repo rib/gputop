@@ -39,6 +39,7 @@
 import argparse
 import copy
 import hashlib
+from operator import itemgetter
 import re
 import sys
 import time
@@ -382,13 +383,119 @@ def filter_single_config_registers_of_type(mdapi_metric_set, type):
     return regs
 
 
-def add_register_config(set, id, priority, availability, regs, type):
+# We only have a very small number of IDs, but we aren't assuming they
+# start from zero or are contiguous in the MDAPI XML files. Python
+# doesn't seem to have a built in sparse array type so we just
+# loop over the entries we have:
+def get_mux_id_group(id_groups, id):
+    for group in id_groups:
+        if group['id'] == id:
+            return group
+
+    new_group = { 'id': id, 'configs': [] }
+    id_groups.append(new_group)
+
+    return new_group
+
+
+
+def process_mux_configs(mdapi_set):
+    allow_missing_id = True
+
+    mux_config_id_groups = []
+
+    for mdapi_reg_config in mdapi_set.findall("RegConfigStart"):
+
+        mux_regs = []
+        for mdapi_reg in mdapi_reg_config.findall("Register"):
+            address = int(mdapi_reg.get('offset'), 16)
+
+            if address in chipsets[chipset]['config_reg_blacklist']:
+                continue
+
+            reg_type = mdapi_reg.get('type')
+
+            if reg_type not in register_types:
+                print_err("ERROR: unknown register type=\"" + reg_type + "\": MetricSet=\"" + mdapi_set.get('ShortName'))
+                sys.exit(1)
+
+            if reg_type != 'NOA':
+                continue
+
+            reg = (address, int(mdapi_reg.get('value'), 16))
+            mux_regs.append(reg)
+
+        if len(mux_regs) == 0:
+            continue
+
+        availability = mdapi_reg_config.get('AvailabilityEquation')
+        if availability == "":
+            availability = None
+
+        if mdapi_reg_config.get('ConfigPriority') != None:
+            reg_config_priority = int(mdapi_reg_config.get('ConfigPriority'))
+        else:
+            reg_config_priority = 0
+
+        if mdapi_reg_config.get('ConfigId') != None:
+            reg_config_id = int(mdapi_reg_config.get('ConfigId'))
+            allow_missing_id = False
+        elif mdapi_reg_config.get('ConfigId') == None and allow_missing_id == True:
+            reg_config_id = 0
+        else:
+            # It will spell trouble if there's a mixture of explicit and
+            # implied config IDs...
+            print_err("ERROR: register configs mixing implied/explicit IDs: MetricSet=\"" + mdapi_set.get('ShortName'))
+            sys.exit(1)
+
+        mux_config = { 'priority': reg_config_priority,
+                       'availability': availability,
+                       'registers': mux_regs }
+
+        mux_config_id_group = get_mux_id_group(mux_config_id_groups, reg_config_id)
+        mux_config_id_group['configs'].append(mux_config)
+
+    mux_config_id_groups.sort(key=itemgetter('id'))
+
+    # The only special case we currently support for more than one group of NOA
+    # MUX configs is for the Broadwell ComputeExtended metric set with two Id
+    # groups and the second just has a single unconditional config that can
+    # logically be appended to all the conditional configs of the first group
+    if len(mux_config_id_groups) > 1:
+        if len(mux_config_id_groups) != 2:
+            print_err("ERROR: Script doesn't currently allow more than two groups of NOA MUX configs for a single metric set: MetricSet=\"" + mdapi_set.get('ShortName'))
+            sys.exit(1)
+
+        last_id_group = mux_config_id_groups[-1]
+        if len(last_id_group['configs']) != 1:
+            print_err("ERROR: Script currently only allows up to two Ids for NOA MUX configs if second Id only contains a single unconditional config: MetricSet=\"" + mdapi_set.get('ShortName'))
+            sys.exit(1)
+
+        tail_config = last_id_group['configs'][0]
+        for mux_config in mux_config_id_groups[0]['configs']:
+            mux_config['registers'] = mux_config['registers'] + tail_config['registers']
+
+        mux_config_id_groups = [mux_config_id_groups[0]]
+
+    if len(mux_config_id_groups) == 0 or mux_config_id_groups[0]['configs'] == 0:
+        print_err("ERROR: MUX register configs missing: MetricSet=\"" + mdapi_set.get('ShortName'))
+        sys.exit(1)
+
+    mux_configs = mux_config_id_groups[0]['configs']
+    assert isinstance(mux_configs, list)
+    assert len(mux_configs) >= 1
+    assert len(mux_configs[0]['registers']) > 1 # > 1 registers
+    return mux_configs
+
+
+def add_register_config(set, priority, availability, regs, type):
     reg_config = et.SubElement(set, 'register_config')
 
-    reg_config.set('id', str(id))
-    reg_config.set('priority', str(reg_config_priority))
+    reg_config.set('type', type)
 
     if availability != None:
+        assert type == "NOA"
+        reg_config.set('priority', str(priority))
         reg_config.set('availability', availability)
 
     for reg in regs:
@@ -464,6 +571,22 @@ for arg in args.xml:
         # We want to skip over any metric sets that don't yet have a registered
         # GUID in guids.xml.
 
+        # There can be multiple NOA MUX configs, since they may have associated
+        # availability tests to match particular systems.
+        #
+        # Unlike the MDAPI XML files we only support tracking one group of
+        # mutually exclusive MUX configs, whereas the MDAPI XML files
+        # theoretically allow a single metric set to be associated with ordered
+        # groups of mutually exclusive configs. So far there is only one
+        # Broadwell, ComputeExtended metric set which uses this, but that
+        # particular case can be expressed in less general terms.
+        #
+        # Being a bit simpler here should make it easier for downstream tools
+        # to deal with. (At least we got the handling of the Broadwell
+        # ComputeExtended example wrong and it took several email exchanges and
+        # a conference call to confirm how to interpret this case)
+        mux_configs = process_mux_configs(mdapi_set)
+
         # Unlike for MUX registers, we only expect one set of FLEX/OA
         # registers per metric set (even though they are sometimes duplicated
         # between configs in MDAPI XML files.
@@ -477,74 +600,15 @@ for arg in args.xml:
         flex_regs = filter_single_config_registers_of_type(mdapi_set, "FLEX")
         oa_regs = filter_single_config_registers_of_type(mdapi_set, "OA")
 
+
         # Note: we ignore Perfmon registers
 
-        # Filter the MUX register configs...
-        #
-        allow_missing_id = True
-        n_configs = 0
-        max_id = 0
-        for mdapi_reg_config in mdapi_set.findall("RegConfigStart"):
-
-            mux_regs = []
-            for mdapi_reg in mdapi_reg_config.findall("Register"):
-                address = int(mdapi_reg.get('offset'), 16)
-
-                if address in chipsets[chipset]['config_reg_blacklist']:
-                    continue
-
-                reg_type = mdapi_reg.get('type')
-
-                if reg_type not in register_types:
-                    print_err("ERROR: unknown register type=\"" + reg_type + "\": MetricSet=\"" + mdapi_set.get('ShortName'))
-                    sys.exit(1)
-
-                if reg_type != 'NOA':
-                    continue
-
-                reg = (address, int(mdapi_reg.get('value'), 16))
-                mux_regs.append(reg)
-
-            if len(mux_regs) == 0:
-                continue
-
-            if mdapi_reg_config.get('ConfigId') != None:
-                reg_config_id = int(mdapi_reg_config.get('ConfigId'))
-                allow_missing_id = False
-            elif mdapi_reg_config.get('ConfigId') == None and allow_missing_id == True:
-                reg_config_id = 0
-            else:
-                # It will spell trouble if there's a mixture of explicit and
-                # implied config IDs...
-                print_err("ERROR: register configs mixing implied/explicit IDs: MetricSet=\"" + mdapi_set.get('ShortName'))
-                sys.exit(1)
-
-            if mdapi_reg_config.get('ConfigPriority') != None:
-                reg_config_priority = int(mdapi_reg_config.get('ConfigPriority'))
-            else:
-                reg_config_priority = 0
-
-            availability = mdapi_reg_config.get('AvailabilityEquation')
-            if availability == "":
-                availability = None
-
-            if reg_config_id > max_id:
-                max_id = reg_config_id
-
-            add_register_config(set, reg_config_id, reg_config_priority, availability, mux_regs, "NOA")
-
-            n_configs = n_configs + 1
-
-        if n_configs == 0:
-            print_err("ERROR: MUX register configs missing: MetricSet=\"" + mdapi_set.get('ShortName'))
-            sys.exit(1)
-
+        for mux_config in mux_configs:
+            add_register_config(set, mux_config['priority'], mux_config['availability'], mux_config['registers'], "NOA")
         if len(oa_regs) > 0:
-            add_register_config(set, max_id + 1, 0, None, oa_regs, "OA")
-            max_id = max_id + 1
+            add_register_config(set, 0, None, oa_regs, "OA")
         if len(flex_regs) > 0:
-            add_register_config(set, max_id + 1, 0, None, flex_regs, "FLEX")
-            max_id = max_id + 1
+            add_register_config(set, 0, None, flex_regs, "FLEX")
 
         mdapi_hw_config_hash = oa_registry.Registry.mdapi_hw_config_hash(mdapi_set)
         hw_config_hash = oa_registry.Registry.hw_config_hash(set)
@@ -892,12 +956,12 @@ for set in metrics.findall(".//set"):
         print("             />")
     for config in set.findall("register_config"):
         if config.get('availability') != None:
-            print("    <register_config id=\"" + config.get('id') + "\"")
+            print("    <register_config type=\"" + config.get('type') + "\"")
             print("                     availability=\"" + saxutils.escape(config.get('availability')) + "\"")
             print("                     priority=\"" + config.get('priority') + "\"")
             print("                     >")
         else:
-            print("    <register_config id=\"" + config.get('id') + "\">")
+            print("    <register_config type=\"" + config.get('type') + "\">")
         for reg in config.findall("register"):
             addr = int(reg.get('address'), 16)
 
