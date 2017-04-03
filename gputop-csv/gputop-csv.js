@@ -457,7 +457,9 @@ parser.addArgument(
     [ '-m', '--metrics' ],
     {
         help: "Metric set to capture (default 'list')",
-        defaultValue: 'list'
+        defaultValue: 'list',
+        constant: 'list',
+        nargs: '?'
     }
 );
 
@@ -465,7 +467,9 @@ parser.addArgument(
     [ '-c', '--columns' ],
     {
         help: "Comma separated counter symbol names for columns (default = 'list')",
-        defaultValue: 'list'
+        defaultValue: 'list',
+        constant: 'list',
+        nargs: '?'
     }
 );
 
