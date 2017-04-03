@@ -527,8 +527,10 @@ function init(pretty_print) {
     gputop.stream = stream;
     gputop.requested_columns_ = args.columns.split(",");
 
-    gputop.connect(args.address, () => {
+    gputop.connect(args.address, () => { // onopen
         stderr_log.log("Connected");
+    }, () => { // onerror
+        stderr_log.log("Failed to connect to address = \"" + args.address + "\"");
     });
 
 }
