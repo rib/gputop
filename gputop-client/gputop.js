@@ -691,8 +691,8 @@ Gputop.prototype.format_counter_value = function(accumulated_counter, compact) {
         var scale = {"bytes":["", "KiB", "MiB", "GiB"],
                      "ns":["", "μs", "ms", "s"],
                      "hz":["", "KHz", "MHz", "GHz"],
-                     "texels":["", "KT", " MT", "GT"],
-                     "pixels":["", "KP", " MP", "GP"],
+                     "texels":["", "KT", "MT", "GT"],
+                     "pixels":["", "KP", "MP", "GP"],
                      "cycles":["", "ᴇ3", "ᴇ6", "ᴇ9"],
                      "threads":["", "ᴇ3", "ᴇ6", "ᴇ9"]};
     }
