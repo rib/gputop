@@ -171,7 +171,7 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_NODE_CLIENTS, [test "$enable_node_clients" = "yes"])
 AS_IF([test "$enable_node_clients" = "yes" -a "$node_looks_good" = "no"],
       [
-        NODE_WARNING="(WARNING: node toolchain checks didn't pass: node >=$MIN_NODE_MAJOR, node-gyp >=$MIN_NODE_GYP_MAJOR and npm exists)"
+        NODE_WARNING="(WARNING: node toolchain checks didn't pass: node ($NODE_MAJOR.$NODE_MINOR.$NODE_MICRO) >=$MIN_NODE_MAJOR, node-gyp ($NODE_GYP_MAJOR.$NODE_GYP_MINOR.$NODE_GYP_MICRO) >=$MIN_NODE_GYP_MAJOR and npm exists)"
       ])
 
 AM_CONDITIONAL(ENABLE_CLIENTS, [test "$enable_web_ui" = "yes" -o "$enable_node_clients" = "yes"])
