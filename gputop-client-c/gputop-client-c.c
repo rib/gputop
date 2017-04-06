@@ -389,10 +389,12 @@ gputop_cc_update_system_metrics(void)
             gputop_cr_console_error("Unsupported Skylake GT size");
             assert_not_reached();
         }
-    } else if (IS_BROXTON(devid))
+    } else if (IS_BROXTON(devid)) {
         gputop_oa_add_metrics_bxt(&gputop_devinfo);
-    else
+    } else {
+        gputop_cr_console_error("FIXME: Unknown platform device ID 0x%x: " __FILE__, devid);
         assert_not_reached();
+    }
 }
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
