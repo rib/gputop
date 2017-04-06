@@ -749,9 +749,10 @@ init_dev_info(int drm_fd, uint32_t devid)
                 ss_max = 3;
                 gputop_devinfo.gen = 9;
 
-                if (IS_BROXTON(devid))
-                    gputop_devinfo.timestamp_frequency = 19200123;
-                else
+                if (IS_BROXTON(devid)) {
+                    threads_per_eu = 6;
+                    gputop_devinfo.timestamp_frequency = 19200000;
+                } else
                     gputop_devinfo.timestamp_frequency = 12000000;
             } else {
                 fprintf(stderr, "FIXME: unsupported system\n");
