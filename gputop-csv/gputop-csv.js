@@ -367,7 +367,7 @@ function write_rows(metric, accumulator)
 
             if (counter === this.dummy_timestamp_counter) {
                 if (this.pretty_print_csv_)
-                    row += sp.sprintf("%-" + counter.col_width_ + "s", row_timestamp + ",");
+                    row += sp.sprintf("%-" + counter.col_width_ + "s", Math.round(row_timestamp) + ",");
                 else
                     row += row_timestamp + ",";
             } else if (counter.record_data === true) {
