@@ -92,7 +92,7 @@
     <guid config_hash="fc0ca245fea7159d5e7a245bae27cbe6" mdapi_config_hash="6b1a9dc8dd375bf367313ad9b0531580" id="893f1a4d-919d-4388-8cb7-746d73ea7259" chipset="sklgt2" name="TDL_2" />
     <guid config_hash="1cae004af2f4c7e57693813993d6c892" mdapi_config_hash="4be337ed83e3c95aebf66553ed685602" id="41a24047-7484-4ead-ae37-de907e5ff2b2" chipset="sklgt2" name="ComputeExtra" />
     <guid config_hash="a78d59d08e884c46150b1816e90e2512" mdapi_config_hash="2fe32bdaf82fc66774ee95c33a23ea88" id="95910492-943f-44bd-9461-390240f243fd" chipset="sklgt2" name="VMEPipe" />
-    <guid config_hash="64e98ee8f930741def510ac37b7f864e" mdapi_config_hash="f3e2e9783717324193bdc5c0ed384047" id="1651949f-0ac0-4cb1-a06f-dafd74a407d1" chipset="sklgt2" name="TestOa" />
+    <guid config_hash="92194da4ab139abceafb10e994681141" mdapi_config_hash="d569893983ce055b9021b64420894431" id="1651949f-0ac0-4cb1-a06f-dafd74a407d1" chipset="sklgt2" name="TestOa" />
     <guid config_hash="bcf30966796400d9442865af3df6edcc" mdapi_config_hash="59a53a0ed9ec1079e5a4160189aa2c78" id="4616d450-2393-4836-8146-53c5ed84d359" chipset="sklgt3" name="RenderBasic" />
     <guid config_hash="3605a5a0ce965f2b80b1479e3acefd01" mdapi_config_hash="87390c127ce809c3cfab64388ddebd14" id="4320492b-fd03-42ac-922f-dbe1ef3b7b58" chipset="sklgt3" name="ComputeBasic" />
     <guid config_hash="565a92ff58a4f65a52f06132ec0f05b9" mdapi_config_hash="2d95f03caa28b40e2a25f3bc8ac38b55" id="bd2d9cae-b9ec-4f5b-9d2f-934bed398a2d" chipset="sklgt3" name="RenderPipeProfile" />
