@@ -85,6 +85,7 @@
     <guid config_hash="351852d7421ee0e9e9757947fa38d978" mdapi_config_hash="ad512c0f8b7457df8edca72ddea75e64" id="8364e2a8-af63-40af-b0d5-42969a255654" chipset="bxt" name="Sampler" />
     <guid config_hash="305f101473b3c512d7e9892907c9919a" mdapi_config_hash="963e6d32bfe8cee347a8ae14d677c11c" id="175c8092-cb25-4d1e-8dc7-b4fdd39e2d92" chipset="bxt" name="TDL_1" />
     <guid config_hash="bbdda7d5cb984807f28ead363e9acf86" mdapi_config_hash="a66f0092b99ca3a8ce29e0ce4be513ff" id="d260f03f-b34d-4b49-a44e-436819117332" chipset="bxt" name="TDL_2" />
+    <guid mdapi_config_hash="f97b8516df9ee8b2f3c4ad8289161079" id="8655146c-0ffd-4eea-a525-1db843c728e0" chipset="bxt" name="RenderDX1x" />
     <guid config_hash="36cbb027f6bf7e5779e5f0493989423f" mdapi_config_hash="368f1c24eefa8dbb17872efd9c002b52" id="f519e481-24d2-4d42-87c9-3fdd12c00202" chipset="sklgt2" name="RenderBasic" />
     <guid config_hash="52e59ad775fea27fd59997e0a30e571a" mdapi_config_hash="4b4c1c2d0b5ab44101227b371bcaded8" id="fe47b29d-ae51-423e-bff4-27d965a95b60" chipset="sklgt2" name="ComputeBasic" />
     <guid mdapi_config_hash="22557d63c9563faec22f233578a0c289" id="ef669f42-cb31-432a-9919-f0a571d580e7" chipset="sklgt2" name="RenderDX1x" />
