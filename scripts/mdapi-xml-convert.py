@@ -563,7 +563,7 @@ for arg in args.xml:
 
 
         # Look at the hardware register config before looking at the counters.
-        # 
+        #
         # The hardware configuration is used as a key to lookup up a GUID which
         # is used by applications to lookup the corresponding counter
         # normalization equations.

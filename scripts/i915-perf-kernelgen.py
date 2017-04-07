@@ -461,7 +461,7 @@ def output_sysfs_code(sets):
     c.outdent(8)
     c("}")
 
-   
+
 parser = argparse.ArgumentParser()
 parser.add_argument("xml", nargs="+", help="XML description of metrics")
 parser.add_argument("--guids", required=True, help="Metric set GUID registry")
@@ -666,4 +666,3 @@ if args.sysfs:
     output_sysfs_code(sets)
 
 h("#endif\n")
-
