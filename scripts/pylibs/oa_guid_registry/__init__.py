@@ -61,3 +61,13 @@ class Registry:
 
         return hashlib.md5(registers_str).hexdigest()
 
+
+    @staticmethod
+    def chipset_derive_hash(chipset, hash):
+        """Derive a HW config hash for a given chipset.
+
+        This helps us avoiding collisions with identical config across
+        different Gen or GT.
+        """
+
+        return "%s-%s" % (chipset, hash)

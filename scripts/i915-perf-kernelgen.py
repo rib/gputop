@@ -477,11 +477,13 @@ args = parser.parse_args()
 
 guids = {}
 
+chipset = args.chipset.upper()
+
 guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
-    guids[guid.get('config_hash')] = guid.get('id')
-
-chipset = args.chipset.upper()
+    if 'config_hash' in guid.attrib:
+        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset, guid.get('config_hash'))
+        guids[hashing_key] = guid.get('id')
 
 # Note: either filename argument may == None
 h = codegen.Codegen(args.h_out);
@@ -531,8 +533,9 @@ for arg in args.xml:
             continue
 
         hw_config_hash = oa_registry.Registry.hw_config_hash(set_element)
-        if hw_config_hash not in guids:
-            print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_element.get('name') + " (expected config_hash = " + hw_config_hash + ") (SKIPPING)")
+        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset, hw_config_hash)
+        if hashing_key not in guids:
+            print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_element.get('name') + " (expected key = " + hashing_key + ") (SKIPPING)")
             continue
 
         perf_name_lc = underscore(set_name)
@@ -544,7 +547,7 @@ for arg in args.xml:
                 'chipset_lc': chipset.lower(),
                 'perf_name_lc': perf_name_lc,
                 'perf_name': perf_name,
-                'guid': guids[hw_config_hash],
+                'guid': guids[hashing_key],
                 'configs': configs
               }
         sets.append(metric_set)

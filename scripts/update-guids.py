@@ -58,6 +58,9 @@ import pylibs.oa_guid_registry as oa_registry
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
+def guid_hashing_key(guid_obj):
+    return oa_registry.Registry.chipset_derive_hash(guid_obj['chipset'],
+                                                    guid_obj['mdapi_config_hash'])
 
 parser = argparse.ArgumentParser()
 parser.add_argument("xml", nargs="+", help="XML description of metrics")
@@ -96,7 +99,9 @@ for guid in guids_xml.findall(".//guid"):
         named_guid_table[guid_obj['chipset'] + "_" + guid_obj['name']] = guid_obj
 
     if 'mdapi_config_hash' in guid_obj:
-        mdapi_config_hash_guid_table[guid_obj['mdapi_config_hash']] = guid_obj
+        hashing_key = oa_registry.Registry.chipset_derive_hash(guid_obj['chipset'],
+                                                               guid_obj['mdapi_config_hash'])
+        mdapi_config_hash_guid_table[hashing_key] = guid_obj
 
     guids.append(guid_obj)
 
@@ -128,8 +133,9 @@ for arg in args.xml:
 
         name = chipset + "_" + set_name;
 
-        if mdapi_config_hash in mdapi_config_hash_guid_table:
-            guid_obj = mdapi_config_hash_guid_table[mdapi_config_hash]
+        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset, mdapi_config_hash)
+        if hashing_key in mdapi_config_hash_guid_table:
+            guid_obj = mdapi_config_hash_guid_table[hashing_key]
 
             guid_obj['name'] = set_name
             guid_obj['chipset'] = chipset
@@ -153,7 +159,7 @@ for arg in args.xml:
                          'comment': "New"
                        }
             guid_index[guid_obj['id']] = guid_obj
-            mdapi_config_hash_guid_table[guid_obj['mdapi_config_hash']] = guid_obj
+            mdapi_config_hash_guid_table[guid_hashing_key(guid_obj)] = guid_obj
             guids.append(guid_obj)
             print_err("New GUID \"" + guid_obj['id'] + "\" for metric set = " + set_name + " (" + chipset + ")")
 
