@@ -141,4 +141,40 @@
     <guid config_hash="1a3d8b0983894a395370ae13ac42aed0" mdapi_config_hash="f9ae90355e5abe786bf5e81f1c4222c0" id="a5aa857d-e8f0-4dfa-8981-ce340fa748fd" chipset="sklgt4" name="ComputeExtra" />
     <guid config_hash="53c052b60d24bc291bd47d13ab6fb123" mdapi_config_hash="cafc4d5abc6807434093d4f47fe83292" id="0e8d8b86-4ee7-4cdd-aaaa-58adc92cb29e" chipset="sklgt4" name="VMEPipe" />
     <guid config_hash="f8657b2c2fa042c705630083ddf44522" mdapi_config_hash="051007cbfaffa4151d7c9365edde7bff" id="882fa433-1f4a-4a67-a962-c741888fe5f5" chipset="sklgt4" name="TestOa" />
+    <guid config_hash="5f876c4716c368747d156c771a857a2b" mdapi_config_hash="6beeb63d0f4e5306e2bb0032b43320e3" id="f8d677e9-ff6f-4df1-9310-0334c6efacce" chipset="kblgt2" name="RenderBasic" />
+    <guid config_hash="0fa574872c450e02ba0553be59eb602d" mdapi_config_hash="86040ee918c1b39c616b777101369f16" id="e17fc42a-e614-41b6-90c4-1074841a6c77" chipset="kblgt2" name="ComputeBasic" />
+    <guid config_hash="5271e2f2732cc9458cd0a7bd3fc6065b" mdapi_config_hash="7ee27e7f11eea3282e62abde604b61a2" id="d7a17a3a-ca71-40d2-a919-ace80d50633f" chipset="kblgt2" name="RenderPipeProfile" />
+    <guid config_hash="ea86bdaa7991e11112f33b28f504c06d" mdapi_config_hash="0779bba85f8be3baef98ecc5c66fd369" id="57b59202-172b-477a-87de-33f85572c589" chipset="kblgt2" name="MemoryReads" />
+    <guid config_hash="ea32607055760805a6d6b8eb2ccddc18" mdapi_config_hash="26eb749438ad7d42e34342048c1019c5" id="3addf8ef-8e9b-40f5-a448-3dbb5d5128b0" chipset="kblgt2" name="MemoryWrites" />
+    <guid config_hash="f640cda6b82dbc67368d6a33193f7c59" mdapi_config_hash="aa2dd4e7d446e3ce29dfeaf8f393243e" id="4af0400a-81c3-47db-a6b6-deddbd75680e" chipset="kblgt2" name="ComputeExtended" />
+    <guid config_hash="54ebc36e26b8b670988a4556c6ab7b70" mdapi_config_hash="2770df840fca647230d55b79f686ae11" id="0e22f995-79ca-4f67-83ab-e9d9772488d8" chipset="kblgt2" name="ComputeL3Cache" />
+    <guid config_hash="b6b11740c9692c7a826fd510bcd39455" mdapi_config_hash="c056251351b0b1f5beb4f6863484854b" id="bc2a00f7-cb8a-4ff2-8ad0-e241dad16937" chipset="kblgt2" name="HDCAndSF" />
+    <guid config_hash="ed394697cea4d978e90c18fbb03f126d" mdapi_config_hash="17d38bff109de8e5622ff29bead0bbcf" id="d2bbe790-f058-42d9-81c6-cdedcf655bc2" chipset="kblgt2" name="L3_1" />
+    <guid config_hash="2226acf5aef4c8cfa1109272c4b26e86" mdapi_config_hash="1a88f6816aea2c42dae9f10d4233cb74" id="2f8e32e4-5956-46e2-af31-c8ea95887332" chipset="kblgt2" name="L3_2" />
+    <guid config_hash="134f567e2bf4d69e5e09ef0a9a11a414" mdapi_config_hash="ae28a594b1a6fd3864272da8dbe873f5" id="ca046aad-b5fb-4101-adce-6473ee6e5b14" chipset="kblgt2" name="L3_3" />
+    <guid config_hash="562ddeb5d280902369f3b17e46ca4cc6" mdapi_config_hash="d1b2421e43a489ffcdfeeaf271b2f12f" id="605f388f-24bb-455c-88e3-8d57ae0d7e9f" chipset="kblgt2" name="RasterizerAndPixelBackend" />
+    <guid config_hash="ac64b291e79122234b7d732e1f88a2aa" mdapi_config_hash="8d5f977be4f4d21e97e9e67786958495" id="31dd157c-bf4e-4bab-bf2b-f5c8174af1af" chipset="kblgt2" name="Sampler" />
+    <guid config_hash="e7782a9a35b3167c3806c4180c50e0e7" mdapi_config_hash="cbef2ea0f1c6e30bd37cea22a87e8373" id="105db928-5542-466b-9128-e1f3c91426cb" chipset="kblgt2" name="TDL_1" />
+    <guid config_hash="fc0ca245fea7159d5e7a245bae27cbe6" mdapi_config_hash="b685ab8fe6fc020e85f189f55fdf6e05" id="03db94d2-b37f-4c58-a791-0d2067b013bb" chipset="kblgt2" name="TDL_2" />
+    <guid config_hash="1cae004af2f4c7e57693813993d6c892" mdapi_config_hash="4be337ed83e3c95aebf66553ed685602" id="aa7a3fb9-22fb-43ff-a32d-0ab6c13bbd16" chipset="kblgt2" name="ComputeExtra" />
+    <guid config_hash="a78d59d08e884c46150b1816e90e2512" mdapi_config_hash="2fe32bdaf82fc66774ee95c33a23ea88" id="398a4268-ef6f-4ffc-b55f-3c7b5363ce61" chipset="kblgt2" name="VMEPipe" />
+    <guid config_hash="f8657b2c2fa042c705630083ddf44522" mdapi_config_hash="5f4afc2f159098e96b8fd90a85979ae3" id="baa3c7e4-52b6-4b85-801e-465a94b746dd" chipset="kblgt2" name="TestOa" />
+    <guid config_hash="8b1238382ca26fb8ad1320b73cd9551d" mdapi_config_hash="b601f480e64547ba26a36592e536ef13" id="0286c920-2f6d-493b-b22d-7a5280df43de" chipset="kblgt3" name="RenderBasic" />
+    <guid config_hash="0fa574872c450e02ba0553be59eb602d" mdapi_config_hash="f56077c263fafefe554173ce024b2827" id="9823aaa1-b06f-40ce-884b-cd798c79f0c2" chipset="kblgt3" name="ComputeBasic" />
+    <guid config_hash="5271e2f2732cc9458cd0a7bd3fc6065b" mdapi_config_hash="808e46d786103380f58d1e8f91402c4c" id="c7c735f3-ce58-45cf-aa04-30b183f1faff" chipset="kblgt3" name="RenderPipeProfile" />
+    <guid config_hash="ea86bdaa7991e11112f33b28f504c06d" mdapi_config_hash="f810d7343822b3a3b9e50820708bfcb3" id="96ec2219-040b-428a-856a-6bc03363a057" chipset="kblgt3" name="MemoryReads" />
+    <guid config_hash="ea32607055760805a6d6b8eb2ccddc18" mdapi_config_hash="af6cd36da93a8ec66d57ba6b504b601f" id="03372b64-4996-4d3b-aa18-790e75eeb9c2" chipset="kblgt3" name="MemoryWrites" />
+    <guid config_hash="f640cda6b82dbc67368d6a33193f7c59" mdapi_config_hash="c4d070800ff5b65caff35d40adb52d04" id="31b4ce5a-bd61-4c1f-bb5d-f2e731412150" chipset="kblgt3" name="ComputeExtended" />
+    <guid config_hash="54ebc36e26b8b670988a4556c6ab7b70" mdapi_config_hash="dcedeef0d1a6b20eaa3f3ee546b048ed" id="2ce0911a-27fc-4887-96f0-11084fa807c3" chipset="kblgt3" name="ComputeL3Cache" />
+    <guid config_hash="cfd300681d2790c07931bf2e1c1e7ea9" mdapi_config_hash="3a893043b806be4b00179663f8f4695e" id="546c4c1d-99b8-42fb-a107-5aaabb5314a8" chipset="kblgt3" name="HDCAndSF" />
+    <guid config_hash="ed394697cea4d978e90c18fbb03f126d" mdapi_config_hash="b97b4654b688f69b1df22e7d9cd08f2b" id="4e93d156-9b39-4268-8544-a8e0480806d7" chipset="kblgt3" name="L3_1" />
+    <guid config_hash="2226acf5aef4c8cfa1109272c4b26e86" mdapi_config_hash="f8870bc48196bdc7c3d08bf0dba3e377" id="de1bec86-ca92-4b43-89fa-147653221cc0" chipset="kblgt3" name="L3_2" />
+    <guid config_hash="134f567e2bf4d69e5e09ef0a9a11a414" mdapi_config_hash="2091a23cf2f835375430e16328f73c7b" id="e63537bb-10be-4d4a-92c4-c6b0c65e02ef" chipset="kblgt3" name="L3_3" />
+    <guid config_hash="562ddeb5d280902369f3b17e46ca4cc6" mdapi_config_hash="6c748481e5e43019bbeb0557c309b65e" id="7a03a9f8-ec5e-46bb-8b67-1f0ff1476281" chipset="kblgt3" name="RasterizerAndPixelBackend" />
+    <guid config_hash="ac64b291e79122234b7d732e1f88a2aa" mdapi_config_hash="c1ea12cf95f7c8be3ca32c6670c15a27" id="b25d2ebf-a6e0-4b29-96be-a9b010edeeda" chipset="kblgt3" name="Sampler" />
+    <guid config_hash="e7782a9a35b3167c3806c4180c50e0e7" mdapi_config_hash="20f9812e7c1c94a2b24dbb6a0596b5e1" id="469a05e5-e299-46f7-9598-7b05f3c34991" chipset="kblgt3" name="TDL_1" />
+    <guid config_hash="fc0ca245fea7159d5e7a245bae27cbe6" mdapi_config_hash="25e39a0a38a1fdbf4e2ff677aad30fc6" id="52f925c6-786a-4ec6-86ce-cba85c83453a" chipset="kblgt3" name="TDL_2" />
+    <guid config_hash="40ae5f8287698f029ac80ed2bf12d55e" mdapi_config_hash="41ebe4b58e504d63d60141faa9d45c18" id="efc497ac-884e-4ee4-a4a8-15fba22aaf21" chipset="kblgt3" name="ComputeExtra" />
+    <guid config_hash="4a27e98d52562e1e344018a1934a5318" mdapi_config_hash="d0ce6de1ad831394a048015990e82864" id="bfd9764d-2c5b-4c16-bfc1-89de3ca10917" chipset="kblgt3" name="VMEPipe" />
+    <guid config_hash="f8657b2c2fa042c705630083ddf44522" mdapi_config_hash="817cb7526b5399e772ed721e062325b3" id="f1792f32-6db2-4b50-b4b2-557128f1688d" chipset="kblgt3" name="TestOa" />
 </guids>

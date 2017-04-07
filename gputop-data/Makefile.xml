@@ -10,7 +10,9 @@ oa_xml_files = \
 	oa-sklgt2.xml \
 	oa-sklgt3.xml \
 	oa-sklgt4.xml \
-	oa-bxt.xml
+	oa-bxt.xml \
+	oa-kblgt2.xml \
+	oa-kblgt3.xml
 
 drm_files = \
 	i915_oa_hsw.h \
@@ -26,7 +28,11 @@ drm_files = \
 	i915_oa_sklgt4.h \
 	i915_oa_sklgt4.c \
 	i915_oa_bxt.h \
-	i915_oa_bxt.c
+	i915_oa_bxt.c \
+	i915_oa_kblgt2.h \
+	i915_oa_kblgt2.c \
+	i915_oa_kblgt3.h \
+	i915_oa_kblgt3.c
 
 hsw_xml = mdapi/MetricsXML_HSW.xml
 bdw_xml = mdapi/MetricsXML_BDW.xml
@@ -35,6 +41,8 @@ sklgt2_xml = mdapi/MetricsXML_SKL_GT2.xml
 sklgt3_xml = mdapi/MetricsXML_SKL_GT3.xml
 sklgt4_xml = mdapi/MetricsXML_SKL_GT4.xml
 bxt_xml = mdapi/MetricsXML_BXT.xml
+kblgt2_xml = mdapi/MetricsXML_KBL_GT2.xml
+kblgt3_xml = mdapi/MetricsXML_KBL_GT3.xml
 
 INTERNAL=0
 ifeq ($(INTERNAL), 1)
