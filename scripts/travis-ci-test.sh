@@ -24,7 +24,7 @@ if [ "${CONFIG_OPTS/'enable-node-clients'}" != "$CONFIG_OPTS" ]; then
     echo "Server Log:"
     cat travis_log
 
-    grep OpenQuery travis_log || exit 1
+    grep -q "OpenStream request received" travis_log || exit 1
 fi
 
 #TODO: test web ui
