@@ -482,7 +482,7 @@ chipset = args.chipset.upper()
 guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
     if 'config_hash' in guid.attrib:
-        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset, guid.get('config_hash'))
+        hashing_key = oa_registry.Registry.chipset_derive_hash(guid.get('chipset'), guid.get('config_hash'))
         guids[hashing_key] = guid.get('id')
 
 # Note: either filename argument may == None
@@ -533,7 +533,7 @@ for arg in args.xml:
             continue
 
         hw_config_hash = oa_registry.Registry.hw_config_hash(set_element)
-        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset, hw_config_hash)
+        hashing_key = oa_registry.Registry.chipset_derive_hash(chipset.lower(), hw_config_hash)
         if hashing_key not in guids:
             print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_element.get('name') + " (expected key = " + hashing_key + ") (SKIPPING)")
             continue
