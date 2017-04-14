@@ -274,6 +274,8 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
 
     if value in hw_vars:
         value = hw_vars[value]['c']
+    if value in counter_vars:
+        value = read_funcs[value[1:]] + "(devinfo, metric_set, accumulator)"
 
     c("\nreturn " + value + ";")
 
