@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2014 DeNA Co., Ltd.
+ * Copyright (c) 2014-2016 DeNA Co., Ltd., Kazuho Oku, Shota Fukumori,
+ *                         Fastly, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -43,8 +44,10 @@ struct st_h2o_http1_conn_t {
     h2o_conn_t super;
     h2o_socket_t *sock;
     /* internal structure */
+    h2o_linklist_t _conns;
     h2o_timeout_t *_timeout;
     h2o_timeout_entry_t _timeout_entry;
+    uint64_t _req_index;
     size_t _prevreqlen;
     size_t _reqsize;
     struct st_h2o_http1_req_entity_reader *_req_entity_reader;
@@ -74,12 +77,13 @@ struct st_h2o_http1_chunked_entity_reader {
 
 static void proceed_pull(struct st_h2o_http1_conn_t *conn, size_t nfilled);
 static void finalostream_start_pull(h2o_ostream_t *_self, h2o_ostream_pull_cb cb);
-static void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs, size_t inbufcnt, int is_final);
-static void reqread_on_read(h2o_socket_t *sock, int status);
+static void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs, size_t inbufcnt, h2o_send_state_t state);
+static void reqread_on_read(h2o_socket_t *sock, const char *err);
+static int foreach_request(h2o_context_t *ctx, int (*cb)(h2o_req_t *req, void *cbdata), void *cbdata);
 
 const h2o_protocol_callbacks_t H2O_HTTP1_CALLBACKS = {
-    NULL /* graceful_shutdown (note: nothing special needs to be done for handling graceful shutdown) */
-};
+    NULL, /* graceful_shutdown (note: nothing special needs to be done for handling graceful shutdown) */
+    foreach_request};
 
 static int is_msie(h2o_req_t *req)
 {
@@ -92,24 +96,26 @@ static int is_msie(h2o_req_t *req)
     return 1;
 }
 
-static void init_request(struct st_h2o_http1_conn_t *conn, int reinit)
+static void init_request(struct st_h2o_http1_conn_t *conn)
 {
-    if (reinit)
+    if (conn->_req_index != 0)
         h2o_dispose_request(&conn->req);
     h2o_init_request(&conn->req, &conn->super, NULL);
 
+    ++conn->_req_index;
     conn->req._ostr_top = &conn->_ostr_final.super;
     conn->_ostr_final.super.do_send = finalostream_send;
     conn->_ostr_final.super.start_pull = finalostream_start_pull;
     conn->_ostr_final.sent_headers = 0;
 }
 
-static void close_connection(struct st_h2o_http1_conn_t *conn)
+static void close_connection(struct st_h2o_http1_conn_t *conn, int close_socket)
 {
     h2o_timeout_unlink(&conn->_timeout_entry);
     h2o_dispose_request(&conn->req);
-    if (conn->sock != NULL)
+    if (conn->sock != NULL && close_socket)
         h2o_socket_close(conn->sock);
+    h2o_linklist_unlink(&conn->_conns);
     free(conn);
 }
 
@@ -133,21 +139,26 @@ static void process_request(struct st_h2o_http1_conn_t *conn)
         (conn->req.upgrade.len == 3 ||
          (conn->req.upgrade.len == 6 && (memcmp(conn->req.upgrade.base + 3, H2O_STRLIT("-14")) == 0 ||
                                          memcmp(conn->req.upgrade.base + 3, H2O_STRLIT("-16")) == 0)))) {
-        if (h2o_http2_handle_upgrade(&conn->req) == 0) {
+        if (h2o_http2_handle_upgrade(&conn->req, conn->super.connected_at) == 0) {
             return;
         }
     }
     h2o_process_request(&conn->req);
 }
 
-static void entity_read_send_error(struct st_h2o_http1_conn_t *conn, int status, const char *reason, const char *body)
-{
-    conn->_req_entity_reader = NULL;
-    set_timeout(conn, NULL, NULL);
-    h2o_socket_read_stop(conn->sock);
-    conn->req.http1_is_persistent = 0;
-    h2o_send_error(&conn->req, status, reason, body, H2O_SEND_ERROR_HTTP1_CLOSE_CONNECTION);
-}
+#define DECL_ENTITY_READ_SEND_ERROR_XXX(status_)                                                                                   \
+    static void entity_read_send_error_##status_(struct st_h2o_http1_conn_t *conn, const char *reason, const char *body)           \
+    {                                                                                                                              \
+        conn->_req_entity_reader = NULL;                                                                                           \
+        set_timeout(conn, NULL, NULL);                                                                                             \
+        h2o_socket_read_stop(conn->sock);                                                                                          \
+        conn->req.http1_is_persistent = 0;                                                                                         \
+        conn->super.ctx->emitted_error_status[H2O_STATUS_ERROR_##status_]++;                                                       \
+        h2o_send_error_generic(&conn->req, status_, reason, body, H2O_SEND_ERROR_HTTP1_CLOSE_CONNECTION);                          \
+    }
+
+DECL_ENTITY_READ_SEND_ERROR_XXX(400)
+DECL_ENTITY_READ_SEND_ERROR_XXX(413)
 
 static void on_entity_read_complete(struct st_h2o_http1_conn_t *conn)
 {
@@ -171,7 +182,7 @@ static void handle_chunked_entity_read(struct st_h2o_http1_conn_t *conn)
     inbuf->size = reader->prev_input_size + bufsz;
     reader->prev_input_size = inbuf->size;
     if (ret != -1 && inbuf->size - conn->_reqsize >= conn->super.ctx->globalconf->max_request_entity_size) {
-        entity_read_send_error(conn, 413, "Request Entity Too Large", "request entity is too large");
+        entity_read_send_error_413(conn, "Request Entity Too Large", "request entity is too large");
         return;
     }
     if (ret < 0) {
@@ -180,7 +191,7 @@ static void handle_chunked_entity_read(struct st_h2o_http1_conn_t *conn)
             return;
         }
         /* error */
-        entity_read_send_error(conn, 400, "Invalid Request", "broken chunked-encoding");
+        entity_read_send_error_400(conn, "Invalid Request", "broken chunked-encoding");
         return;
     }
     /* complete */
@@ -188,7 +199,7 @@ static void handle_chunked_entity_read(struct st_h2o_http1_conn_t *conn)
     conn->_reqsize = inbuf->size;
     inbuf->size += ret; /* restore the number of extra bytes */
 
-    return on_entity_read_complete(conn);
+    on_entity_read_complete(conn);
 }
 
 static int create_chunked_entity_reader(struct st_h2o_http1_conn_t *conn)
@@ -235,7 +246,7 @@ static int create_entity_reader(struct st_h2o_http1_conn_t *conn, const struct p
     if (entity_header->name_len == sizeof("transfer-encoding") - 1) {
         /* transfer-encoding */
         if (!h2o_lcstris(entity_header->value, entity_header->value_len, H2O_STRLIT("chunked"))) {
-            entity_read_send_error(conn, 400, "Invalid Request", "unknown transfer-encoding");
+            entity_read_send_error_400(conn, "Invalid Request", "unknown transfer-encoding");
             return -1;
         }
         return create_chunked_entity_reader(conn);
@@ -243,11 +254,11 @@ static int create_entity_reader(struct st_h2o_http1_conn_t *conn, const struct p
         /* content-length */
         size_t content_length = h2o_strtosize(entity_header->value, entity_header->value_len);
         if (content_length == SIZE_MAX) {
-            entity_read_send_error(conn, 400, "Invalid Request", "broken content-length header");
+            entity_read_send_error_400(conn, "Invalid Request", "broken content-length header");
             return -1;
         }
         if (content_length > conn->super.ctx->globalconf->max_request_entity_size) {
-            entity_read_send_error(conn, 413, "Request Entity Too Large", "request entity is too large");
+            entity_read_send_error_413(conn, "Request Entity Too Large", "request entity is too large");
             return -1;
         }
         return create_content_length_entity_reader(conn, (size_t)content_length);
@@ -266,9 +277,13 @@ static ssize_t init_headers(h2o_mem_pool_t *pool, h2o_headers_t *headers, const 
     /* setup */
     if (len != 0) {
         size_t i;
-        h2o_vector_reserve(pool, (h2o_vector_t *)headers, sizeof(h2o_header_t), len);
+        h2o_vector_reserve(pool, headers, len);
         for (i = 0; i != len; ++i) {
             const h2o_token_t *name_token;
+            char orig_case[src[i].name_len];
+
+            /* preserve the original case */
+            memcpy(orig_case, src[i].name, src[i].name_len);
             /* convert to lower-case in-place */
             h2o_strtolower((char *)src[i].name, src[i].name_len);
             if ((name_token = h2o_lookup_token(src[i].name, src[i].name_len)) != NULL) {
@@ -291,12 +306,12 @@ static ssize_t init_headers(h2o_mem_pool_t *pool, h2o_headers_t *headers, const 
                         assert(!"logic flaw");
                     }
                 } else {
-                    h2o_add_header(pool, headers, name_token, src[i].value, src[i].value_len);
+                    h2o_add_header(pool, headers, name_token, orig_case, src[i].value, src[i].value_len);
                     if (name_token == H2O_TOKEN_CONNECTION)
                         *connection = headers->entries[headers->size - 1].value;
                 }
             } else {
-                h2o_add_header_by_str(pool, headers, src[i].name, src[i].name_len, 0, src[i].value, src[i].value_len);
+                h2o_add_header_by_str(pool, headers, src[i].name, src[i].name_len, 0, orig_case, src[i].value, src[i].value_len);
             }
         }
     }
@@ -362,17 +377,31 @@ static ssize_t fixup_request(struct st_h2o_http1_conn_t *conn, struct phr_header
     return entity_header_index;
 }
 
-static void on_continue_sent(h2o_socket_t *sock, int status)
+static void on_continue_sent(h2o_socket_t *sock, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = sock->data;
 
-    if (status != 0) {
-        close_connection(conn);
+    if (err != NULL) {
+        close_connection(conn, 1);
         return;
     }
 
     h2o_socket_read_start(sock, reqread_on_read);
     conn->_req_entity_reader->handle_incoming_entity(conn);
+}
+
+static int contains_crlf_only(const char *s, size_t len)
+{
+    for (; len != 0; ++s, --len)
+        if (!(*s == '\r' || *s == '\n'))
+            return 0;
+    return 1;
+}
+
+static void send_bad_request(struct st_h2o_http1_conn_t *conn)
+{
+    h2o_socket_read_stop(conn->sock);
+    h2o_send_error_400(&conn->req, "Bad Request", "Bad Request", H2O_SEND_ERROR_HTTP1_CLOSE_CONNECTION);
 }
 
 static void handle_incoming_request(struct st_h2o_http1_conn_t *conn)
@@ -384,6 +413,10 @@ static void handle_incoming_request(struct st_h2o_http1_conn_t *conn)
     ssize_t entity_body_header_index;
     h2o_iovec_t expect;
 
+    /* need to set request_begin_at here for keep-alive connection */
+    if (conn->req.timestamps.request_begin_at.tv_sec == 0)
+        conn->req.timestamps.request_begin_at = *h2o_get_timestamp(conn->super.ctx, NULL, NULL);
+
     reqlen = phr_parse_request(conn->sock->input->bytes, inreqlen, (const char **)&conn->req.input.method.base,
                                &conn->req.input.method.len, (const char **)&conn->req.input.path.base, &conn->req.input.path.len,
                                &minor_version, headers, &num_headers, conn->_prevreqlen);
@@ -393,12 +426,13 @@ static void handle_incoming_request(struct st_h2o_http1_conn_t *conn)
     default: // parse complete
         conn->_reqsize = reqlen;
         if ((entity_body_header_index = fixup_request(conn, headers, num_headers, minor_version, &expect)) != -1) {
+            conn->req.timestamps.request_body_begin_at = *h2o_get_timestamp(conn->super.ctx, NULL, NULL);
             if (expect.base != NULL) {
                 if (!h2o_lcstris(expect.base, expect.len, H2O_STRLIT("100-continue"))) {
                     set_timeout(conn, NULL, NULL);
                     h2o_socket_read_stop(conn->sock);
-                    h2o_send_error(&conn->req, 417, "Expectation Failed", "unknown expectation",
-                                   H2O_SEND_ERROR_HTTP1_CLOSE_CONNECTION);
+                    h2o_send_error_417(&conn->req, "Expectation Failed", "unknown expectation",
+                                       H2O_SEND_ERROR_HTTP1_CLOSE_CONNECTION);
                     return;
                 }
                 static const h2o_iovec_t res = {H2O_STRLIT("HTTP/1.1 100 Continue\r\n\r\n")};
@@ -421,8 +455,7 @@ static void handle_incoming_request(struct st_h2o_http1_conn_t *conn)
         return;
     case -2: // incomplete
         if (inreqlen == H2O_MAX_REQLEN) {
-            // request is too long (TODO notify)
-            close_connection(conn);
+            send_bad_request(conn);
         }
         return;
     case -1: // error
@@ -431,28 +464,32 @@ static void handle_incoming_request(struct st_h2o_http1_conn_t *conn)
             /* should check up to the first octet that phr_parse_request returns an error */
             static const h2o_iovec_t HTTP2_SIG = {H2O_STRLIT("PRI * HTTP/2")};
             if (conn->sock->input->size >= HTTP2_SIG.len && memcmp(conn->sock->input->bytes, HTTP2_SIG.base, HTTP2_SIG.len) == 0) {
-                h2o_context_t *ctx = conn->super.ctx;
-                h2o_hostconf_t **hosts = conn->super.hosts;
+                h2o_accept_ctx_t accept_ctx = {conn->super.ctx, conn->super.hosts};
                 h2o_socket_t *sock = conn->sock;
+                struct timeval connected_at = conn->super.connected_at;
                 /* destruct the connection after detatching the socket */
                 conn->sock = NULL;
-                close_connection(conn);
+                close_connection(conn, 1);
                 /* and accept as http2 connection */
-                h2o_http2_accept(ctx, hosts, sock);
+                h2o_http2_accept(&accept_ctx, sock, connected_at);
                 return;
             }
         }
-        close_connection(conn);
+        if (inreqlen <= 4 && contains_crlf_only(conn->sock->input->bytes, inreqlen)) {
+            close_connection(conn, 1);
+        } else {
+            send_bad_request(conn);
+        }
         return;
     }
 }
 
-void reqread_on_read(h2o_socket_t *sock, int status)
+void reqread_on_read(h2o_socket_t *sock, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = sock->data;
 
-    if (status != 0) {
-        close_connection(conn);
+    if (err != NULL) {
+        close_connection(conn, 1);
         return;
     }
 
@@ -466,9 +503,16 @@ static void reqread_on_timeout(h2o_timeout_entry_t *entry)
 {
     struct st_h2o_http1_conn_t *conn = H2O_STRUCT_FROM_MEMBER(struct st_h2o_http1_conn_t, _timeout_entry, entry);
 
-    /* TODO log */
+    if (conn->_req_index == 1) {
+        /* assign hostconf and bind conf so that the request can be logged */
+        h2o_hostconf_t *hostconf = h2o_req_setup(&conn->req);
+        h2o_req_bind_conf(&conn->req, hostconf, &hostconf->fallback_path);
+        /* set error status for logging */
+        conn->req.res.reason = "Request Timeout";
+    }
+
     conn->req.http1_is_persistent = 0;
-    close_connection(conn);
+    close_connection(conn, 1);
 }
 
 static inline void reqread_start(struct st_h2o_http1_conn_t *conn)
@@ -479,47 +523,49 @@ static inline void reqread_start(struct st_h2o_http1_conn_t *conn)
         handle_incoming_request(conn);
 }
 
-static void on_send_next_push(h2o_socket_t *sock, int status)
+static void on_send_next_push(h2o_socket_t *sock, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = sock->data;
 
-    if (status != 0)
-        close_connection(conn);
+    if (err != NULL)
+        close_connection(conn, 1);
     else
         h2o_proceed_response(&conn->req);
 }
 
-static void on_send_next_pull(h2o_socket_t *sock, int status)
+static void on_send_next_pull(h2o_socket_t *sock, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = sock->data;
 
-    if (status != 0)
-        close_connection(conn);
+    if (err != NULL)
+        close_connection(conn, 1);
     else
         proceed_pull(conn, 0);
 }
 
-static void on_send_complete(h2o_socket_t *sock, int status)
+static void on_send_complete(h2o_socket_t *sock, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = sock->data;
 
     assert(conn->req._ostr_top == &conn->_ostr_final.super);
 
+    conn->req.timestamps.response_end_at = *h2o_get_timestamp(conn->super.ctx, NULL, NULL);
+
     if (!conn->req.http1_is_persistent) {
         /* TODO use lingering close */
-        close_connection(conn);
+        close_connection(conn, 1);
         return;
     }
 
     /* handle next request */
-    init_request(conn, 1);
+    init_request(conn);
     h2o_buffer_consume(&conn->sock->input, conn->_reqsize);
     conn->_prevreqlen = 0;
     conn->_reqsize = 0;
     reqread_start(conn);
 }
 
-static void on_upgrade_complete(h2o_socket_t *socket, int status)
+static void on_upgrade_complete(h2o_socket_t *socket, const char *err)
 {
     struct st_h2o_http1_conn_t *conn = socket->data;
     h2o_http1_upgrade_cb cb = conn->upgrade.cb;
@@ -528,12 +574,13 @@ static void on_upgrade_complete(h2o_socket_t *socket, int status)
     size_t reqsize = 0;
 
     /* destruct the connection (after detaching the socket) */
-    if (status == 0) {
+    if (err == 0) {
         sock = conn->sock;
-        conn->sock = NULL;
         reqsize = conn->_reqsize;
+        close_connection(conn, 0);
+    } else {
+        close_connection(conn, 1);
     }
-    close_connection(conn);
 
     cb(data, sock, reqsize);
 }
@@ -542,7 +589,7 @@ static size_t flatten_headers_estimate_size(h2o_req_t *req, size_t server_name_a
 {
     size_t len = sizeof("HTTP/1.1  \r\ndate: \r\nserver: \r\nconnection: \r\ncontent-length: \r\n\r\n") + 3 +
                  strlen(req->res.reason) + H2O_TIMESTR_RFC1123_LEN + server_name_and_connection_len +
-                 sizeof("18446744073709551615") - 1 + sizeof("cache-control: private") - 1;
+                 sizeof(H2O_UINT64_LONGEST_STR) - 1 + sizeof("cache-control: private") - 1;
     const h2o_header_t *header, *end;
 
     for (header = req->res.headers.entries, end = header + req->res.headers.size; header != end; ++header)
@@ -563,12 +610,14 @@ static size_t flatten_headers(char *buf, h2o_req_t *req, const char *connection)
 
     /* send essential headers with the first chars uppercased for max. interoperability (#72) */
     if (req->res.content_length != SIZE_MAX) {
-        dst +=
-            sprintf(dst, "HTTP/1.1 %d %s\r\nDate: %s\r\nServer: %s\r\nConnection: %s\r\nContent-Length: %zu\r\n", req->res.status,
-                    req->res.reason, ts.str->rfc1123, ctx->globalconf->server_name.base, connection, req->res.content_length);
+        dst += sprintf(dst, "HTTP/1.1 %d %s\r\nDate: %s\r\nConnection: %s\r\nContent-Length: %zu\r\n", req->res.status,
+                       req->res.reason, ts.str->rfc1123, connection, req->res.content_length);
     } else {
-        dst += sprintf(dst, "HTTP/1.1 %d %s\r\nDate: %s\r\nServer: %s\r\nConnection: %s\r\n", req->res.status, req->res.reason,
-                       ts.str->rfc1123, ctx->globalconf->server_name.base, connection);
+        dst += sprintf(dst, "HTTP/1.1 %d %s\r\nDate: %s\r\nConnection: %s\r\n", req->res.status, req->res.reason, ts.str->rfc1123,
+                       connection);
+    }
+    if (ctx->globalconf->server_name.len) {
+        dst += sprintf(dst, "Server: %s\r\n", ctx->globalconf->server_name.base);
     }
 
     { /* flatten the normal headers */
@@ -581,11 +630,11 @@ static size_t flatten_headers(char *buf, h2o_req_t *req, const char *connection)
                  * - https://www.igvita.com/2013/05/01/deploying-webp-via-accept-content-negotiation/
                  */
                 if (is_msie(req)) {
-                    static h2o_header_t cache_control_private = {&H2O_TOKEN_CACHE_CONTROL->buf, {H2O_STRLIT("private")}};
+                    static h2o_header_t cache_control_private = {&H2O_TOKEN_CACHE_CONTROL->buf, NULL, {H2O_STRLIT("private")}};
                     header = &cache_control_private;
                 }
             }
-            memcpy(dst, header->name->base, header->name->len);
+            memcpy(dst, header->orig_name ? header->orig_name : header->name->base, header->name->len);
             dst += header->name->len;
             *dst++ = ':';
             *dst++ = ' ';
@@ -604,18 +653,21 @@ static size_t flatten_headers(char *buf, h2o_req_t *req, const char *connection)
 static void proceed_pull(struct st_h2o_http1_conn_t *conn, size_t nfilled)
 {
     h2o_iovec_t buf = {conn->_ostr_final.pull.buf, nfilled};
-    int is_final;
+    h2o_send_state_t send_state;
 
     if (buf.len < MAX_PULL_BUF_SZ) {
         h2o_iovec_t cbuf = {buf.base + buf.len, MAX_PULL_BUF_SZ - buf.len};
-        is_final = h2o_pull(&conn->req, conn->_ostr_final.pull.cb, &cbuf);
+        send_state = h2o_pull(&conn->req, conn->_ostr_final.pull.cb, &cbuf);
+        if (send_state == H2O_SEND_STATE_ERROR) {
+            conn->req.http1_is_persistent = 0;
+        }
         buf.len += cbuf.len;
     } else {
-        is_final = 0;
+        send_state = H2O_SEND_STATE_IN_PROGRESS;
     }
 
     /* write */
-    h2o_socket_write(conn->sock, &buf, 1, is_final ? on_send_complete : on_send_next_pull);
+    h2o_socket_write(conn->sock, &buf, 1, h2o_send_state_is_in_progress(send_state) ? on_send_next_pull : on_send_complete);
 }
 
 static void finalostream_start_pull(h2o_ostream_t *_self, h2o_ostream_pull_cb cb)
@@ -626,6 +678,8 @@ static void finalostream_start_pull(h2o_ostream_t *_self, h2o_ostream_pull_cb cb
 
     assert(conn->req._ostr_top == &conn->_ostr_final.super);
     assert(!conn->_ostr_final.sent_headers);
+
+    conn->req.timestamps.response_start_at = *h2o_get_timestamp(conn->super.ctx, NULL, NULL);
 
     /* register the pull callback */
     conn->_ostr_final.pull.cb = cb;
@@ -648,7 +702,7 @@ static void finalostream_start_pull(h2o_ostream_t *_self, h2o_ostream_pull_cb cb
     proceed_pull(conn, headers_len);
 }
 
-void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs, size_t inbufcnt, int is_final)
+void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs, size_t inbufcnt, h2o_send_state_t send_state)
 {
     struct st_h2o_http1_finalostream_t *self = (void *)_self;
     struct st_h2o_http1_conn_t *conn = (struct st_h2o_http1_conn_t *)req->conn;
@@ -658,6 +712,7 @@ void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs
     assert(self == &conn->_ostr_final);
 
     if (!self->sent_headers) {
+        conn->req.timestamps.response_start_at = *h2o_get_timestamp(conn->super.ctx, NULL, NULL);
         /* build headers and send */
         const char *connection = req->http1_is_persistent ? "keep-alive" : "close";
         bufs[bufcnt].base = h2o_mem_alloc_pool(
@@ -669,31 +724,100 @@ void finalostream_send(h2o_ostream_t *_self, h2o_req_t *req, h2o_iovec_t *inbufs
     memcpy(bufs + bufcnt, inbufs, sizeof(h2o_iovec_t) * inbufcnt);
     bufcnt += inbufcnt;
 
+    if (send_state == H2O_SEND_STATE_ERROR) {
+        conn->req.http1_is_persistent = 0;
+    }
+
     if (bufcnt != 0) {
-        h2o_socket_write(conn->sock, bufs, bufcnt, is_final ? on_send_complete : on_send_next_push);
+        h2o_socket_write(conn->sock, bufs, bufcnt,
+                         h2o_send_state_is_in_progress(send_state) ? on_send_next_push : on_send_complete);
     } else {
         on_send_complete(conn->sock, 0);
     }
 }
 
-void h2o_http1_accept(h2o_context_t *ctx, h2o_hostconf_t **hosts, h2o_socket_t *sock)
+static socklen_t get_sockname(h2o_conn_t *_conn, struct sockaddr *sa)
 {
-    struct st_h2o_http1_conn_t *conn = h2o_mem_alloc(sizeof(*conn));
+    struct st_h2o_http1_conn_t *conn = (void *)_conn;
+    return h2o_socket_getsockname(conn->sock, sa);
+}
+
+static socklen_t get_peername(h2o_conn_t *_conn, struct sockaddr *sa)
+{
+    struct st_h2o_http1_conn_t *conn = (void *)_conn;
+    return h2o_socket_getpeername(conn->sock, sa);
+}
+
+static h2o_socket_t *get_socket(h2o_conn_t *_conn)
+{
+    struct st_h2o_http1_conn_t *conn = (void *)_conn;
+    return conn->sock;
+}
+
+#define DEFINE_TLS_LOGGER(name)                                                                                                    \
+    static h2o_iovec_t log_##name(h2o_req_t *req)                                                                                  \
+    {                                                                                                                              \
+        struct st_h2o_http1_conn_t *conn = (void *)req->conn;                                                                      \
+        return h2o_socket_log_ssl_##name(conn->sock, &req->pool);                                                                  \
+    }
+
+DEFINE_TLS_LOGGER(protocol_version)
+DEFINE_TLS_LOGGER(session_reused)
+DEFINE_TLS_LOGGER(cipher)
+DEFINE_TLS_LOGGER(cipher_bits)
+DEFINE_TLS_LOGGER(session_id)
+
+#undef DEFINE_TLS_LOGGER
+
+static h2o_iovec_t log_request_index(h2o_req_t *req)
+{
+    struct st_h2o_http1_conn_t *conn = (void *)req->conn;
+    char *s = h2o_mem_alloc_pool(&req->pool, sizeof(H2O_UINT64_LONGEST_STR));
+    size_t len = sprintf(s, "%" PRIu64, conn->_req_index);
+    return h2o_iovec_init(s, len);
+}
+
+static int foreach_request(h2o_context_t *ctx, int (*cb)(h2o_req_t *req, void *cbdata), void *cbdata)
+{
+    h2o_linklist_t *node;
+
+    for (node = ctx->http1._conns.next; node != &ctx->http1._conns; node = node->next) {
+        struct st_h2o_http1_conn_t *conn = H2O_STRUCT_FROM_MEMBER(struct st_h2o_http1_conn_t, _conns, node);
+        int ret = cb(&conn->req, cbdata);
+        if (ret != 0)
+            return ret;
+    }
+    return 0;
+}
+
+void h2o_http1_accept(h2o_accept_ctx_t *ctx, h2o_socket_t *sock, struct timeval connected_at)
+{
+    static const h2o_conn_callbacks_t callbacks = {
+        get_sockname, /* stringify address */
+        get_peername, /* ditto */
+        NULL,         /* push */
+        get_socket,   /* get underlying socket */
+        NULL,         /* get debug state */
+        {{
+            {log_protocol_version, log_session_reused, log_cipher, log_cipher_bits, log_session_id}, /* ssl */
+            {log_request_index},                                                                     /* http1 */
+            {NULL}                                                                                   /* http2 */
+        }}};
+    struct st_h2o_http1_conn_t *conn = (void *)h2o_create_connection(sizeof(*conn), ctx->ctx, ctx->hosts, connected_at, &callbacks);
 
     /* zero-fill all properties expect req */
-    memset(conn, 0, offsetof(struct st_h2o_http1_conn_t, req));
+    memset((char *)conn + sizeof(conn->super), 0, offsetof(struct st_h2o_http1_conn_t, req) - sizeof(conn->super));
 
     /* init properties that need to be non-zero */
-    conn->super.ctx = ctx;
-    conn->super.hosts = hosts;
-    if (sock->peername.len != 0) {
-        conn->super.peername.addr = (void *)&sock->peername.addr;
-        conn->super.peername.len = sock->peername.len;
-    }
+    conn->super.ctx = ctx->ctx;
+    conn->super.hosts = ctx->hosts;
+    conn->super.connected_at = connected_at;
+    conn->super.callbacks = &callbacks;
     conn->sock = sock;
     sock->data = conn;
+    h2o_linklist_insert(&ctx->ctx->http1._conns, &conn->_conns);
 
-    init_request(conn, 0);
+    init_request(conn);
     reqread_start(conn);
 }
 
@@ -712,7 +836,7 @@ void h2o_http1_upgrade(h2o_req_t *req, h2o_iovec_t *inbufs, size_t inbufcnt, h2o
         h2o_mem_alloc_pool(&conn->req.pool, flatten_headers_estimate_size(&conn->req, conn->super.ctx->globalconf->server_name.len +
                                                                                           sizeof("upgrade") - 1));
     bufs[0].len = flatten_headers(bufs[0].base, &conn->req, "upgrade");
-    memcpy(bufs + 1, inbufs, sizeof(h2o_iovec_t) * inbufcnt);
+    h2o_memcpy(bufs + 1, inbufs, sizeof(h2o_iovec_t) * inbufcnt);
 
     h2o_socket_write(conn->sock, bufs, inbufcnt + 1, on_upgrade_complete);
 }

@@ -43,22 +43,22 @@ static void on_close(h2o_websocket_conn_t *conn)
     (*conn->cb)(conn, NULL);
 }
 
-static void on_recv(h2o_socket_t *sock, int status)
+static void on_recv(h2o_socket_t *sock, const char *err)
 {
     h2o_websocket_conn_t *conn = sock->data;
 
-    if (status == -1) {
+    if (err != NULL) {
         on_close(conn);
         return;
     }
     h2o_websocket_proceed(conn);
 }
 
-static void on_write_complete(h2o_socket_t *sock, int status)
+static void on_write_complete(h2o_socket_t *sock, const char *err)
 {
     h2o_websocket_conn_t *conn = sock->data;
 
-    if (status == -1) {
+    if (err != NULL) {
         on_close(conn);
         return;
     }
@@ -150,8 +150,9 @@ h2o_websocket_conn_t *h2o_upgrade_to_websocket(h2o_req_t *req, const char *clien
     create_accept_key(accept_key, client_key);
     req->res.status = 101;
     req->res.reason = "Switching Protocols";
-    h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_UPGRADE, H2O_STRLIT("websocket"));
-    h2o_add_header_by_str(&req->pool, &req->res.headers, H2O_STRLIT("sec-websocket-accept"), 0, accept_key, strlen(accept_key));
+    h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_UPGRADE, NULL, H2O_STRLIT("websocket"));
+    h2o_add_header_by_str(&req->pool, &req->res.headers, H2O_STRLIT("sec-websocket-accept"), 0, NULL, accept_key,
+                          strlen(accept_key));
 
     /* send */
     h2o_http1_upgrade(req, NULL, 0, on_complete, conn);

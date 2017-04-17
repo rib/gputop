@@ -71,13 +71,12 @@ int h2o_hostinfo_aton(h2o_iovec_t host, struct in_addr *addr);
 
 inline struct addrinfo *h2o_hostinfo_select_one(struct addrinfo *res)
 {
-    size_t i = 0;
-    struct addrinfo *ai = res;
-
     if (res->ai_next == NULL)
         return res;
 
     /* count the number of candidates */
+    size_t i = 0;
+    struct addrinfo *ai = res;
     do {
         ++i;
     } while ((ai = ai->ai_next) != NULL);

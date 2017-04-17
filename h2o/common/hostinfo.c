@@ -55,7 +55,7 @@ static void lookup_and_respond(h2o_hostinfo_getaddr_req_t *req)
     struct addrinfo *res;
 
     int ret = getaddrinfo(req->_in.name, req->_in.serv, &req->_in.hints, &res);
-    req->_out.message = (h2o_multithread_message_t){};
+    req->_out.message = (h2o_multithread_message_t){{NULL}};
     if (ret != 0) {
         req->_out.errstr = gai_strerror(ret);
         req->_out.ai = NULL;
@@ -72,6 +72,7 @@ static void *lookup_thread_main(void *_unused)
     pthread_mutex_lock(&queue.mutex);
 
     while (1) {
+        --queue.num_threads_idle;
         while (!h2o_linklist_is_empty(&queue.pending)) {
             h2o_hostinfo_getaddr_req_t *req = H2O_STRUCT_FROM_MEMBER(h2o_hostinfo_getaddr_req_t, _pending, queue.pending.next);
             h2o_linklist_unlink(&req->_pending);
@@ -79,11 +80,11 @@ static void *lookup_thread_main(void *_unused)
             lookup_and_respond(req);
             pthread_mutex_lock(&queue.mutex);
         }
+        ++queue.num_threads_idle;
         pthread_cond_wait(&queue.cond, &queue.mutex);
     }
 
-    pthread_mutex_unlock(&queue.mutex);
-
+    h2o_fatal("unreachable");
     return NULL;
 }
 
@@ -118,7 +119,7 @@ h2o_hostinfo_getaddr_req_t *h2o_hostinfo_getaddr(h2o_multithread_receiver_t *rec
     req->_receiver = receiver;
     req->_cb = cb;
     req->cbdata = cbdata;
-    req->_pending = (h2o_linklist_t){};
+    req->_pending = (h2o_linklist_t){NULL};
     req->_in.name = (char *)req + sizeof(*req);
     memcpy(req->_in.name, name.base, name.len);
     req->_in.name[name.len] = '\0';

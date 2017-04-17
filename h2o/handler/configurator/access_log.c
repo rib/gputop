@@ -34,6 +34,7 @@ static int on_config(h2o_configurator_command_t *cmd, h2o_configurator_context_t
 {
     struct st_h2o_access_log_configurator_t *self = (void *)cmd->configurator;
     const char *path, *fmt = NULL;
+    int escape = H2O_LOGCONF_ESCAPE_APACHE;
     h2o_access_log_filehandle_t *fh;
 
     switch (node->type) {
@@ -60,17 +61,31 @@ static int on_config(h2o_configurator_command_t *cmd, h2o_configurator_context_t
             }
             fmt = t->data.scalar;
         }
+        /* get escape */
+        if ((t = yoml_get(node, "escape")) != NULL) {
+            switch (h2o_configurator_get_one_of(cmd, t, "apache,json")) {
+            case 0:
+                escape = H2O_LOGCONF_ESCAPE_APACHE;
+                break;
+            case 1:
+                escape = H2O_LOGCONF_ESCAPE_JSON;
+                break;
+            default:
+                return -1;
+            }
+        }
     } break;
     default:
         h2o_configurator_errprintf(cmd, node, "node must be a scalar or a mapping");
         return -1;
     }
 
-    if ((fh = h2o_access_log_open_handle(path, fmt)) == NULL)
-        return -1;
-
-    h2o_vector_reserve(NULL, (h2o_vector_t *)self->handles, sizeof(self->handles->entries[0]), self->handles->size + 1);
-    self->handles->entries[self->handles->size++] = fh;
+    if (!ctx->dry_run) {
+        if ((fh = h2o_access_log_open_handle(path, fmt, escape)) == NULL)
+            return -1;
+        h2o_vector_reserve(NULL, self->handles, self->handles->size + 1);
+        self->handles->entries[self->handles->size++] = fh;
+    }
 
     return 0;
 }
@@ -85,7 +100,7 @@ static int on_config_enter(h2o_configurator_t *_self, h2o_configurator_context_t
 
     /* link the handles */
     memset(self->handles, 0, sizeof(*self->handles));
-    h2o_vector_reserve(NULL, (void *)self->handles, sizeof(self->handles->entries[0]), self->handles[-1].size + 1);
+    h2o_vector_reserve(NULL, self->handles, self->handles[-1].size + 1);
     for (i = 0; i != self->handles[-1].size; ++i) {
         h2o_access_log_filehandle_t *fh = self->handles[-1].entries[i];
         self->handles[0].entries[self->handles[0].size++] = fh;
@@ -124,7 +139,5 @@ void h2o_access_log_register_configurator(h2o_globalconf_t *conf)
     self->super.exit = on_config_exit;
     self->handles = self->_handles_stack;
 
-    h2o_configurator_define_command(&self->super, "access-log",
-                                    H2O_CONFIGURATOR_FLAG_GLOBAL | H2O_CONFIGURATOR_FLAG_HOST | H2O_CONFIGURATOR_FLAG_PATH,
-                                    on_config);
+    h2o_configurator_define_command(&self->super, "access-log", H2O_CONFIGURATOR_FLAG_ALL_LEVELS, on_config);
 }

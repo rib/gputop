@@ -81,7 +81,7 @@ static uint8_t *allocate_frame(h2o_buffer_t **buf, size_t length, uint8_t type, 
     return h2o_http2_encode_frame_header((uint8_t *)alloced.base, length, type, flags, stream_id);
 }
 
-void h2o_http2_encode_rst_stream_frame(h2o_buffer_t **buf, uint32_t stream_id, int errnum)
+void h2o_http2__encode_rst_stream_frame(h2o_buffer_t **buf, uint32_t stream_id, int errnum)
 {
     uint8_t *dst = allocate_frame(buf, 4, H2O_HTTP2_FRAME_TYPE_RST_STREAM, 0, stream_id);
     dst = h2o_http2_encode32u(dst, errnum);
@@ -99,7 +99,7 @@ void h2o_http2_encode_goaway_frame(h2o_buffer_t **buf, uint32_t last_stream_id, 
     uint8_t *dst = allocate_frame(buf, 8 + additional_data.len, H2O_HTTP2_FRAME_TYPE_GOAWAY, 0, 0);
     dst = h2o_http2_encode32u(dst, last_stream_id);
     dst = h2o_http2_encode32u(dst, (uint32_t)-errnum);
-    memcpy(dst, additional_data.base, additional_data.len);
+    h2o_memcpy(dst, additional_data.base, additional_data.len);
 }
 
 void h2o_http2_encode_window_update_frame(h2o_buffer_t **buf, uint32_t stream_id, int32_t window_size_increment)
@@ -211,7 +211,7 @@ int h2o_http2_decode_priority_payload(h2o_http2_priority_t *payload, const h2o_h
         return H2O_HTTP2_ERROR_PROTOCOL;
     }
     if (frame->length != 5) {
-        *err_desc = "invaild PRIORITY frame";
+        *err_desc = "invalid PRIORITY frame";
         return H2O_HTTP2_ERROR_FRAME_SIZE;
     }
 
@@ -282,7 +282,7 @@ int h2o_http2_decode_window_update_payload(h2o_http2_window_update_payload_t *pa
     payload->window_size_increment = h2o_http2_decode32u(frame->payload) & 0x7fffffff;
     if (payload->window_size_increment == 0) {
         *err_is_stream_level = frame->stream_id != 0;
-        *err_desc = "invaild WINDOW_UPDATE frame";
+        *err_desc = "invalid WINDOW_UPDATE frame";
         return H2O_HTTP2_ERROR_PROTOCOL;
     }
 

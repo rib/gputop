@@ -40,7 +40,7 @@ static int on_config_expires(h2o_configurator_command_t *cmd, h2o_configurator_c
     if (strcasecmp(node->data.scalar, "OFF") == 0) {
         free(*self->args);
         *self->args = NULL;
-    } else if (sscanf(node->data.scalar, "%" PRIu64 " %31s", &value, unit) == 2) {
+    } else if (sscanf(node->data.scalar, "%" SCNu64 " %31s", &value, unit) == 2) {
         /* convert value to seconds depending on the unit */
         if (strncasecmp(unit, H2O_STRLIT("second")) == 0) {
             /* ok */
@@ -118,7 +118,6 @@ void h2o_expires_register_configurator(h2o_globalconf_t *conf)
     /* setup handlers */
     c->super.enter = on_config_enter;
     c->super.exit = on_config_exit;
-    h2o_configurator_define_command(&c->super, "expires", H2O_CONFIGURATOR_FLAG_GLOBAL | H2O_CONFIGURATOR_FLAG_HOST |
-                                                              H2O_CONFIGURATOR_FLAG_PATH | H2O_CONFIGURATOR_FLAG_EXPECT_SCALAR,
+    h2o_configurator_define_command(&c->super, "expires", H2O_CONFIGURATOR_FLAG_ALL_LEVELS | H2O_CONFIGURATOR_FLAG_EXPECT_SCALAR,
                                     on_config_expires);
 }

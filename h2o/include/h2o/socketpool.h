@@ -34,18 +34,25 @@ extern "C" {
 #include "h2o/socket.h"
 #include "h2o/timeout.h"
 
+typedef enum en_h2o_socketpool_type_t { H2O_SOCKETPOOL_TYPE_NAMED, H2O_SOCKETPOOL_TYPE_SOCKADDR } h2o_socketpool_type_t;
+
 typedef struct st_h2o_socketpool_t {
+
     /* read-only vars */
+    h2o_socketpool_type_t type;
     struct {
+        h2o_iovec_t host;
         union {
+            /* used to specify servname passed to getaddrinfo */
+            h2o_iovec_t named_serv;
+            /* if type is sockaddr, the `host` is not resolved but is used for TLS SNI and hostname verification */
             struct {
-                h2o_iovec_t host;
-                h2o_iovec_t port;
-            } named;
-            struct sockaddr_in sin;
+                struct sockaddr_storage bytes;
+                socklen_t len;
+            } sockaddr;
         };
-        int is_named;
     } peer;
+    int is_ssl;
     size_t capacity;
     uint64_t timeout; /* in milliseconds (UINT64_MAX if not set) */
     struct {
@@ -53,6 +60,7 @@ typedef struct st_h2o_socketpool_t {
         h2o_timeout_t timeout;
         h2o_timeout_entry_t entry;
     } _interval_cb;
+
     /* vars that are modified by multiple threads */
     struct {
         size_t count; /* synchronous operations should be used to access the variable */
@@ -67,7 +75,11 @@ typedef void (*h2o_socketpool_connect_cb)(h2o_socket_t *sock, const char *errstr
 /**
  * initializes a socket loop
  */
-void h2o_socketpool_init(h2o_socketpool_t *pool, h2o_iovec_t host, uint16_t port, size_t capacity);
+void h2o_socketpool_init_by_address(h2o_socketpool_t *pool, struct sockaddr *sa, socklen_t salen, int is_ssl, size_t capacity);
+/**
+ * initializes a socket loop
+ */
+void h2o_socketpool_init_by_hostport(h2o_socketpool_t *pool, h2o_iovec_t host, uint16_t port, int is_ssl, size_t capacity);
 /**
  * disposes of a socket loop
  */

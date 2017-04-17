@@ -19,6 +19,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
 #include "h2o/memory.h"
 #include "h2o/string_.h"
 #include "h2o/url.h"
@@ -37,69 +40,95 @@ static int decode_hex(int ch)
     return -1;
 }
 
-static h2o_iovec_t rebuild_path(h2o_mem_pool_t *pool, const char *path, size_t len, size_t *query_at)
+static size_t handle_special_paths(const char *path, size_t off, size_t last_slash)
 {
-    const char *src = path, *src_end = path + len;
-    char *dst;
-    h2o_iovec_t ret;
+    size_t orig_off = off, part_size = off - last_slash;
 
-    *query_at = SIZE_MAX;
-
-    dst = ret.base = h2o_mem_alloc_pool(pool, len + 1);
-    if (len == 0 || path[0] != '/')
-        *dst++ = '/';
-    while (src != src_end) {
-        if (*src == '?') {
-            *query_at = src - path;
-            break;
-        }
-        if ((src_end - src == 3 && memcmp(src, H2O_STRLIT("/..")) == 0) ||
-            (src_end - src > 3 && memcmp(src, H2O_STRLIT("/../")) == 0)) {
-            /* go back the previous "/" */
-            if (ret.base < dst)
-                --dst;
-            for (; ret.base < dst && *dst != '/'; --dst)
+    if (part_size == 2 && path[off - 1] == '.') {
+        --off;
+    } else if (part_size == 3 && path[off - 2] == '.' && path[off - 1] == '.') {
+        off -= 2;
+        if (off > 1) {
+            for (--off; path[off - 1] != '/'; --off)
                 ;
-            src += 3;
-            if (src == src_end)
-                *dst++ = '/';
-            goto Next;
         }
-        if ((src_end - src == 2 && memcmp(src, H2O_STRLIT("/.")) == 0) ||
-            (src_end - src > 2 && memcmp(src, H2O_STRLIT("/./")) == 0)) {
-            src += 2;
-            if (src == src_end)
-                *dst++ = '/';
-            goto Next;
-        }
-        if (src_end - src >= 3 && *src == '%') {
-            int hi, lo;
-            if ((hi = decode_hex(src[1])) != -1 && (lo = decode_hex(src[2])) != -1) {
-                *dst++ = (hi << 4) | lo;
-                src += 3;
-                goto Next;
-            }
-        }
-        *dst++ = *src++;
-    Next:
-        ;
     }
-    if (dst == ret.base)
-        *dst++ = '/';
-    ret.len = dst - ret.base;
-
-    return ret;
+    return orig_off - off;
 }
 
-h2o_iovec_t h2o_url_normalize_path(h2o_mem_pool_t *pool, const char *path, size_t len, size_t *query_at)
+/* Perform path normalization and URL decoding in one pass.
+ * See h2o_req_t for the purpose of @norm_indexes. */
+static h2o_iovec_t rebuild_path(h2o_mem_pool_t *pool, const char *src, size_t src_len, size_t *query_at, size_t **norm_indexes)
+{
+    char *dst;
+    size_t src_off = 0, dst_off = 0, last_slash, rewind;
+
+    { /* locate '?', and set len to the end of input path */
+        const char *q = memchr(src, '?', src_len);
+        if (q != NULL) {
+            src_len = *query_at = q - src;
+        } else {
+            *query_at = SIZE_MAX;
+        }
+    }
+
+    /* dst can be 1 byte more than src if src is missing the prefixing '/' */
+    dst = h2o_mem_alloc_pool(pool, src_len + 1);
+    *norm_indexes = h2o_mem_alloc_pool(pool, (src_len + 1) * sizeof(*norm_indexes[0]));
+
+    if (src[0] == '/')
+        src_off++;
+    last_slash = dst_off;
+    dst[dst_off] = '/';
+    (*norm_indexes)[dst_off] = src_off;
+    dst_off++;
+
+    /* decode %xx */
+    while (src_off < src_len) {
+        int hi, lo;
+        char decoded;
+
+        if (src[src_off] == '%' && (src_off + 2 < src_len) && (hi = decode_hex(src[src_off + 1])) != -1 &&
+            (lo = decode_hex(src[src_off + 2])) != -1) {
+            decoded = (hi << 4) | lo;
+            src_off += 3;
+        } else {
+            decoded = src[src_off++];
+        }
+        if (decoded == '/') {
+            rewind = handle_special_paths(dst, dst_off, last_slash);
+            if (rewind > 0) {
+                dst_off -= rewind;
+                last_slash = dst_off - 1;
+                continue;
+            }
+            last_slash = dst_off;
+        }
+        dst[dst_off] = decoded;
+        (*norm_indexes)[dst_off] = src_off;
+        dst_off++;
+    }
+    rewind = handle_special_paths(dst, dst_off, last_slash);
+    dst_off -= rewind;
+
+    return h2o_iovec_init(dst, dst_off);
+}
+
+h2o_iovec_t h2o_url_normalize_path(h2o_mem_pool_t *pool, const char *path, size_t len, size_t *query_at, size_t **norm_indexes)
 {
     const char *p = path, *end = path + len;
     h2o_iovec_t ret;
 
-    if (len == 0 || path[0] != '/')
-        goto Rewrite;
-
     *query_at = SIZE_MAX;
+    *norm_indexes = NULL;
+
+    if (len == 0) {
+        ret = h2o_iovec_init("/", 1);
+        return ret;
+    }
+
+    if (path[0] != '/')
+        goto Rewrite;
 
     for (; p + 1 < end; ++p) {
         if ((p[0] == '/' && p[1] == '.') || p[0] == '%') {
@@ -123,7 +152,20 @@ Return:
     return ret;
 
 Rewrite:
-    return rebuild_path(pool, path, len, query_at);
+    ret = rebuild_path(pool, path, len, query_at, norm_indexes);
+    if (ret.len == 0)
+        goto RewriteError;
+    if (ret.base[0] != '/')
+        goto RewriteError;
+    if (h2o_strstr(ret.base, ret.len, H2O_STRLIT("/../")) != SIZE_MAX)
+        goto RewriteError;
+    if (ret.len >= 3 && memcmp(ret.base + ret.len - 3, "/..", 3) == 0)
+        goto RewriteError;
+    return ret;
+RewriteError:
+    fprintf(stderr, "failed to normalize path: `%.*s` => `%.*s`\n", (int)len, path, (int)ret.len, ret.base);
+    ret = h2o_iovec_init("/", 1);
+    return ret;
 }
 
 static const char *parse_scheme(const char *s, const char *end, const h2o_url_scheme_t **scheme)
@@ -160,6 +202,10 @@ const char *h2o_url_parse_hostport(const char *s, size_t len, h2o_iovec_t *host,
         *host = h2o_iovec_init(token_start, token_end - token_start);
         token_start = token_end;
     }
+
+    /* disallow zero-length host */
+    if (host->len == 0)
+        return NULL;
 
     /* parse port */
     if (token_start != end && *token_start == ':') {
@@ -231,8 +277,8 @@ int h2o_url_parse_relative(const char *url, size_t url_len, h2o_url_t *parsed)
         return parse_authority_and_path(p + 2, url_end, parsed);
 
     /* reset authority, host, port, and set path */
-    parsed->authority = (h2o_iovec_t){};
-    parsed->host = (h2o_iovec_t){};
+    parsed->authority = (h2o_iovec_t){NULL};
+    parsed->host = (h2o_iovec_t){NULL};
     parsed->_port = 65535;
     parsed->path = h2o_iovec_init(p, url_end - p);
 
@@ -248,9 +294,9 @@ h2o_iovec_t h2o_url_resolve(h2o_mem_pool_t *pool, const h2o_url_t *base, const h
 
     if (relative == NULL) {
         /* build URL using base copied to dest */
-        static const h2o_url_t fake_relative = {};
-        relative = &fake_relative;
         *dest = *base;
+        base_path = base->path;
+        relative_path = h2o_iovec_init(NULL, 0);
         goto Build;
     }
 
@@ -278,7 +324,7 @@ h2o_iovec_t h2o_url_resolve(h2o_mem_pool_t *pool, const h2o_url_t *base, const h
         h2o_url_resolve_path(&base_path, &relative_path);
     } else {
         assert(relative->path.len == 0);
-        relative_path = (h2o_iovec_t){};
+        relative_path = (h2o_iovec_t){NULL};
     }
 
 Build:
@@ -341,3 +387,23 @@ void h2o_url_copy(h2o_mem_pool_t *pool, h2o_url_t *dest, const h2o_url_t *src)
     dest->path = h2o_strdup(pool, src->path.base, src->path.len);
     dest->_port = src->_port;
 }
+
+const char *h2o_url_host_to_sun(h2o_iovec_t host, struct sockaddr_un *sa)
+{
+#define PREFIX "unix:"
+
+    if (host.len < sizeof(PREFIX) - 1 || memcmp(host.base, PREFIX, sizeof(PREFIX) - 1) != 0)
+        return h2o_url_host_to_sun_err_is_not_unix_socket;
+
+    if (host.len - sizeof(PREFIX) - 1 >= sizeof(sa->sun_path))
+        return "unix-domain socket path is too long";
+
+    memset(sa, 0, sizeof(*sa));
+    sa->sun_family = AF_UNIX;
+    memcpy(sa->sun_path, host.base + sizeof(PREFIX) - 1, host.len - (sizeof(PREFIX) - 1));
+    return NULL;
+
+#undef PREFIX
+}
+
+const char *h2o_url_host_to_sun_err_is_not_unix_socket = "supplied name does not look like an unix-domain socket";

@@ -50,7 +50,7 @@ static void on_setup_ostream(h2o_filter_t *_self, h2o_req_t *req, h2o_ostream_t 
             h2o_set_header(&req->pool, &req->res.headers, H2O_TOKEN_EXPIRES, self->value.base, self->value.len, 0);
             break;
         case H2O_EXPIRES_MODE_MAX_AGE:
-            h2o_add_header_token(&req->pool, &req->res.headers, H2O_TOKEN_CACHE_CONTROL, self->value.base, self->value.len);
+            h2o_set_header_token(&req->pool, &req->res.headers, H2O_TOKEN_CACHE_CONTROL, self->value.base, self->value.len);
             break;
         default:
             assert(0);
@@ -61,7 +61,7 @@ static void on_setup_ostream(h2o_filter_t *_self, h2o_req_t *req, h2o_ostream_t 
         break;
     }
 
-    h2o_setup_next_ostream(&self->super, req, slot);
+    h2o_setup_next_ostream(req, slot);
 }
 
 void h2o_expires_register(h2o_pathconf_t *pathconf, h2o_expires_args_t *args)

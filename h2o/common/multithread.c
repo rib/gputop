@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2015 DeNA Co., Ltd., Kazuho Oku
+ * Copyright (c) 2015-2016 DeNA Co., Ltd., Kazuho Oku, Tatsuhiko Kubo,
+ *                         Chul-Woong Yang
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,6 +22,7 @@
  */
 #include <assert.h>
 #include <pthread.h>
+#include "cloexec.h"
 #include "h2o/multithread.h"
 
 struct st_h2o_multithread_queue_t {
@@ -71,9 +73,9 @@ static void queue_cb(h2o_multithread_queue_t *queue)
 #include <fcntl.h>
 #include <unistd.h>
 
-static void on_read(h2o_socket_t *sock, int status)
+static void on_read(h2o_socket_t *sock, const char *err)
 {
-    if (status != 0) {
+    if (err != NULL) {
         fprintf(stderr, "pipe error\n");
         abort();
     }
@@ -86,15 +88,13 @@ static void init_async(h2o_multithread_queue_t *queue, h2o_loop_t *loop)
 {
     int fds[2];
 
-    if (pipe(fds) != 0) {
+    if (cloexec_pipe(fds) != 0) {
         perror("pipe");
         abort();
     }
-    fcntl(fds[0], F_SETFD, FD_CLOEXEC);
-    fcntl(fds[1], F_SETFD, FD_CLOEXEC);
     fcntl(fds[1], F_SETFL, O_NONBLOCK);
     queue->async.write = fds[1];
-    queue->async.read = h2o_evloop_socket_create(loop, fds[0], NULL, 0, 0);
+    queue->async.read = h2o_evloop_socket_create(loop, fds[0], 0);
     queue->async.read->data = queue;
     h2o_socket_read_start(queue->async.read, on_read);
 }
@@ -104,10 +104,10 @@ static void init_async(h2o_multithread_queue_t *queue, h2o_loop_t *loop)
 h2o_multithread_queue_t *h2o_multithread_create_queue(h2o_loop_t *loop)
 {
     h2o_multithread_queue_t *queue = h2o_mem_alloc(sizeof(*queue));
-    *queue = (h2o_multithread_queue_t){};
+    memset(queue, 0, sizeof(*queue));
 
 #if H2O_USE_LIBUV
-    uv_async_init(loop, &queue->async, (void *)queue_cb);
+    uv_async_init(loop, &queue->async, (uv_async_cb)queue_cb);
 #else
     init_async(queue, loop);
 #endif
@@ -123,7 +123,7 @@ void h2o_multithread_destroy_queue(h2o_multithread_queue_t *queue)
     assert(h2o_linklist_is_empty(&queue->receivers.active));
     assert(h2o_linklist_is_empty(&queue->receivers.inactive));
 #if H2O_USE_LIBUV
-    uv_close((uv_handle_t *)&queue->async, (void *)free);
+    uv_close((uv_handle_t *)&queue->async, (uv_close_cb)free);
 #else
     h2o_socket_read_stop(queue->async.read);
     h2o_socket_close(queue->async.read);
@@ -136,33 +136,41 @@ void h2o_multithread_register_receiver(h2o_multithread_queue_t *queue, h2o_multi
                                        h2o_multithread_receiver_cb cb)
 {
     receiver->queue = queue;
-    receiver->_link = (h2o_linklist_t){};
+    receiver->_link = (h2o_linklist_t){NULL};
     h2o_linklist_init_anchor(&receiver->_messages);
     receiver->cb = cb;
 
+    pthread_mutex_lock(&queue->mutex);
     h2o_linklist_insert(&queue->receivers.inactive, &receiver->_link);
+    pthread_mutex_unlock(&queue->mutex);
 }
 
 void h2o_multithread_unregister_receiver(h2o_multithread_queue_t *queue, h2o_multithread_receiver_t *receiver)
 {
     assert(queue == receiver->queue);
     assert(h2o_linklist_is_empty(&receiver->_messages));
+    pthread_mutex_lock(&queue->mutex);
     h2o_linklist_unlink(&receiver->_link);
+    pthread_mutex_unlock(&queue->mutex);
 }
 
 void h2o_multithread_send_message(h2o_multithread_receiver_t *receiver, h2o_multithread_message_t *message)
 {
     int do_send = 0;
 
-    assert(!h2o_linklist_is_linked(&message->link));
-
     pthread_mutex_lock(&receiver->queue->mutex);
-    if (h2o_linklist_is_empty(&receiver->_messages)) {
-        h2o_linklist_unlink(&receiver->_link);
-        h2o_linklist_insert(&receiver->queue->receivers.active, &receiver->_link);
-        do_send = 1;
+    if (message != NULL) {
+        assert(!h2o_linklist_is_linked(&message->link));
+        if (h2o_linklist_is_empty(&receiver->_messages)) {
+            h2o_linklist_unlink(&receiver->_link);
+            h2o_linklist_insert(&receiver->queue->receivers.active, &receiver->_link);
+            do_send = 1;
+        }
+        h2o_linklist_insert(&receiver->_messages, &message->link);
+    } else {
+        if (h2o_linklist_is_empty(&receiver->_messages))
+            do_send = 1;
     }
-    h2o_linklist_insert(&receiver->_messages, &message->link);
     pthread_mutex_unlock(&receiver->queue->mutex);
 
     if (do_send) {
@@ -173,4 +181,90 @@ void h2o_multithread_send_message(h2o_multithread_receiver_t *receiver, h2o_mult
             ;
 #endif
     }
+}
+
+void h2o_multithread_create_thread(pthread_t *tid, const pthread_attr_t *attr, void *(*func)(void *), void *arg)
+{
+    if (pthread_create(tid, attr, func, arg) != 0) {
+        perror("pthread_create");
+        abort();
+    }
+}
+
+void h2o_sem_init(h2o_sem_t *sem, ssize_t capacity)
+{
+    pthread_mutex_init(&sem->_mutex, NULL);
+    pthread_cond_init(&sem->_cond, NULL);
+    sem->_cur = capacity;
+    sem->_capacity = capacity;
+}
+
+void h2o_sem_destroy(h2o_sem_t *sem)
+{
+    assert(sem->_cur == sem->_capacity);
+    pthread_cond_destroy(&sem->_cond);
+    pthread_mutex_destroy(&sem->_mutex);
+}
+
+void h2o_sem_wait(h2o_sem_t *sem)
+{
+    pthread_mutex_lock(&sem->_mutex);
+    while (sem->_cur <= 0)
+        pthread_cond_wait(&sem->_cond, &sem->_mutex);
+    --sem->_cur;
+    pthread_mutex_unlock(&sem->_mutex);
+}
+
+void h2o_sem_post(h2o_sem_t *sem)
+{
+    pthread_mutex_lock(&sem->_mutex);
+    ++sem->_cur;
+    pthread_cond_signal(&sem->_cond);
+    pthread_mutex_unlock(&sem->_mutex);
+}
+
+void h2o_sem_set_capacity(h2o_sem_t *sem, ssize_t new_capacity)
+{
+    pthread_mutex_lock(&sem->_mutex);
+    sem->_cur += new_capacity - sem->_capacity;
+    sem->_capacity = new_capacity;
+    pthread_cond_broadcast(&sem->_cond);
+    pthread_mutex_unlock(&sem->_mutex);
+}
+
+/* barrier */
+
+void h2o_barrier_init(h2o_barrier_t *barrier, size_t count)
+{
+    pthread_mutex_init(&barrier->_mutex, NULL);
+    pthread_cond_init(&barrier->_cond, NULL);
+    barrier->_count = count;
+}
+
+int h2o_barrier_wait(h2o_barrier_t *barrier)
+{
+    int ret;
+    pthread_mutex_lock(&barrier->_mutex);
+    barrier->_count--;
+    if (barrier->_count == 0) {
+        pthread_cond_broadcast(&barrier->_cond);
+        ret = 1;
+    } else {
+        while (barrier->_count)
+            pthread_cond_wait(&barrier->_cond, &barrier->_mutex);
+        ret = 0;
+    }
+    pthread_mutex_unlock(&barrier->_mutex);
+    return ret;
+}
+
+int h2o_barrier_done(h2o_barrier_t *barrier)
+{
+    return __sync_add_and_fetch(&barrier->_count, 0) == 0;
+}
+
+void h2o_barrier_destroy(h2o_barrier_t *barrier)
+{
+    pthread_mutex_destroy(&barrier->_mutex);
+    pthread_cond_destroy(&barrier->_cond);
 }

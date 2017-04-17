@@ -26,6 +26,7 @@ struct st_h2o_http2_scheduler_queue_t {
     uint64_t bits;
     size_t offset;
     h2o_linklist_t anchors[64];
+    h2o_linklist_t anchor257;
 };
 
 static void queue_init(h2o_http2_scheduler_queue_t *queue)
@@ -35,17 +36,18 @@ static void queue_init(h2o_http2_scheduler_queue_t *queue)
     queue->offset = 0;
     for (i = 0; i != sizeof(queue->anchors) / sizeof(queue->anchors[0]); ++i)
         h2o_linklist_init_anchor(queue->anchors + i);
+    h2o_linklist_init_anchor(&queue->anchor257);
 }
 
 static int queue_is_empty(h2o_http2_scheduler_queue_t *queue)
 {
-    return queue->bits == 0;
+    return queue->bits == 0 && h2o_linklist_is_empty(&queue->anchor257);
 }
 
 static void queue_set(h2o_http2_scheduler_queue_t *queue, h2o_http2_scheduler_queue_node_t *node, uint16_t weight)
 {
     /* holds 257 entries of offsets (multiplied by 65536) where nodes with weights between 1..257 should go into
-     * each entry (expect for weight=256) is calculated as: round(2**(8 - log2(weight)) * N), where N is adjusted so that the
+     * each entry (expect for weight=256) is calculated as: round(N / weight), where N is adjusted so that the
      * value would become 63*65536 for weight=0.
      * weight=257 is used internally to send data before any of the streams being pulled, and therefore has the offset set to zero.
      */
@@ -70,16 +72,23 @@ static void queue_set(h2o_http2_scheduler_queue_t *queue, h2o_http2_scheduler_qu
         16128,   0};
 
     assert(!h2o_linklist_is_linked(&node->_link));
-    assert(1 <= weight);
-    assert(weight <= 257);
 
-    size_t offset = OFFSET_TABLE[weight - 1] + node->_deficit;
-    node->_deficit = offset % 65536;
-    offset = offset / 65536;
+    if (weight > 256) {
 
-    queue->bits |= 1ULL << (sizeof(queue->bits) * 8 - 1 - offset);
-    h2o_linklist_insert(queue->anchors + (queue->offset + offset) % (sizeof(queue->anchors) / sizeof(queue->anchors[0])),
-                        &node->_link);
+        h2o_linklist_insert(&queue->anchor257, &node->_link);
+
+    } else {
+
+        assert(1 <= weight);
+
+        size_t offset = OFFSET_TABLE[weight - 1] + node->_deficit;
+        node->_deficit = offset % 65536;
+        offset = offset / 65536;
+
+        queue->bits |= 1ULL << (sizeof(queue->bits) * 8 - 1 - offset);
+        h2o_linklist_insert(queue->anchors + (queue->offset + offset) % (sizeof(queue->anchors) / sizeof(queue->anchors[0])),
+                            &node->_link);
+    }
 }
 
 static void queue_unset(h2o_http2_scheduler_queue_node_t *node)
@@ -90,6 +99,13 @@ static void queue_unset(h2o_http2_scheduler_queue_node_t *node)
 
 static h2o_http2_scheduler_queue_node_t *queue_pop(h2o_http2_scheduler_queue_t *queue)
 {
+    if (!h2o_linklist_is_empty(&queue->anchor257)) {
+        h2o_http2_scheduler_queue_node_t *node =
+            H2O_STRUCT_FROM_MEMBER(h2o_http2_scheduler_queue_node_t, _link, queue->anchor257.next);
+        h2o_linklist_unlink(&node->_link);
+        return node;
+    }
+
     while (queue->bits != 0) {
         int zeroes = __builtin_clzll(queue->bits);
         queue->bits <<= zeroes;
@@ -175,10 +191,10 @@ void h2o_http2_scheduler_open(h2o_http2_scheduler_openref_t *ref, h2o_http2_sche
 {
     init_node(&ref->node, parent);
     ref->weight = weight;
-    ref->_all_link = (h2o_linklist_t){};
+    ref->_all_link = (h2o_linklist_t){NULL};
     ref->_active_cnt = 0;
     ref->_self_is_active = 0;
-    ref->_queue_node = (h2o_http2_scheduler_queue_node_t){};
+    ref->_queue_node = (h2o_http2_scheduler_queue_node_t){{NULL}};
 
     h2o_linklist_insert(&parent->_all_refs, &ref->_all_link);
 
@@ -252,7 +268,7 @@ void h2o_http2_scheduler_rebind(h2o_http2_scheduler_openref_t *ref, h2o_http2_sc
     assert(h2o_http2_scheduler_is_open(ref));
     assert(&ref->node != new_parent);
     assert(1 <= weight);
-    assert(weight <= 256);
+    assert(weight <= 257);
 
     /* do nothing if there'd be no change at all */
     if (ref->node._parent == new_parent && ref->weight == weight && !exclusive)
@@ -340,4 +356,9 @@ int h2o_http2_scheduler_run(h2o_http2_scheduler_node_t *root, h2o_http2_schedule
         }
     }
     return 0;
+}
+
+int h2o_http2_scheduler_is_active(h2o_http2_scheduler_node_t *root)
+{
+    return root->_queue != NULL && !queue_is_empty(root->_queue);
 }

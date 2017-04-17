@@ -1368,7 +1368,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         h2o_add_header_by_str(&req->pool, &req->res.headers,
                               "sec-websocket-protocol",
                               strlen("sec-websocket-protocol"),
-                              0, "binary", strlen("binary"));
+                              0, NULL, "binary", strlen("binary"));
     }
 
     h2o_conn = h2o_upgrade_to_websocket(req, client_key, NULL, on_ws_message);
@@ -1380,6 +1380,7 @@ static void on_connect(uv_stream_t *server, int status)
 {
     uv_tcp_t *conn;
     h2o_socket_t *sock;
+    h2o_accept_ctx_t accept_ctx = { NULL, };
 
     //dbg("on_connect\n");
 
@@ -1395,11 +1396,12 @@ static void on_connect(uv_stream_t *server, int status)
         return;
     }
 
-    sock = h2o_uv_socket_create((uv_stream_t *)conn, NULL, 0, (uv_close_cb)free);
-    if (ssl_ctx != NULL)
-        h2o_accept_ssl(&ctx, ctx.globalconf->hosts, sock, ssl_ctx);
-    else
-        h2o_http1_accept(&ctx, ctx.globalconf->hosts, sock);
+    sock = h2o_uv_socket_create((uv_handle_t *)conn, (uv_close_cb)free);
+
+    accept_ctx.ctx = &ctx;
+    accept_ctx.hosts = ctx.globalconf->hosts;
+    accept_ctx.ssl_ctx = ssl_ctx;
+    h2o_accept(&accept_ctx, sock);
 
     uv_timer_start(&timer, periodic_update_cb, 200, 200);
 }
@@ -1450,14 +1452,14 @@ bool gputop_server_run(void)
 
     h2o_config_init(&config);
     hostconf = h2o_config_register_host(&config, h2o_iovec_init(H2O_STRLIT("default")), 7890);
-    pathconf = h2o_config_register_path(hostconf, "/gputop");
+    pathconf = h2o_config_register_path(hostconf, "/gputop", 0);
     h2o_create_handler(pathconf, sizeof(h2o_handler_t))->on_req = on_req;
 
     /* Without the web ui enabled we still support remote access to metrics via
      * a websocket + protocol buffers, we just don't host the web ui assets.
      */
 #ifdef ENABLE_WEBUI
-    root = h2o_config_register_path(hostconf, "/");
+    root = h2o_config_register_path(hostconf, "/", 0);
 
     web_root = getenv("GPUTOP_WEB_ROOT");
     if (!web_root)

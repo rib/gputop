@@ -66,6 +66,7 @@ libgputop_la_CFLAGS = \
     -I$(top_srcdir)/libuv/include \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
+    -I$(top_srcdir)/h2o/hiredis \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
     -std=gnu11
 libgputop_la_LIBADD = \

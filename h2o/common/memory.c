@@ -31,6 +31,16 @@
 #include <unistd.h>
 #include "h2o/memory.h"
 
+#if defined(__linux__)
+#define USE_POSIX_FALLOCATE 1
+#elif __FreeBSD__ >= 9
+#define USE_POSIX_FALLOCATE 1
+#elif __NetBSD__ >= 7
+#define USE_POSIX_FALLOCATE 1
+#else
+#define USE_POSIX_FALLOCATE 0
+#endif
+
 struct st_h2o_mem_recycle_chunk_t {
     struct st_h2o_mem_recycle_chunk_t *next;
 };
@@ -52,9 +62,11 @@ struct st_h2o_mem_pool_shared_ref_t {
     struct st_h2o_mem_pool_shared_entry_t *entry;
 };
 
+void *(*h2o_mem__set_secure)(void *, int, size_t) = memset;
+
 static __thread h2o_mem_recycle_t mempool_allocator = {16};
 
-void h2o_fatal(const char *msg)
+void h2o__fatal(const char *msg)
 {
     fprintf(stderr, "fatal:%s\n", msg);
     abort();
@@ -187,7 +199,7 @@ void h2o_buffer__do_free(h2o_buffer_t *buffer)
         h2o_mem_free_recycle(&buffer->_prototype->allocator, buffer);
     } else if (buffer->_fd != -1) {
         close(buffer->_fd);
-        munmap(buffer, topagesize(buffer->capacity));
+        munmap((void *)buffer, topagesize(buffer->capacity));
     } else {
         free(buffer);
     }
@@ -239,11 +251,17 @@ h2o_iovec_t h2o_buffer_reserve(h2o_buffer_t **_inbuf, size_t min_guarantee)
                 } else {
                     fd = inbuf->_fd;
                 }
-                if (ftruncate(fd, new_allocsize) != 0) {
+                int fallocate_ret;
+#if USE_POSIX_FALLOCATE
+                fallocate_ret = posix_fallocate(fd, 0, new_allocsize);
+#else
+                fallocate_ret = ftruncate(fd, new_allocsize);
+#endif
+                if (fallocate_ret != 0) {
                     perror("failed to resize temporary file");
                     goto MapError;
                 }
-                if ((newp = mmap(NULL, new_allocsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+                if ((newp = (void *)mmap(NULL, new_allocsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED) {
                     perror("mmap failed");
                     goto MapError;
                 }
@@ -260,7 +278,7 @@ h2o_iovec_t h2o_buffer_reserve(h2o_buffer_t **_inbuf, size_t min_guarantee)
                 } else {
                     /* munmap */
                     size_t offset = inbuf->bytes - inbuf->_buf;
-                    munmap(inbuf, topagesize(inbuf->capacity));
+                    munmap((void *)inbuf, topagesize(inbuf->capacity));
                     *_inbuf = inbuf = newp;
                     inbuf->capacity = new_capacity;
                     inbuf->bytes = newp->_buf + offset;
@@ -306,6 +324,12 @@ void h2o_buffer_consume(h2o_buffer_t **_inbuf, size_t delta)
     }
 }
 
+void h2o_buffer__dispose_linked(void *p)
+{
+    h2o_buffer_t **buf = p;
+    h2o_buffer_dispose(buf);
+}
+
 void h2o_vector__expand(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity)
 {
     void *new_entries;
@@ -316,11 +340,27 @@ void h2o_vector__expand(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t eleme
         vector->capacity *= 2;
     if (pool != NULL) {
         new_entries = h2o_mem_alloc_pool(pool, element_size * vector->capacity);
-        memcpy(new_entries, vector->entries, element_size * vector->size);
+        h2o_memcpy(new_entries, vector->entries, element_size * vector->size);
     } else {
         new_entries = h2o_mem_realloc(vector->entries, element_size * vector->capacity);
     }
     vector->entries = new_entries;
+}
+
+void h2o_mem_swap(void *_x, void *_y, size_t len)
+{
+    char *x = _x, *y = _y;
+    char buf[256];
+
+    while (len != 0) {
+        size_t blocksz = len < sizeof(buf) ? len : sizeof(buf);
+        memcpy(buf, x, blocksz);
+        memcpy(x, y, blocksz);
+        memcpy(y, buf, blocksz);
+        len -= blocksz;
+        x += blocksz;
+        y += blocksz;
+    }
 }
 
 void h2o_dump_memory(FILE *fp, const char *buf, size_t len)

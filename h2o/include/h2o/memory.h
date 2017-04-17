@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 DeNA Co., Ltd.
+ * Copyright (c) 2014,2015 DeNA Co., Ltd., Kazuho Oku, Justin Zhu
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,6 +22,9 @@
 #ifndef h2o__memory_h
 #define h2o__memory_h
 
+#ifdef __sun__
+#include <alloca.h>
+#endif
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -33,6 +36,14 @@ extern "C" {
 #endif
 
 #define H2O_STRUCT_FROM_MEMBER(s, m, p) ((s *)((char *)(p)-offsetof(s, m)))
+
+#if __GNUC__ >= 3
+#define H2O_LIKELY(x) __builtin_expect(!!(x), 1)
+#define H2O_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define H2O_LIKELY(x) (x)
+#define H2O_UNLIKELY(x) (x)
+#endif
 
 #ifdef __GNUC__
 #define H2O_GNUC_VERSION ((__GNUC__ << 16) | (__GNUC_MINOR__ << 8) | __GNUC_PATCHLEVEL__)
@@ -55,6 +66,11 @@ extern "C" {
 #else
 #define H2O_RETURNS_NONNULL
 #endif
+
+#define H2O_TO__STR(n) #n
+#define H2O_TO_STR(n) H2O_TO__STR(n)
+
+#define H2O_BUILD_ASSERT(condition) ((void)sizeof(char[2 * !!(!__builtin_constant_p(condition) || (condition)) - 1]))
 
 typedef struct st_h2o_buffer_prototype_t h2o_buffer_prototype_t;
 
@@ -134,12 +150,20 @@ struct st_h2o_buffer_prototype_t {
     }
 
 typedef H2O_VECTOR(void) h2o_vector_t;
+typedef H2O_VECTOR(h2o_iovec_t) h2o_iovec_vector_t;
+
+extern void *(*h2o_mem__set_secure)(void *, int, size_t);
 
 /**
  * prints an error message and aborts
  */
-H2O_NORETURN void h2o_fatal(const char *msg);
+#define h2o_fatal(msg) h2o__fatal(__FILE__ ":" H2O_TO_STR(__LINE__) ":" msg)
+H2O_NORETURN void h2o__fatal(const char *msg);
 
+/**
+ * A version of memcpy that can take a NULL @src to avoid UB
+ */
+static void *h2o_memcpy(void *dst, const void *src, size_t n);
 /**
  * constructor for h2o_iovec_t
  */
@@ -231,6 +255,7 @@ static void h2o_buffer_set_prototype(h2o_buffer_t **buffer, h2o_buffer_prototype
  * after it is linked.
  */
 static void h2o_buffer_link_to_pool(h2o_buffer_t *buffer, h2o_mem_pool_t *pool);
+void h2o_buffer__dispose_linked(void *p);
 /**
  * grows the vector so that it could store at least new_capacity elements of given size (or dies if impossible).
  * @param pool memory pool that the vector is using
@@ -238,13 +263,35 @@ static void h2o_buffer_link_to_pool(h2o_buffer_t *buffer, h2o_mem_pool_t *pool);
  * @param element_size size of the elements stored in the vector
  * @param new_capacity the capacity of the buffer after the function returns
  */
-static void h2o_vector_reserve(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity);
+#define h2o_vector_reserve(pool, vector, new_capacity)                                                                             \
+    h2o_vector__reserve((pool), (h2o_vector_t *)(void *)(vector), sizeof((vector)->entries[0]), (new_capacity))
+static void h2o_vector__reserve(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity);
 void h2o_vector__expand(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity);
+/**
+ * erase the entry at given index from the vector
+ */
+#define h2o_vector_erase(vector, index) h2o_vector__erase((h2o_vector_t *)(void *)(vector), sizeof((vector)->entries[0]), (index))
+static void h2o_vector__erase(h2o_vector_t *vector, size_t element_size, size_t index);
 
 /**
  * tests if target chunk (target_len bytes long) is equal to test chunk (test_len bytes long)
  */
 static int h2o_memis(const void *target, size_t target_len, const void *test, size_t test_len);
+
+/**
+ * variant of memchr that searches the string from tail
+ */
+static void *h2o_memrchr(const void *s, int c, size_t n);
+
+/**
+ * secure memset
+ */
+static void *h2o_mem_set_secure(void *b, int c, size_t len);
+
+/**
+ * swaps contents of memory
+ */
+void h2o_mem_swap(void *x, void *y, size_t len);
 
 /**
  * emits hexdump of given buffer to fp
@@ -257,6 +304,15 @@ void h2o_dump_memory(FILE *fp, const char *buf, size_t len);
 void h2o_append_to_null_terminated_list(void ***list, void *element);
 
 /* inline defs */
+
+inline void *h2o_memcpy(void *dst, const void *src, size_t n)
+{
+    if (src != NULL)
+        return memcpy(dst, src, n);
+    else if (n != 0)
+        h2o_fatal("null pointer passed to memcpy");
+    return dst;
+}
 
 inline h2o_iovec_t h2o_iovec_init(const void *base, size_t len)
 {
@@ -327,15 +383,22 @@ inline void h2o_buffer_set_prototype(h2o_buffer_t **buffer, h2o_buffer_prototype
 
 inline void h2o_buffer_link_to_pool(h2o_buffer_t *buffer, h2o_mem_pool_t *pool)
 {
-    h2o_buffer_t **slot = (h2o_buffer_t **)h2o_mem_alloc_shared(pool, sizeof(*slot), (void (*)(void *))(void *)h2o_buffer_dispose);
+    h2o_buffer_t **slot = (h2o_buffer_t **)h2o_mem_alloc_shared(pool, sizeof(*slot), h2o_buffer__dispose_linked);
     *slot = buffer;
 }
 
-inline void h2o_vector_reserve(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity)
+inline void h2o_vector__reserve(h2o_mem_pool_t *pool, h2o_vector_t *vector, size_t element_size, size_t new_capacity)
 {
     if (vector->capacity < new_capacity) {
         h2o_vector__expand(pool, vector, element_size, new_capacity);
     }
+}
+
+inline void h2o_vector__erase(h2o_vector_t *vector, size_t element_size, size_t index)
+{
+    char *entries = (char *)vector->entries;
+    memmove(entries + element_size * index, entries + element_size * (index + 1), vector->size - index - 1);
+    --vector->size;
 }
 
 inline int h2o_memis(const void *_target, size_t target_len, const void *_test, size_t test_len)
@@ -348,6 +411,23 @@ inline int h2o_memis(const void *_target, size_t target_len, const void *_test, 
     if (target[0] != test[0])
         return 0;
     return memcmp(target + 1, test + 1, test_len - 1) == 0;
+}
+
+inline void *h2o_memrchr(const void *s, int c, size_t n)
+{
+    if (n != 0) {
+        const char *p = (const char *)s + n;
+        do {
+            if (*--p == c)
+                return (void *)p;
+        } while (p != s);
+    }
+    return NULL;
+}
+
+inline void *h2o_mem_set_secure(void *b, int c, size_t len)
+{
+    return h2o_mem__set_secure(b, c, len);
 }
 
 #ifdef __cplusplus
