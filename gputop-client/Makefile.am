@@ -6,5 +6,5 @@ endif
 
 if ENABLE_NODE_CLIENTS
 install-data-local:
-	npm install -g --prefix=$(prefix) --production --cache-min 999999999
+	npm install $(top_srcdir)/gputop-data -g --prefix=$(prefix) --production --cache-min 999999999
 endif
