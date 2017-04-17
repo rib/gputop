@@ -1,4 +1,4 @@
-/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+/* Copyright libuv project contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -20,26 +20,16 @@
  */
 
 #include "uv.h"
+#include "internal.h"
 
-#define UV_STRINGIFY(v) UV_STRINGIFY_HELPER(v)
-#define UV_STRINGIFY_HELPER(v) #v
+#include <stdint.h>
+#include <time.h>
 
-#define UV_VERSION_STRING_BASE  UV_STRINGIFY(UV_VERSION_MAJOR) "." \
-                                UV_STRINGIFY(UV_VERSION_MINOR) "." \
-                                UV_STRINGIFY(UV_VERSION_PATCH)
+#undef NANOSEC
+#define NANOSEC ((uint64_t) 1e9)
 
-#if UV_VERSION_IS_RELEASE
-# define UV_VERSION_STRING  UV_VERSION_STRING_BASE
-#else
-# define UV_VERSION_STRING  UV_VERSION_STRING_BASE "-" UV_VERSION_SUFFIX
-#endif
-
-
-unsigned int uv_version(void) {
-  return UV_VERSION_HEX;
-}
-
-
-const char* uv_version_string(void) {
-  return UV_VERSION_STRING;
+uint64_t uv__hrtime(uv_clocktype_t type) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (((uint64_t) ts.tv_sec) * NANOSEC + ts.tv_nsec);
 }

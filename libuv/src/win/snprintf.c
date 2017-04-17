@@ -1,4 +1,4 @@
-/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+/* Copyright the libuv project contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -19,27 +19,24 @@
  * IN THE SOFTWARE.
  */
 
-#include "uv.h"
+#if defined(_MSC_VER) && _MSC_VER < 1900
 
-#define UV_STRINGIFY(v) UV_STRINGIFY_HELPER(v)
-#define UV_STRINGIFY_HELPER(v) #v
+#include <stdio.h>
+#include <stdarg.h>
 
-#define UV_VERSION_STRING_BASE  UV_STRINGIFY(UV_VERSION_MAJOR) "." \
-                                UV_STRINGIFY(UV_VERSION_MINOR) "." \
-                                UV_STRINGIFY(UV_VERSION_PATCH)
+/* Emulate snprintf() on MSVC<2015, _snprintf() doesn't zero-terminate the buffer
+ * on overflow...
+ */
+int snprintf(char* buf, size_t len, const char* fmt, ...) {
+  int n;
+  va_list ap;
+  va_start(ap, fmt);
 
-#if UV_VERSION_IS_RELEASE
-# define UV_VERSION_STRING  UV_VERSION_STRING_BASE
-#else
-# define UV_VERSION_STRING  UV_VERSION_STRING_BASE "-" UV_VERSION_SUFFIX
+  n = _vscprintf(fmt, ap);
+  vsnprintf_s(buf, len, _TRUNCATE, fmt, ap);
+
+  va_end(ap);
+  return n;
+}
+
 #endif
-
-
-unsigned int uv_version(void) {
-  return UV_VERSION_HEX;
-}
-
-
-const char* uv_version_string(void) {
-  return UV_VERSION_STRING;
-}

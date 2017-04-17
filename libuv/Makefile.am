@@ -12,46 +12,50 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-AM_CPPFLAGS = -I$(top_srcdir)/libuv/include \
-              -I$(top_srcdir)/libuv/src \
-	      $(GPUTOP_EXTRA_CFLAGS) \
-	      -include $(top_builddir)/config.h
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/libuv/include \
+	-I$(top_srcdir)/libuv/src \
+	$(GPUTOP_EXTRA_CFLAGS) \
+	-include $(top_builddir)/config.h
 
 noinst_LTLIBRARIES = libuv.la
-libuv_la_SOURCES = src/fs-poll.c \
-                   src/heap-inl.h \
-                   src/inet.c \
-                   src/queue.h \
-                   src/threadpool.c \
-                   src/uv-common.c \
-                   src/uv-common.h \
-                   src/version.c
+libuv_la_SOURCES = \
+	src/fs-poll.c \
+	src/heap-inl.h \
+	src/inet.c \
+	src/queue.h \
+	src/threadpool.c \
+	src/uv-common.c \
+	src/uv-common.h \
+	src/version.c
 
 AM_CPPFLAGS += -I$(top_srcdir)/libuv/src/unix
-libuv_la_SOURCES += src/unix/async.c \
-                   src/unix/atomic-ops.h \
-                   src/unix/core.c \
-                   src/unix/dl.c \
-                   src/unix/fs.c \
-                   src/unix/getaddrinfo.c \
-                   src/unix/getnameinfo.c \
-                   src/unix/internal.h \
-                   src/unix/loop-watcher.c \
-                   src/unix/loop.c \
-                   src/unix/pipe.c \
-                   src/unix/poll.c \
-                   src/unix/process.c \
-                   src/unix/signal.c \
-                   src/unix/spinlock.h \
-                   src/unix/stream.c \
-                   src/unix/tcp.c \
-                   src/unix/thread.c \
-                   src/unix/timer.c \
-                   src/unix/tty.c \
-                   src/unix/udp.c
+libuv_la_SOURCES += \
+	src/unix/async.c \
+	src/unix/atomic-ops.h \
+	src/unix/core.c \
+	src/unix/dl.c \
+	src/unix/fs.c \
+	src/unix/getaddrinfo.c \
+	src/unix/getnameinfo.c \
+	src/unix/internal.h \
+	src/unix/loop-watcher.c \
+	src/unix/loop.c \
+	src/unix/pipe.c \
+	src/unix/poll.c \
+	src/unix/process.c \
+	src/unix/signal.c \
+	src/unix/spinlock.h \
+	src/unix/stream.c \
+	src/unix/tcp.c \
+	src/unix/thread.c \
+	src/unix/timer.c \
+	src/unix/tty.c \
+	src/unix/udp.c
 
-libuv_la_SOURCES += src/unix/linux-core.c \
-                    src/unix/linux-inotify.c \
-                    src/unix/linux-syscalls.c \
-                    src/unix/linux-syscalls.h \
-                    src/unix/proctitle.c
+libuv_la_SOURCES += \
+	src/unix/linux-core.c \
+	src/unix/linux-inotify.c \
+	src/unix/linux-syscalls.c \
+	src/unix/linux-syscalls.h \
+	src/unix/proctitle.c
