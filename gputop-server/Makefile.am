@@ -78,7 +78,7 @@ libgputop_la_LIBADD = \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
-    -ldl -lm -lrt
+    -ldl -lm -lrt -lstdc++
 
 if SUPPORT_GL
 libgputop_la_SOURCES += \
