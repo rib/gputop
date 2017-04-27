@@ -167,7 +167,7 @@ for arg in args.xml:
 
 
 
-chipsets = [ 'hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt', 'kblgt2', 'kblgt3' ]
+chipsets = [ 'hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt', 'kblgt2', 'kblgt3', 'glk' ]
 
 for chipset in chipsets:
     public = et.parse('oa-' + chipset + '.xml')

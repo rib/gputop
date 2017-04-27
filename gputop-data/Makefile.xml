@@ -27,6 +27,7 @@ sklgt4_xml = mdapi/MetricsXML_SKL_GT4.xml
 bxt_xml = mdapi/MetricsXML_BXT.xml
 kblgt2_xml = mdapi/MetricsXML_KBL_GT2.xml
 kblgt3_xml = mdapi/MetricsXML_KBL_GT3.xml
+glk_xml = mdapi/MetricsXML_GLK.xml
 
 INTERNAL=0
 ifeq ($(INTERNAL), 1)
