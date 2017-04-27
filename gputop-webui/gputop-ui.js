@@ -1081,6 +1081,8 @@ GputopUI.prototype.init_interface = function(callback) {
                 ["sklgt3", "Skylake GT3"],
                 ["sklgt4", "Skylake GT4"],
                 ["bxt", "Broxton"],
+                ["kblgt2", "Kabylake GT2"],
+                ["kblgt3", "Kabylake GT3"],
             ];
 
             for (var i = 0; i < arch_list.length; i++)

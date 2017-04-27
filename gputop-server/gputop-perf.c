@@ -66,6 +66,8 @@
 #include "oa-sklgt3.h"
 #include "oa-sklgt4.h"
 #include "oa-bxt.h"
+#include "oa-kblgt2.h"
+#include "oa-kblgt3.h"
 
 
 /* Samples read() from i915 perf */
@@ -1513,6 +1515,15 @@ gputop_perf_initialize(void)
             }
         } else if (IS_BROXTON(intel_dev.device)) {
             gputop_oa_add_metrics_bxt(&gputop_devinfo);
+        } else if (IS_KABYLAKE(intel_dev.device)) {
+            if (IS_KBL_GT2(intel_dev.device))
+                gputop_oa_add_metrics_kblgt2(&gputop_devinfo);
+            else if (IS_KBL_GT3(intel_dev.device))
+                gputop_oa_add_metrics_kblgt3(&gputop_devinfo);
+            else {
+                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Kabylake GT size\n", -1);
+                return false;
+            }
         } else {
             gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform\n", -1);
             return false;

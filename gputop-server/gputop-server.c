@@ -1214,6 +1214,14 @@ handle_get_features(h2o_websocket_conn_t *conn,
     } else if (IS_BROXTON(devinfo.devid)) {
         devinfo.devname = "bxt";
         devinfo.prettyname = "Broxton";
+    } else if (IS_KABYLAKE(devinfo.devid)) {
+        if (IS_KBL_GT2(devinfo.devid)) {
+            devinfo.devname = "kblgt2";
+            devinfo.prettyname = "Kabylake GT2";
+        } else if (IS_KBL_GT3(devinfo.devid)) {
+            devinfo.devname = "kblgt3";
+            devinfo.prettyname = "Kabylake GT3";
+        }
     }
 
     features.fake_mode = gputop_fake_mode;

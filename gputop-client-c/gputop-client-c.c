@@ -52,6 +52,8 @@
 #include "oa-sklgt3.h"
 #include "oa-sklgt4.h"
 #include "oa-bxt.h"
+#include "oa-kblgt2.h"
+#include "oa-kblgt3.h"
 
 #define PERF_RECORD_SAMPLE 9
 
@@ -391,6 +393,15 @@ gputop_cc_update_system_metrics(void)
         }
     } else if (IS_BROXTON(devid)) {
         gputop_oa_add_metrics_bxt(&gputop_devinfo);
+    } else if (IS_KABYLAKE(devid)) {
+        if (IS_KBL_GT2(devid))
+            gputop_oa_add_metrics_kblgt2(&gputop_devinfo);
+        else if (IS_KBL_GT3(devid))
+            gputop_oa_add_metrics_kblgt3(&gputop_devinfo);
+        else {
+            gputop_cr_console_error("Unsupported Kabylake GT size");
+            assert_not_reached();
+        }
     } else {
         gputop_cr_console_error("FIXME: Unknown platform device ID 0x%x: " __FILE__, devid);
         assert_not_reached();
