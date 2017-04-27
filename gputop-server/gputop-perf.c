@@ -1508,13 +1508,13 @@ gputop_perf_initialize(void)
             else if (IS_SKL_GT4(intel_dev.device))
                 gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
             else {
-                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Skylake GT size", -1);
+                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Skylake GT size\n", -1);
                 return false;
             }
         } else if (IS_BROXTON(intel_dev.device)) {
             gputop_oa_add_metrics_bxt(&gputop_devinfo);
         } else {
-            gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform", -1);
+            gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform\n", -1);
             return false;
         }
 
