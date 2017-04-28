@@ -7182,7 +7182,7 @@
   <set name="Metric set HDCAndSF"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="hdc_and_sf"
-       hw_config_guid="2cf0c064-68df-4fac-9b3f-57f51ca8a069"
+       hw_config_guid="7bdafd88-a4fa-4ed5-bc09-1a977aa5be3e"
        chipset="BDW"
        symbol_name="HDCAndSF"
        >
@@ -7882,7 +7882,7 @@
   <set name="Metric set L3_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_1"
-       hw_config_guid="78a87ff9-543a-49ce-95ea-26d86071ea93"
+       hw_config_guid="9385ebb2-f34f-4aa5-aec5-7e9cbbea0f0b"
        chipset="BDW"
        symbol_name="L3_1"
        >
@@ -8545,7 +8545,7 @@
   <set name="Metric set L3_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_2"
-       hw_config_guid="9f2cece5-7bfe-4320-ad66-8c7cc526bec5"
+       hw_config_guid="446ae59b-ff2e-41c9-b49e-0184a54bf00a"
        chipset="BDW"
        symbol_name="L3_2"
        >
@@ -9195,7 +9195,7 @@
   <set name="Metric set L3_3"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_3"
-       hw_config_guid="d890ef38-d309-47e4-b8b5-aa779bb19ab0"
+       hw_config_guid="84a7956f-1ea4-4d0d-837f-e39a0376e38c"
        chipset="BDW"
        symbol_name="L3_3"
        >
@@ -9861,7 +9861,7 @@
   <set name="Metric set L3_4"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_4"
-       hw_config_guid="5fdff4a6-9dc8-45e1-bfda-ef54869fbdd4"
+       hw_config_guid="92b493d9-df18-4bed-be06-5cac6f2a6f5f"
        chipset="BDW"
        symbol_name="L3_4"
        >
@@ -10526,7 +10526,7 @@
   <set name="Metric set RasterizerAndPixelBackend"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="rasterizer_and_pixel_backend"
-       hw_config_guid="2c0e45e1-7e2c-4a14-ae00-0b7ec868b8aa"
+       hw_config_guid="14345c35-cc46-40d0-bb04-6ed1fbb43679"
        chipset="BDW"
        symbol_name="RasterizerAndPixelBackend"
        >
@@ -11298,7 +11298,7 @@
   <set name="Metric set Sampler_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler_1"
-       hw_config_guid="71148d78-baf5-474f-878a-e23158d0265d"
+       hw_config_guid="f0c6ba37-d3d3-4211-91b5-226730312a54"
        chipset="BDW"
        symbol_name="Sampler_1"
        >
@@ -12016,7 +12016,7 @@
   <set name="Metric set Sampler_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler_2"
-       hw_config_guid="b996a2b7-c59c-492d-877a-8cd54fd6df84"
+       hw_config_guid="30bf3702-48cf-4bca-b412-7cf50bb2f564"
        chipset="BDW"
        symbol_name="Sampler_2"
        >
@@ -12722,7 +12722,7 @@
   <set name="Metric set TDL_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_1"
-       hw_config_guid="eb2fecba-b431-42e7-8261-fe9429a6e67a"
+       hw_config_guid="238bec85-df05-44f3-b905-d166712f2451"
        chipset="BDW"
        symbol_name="TDL_1"
        >
@@ -13561,7 +13561,7 @@
   <set name="Metric set TDL_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_2"
-       hw_config_guid="60749470-a648-4a4b-9f10-dbfe1e36e44d"
+       hw_config_guid="24bf02cd-8693-4583-981c-c4165b33da01"
        chipset="BDW"
        symbol_name="TDL_2"
        >

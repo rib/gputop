@@ -10363,7 +10363,7 @@
   <set name="Compute Metrics Extra Gen9"
        mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_extra"
-       hw_config_guid="aa7a3fb9-22fb-43ff-a32d-0ab6c13bbd16"
+       hw_config_guid="41a24047-7484-4ead-ae37-de907e5ff2b2"
        chipset="SKLGT2"
        symbol_name="ComputeExtra"
        >
@@ -10490,7 +10490,7 @@
   <set name="Media Vme Pipe Gen9"
        mdapi_supported_apis="MEDIA IO BB"
        underscore_name="vme_pipe"
-       hw_config_guid="398a4268-ef6f-4ffc-b55f-3c7b5363ce61"
+       hw_config_guid="95910492-943f-44bd-9461-390240f243fd"
        chipset="SKLGT2"
        symbol_name="VMEPipe"
        >

@@ -1419,8 +1419,10 @@ bool
 gputop_enumerate_metrics_fake(void)
 {
     static const char *fake_bdw_guids[] = {
+        "d6de6f55-e526-4f79-a6a6-d7315c09044e",
         "b541bd57-0e0f-4154-b4c0-5858010a2bf7",
         "35fbc9b2-a891-40a6-a38d-022bb7057552",
+        "8fb61ba2-2fbb-454c-a136-2dec5a8a595e",
         "233d0544-fff7-4281-8291-e02f222aff72",
         "2b255d48-2117-4fef-a8f7-f151e1d25a2c",
         "f7fd3220-b466-4a4d-9f98-b0caf3f2394c",
@@ -1428,16 +1430,17 @@ gputop_enumerate_metrics_fake(void)
         "27a364dc-8225-4ecb-b607-d6f1925598d9",
         "857fc630-2f09-4804-85f1-084adfadd5ab",
         "343ebc99-4a55-414c-8c17-d8e259cf5e20",
-        "2cf0c064-68df-4fac-9b3f-57f51ca8a069",
-        "78a87ff9-543a-49ce-95ea-26d86071ea93",
-        "9f2cece5-7bfe-4320-ad66-8c7cc526bec5",
-        "d890ef38-d309-47e4-b8b5-aa779bb19ab0",
-        "5fdff4a6-9dc8-45e1-bfda-ef54869fbdd4",
-        "2c0e45e1-7e2c-4a14-ae00-0b7ec868b8aa",
-        "71148d78-baf5-474f-878a-e23158d0265d",
-        "b996a2b7-c59c-492d-877a-8cd54fd6df84",
-        "eb2fecba-b431-42e7-8261-fe9429a6e67a",
-        "60749470-a648-4a4b-9f10-dbfe1e36e44d",
+        "e1743ca0-7fc8-410b-a066-de7bbb9280b7",
+        "7bdafd88-a4fa-4ed5-bc09-1a977aa5be3e",
+        "9385ebb2-f34f-4aa5-aec5-7e9cbbea0f0b",
+        "446ae59b-ff2e-41c9-b49e-0184a54bf00a",
+        "84a7956f-1ea4-4d0d-837f-e39a0376e38c",
+        "92b493d9-df18-4bed-be06-5cac6f2a6f5f",
+        "14345c35-cc46-40d0-bb04-6ed1fbb43679",
+        "f0c6ba37-d3d3-4211-91b5-226730312a54",
+        "30bf3702-48cf-4bca-b412-7cf50bb2f564",
+        "238bec85-df05-44f3-b905-d166712f2451",
+        "24bf02cd-8693-4583-981c-c4165b33da01"
     };
 
     struct gputop_metric_set *metric_set;

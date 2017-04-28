@@ -531,7 +531,9 @@ guids = {}
 
 guids_xml = et.parse(args.guids)
 for guid in guids_xml.findall(".//guid"):
-    guids[guid.get('mdapi_config_hash')] = guid.get('id')
+    hashing_key = oa_registry.Registry.chipset_derive_hash(guid.get('chipset'),
+                                                           guid.get('mdapi_config_hash'))
+    guids[hashing_key] = guid.get('id')
 
 for arg in args.xml:
     mdapi = et.parse(arg)
@@ -629,10 +631,12 @@ for arg in args.xml:
             add_register_config(set, 0, None, flex_regs, "FLEX")
 
         mdapi_hw_config_hash = oa_registry.Registry.mdapi_hw_config_hash(mdapi_set)
+        guid_hash = oa_registry.Registry.chipset_derive_hash(chipset.lower(),
+                                                             mdapi_hw_config_hash)
         hw_config_hash = oa_registry.Registry.hw_config_hash(set)
 
-        if mdapi_hw_config_hash in guids:
-            set.set('hw_config_guid', guids[mdapi_hw_config_hash])
+        if guid_hash in guids:
+            set.set('hw_config_guid', guids[guid_hash])
         else:
             print_err("WARNING: No GUID found for metric set " + chipset + ", " + set_symbol_name + " (SKIPPING)")
             print_err("WARNING: If this is a new config add the following to guids.xml:")
