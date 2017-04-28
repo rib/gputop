@@ -16,20 +16,9 @@
     },
     "files": [
         "binding.gyp",
-        "oa-hsw.h",
-        "oa-hsw.c",
-        "oa-bdw.h",
-        "oa-bdw.c",
-        "oa-chv.h",
-        "oa-chv.c",
-        "oa-sklgt2.h",
-        "oa-sklgt2.c",
-        "oa-sklgt3.h",
-        "oa-sklgt3.c",
-        "oa-sklgt4.h",
-        "oa-sklgt4.c",
-        "oa-bxt.h",
-        "oa-bxt.c",
+        % for f in files:
+        "${f}",
+        % endfor
         "gputop-oa-counters.c",
         "gputop-oa-counters.h",
         "gputop-client-c-runtime.h",

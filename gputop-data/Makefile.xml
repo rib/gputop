@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.generated
+
 CONVERT_ARGS =
 KERNELGEN_ARGS =
 top_srcdir=../
@@ -14,25 +16,7 @@ oa_xml_files = \
 	oa-kblgt2.xml \
 	oa-kblgt3.xml
 
-drm_files = \
-	i915_oa_hsw.h \
-	i915_oa_hsw.c \
-	i915_oa_bdw.h \
-	i915_oa_bdw.c \
-	i915_oa_chv.h \
-	i915_oa_chv.c \
-	i915_oa_sklgt2.h \
-	i915_oa_sklgt2.c \
-	i915_oa_sklgt3.h \
-	i915_oa_sklgt3.c \
-	i915_oa_sklgt4.h \
-	i915_oa_sklgt4.c \
-	i915_oa_bxt.h \
-	i915_oa_bxt.c \
-	i915_oa_kblgt2.h \
-	i915_oa_kblgt2.c \
-	i915_oa_kblgt3.h \
-	i915_oa_kblgt3.c
+drm_files = $(OA_sources:oa-%=i915_oa_%)
 
 hsw_xml = mdapi/MetricsXML_HSW.xml
 bdw_xml = mdapi/MetricsXML_BDW.xml

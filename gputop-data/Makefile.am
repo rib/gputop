@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.generated
+
 gputop_xml = \
 	gputop-hsw.xml \
 	gputop-bdw.xml \

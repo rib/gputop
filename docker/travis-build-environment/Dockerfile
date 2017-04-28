@@ -6,7 +6,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     ninja-build \
     python2.7-minimal \
     libpython2.7-stdlib \
-    ca-certificates && \
+    ca-certificates \
+    python-mako && \
     apt-get clean
 
 # Build and install Clang with the fastcomp backend but delete the build/source

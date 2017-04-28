@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.generated
+
 SUBDIRS =
 
 if SUPPORT_GL
@@ -24,20 +26,7 @@ libgputop_la_SOURCES = \
     gputop-hash-table.h \
     gputop-hash-table.c \
     intel_chipset.h \
-    oa-hsw.h \
-    oa-hsw.c \
-    oa-bdw.h \
-    oa-bdw.c \
-    oa-chv.h \
-    oa-chv.c \
-    oa-sklgt2.h \
-    oa-sklgt2.c \
-    oa-sklgt3.h \
-    oa-sklgt3.c \
-    oa-sklgt4.h \
-    oa-sklgt4.c \
-    oa-bxt.h \
-    oa-bxt.c \
+    $(OA_sources) \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
@@ -124,33 +113,14 @@ gputop_system_CPPFLAGS = \
     -I$(srcdir)
 
 BUILT_SOURCES = \
-    oa-hsw.h \
-    oa-hsw.c \
-    oa-bdw.h \
-    oa-bdw.c \
-    oa-chv.h \
-    oa-chv.c \
-    oa-sklgt2.h \
-    oa-sklgt2.c \
-    oa-sklgt3.h \
-    oa-sklgt3.c \
-    oa-sklgt4.h \
-    oa-sklgt4.c \
-    oa-bxt.h \
-    oa-bxt.c \
+    $(OA_sources) \
     gputop.pb-c.h \
     gputop.pb-c.c
 
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts
 
-oa-%.h oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-$(*).h \
-	    --code=$(builddir)/oa-$(*).c \
-	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
-
-%.pb-c.c %.pb-c.h: $(data_dir)/%.proto
+%.pb-c.c %.pb-c.h: $(data_dir)/%.proto Makefile.am
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop-server -I$(data_dir) $(data_dir)/$(*F).proto
 
 CLEANFILES = $(BUILT_SOURCES)

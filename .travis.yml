@@ -30,8 +30,8 @@ env:
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients --enable-web-ui"
 
 before_install:
-    - docker pull rib1/gputop-travis-ci
-    - scripts/travis-ci-prep-docker.sh rib1/gputop-travis-ci final-travis-ci-image
+    - docker pull djdeath/gputop-travis-ci
+    - scripts/travis-ci-prep-docker.sh djdeath/gputop-travis-ci final-travis-ci-image
 
 script:
     - sudo docker run -t -i -v $TRAVIS_BUILD_DIR:/home/$USER/build -e TRAVIS_BUILD_DIR="/home/$USER/build" -e CONFIG_OPTS="$CONFIG_OPTS" final-travis-ci-image scripts/travis-ci-build.sh

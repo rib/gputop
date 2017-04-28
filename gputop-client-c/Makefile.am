@@ -1,34 +1,24 @@
+include $(top_srcdir)/Makefile.generated
+
+templated_files = \
+	binding.gyp \
+	package.json
+
 BUILT_SOURCES = \
-    oa-hsw.h \
-    oa-hsw.c \
-    oa-bdw.h \
-    oa-bdw.c \
-    oa-chv.h \
-    oa-chv.c \
-    oa-sklgt2.h \
-    oa-sklgt2.c \
-    oa-sklgt3.h \
-    oa-sklgt3.c \
-    oa-sklgt4.h \
-    oa-sklgt4.c \
-    oa-bxt.h \
-    oa-bxt.c
+	$(OA_sources) \
+	$(templated_files)
 
-data_dir = $(top_srcdir)/gputop-data
-script_dir = $(top_srcdir)/scripts
+noinst_DATA = \
+	$(templated_files)
 
-# Note: we avoid using a multi target rule here and outputting both the
-# .c and .h files in one go so we don't hit problems with parallel
-# make and multiple invocations of the same script trying to write
-# to the same files.
-oa-%.h: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py Makefile.am
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --header=$(builddir)/oa-$(*).h \
-	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
-oa-%.c: $(data_dir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py Makefile.am
-	$(PYTHON2) $(PYTHON_FLAGS) $(script_dir)/gputop-oa-codegen.py \
-	    --code=$(builddir)/oa-$(*).c \
-	    --chipset="$(*)" $(data_dir)/oa-$(*).xml
+EXTRA_DIST = \
+	$(templated_files:%=%.in)
+
+package.json: gen-template.py Makefile.am package.json.in
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(OA_sources)
+
+binding.gyp: gen-template.py Makefile.am binding.gyp.in
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(OA_sources)
 
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote

@@ -89,6 +89,7 @@ AC_PROG_LIBTOOL
 
 AC_CHECK_PROGS([PYTHON2], [python2 python])
 AX_PYTHON_MODULE(lxml, [error])
+AX_PYTHON_MODULE(mako, [error])
 
 AC_PROG_INSTALL
 AC_CHECK_PROGS([EMCC], [emcc])
