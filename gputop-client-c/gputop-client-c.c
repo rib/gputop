@@ -54,6 +54,7 @@
 #include "oa-bxt.h"
 #include "oa-kblgt2.h"
 #include "oa-kblgt3.h"
+#include "oa-glk.h"
 
 #define PERF_RECORD_SAMPLE 9
 

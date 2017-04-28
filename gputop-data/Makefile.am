@@ -9,7 +9,8 @@ gputop_xml = \
 	gputop-sklgt4.xml \
 	gputop-bxt.xml \
 	gputop-kblgt2.xml \
-	gputop-kblgt3.xml
+	gputop-kblgt3.xml \
+	gputop-glk.xml
 
 BUILT_SOURCES = $(gputop_xml)
 

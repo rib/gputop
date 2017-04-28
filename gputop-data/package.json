@@ -16,6 +16,7 @@
         "gputop-bxt.xml",
         "gputop-kblgt2.xml",
         "gputop-kblgt3.xml",
+        "gputop-glk.xml",
         "gputop.proto"
     ],
     "scripts": {

@@ -14,7 +14,8 @@ oa_xml_files = \
 	oa-sklgt4.xml \
 	oa-bxt.xml \
 	oa-kblgt2.xml \
-	oa-kblgt3.xml
+	oa-kblgt3.xml \
+	oa-glk.xml
 
 drm_files = $(OA_sources:oa-%=i915_oa_%)
 

@@ -68,6 +68,7 @@
 #include "oa-bxt.h"
 #include "oa-kblgt2.h"
 #include "oa-kblgt3.h"
+#include "oa-glk.h"
 
 
 /* Samples read() from i915 perf */

@@ -16,7 +16,9 @@ OA_sources = \
 	oa-kblgt2.h \
 	oa-kblgt2.c \
 	oa-kblgt3.h \
-	oa-kblgt3.c
+	oa-kblgt3.c \
+	oa-glk.h \
+	oa-glk.c
 
 data_dir = $(top_srcdir)/gputop-data
 script_dir = $(top_srcdir)/scripts
