@@ -288,7 +288,7 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   N Cores: " + features.get_n_cpus());
 
         stderr_log.warn("\nCSV: GPU Info:");
-        stderr_log.warn("CSV:   Model: " + this.get_arch_pretty_name());
+        stderr_log.warn("CSV:   Model: " + features.devinfo.get_prettyname());
         stderr_log.warn("CSV:   N EUs: " + features.devinfo.get_n_eus().toInt());
         stderr_log.warn("CSV:   N EU Slices: " + features.devinfo.get_n_eu_slices().toInt());
         stderr_log.warn("CSV:   N EU Sub Slices Per Slice: " + features.devinfo.get_n_eu_sub_slices().toInt());

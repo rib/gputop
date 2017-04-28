@@ -270,18 +270,6 @@ function Gputop () {
     }
     this.demo_architecture =  "hsw";
 
-    this.get_arch_pretty_name = function() {
-        switch (this.config_.architecture) {
-            case 'hsw': return "Haswell";
-            case 'bdw': return "Broadwell";
-            case 'chv': return "Cherryview";
-            case 'sklgt2': return "Skylake GT2";
-            case 'sklgt3': return "Skylake GT3";
-            case 'sklgt4': return "Skylake GT4";
-            case 'bxt': return "Broxton";
-        }
-        return this.config_.architecture;
-    }
     this.system_properties = {};
 
     this.builder_ = undefined;

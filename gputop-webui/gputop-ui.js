@@ -878,7 +878,7 @@ GputopUI.prototype.update_features = function(features) {
         $("#overview-notices").append(`<div class="alert alert-info"><strong>Info!</strong> ${notice}</div>`);
     });
 
-    $("#gputop-gpu").html( this.get_arch_pretty_name() );
+    $("#gputop-gpu").html( features.get_prettyname() );
 
     $("#gputop-cpu").html( features.get_cpu_model() );
     $("#gputop-kernel-build").html( features.get_kernel_build() );
@@ -1072,6 +1072,7 @@ GputopUI.prototype.init_interface = function(callback) {
             $('#metric-menu').append('<a href="#" class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-haspopup="true" aria-expanded="true">Set Demo Platform</a>');
             $('#metric-menu').append('<ul id="demoMenu" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>');
 
+            // Fake list, no need to update
             var arch_list = [
                 ["hsw", "Haswell"],
                 ["chv", "Cherryview"],

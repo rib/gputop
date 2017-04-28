@@ -1193,19 +1193,27 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     if (IS_HASWELL(devinfo.devid)) {
         devinfo.devname = "hsw";
+        devinfo.prettyname = "Haswell";
     } else if (IS_BROADWELL(devinfo.devid)) {
         devinfo.devname = "bdw";
+        devinfo.prettyname = "Broadwell";
     } else if (IS_CHERRYVIEW(devinfo.devid)) {
         devinfo.devname = "chv";
+        devinfo.prettyname = "Cherryview";
     } else if (IS_SKYLAKE(devinfo.devid)) {
-        if (IS_SKL_GT2(devinfo.devid))
+        if (IS_SKL_GT2(devinfo.devid)) {
             devinfo.devname = "sklgt2";
-        else if (IS_SKL_GT3(devinfo.devid))
+            devinfo.prettyname = "Skylake GT2";
+        } else if (IS_SKL_GT3(devinfo.devid)) {
             devinfo.devname = "sklgt3";
-        else if (IS_SKL_GT4(devinfo.devid))
+            devinfo.prettyname = "Skylake GT3";
+        } else if (IS_SKL_GT4(devinfo.devid)) {
             devinfo.devname = "sklgt4";
+            devinfo.prettyname = "Skylake GT4";
+        }
     } else if (IS_BROXTON(devinfo.devid)) {
         devinfo.devname = "bxt";
+        devinfo.prettyname = "Broxton";
     }
 
     features.fake_mode = gputop_fake_mode;

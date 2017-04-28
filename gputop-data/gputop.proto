@@ -18,6 +18,7 @@ message DevInfo
     required uint64 gt_min_freq=10;
     required uint64 gt_max_freq=11;
     required string devname = 12;
+    required string prettyname = 20;
 }
 
 enum GLCounterType
