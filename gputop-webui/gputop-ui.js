@@ -878,13 +878,12 @@ GputopUI.prototype.update_features = function(features) {
         $("#overview-notices").append(`<div class="alert alert-info"><strong>Info!</strong> ${notice}</div>`);
     });
 
-    $("#gputop-gpu").html( features.get_prettyname() );
-
     $("#gputop-cpu").html( features.get_cpu_model() );
     $("#gputop-kernel-build").html( features.get_kernel_build() );
     $("#gputop-kernel-release").html( features.get_kernel_release() );
     $("#gputop-n-cpus").html( features.get_n_cpus() );
 
+    $("#gputop-gpu").html( features.devinfo.get_prettyname() );
     $("#gputop-n-eus").html( features.devinfo.get_n_eus().toInt() );
     $("#gputop-n-eu-slices").html( features.devinfo.get_n_eu_slices().toInt()  );
     $("#gputop-n-eu-sub-slices").html( features.devinfo.get_n_eu_sub_slices().toInt()  );
