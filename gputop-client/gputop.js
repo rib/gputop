@@ -1395,7 +1395,9 @@ Gputop.prototype.request_features = function() {
             demo_devinfo.set('slice_mask', 0x1);
             demo_devinfo.set('subslice_mask', 0x3);
             break;
-        case 'skl':
+        case 'sklgt2':
+        case 'sklgt3':
+        case 'sklgt4':
             demo_devinfo.set('devid', 0x1926);
             demo_devinfo.set('gen', 9);
             demo_devinfo.set('n_eu_slices', 3);
