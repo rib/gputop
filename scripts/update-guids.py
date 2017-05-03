@@ -44,6 +44,7 @@
 
 
 import argparse
+import os.path
 import re
 import sys
 import time
@@ -170,7 +171,11 @@ for arg in args.xml:
 chipsets = [ 'hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt', 'kblgt2', 'kblgt3', 'glk' ]
 
 for chipset in chipsets:
-    public = et.parse('oa-' + chipset + '.xml')
+    filename = 'oa-' + chipset + '.xml'
+    if not os.path.isfile(filename):
+        continue
+
+    public = et.parse(filename)
 
     for metricset in public.findall(".//set"):
 
