@@ -270,22 +270,17 @@ finish_stream_close(struct gputop_perf_stream *stream)
 
         break;
     case GPUTOP_STREAM_I915_PERF:
-        if (stream->fd == -1) {
-            if (stream->oa.bufs[0])
-                free(stream->oa.bufs[0]);
-            if (stream->oa.bufs[1])
-                free(stream->oa.bufs[1]);
-            fprintf(stderr, "closed i915 fake perf stream\n");
+        for (int i = 0; i < ARRAY_SIZE(stream->oa.bufs); i++) {
+            if (stream->oa.bufs[i]) {
+                free(stream->oa.bufs[i]);
+                stream->oa.bufs[i] = NULL;
+            }
         }
-        if (stream->fd > 0) {
-            if (stream->oa.bufs[0])
-                free(stream->oa.bufs[0]);
-            if (stream->oa.bufs[1])
-                free(stream->oa.bufs[1]);
-
+        if (stream->fd == -1)
+            fprintf(stderr, "closed i915 fake perf stream\n");
+        else if (stream->fd > 0) {
             close(stream->fd);
             stream->fd = -1;
-
             fprintf(stderr, "closed i915 perf stream\n");
         }
 
