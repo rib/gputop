@@ -3,18 +3,6 @@ include $(top_srcdir)/Makefile.generated
 CONVERT_ARGS =
 KERNELGEN_ARGS =
 
-oa_xml_files = \
-	oa-hsw.xml \
-	oa-bdw.xml \
-	oa-chv.xml \
-	oa-sklgt2.xml \
-	oa-sklgt3.xml \
-	oa-sklgt4.xml \
-	oa-bxt.xml \
-	oa-kblgt2.xml \
-	oa-kblgt3.xml \
-	oa-glk.xml
-
 drm_files = $(oa_generated_sources:oa-%=i915_oa_%)
 
 hsw_xml = mdapi/MetricsXML_HSW.xml
