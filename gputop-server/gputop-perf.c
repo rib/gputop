@@ -1525,6 +1525,8 @@ gputop_perf_initialize(void)
                 gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Kabylake GT size\n", -1);
                 return false;
             }
+        } else if (IS_GEMINILAKE(intel_dev.device)) {
+            gputop_oa_add_metrics_glk(&gputop_devinfo);
         } else {
             gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform\n", -1);
             return false;
