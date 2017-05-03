@@ -18,6 +18,9 @@
         "mathjax": "^2.6.1",
         "gputop-client": "file:../gputop-client"
     },
+    "devDependencies": {
+        "http-server": "*"
+    },
     "main": "gputop.js",
     "files": [
         "index.html",
@@ -25,5 +28,8 @@
     ],
     "engines": {
         "node": ">=5.0.0"
+    },
+    "scripts": {
+        "dev": "node_modules/http-server/bin/http-server -p 4545"
     }
 }
