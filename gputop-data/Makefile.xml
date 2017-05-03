@@ -17,7 +17,7 @@ oa_xml_files = \
 	oa-kblgt3.xml \
 	oa-glk.xml
 
-drm_files = $(OA_sources:oa-%=i915_oa_%)
+drm_files = $(oa_generated_sources:oa-%=i915_oa_%)
 
 hsw_xml = mdapi/MetricsXML_HSW.xml
 bdw_xml = mdapi/MetricsXML_BDW.xml
@@ -70,4 +70,3 @@ i915_oa_%.c i915_oa_%.h: oa-%.xml $(script_dir)/i915-perf-kernelgen.py Makefile.
 
 clean:
 	-rm -f i915_oa_*
-

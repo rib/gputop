@@ -5,7 +5,7 @@ templated_files = \
 	package.json
 
 BUILT_SOURCES = \
-	$(OA_sources) \
+	$(oa_generated_sources) \
 	$(templated_files)
 
 noinst_DATA = \
@@ -15,10 +15,10 @@ EXTRA_DIST = \
 	$(templated_files:%=%.in)
 
 package.json: gen-template.py Makefile.am package.json.in
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(OA_sources)
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(oa_generated_sources)
 
 binding.gyp: gen-template.py Makefile.am binding.gyp.in
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(OA_sources)
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-template.py --template=$(@).in --out=$(@) $(oa_generated_sources)
 
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote

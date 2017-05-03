@@ -32,7 +32,7 @@ _JSFLAGS=$(JSFLAGS)
 
 gputop_web_SOURCE= \
 	gputop-client-c-runtime.c \
-	$(OA_sources) \
+	$(oa_generated_sources) \
 	gputop-client-c.c \
 	gputop-oa-counters.c
 gputop_web_OBJECTS=$(patsubst %.c, %.o, $(gputop_web_SOURCE))

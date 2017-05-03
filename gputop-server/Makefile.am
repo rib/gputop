@@ -26,7 +26,7 @@ libgputop_la_SOURCES = \
     gputop-hash-table.h \
     gputop-hash-table.c \
     intel_chipset.h \
-    $(OA_sources) \
+    $(oa_generated_sources) \
     gputop-perf.h \
     gputop-perf.c \
     gputop-util.h \
@@ -113,7 +113,7 @@ gputop_system_CPPFLAGS = \
     -I$(srcdir)
 
 BUILT_SOURCES = \
-    $(OA_sources) \
+    $(oa_generated_sources) \
     gputop.pb-c.h \
     gputop.pb-c.c
 

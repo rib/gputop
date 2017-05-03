@@ -1,4 +1,18 @@
-OA_sources = \
+oa_xml_files = \
+	oa-hsw.xml \
+	oa-bdw.xml \
+	oa-chv.xml \
+	oa-sklgt2.xml \
+	oa-sklgt3.xml \
+	oa-sklgt4.xml \
+	oa-bxt.xml \
+	oa-kblgt2.xml \
+	oa-kblgt3.xml \
+	oa-glk.xml
+
+gputop_xml_files = $(oa_xml_files:oa-%.xml=gputop-%.xml)
+
+oa_generated_sources = \
 	oa-hsw.c \
 	oa-hsw.h \
 	oa-bdw.h \

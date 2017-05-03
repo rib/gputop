@@ -1,3 +1,4 @@
+include $(top_srcdir)/Makefile.generated
 include Makefile.mathjax
 
 third_party_files = \
@@ -39,6 +40,7 @@ nobase_dist_remote_DATA = \
 	$(third_party_files)
 
 BUILT_SOURCES = \
+	$(gputop_xml_files) \
 	node_modules
 
 node_modules: $(srcdir)/package.json $(srcdir)/Makefile.am
@@ -48,6 +50,9 @@ distclean-local:
 	rm -fr node_modules
 
 bootstrap% %.js: | node_modules ;
+
+$(gputop_xml_files):
+	ln -sf $(srcdir)/../gputop-data/$@ $(builddir)/$@
 
 all-local: | node_modules
 
