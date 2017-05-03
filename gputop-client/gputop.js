@@ -492,9 +492,9 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
         if (using_emscripten) {
             /* Note: 2nd type arg ignored when 1st arg is a size/number in bytes*/
             var vec = cc.allocate(4 * n_accumulators, '*', cc.ALLOC_STACK);
-            for (var i = 0; i < n_accumulators; i++) {
-                var accumulator = metric.oa_accumulators[i];
-                cc.setValue(vec + i * 4, accumulator.cc_accumulator_ptr_, '*');
+            for (var j = 0; j < n_accumulators; j++) {
+                var accumulator = metric.oa_accumulators[j];
+                cc.setValue(vec + j * 4, accumulator.cc_accumulator_ptr_, '*');
             }
 
             if (stream.cc_stream_ptr_ === 0) {
@@ -507,8 +507,8 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
                                                        n_accumulators);
         } else {
             var vec = [];
-            for (var i = 0; i < n_accumulators; i++) {
-                var accumulator = metric.oa_accumulators[i];
+            for (var j = 0; j < n_accumulators; j++) {
+                var accumulator = metric.oa_accumulators[j];
                 vec.push(accumulator.cc_accumulator_ptr_);
             }
 
