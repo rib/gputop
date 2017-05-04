@@ -1774,8 +1774,7 @@ GputopConnection.prototype = Object.create(EventTarget.prototype);
 Gputop.prototype.connect = function(address, onopen, onclose, onerror) {
     this.dispose();
 
-    if (this.connection === undefined)
-        this.connection = new GputopConnection(this);
+    this.connection = new GputopConnection(this);
 
     if (onopen !== undefined)
         this.connection.on('open', onopen);
