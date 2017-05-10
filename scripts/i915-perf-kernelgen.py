@@ -253,25 +253,25 @@ def output_mux_configs(metric_set, config_tuples):
 
 def output_mux_config_get_func(metric_set, mux_config_tuples):
     c("\n")
-    c("static const struct i915_oa_reg *")
+    c("static int")
     fname = "get_" + metric_set['perf_name_lc']  + "_mux_config"
     c(fname + "(struct drm_i915_private *dev_priv,")
     c.indent(len(fname) + 1)
-    c("int *len)")
+    c("const struct i915_oa_reg **regs,")
+    c("int *lens)")
     c.outdent(len(fname) + 1)
     c("{")
     c.indent(8)
+    c("int n = 0;")
+    c("\n")
+    c("BUILD_BUG_ON(ARRAY_SIZE(dev_priv->perf.oa.mux_regs) < %i);" % len(mux_config_tuples))
+    c("BUILD_BUG_ON(ARRAY_SIZE(dev_priv->perf.oa.mux_regs_lens) < %i);" % len(mux_config_tuples))
+    c("\n")
 
     seen_conditional_config = 0
     i = 0
-    for config_tuple in mux_config_tuples:
+    for config_tuple in sorted(mux_config_tuples, key=lambda x: x[0]):
         priority, config = config_tuple
-
-        # If there's more than one config then they are implicitly conditional
-        if i > 0:
-            else_prefix = "} else "
-        else:
-            else_prefix = ""
 
         availability = config.get('availability')
         if availability:
@@ -284,9 +284,9 @@ def output_mux_config_get_func(metric_set, mux_config_tuples):
             lines = code_exp.split(' && ')
             n_lines = len(lines)
             if n_lines == 1:
-                c(else_prefix + "if (" + lines[0] + ") {")
+                c("if (" + lines[0] + ") {")
             else:
-                c(else_prefix + "if (" + lines[0] + " &&")
+                c("if (" + lines[0] + " &&")
                 if i > 0:
                     subexp_indent = 11
                 else:
@@ -299,10 +299,12 @@ def output_mux_config_get_func(metric_set, mux_config_tuples):
             c.indent(8)
 
             array_name = "mux_config_" + metric_set['perf_name_lc']  + infix
-            c("*len = ARRAY_SIZE(" + array_name + ");")
-            c("return " + array_name + ";")
+            c("regs[n] = " + array_name + ";")
+            c("lens[n] = ARRAY_SIZE(" + array_name + ");")
+            c("n++;")
 
             c.outdent(8)
+            c("}")
         else:
             # Unconditonal MUX config
             #
@@ -310,24 +312,15 @@ def output_mux_config_get_func(metric_set, mux_config_tuples):
             # a higher priority than any other config
             assert config == mux_config_tuples[-1][1]
 
-            if seen_conditional_config:
-                c(else_prefix + "{")
-                c.indent(8)
-
             array_name = "mux_config_" + metric_set['perf_name_lc']
-            c("*len = ARRAY_SIZE(" + array_name + ");")
-            c("return " + array_name + ";")
-
-            if seen_conditional_config:
-                c.outdent(8)
+            c("regs[n] = " + array_name + ";")
+            c("lens[n] = ARRAY_SIZE(" + array_name + ");")
+            c("n++;")
 
         i = i + 1
 
-    if seen_conditional_config:
-        c("}")
-        c("\n");
-        c("*len = 0;");
-        c("return NULL;");
+    c("\n")
+    c("return n;")
 
     c.outdent(8)
     c("}")
@@ -403,12 +396,13 @@ def output_sysfs_code(sets):
     c("i915_perf_register_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
     c.indent(8)
-    c("int mux_len;")
+    c("const struct i915_oa_reg *mux_regs[ARRAY_SIZE(dev_priv->perf.oa.mux_regs)];")
+    c("int mux_lens[ARRAY_SIZE(dev_priv->perf.oa.mux_regs_lens)];")
     c("int ret = 0;")
     c("\n")
 
     for metric_set in sets:
-        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len)) {")
+        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, mux_regs, mux_lens)) {")
         c.indent(8)
         c("ret = sysfs_create_group(dev_priv->perf.metrics_kobj, &group_" + metric_set['perf_name_lc'] + ");")
         c("if (ret)")
@@ -431,7 +425,7 @@ def output_sysfs_code(sets):
         set1 = rev_sets[i + 1]
         c("error_" + set0['perf_name_lc'] + ":")
         c.indent(8)
-        c("if (get_" + set1['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
+        c("if (get_" + set1['perf_name_lc'] + "_mux_config(dev_priv, mux_regs, mux_lens))")
         c.indent(8)
         c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + set1['perf_name_lc'] + ");")
         c.outdent(8)
@@ -451,10 +445,11 @@ def output_sysfs_code(sets):
     c("i915_perf_unregister_sysfs_" + chipset.lower() + "(struct drm_i915_private *dev_priv)")
     c("{")
     c.indent(8)
-    c("int mux_len;")
+    c("const struct i915_oa_reg *mux_regs[ARRAY_SIZE(dev_priv->perf.oa.mux_regs)];")
+    c("int mux_lens[ARRAY_SIZE(dev_priv->perf.oa.mux_regs_lens)];")
     c("\n")
     for metric_set in sets:
-        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, &mux_len))")
+        c("if (get_" + metric_set['perf_name_lc'] + "_mux_config(dev_priv, mux_regs, mux_lens))")
         c.indent(8)
         c("sysfs_remove_group(dev_priv->perf.metrics_kobj, &group_" + metric_set['perf_name_lc'] + ");")
         c.outdent(8)
@@ -610,8 +605,7 @@ c("int i915_oa_select_metric_set_" + chipset.lower() + "(struct drm_i915_private
 c("{")
 c.indent(8)
 
-c("dev_priv->perf.oa.mux_regs = NULL;")
-c("dev_priv->perf.oa.mux_regs_len = 0;")
+c("dev_priv->perf.oa.n_mux_regs = 0;")
 c("dev_priv->perf.oa.b_counter_regs = NULL;")
 c("dev_priv->perf.oa.b_counter_regs_len = 0;")
 if chipset != "HSW":
@@ -627,15 +621,16 @@ for metric_set in sets:
 
     c("case METRIC_SET_ID_" + perf_name + ":")
     c.indent(8)
-    c("dev_priv->perf.oa.mux_regs =")
+    c("dev_priv->perf.oa.n_mux_regs =")
     c.indent(8)
     fname = "get_" + perf_name_lc + "_mux_config"
     c(fname + "(dev_priv,")
     c.indent(len(fname) + 1)
-    c("&dev_priv->perf.oa.mux_regs_len);")
+    c("dev_priv->perf.oa.mux_regs,")
+    c("dev_priv->perf.oa.mux_regs_lens);")
     c.outdent(len(fname) + 1)
     c.outdent(8)
-    c("if (!dev_priv->perf.oa.mux_regs) {")
+    c("if (dev_priv->perf.oa.n_mux_regs == 0) {")
     c.indent(8)
     c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + metric_set['perf_name'] + "\\\" metric set\\n\");")
     c("\n")
@@ -647,7 +642,6 @@ for metric_set in sets:
     c.outdent(8)
     c("}")
 
-    c("")
     output_b_and_flex_configs_select(metric_set, b_counter_configs[0], flex_configs[0])
     c("\n")
     c("return 0;")
