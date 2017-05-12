@@ -661,7 +661,8 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     message.ack = true;
 
     if (!gputop_perf_initialize()) {
-        asprintf(&error, "Failed to initialize perf\n");
+        int ret = asprintf(&error, "Failed to initialize perf\n");
+        (void) ret;
         goto err;
     }
     dbg("handle_open_i915_perf_oa_stream: id = %d\n", id);
@@ -670,7 +671,8 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     if (entry != NULL) {
         metric_set = entry->data;
     } else {
-        asprintf(&error, "Guid is not available\n");
+        int ret = asprintf(&error, "Guid is not available\n");
+        (void) ret;
         goto err;
     }
 

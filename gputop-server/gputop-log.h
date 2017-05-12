@@ -38,7 +38,8 @@
 
 #define dbg(format, ...) do { \
     char *message; \
-    asprintf(&message, format, ##__VA_ARGS__); \
+    int ret = asprintf(&message, format, ##__VA_ARGS__); \
+    (void) ret; \
     gputop_log(GPUTOP_LOG_LEVEL_NOTIFICATION, message, -1); \
     free(message); \
 } while(0)

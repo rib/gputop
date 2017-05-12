@@ -177,8 +177,10 @@ struct ctx_handle *get_first_available_ctx(char **error)
     struct ctx_handle *ctx = NULL;
 
     ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
-    if (!ctx)
-        asprintf(error, "Error unable to find a context\n");
+    if (!ctx) {
+        int ret = asprintf(error, "Error unable to find a context\n");
+        (void) ret;
+    }
 
     return ctx;
 }
@@ -413,7 +415,8 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 
         stream_fd = perf_ioctl(oa_stream_fd, I915_IOCTL_PERF_OPEN, &param);
         if (stream_fd == -1) {
-            asprintf(error, "Error opening i915 perf OA event: %m\n");
+            int ret = asprintf(error, "Error opening i915 perf OA event: %m\n");
+            (void) ret;
             return NULL;
         }
     }
@@ -501,7 +504,8 @@ gputop_perf_open_tracepoint(int pid,
                                -1, /* group fd */
                                PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-        asprintf(error, "Error opening perf tracepoint event: %m\n");
+        int ret = asprintf(error, "Error opening perf tracepoint event: %m\n");
+        (void) ret;
         return NULL;
     }
 
@@ -511,7 +515,8 @@ gputop_perf_open_tracepoint(int pid,
                      perf_buffer_size + page_size,
                      PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-        asprintf(error, "Error mapping circular buffer, %m\n");
+        int ret = asprintf(error, "Error mapping circular buffer, %m\n");
+        (void) ret;
         close (event_fd);
         return NULL;
     }
@@ -582,7 +587,8 @@ gputop_perf_open_generic_counter(int pid,
                                -1, /* group fd */
                                PERF_FLAG_FD_CLOEXEC); /* flags */
     if (event_fd == -1) {
-        asprintf(error, "Error opening perf event: %m\n");
+        int ret = asprintf(error, "Error opening perf event: %m\n");
+        (void) ret;
         return NULL;
     }
 
@@ -592,7 +598,8 @@ gputop_perf_open_generic_counter(int pid,
                      perf_buffer_size + page_size,
                      PROT_READ | PROT_WRITE, MAP_SHARED, event_fd, 0);
     if (mmap_base == MAP_FAILED) {
-        asprintf(error, "Error mapping circular buffer, %m\n");
+        int ret = asprintf(error, "Error mapping circular buffer, %m\n");
+        (void) ret;
         close (event_fd);
         return NULL;
     }
