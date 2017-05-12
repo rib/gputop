@@ -7,6 +7,9 @@ if test -z "$TRAVIS_BUILD_DIR"; then
     TRAVIS_BUILD_DIR=$PWD
 fi
 
+gcc --version
+g++ --version
+
 export LLVM=/usr/local/llvm-fastcomp/bin
 
 git clone --branch 1.37.3 --single-branch --depth 1 https://github.com/kripken/emscripten
