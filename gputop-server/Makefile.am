@@ -46,17 +46,19 @@ libgputop_la_SOURCES = \
     gputop.pb-c.c \
     gputop-server.h \
     gputop-server.c
+libgputop_la_CPPFLAGS = \
+    -I$(top_srcdir) \
+    -I$(top_srcdir)/libuv/include \
+    -I$(top_srcdir)/h2o \
+    -I$(top_srcdir)/h2o/include \
+    -I$(top_srcdir)/h2o/hiredis \
+    -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\"
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     $(PROTOBUF_DEP_CFLAGS) \
     $(CRYPTO_DEP_CFLAGS) \
     $(SSL_DEP_CFLAGS) \
-    -I$(top_srcdir)/libuv/include \
-    -I$(top_srcdir)/h2o \
-    -I$(top_srcdir)/h2o/include \
-    -I$(top_srcdir)/h2o/hiredis \
-    -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
     -std=gnu11
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \

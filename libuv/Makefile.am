@@ -59,3 +59,6 @@ libuv_la_SOURCES += \
 	src/unix/linux-syscalls.c \
 	src/unix/linux-syscalls.h \
 	src/unix/proctitle.c
+
+EXTRA_DIST = \
+	LICENSE

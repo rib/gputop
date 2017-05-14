@@ -2,8 +2,6 @@ include $(top_srcdir)/Makefile.generated
 
 CONVERT_ARGS =
 KERNELGEN_ARGS =
-top_srcdir=../
-script_dir=$(top_srcdir)/scripts
 
 oa_xml_files = \
 	oa-hsw.xml \
@@ -53,20 +51,23 @@ ifeq ($(SYSFS), 1)
 KERNELGEN_ARGS += --sysfs
 endif
 
-GUIDS=$(top_srcdir)/gputop-data/guids.xml
+GUIDS=$(data_dir)/guids.xml
 
-all: $(oa_xml_files) $(drm_files)
-oa-%.xml: mdapi/*.xml $(script_dir)/mdapi-xml-convert.py Makefile.am
+all: $(oa_xml_files:%=$(data_dir)/%) $(drm_files)
+oa-%.xml: mdapi/*.xml $(script_dir)/mdapi-xml-convert.py
 	$(script_dir)/mdapi-xml-convert.py --guids=$(GUIDS) $(CONVERT_ARGS) $($(*)_xml) > $@
 
-i915_oa_%.c i915_oa_%.h: oa-%.xml $(script_dir)/i915-perf-kernelgen.py Makefile.am
+i915_oa_%.c i915_oa_%.h: $(data_dir)/oa-%.xml $(script_dir)/i915-perf-kernelgen.py
 	$(script_dir)/i915-perf-kernelgen.py \
 	    --guids=$(GUIDS) \
 	    --chipset=$(*) \
 	    --c-out=i915_oa_$(*).c \
 	    --h-out=i915_oa_$(*).h \
 	    $(KERNELGEN_ARGS) \
-	    oa-$(*).xml
+	    $(data_dir)/oa-$(*).xml
+
+distclean:
+	-rm -f i915_oa_*
 
 clean:
 	-rm -f i915_oa_*
