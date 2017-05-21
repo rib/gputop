@@ -295,7 +295,7 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   EU Threads Count (total): " + features.devinfo.get_eu_threads_count().toInt());
         stderr_log.warn("CSV:   Min Frequncy: " + features.devinfo.get_gt_min_freq().toInt() + "Hz");
         stderr_log.warn("CSV:   Max Frequncy: " + features.devinfo.get_gt_max_freq().toInt() + "Hz");
-        stderr_log.warn("CSV:   Timestamp Frequncy: " + features.devinfo.get_timestamp_frequency().toInt() + "Hz");
+        stderr_log.warn("CSV:   Timestamp Frequency: " + features.devinfo.get_timestamp_frequency().toInt() + "Hz");
 
         if (features.notices.length >= 0) {
             stderr_log.warn("\n\nCSV: Capture Notices:");
