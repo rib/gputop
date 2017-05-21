@@ -201,7 +201,7 @@ GputopCSV.prototype.update_features = function(features)
         }
     }
 
-    if (this.reference_column > 0) {
+    if (this.reference_column >= 0) {
         var columns = "";
         var all_col_units = "";
         var title_lines = [];
