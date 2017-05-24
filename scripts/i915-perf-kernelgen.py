@@ -607,7 +607,7 @@ c("int i915_oa_select_metric_set_" + chipset.lower() + "(struct drm_i915_private
 c("{")
 c.indent(8)
 
-c("dev_priv->perf.oa.n_mux_regs = 0;")
+c("dev_priv->perf.oa.n_mux_configs = 0;")
 c("dev_priv->perf.oa.b_counter_regs = NULL;")
 c("dev_priv->perf.oa.b_counter_regs_len = 0;")
 if chipset != "HSW":
@@ -623,7 +623,7 @@ for metric_set in sets:
 
     c("case METRIC_SET_ID_" + perf_name + ":")
     c.indent(8)
-    c("dev_priv->perf.oa.n_mux_regs =")
+    c("dev_priv->perf.oa.n_mux_configs =")
     c.indent(8)
     fname = "get_" + perf_name_lc + "_mux_config"
     c(fname + "(dev_priv,")
@@ -632,7 +632,7 @@ for metric_set in sets:
     c("dev_priv->perf.oa.mux_regs_lens);")
     c.outdent(len(fname) + 1)
     c.outdent(8)
-    c("if (dev_priv->perf.oa.n_mux_regs == 0) {")
+    c("if (dev_priv->perf.oa.n_mux_configs == 0) {")
     c.indent(8)
     c("DRM_DEBUG_DRIVER(\"No suitable MUX config for \\\"" + metric_set['perf_name'] + "\\\" metric set\\n\");")
     c("\n")
