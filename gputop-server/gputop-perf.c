@@ -1494,7 +1494,7 @@ gputop_perf_initialize(void)
     /* NB: eu_count needs to be initialized before declaring counters */
     page_size = sysconf(_SC_PAGE_SIZE);
 
-    metrics = gputop_hash_table_create(NULL, gputop_key_hash_string,
+    metrics = gputop_hash_table_create(gputop_key_hash_string,
                                        gputop_key_string_equal);
     gputop_perf_oa_supported_metric_set_guids = array_new(sizeof(char*), 1);
 

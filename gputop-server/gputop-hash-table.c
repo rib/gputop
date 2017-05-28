@@ -114,8 +114,7 @@ entry_is_present(const struct gputop_hash_table *ht, struct gputop_hash_entry *e
 }
 
 struct gputop_hash_table *
-gputop_hash_table_create(void *mem_ctx,
-                         uint32_t (*key_hash_function)(const void *key),
+gputop_hash_table_create(uint32_t (*key_hash_function)(const void *key),
                          bool (*key_equals_function)(const void *a,
                                                      const void *b))
 {

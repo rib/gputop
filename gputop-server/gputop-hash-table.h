@@ -56,8 +56,7 @@ struct gputop_hash_table {
 };
 
 struct gputop_hash_table *
-gputop_hash_table_create(void *mem_ctx,
-                         uint32_t (*key_hash_function)(const void *key),
+gputop_hash_table_create(uint32_t (*key_hash_function)(const void *key),
                          bool (*key_equals_function)(const void *a,
                                                      const void *b));
 void gputop_hash_table_destroy(struct gputop_hash_table *ht,
