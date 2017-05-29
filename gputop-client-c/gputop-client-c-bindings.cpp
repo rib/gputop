@@ -214,7 +214,8 @@ bind_c_struct(Isolate* isolate, void *c_struct, void **js_priv_member)
 {
     /* Create a corresponding v8::Object we can return as a handle to the new stream */
     Local<Function> constructor = Local<Function>::New(isolate, CPtrObj::constructor);
-    Local<Object> obj = constructor->NewInstance();
+    Local<Context> context = isolate->GetCurrentContext();
+    Local<Object> obj = constructor->NewInstance(context).ToLocalChecked();
     CPtrObj *ptr = node::ObjectWrap::Unwrap<CPtrObj>(obj);
     ptr->ptr_ = (void *)c_struct;
 
