@@ -184,15 +184,16 @@ get_bin_dir(void)
 static const char * const *
 get_lib_dirs(void)
 {
-    static char *lib_dirs[4] = { 0 };
+    static char *lib_dirs[6] = { 0 };
     const char *bin_dir = get_bin_dir();
     const char *prefix;
     char dir[1024];
+    int i = 0;
 
-    if (lib_dirs[0] != NULL)
+    if (lib_dirs[i] != NULL)
         return (const char * const *)lib_dirs;
 
-    if (asprintf(&lib_dirs[0], "%s/.libs", bin_dir) < 0) {
+    if (asprintf(&lib_dirs[i++], "%s/.libs", bin_dir) < 0) {
         perror("Failed to resolve libdir");
         exit(1);
     }
@@ -200,11 +201,19 @@ get_lib_dirs(void)
     strncpy(dir, bin_dir, sizeof(dir));
     prefix = dirname(dir);
 
-    if (asprintf(&lib_dirs[1], "%s/lib", prefix) < 0) {
+    if (asprintf(&lib_dirs[i++], "%s/lib", prefix) < 0) {
         perror("Failed to resolve libdir");
         exit(1);
     }
-    if (asprintf(&lib_dirs[2], "%s/lib/wrappers", prefix) < 0) {
+    if (asprintf(&lib_dirs[i++], "%s/lib64", prefix) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+    if (asprintf(&lib_dirs[i++], "%s/lib/wrappers", prefix) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+    if (asprintf(&lib_dirs[i++], "%s/lib64/wrappers", prefix) < 0) {
         perror("Failed to resolve libdir");
         exit(1);
     }
