@@ -1,5 +1,9 @@
 install-data-local:
-	npm install -g --prefix=$(prefix) --production --cache-min 999999999
+	if ! [ -z $$http_proxy ]; then \
+	npm --proxy $$http_proxy install -g --prefix=$(prefix) --production --cache-min 999999999; \
+	else \
+	npm install -g --prefix=$(prefix) --production --cache-min 999999999; \
+	fi
 
 clean-local:
 	rm -fr node_modules
