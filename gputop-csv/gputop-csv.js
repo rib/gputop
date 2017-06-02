@@ -408,7 +408,8 @@ function write_rows(metric, accumulator)
                 val = accumulated_counter.updates[r][2];
 
                 if (this.pretty_print_csv_) {
-                    var formatted_value = this.format_counter_value(accumulated_counter, true);
+                    var formatted_value = this.format_counter_value(accumulated_counter.counter, true,
+                                                                    accumulated_counter.latest_value);
                     row += sp.sprintf("%-" + counter.col_width_ + "s", formatted_value + ",");
                 } else
                     row += val + ","

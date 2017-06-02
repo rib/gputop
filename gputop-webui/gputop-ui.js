@@ -707,7 +707,8 @@ GputopUI.prototype.update_counter_bar = function(accumulated_counter) {
         this.queue_filter_counters();
     }
 
-    var formatted_value = this.format_counter_value(accumulated_counter);
+    var formatted_value = this.format_counter_value(accumulated_counter.counter, false,
+                                                    accumulated_counter.latest_value);
 
     if (max != 0) {
         counter.bar_div_.css("width", 100 * value / max + "%");
