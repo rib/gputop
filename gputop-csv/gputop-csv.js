@@ -296,7 +296,9 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   Metric Set: " + this.metric.name);
         stderr_log.warn("CSV:   Columns: " + args.columns);
         stderr_log.warn("CSV:   OA Hardware Sampling Exponent: " + oa_sampling_state.oa_exponent);
-        stderr_log.warn("CSV:   OA Hardware Period: " + oa_sampling_state.period + "ns");
+        stderr_log.warn("CSV:   OA Hardware Period: " + oa_sampling_state.period + "ns / "  +
+                        this.format_counter_value({ units: 'ns' }, false,
+                                                  oa_sampling_state.period));
         stderr_log.warn("CSV:   Accumulation period (requested): " + args.period + "ns");
         var real_accumulation_period = oa_sampling_state.factor * oa_sampling_state.period;
         stderr_log.warn("CSV:   Accumulation period (actual): " + real_accumulation_period + "ns (" + oa_sampling_state.period + "ns * " + oa_sampling_state.factor + ")");
