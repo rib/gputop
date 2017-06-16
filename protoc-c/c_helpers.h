@@ -63,6 +63,7 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_C_HELPERS_H__
 #define GOOGLE_PROTOBUF_COMPILER_C_HELPERS_H__
 
+#include <set>
 #include <string>
 #include <vector>
 #include <sstream>
