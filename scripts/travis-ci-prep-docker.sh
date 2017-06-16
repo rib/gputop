@@ -32,8 +32,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     gettext \
     python-lxml \
     libncursesw5-dev \
-    libprotobuf-dev \
-    libprotoc-dev \
     libgl1-mesa-dev \
     libssl-dev \
     curl \

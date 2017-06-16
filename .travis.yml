@@ -11,10 +11,6 @@ os:
 compiler:
     - gcc
 
-cache:
-    directories:
-        - protobuf-build
-
 env:
     global:
         # GH_TOKEN scope=public_repo, for pushing to gh-pages demo site,
