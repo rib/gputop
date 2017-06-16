@@ -1,5 +1,5 @@
 
-lib_LTLIBRARIES = libprotobuf-c.la
+noinst_LTLIBRARIES = libprotobuf-c.la
 libprotobuf_c_la_CFLAGS = \
 	-include $(top_builddir)/config.h
 libprotobuf_c_la_SOURCES = \

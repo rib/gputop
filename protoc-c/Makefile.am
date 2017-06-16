@@ -5,6 +5,7 @@ AM_CPPFLAGS = \
     -include $(top_builddir)/config.h \
     -I$(top_srcdir) \
     -I$(top_srcdir)/protobuf-c \
+    -I$(top_srcdir)/protobuf \
     $(PROTOBUF_DEP_CFLAGS)
 
 protoc_c_SOURCES = \
@@ -37,8 +38,9 @@ protoc_c_SOURCES = \
     main.cc
 
 protoc_c_LDADD = \
-    $(PROTOBUF_DEP_LIBS) \
-    -lprotoc \
+    -lstdc++ \
+    -lpthread \
+    $(top_builddir)/protobuf/libprotobuf.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la
 
 EXTRA_DIST = LICENSE

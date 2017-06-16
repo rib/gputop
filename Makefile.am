@@ -1,6 +1,6 @@
 SUBDIRS = libuv
 
-SUBDIRS += protobuf-c protoc-c h2o
+SUBDIRS += protobuf protobuf-c protoc-c h2o
 
 SUBDIRS += gputop-data gputop-server
 

@@ -56,14 +56,12 @@ libgputop_la_CPPFLAGS = \
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS) \
-    $(PROTOBUF_DEP_CFLAGS) \
     $(CRYPTO_DEP_CFLAGS) \
     $(SSL_DEP_CFLAGS) \
     -std=gnu11
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \
-    $(PROTOBUF_DEP_LIBS) \
     $(YAML_DEP_LIBS) \
     $(CRYPTO_DEP_LIBS) \
     $(SSL_DEP_LIBS) \
