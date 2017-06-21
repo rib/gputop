@@ -754,7 +754,7 @@ init_dev_info(int drm_fd, uint32_t devid)
                 ss_max = 3;
                 gputop_devinfo.gen = 9;
 
-                if (IS_BROXTON(devid)) {
+                if (IS_BROXTON(devid) || IS_GEMINILAKE(devid)) {
                     threads_per_eu = 6;
                     gputop_devinfo.timestamp_frequency = 19200000;
                 } else

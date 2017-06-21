@@ -1224,6 +1224,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
             devinfo.devname = "kblgt3";
             devinfo.prettyname = "Kabylake GT3";
         }
+    } else if (IS_GEMINILAKE(devinfo.devid)) {
+        devinfo.devname = "glk";
+        devinfo.prettyname = "Geminilake";
     }
 
     features.fake_mode = gputop_fake_mode;
