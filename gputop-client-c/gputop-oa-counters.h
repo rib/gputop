@@ -29,8 +29,6 @@
 #include <assert.h>
 #include <inttypes.h>
 
-#include <i915_oa_drm.h>
-
 #include <gputop-oa-metrics.h>
 
 

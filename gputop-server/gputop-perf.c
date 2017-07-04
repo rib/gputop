@@ -25,7 +25,8 @@
 #include <config.h>
 
 #include <linux/perf_event.h>
-#include <i915_oa_drm.h>
+
+#include <i915_drm.h>
 
 #include <asm/unistd.h>
 #include <sys/types.h>
@@ -49,7 +50,7 @@
 #include <uv.h>
 #include <dirent.h>
 
-#include "intel_chipset.h"
+#include "common/gen_device_info.h"
 
 #include "gputop-util.h"
 #include "gputop-list.h"
@@ -73,11 +74,11 @@
 
 /* Samples read() from i915 perf */
 struct oa_sample {
-   struct i915_perf_record_header header;
+   struct drm_i915_perf_record_header header;
    uint8_t oa_report[];
 };
 
-#define MAX_I915_PERF_OA_SAMPLE_SIZE (8 +   /* i915_perf_record_header */ \
+#define MAX_I915_PERF_OA_SAMPLE_SIZE (8 +   /* drm_i915_perf_record_header */ \
                                       256)  /* raw OA counter snapshot */
 
 
@@ -368,7 +369,7 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
                                 char **error)
 {
     struct gputop_perf_stream *stream;
-    struct i915_perf_open_param param;
+    struct drm_i915_perf_open_param param;
     int stream_fd = -1;
     int oa_stream_fd = drm_fd;
 
@@ -413,7 +414,7 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
         param.properties_ptr = (uint64_t)properties;
         param.num_properties = p / 2;
 
-        stream_fd = perf_ioctl(oa_stream_fd, I915_IOCTL_PERF_OPEN, &param);
+        stream_fd = perf_ioctl(oa_stream_fd, DRM_IOCTL_I915_PERF_OPEN, &param);
         if (stream_fd == -1) {
             int ret = asprintf(error, "Error opening i915 perf OA event: %m\n");
             (void) ret;
@@ -682,99 +683,60 @@ gputop_perf_open_cpu_stats(bool overwrite, uint64_t sample_period_ms)
 }
 
 static bool
-init_dev_info(int drm_fd, uint32_t devid)
+init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
-    int threads_per_eu = 7;
-
     gputop_devinfo.devid = devid;
 
-    gputop_devinfo.timestamp_frequency = 12500000;
+#define SET_NAMES(g, _devname, _prettyname) do { \
+        strncpy(g.devname, _devname, sizeof(g.devname)); \
+        strncpy(g.prettyname, _prettyname, sizeof(g.prettyname)); \
+    } while (0)
 
     if (gputop_fake_mode) {
-            gputop_devinfo.n_eus = 10;
-            gputop_devinfo.n_eu_slices = 1;
-            gputop_devinfo.n_eu_sub_slices = 1;
-            gputop_devinfo.slice_mask = 0x1;
-            gputop_devinfo.subslice_mask = 0x1;
-            gputop_devinfo.gt_min_freq = 500;
-            gputop_devinfo.gt_min_freq = 1100;
+        gputop_devinfo.gen = 8;
+        gputop_devinfo.n_eus = 10;
+        gputop_devinfo.n_eu_slices = 1;
+        gputop_devinfo.n_eu_sub_slices = 1;
+        gputop_devinfo.slice_mask = 0x1;
+        gputop_devinfo.subslice_mask = 0x1;
+        gputop_devinfo.gt_min_freq = 500;
+        gputop_devinfo.gt_min_freq = 1100;
+        gputop_devinfo.timestamp_frequency = 12500000;
     } else {
-        if (IS_HASWELL(devid)) {
-            gputop_devinfo.gen = 7;
-            if (IS_HSW_GT1(devid)) {
-                gputop_devinfo.n_eus = 10;
-                gputop_devinfo.n_eu_slices = 1;
-                gputop_devinfo.n_eu_sub_slices = 1;
-                gputop_devinfo.slice_mask = 0x1;
-                gputop_devinfo.subslice_mask = 0x1;
-            } else if (IS_HSW_GT2(devid)) {
-                gputop_devinfo.n_eus = 20;
-                gputop_devinfo.n_eu_slices = 1;
-                gputop_devinfo.n_eu_sub_slices = 2;
-                gputop_devinfo.slice_mask = 0x1;
-                gputop_devinfo.subslice_mask = 0x3;
-            } else if (IS_HSW_GT3(devid)) {
-                gputop_devinfo.n_eus = 40;
-                gputop_devinfo.n_eu_slices = 2;
-                gputop_devinfo.n_eu_sub_slices = 2;
-                gputop_devinfo.slice_mask = 0x3;
-                gputop_devinfo.subslice_mask = 0xf;
-            } else {
-                fprintf(stderr, "Unknown Haswell System\n");
-                return false;
-            }
+        gputop_devinfo.gen = devinfo->gen;
+        gputop_devinfo.n_eu_slices = devinfo->num_slices;
+        gputop_devinfo.n_eu_sub_slices = devinfo->num_subslices[0];
+        gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
+
+        for (int s = 0; s < devinfo->num_slices; s++)
+            gputop_devinfo.slice_mask |= 1U << s;
+        for (int ss = 0; ss < devinfo->num_subslices[0]; ss++)
+            gputop_devinfo.subslice_mask = 1U << ss;
+
+        if (devinfo->is_haswell) {
+            gputop_devinfo.n_eus =
+                devinfo->num_slices * devinfo->num_subslices[0] * 10;
         } else { /* Gen 8+ */
-            i915_getparam_t gp;
+            drm_i915_getparam_t gp;
             int n_eus = 0;
             int slice_mask = 0;
             int ss_mask = 0;
-            int s_max;
-            int ss_max;
+            int s_max = devinfo->num_slices;
+            int ss_max = devinfo->num_subslices[0];
             uint64_t subslice_mask = 0;
             int s;
 
-            if (IS_BROADWELL(devid)) {
-                s_max = 2;
-                ss_max = 3;
-                gputop_devinfo.gen = 8;
-            } else if (IS_CHERRYVIEW(devid)) {
-                s_max = 1;
-                ss_max = 2;
-                gputop_devinfo.gen = 8;
-            } else if (IS_GEN9(devid)) {
-                s_max = 3;
-
-                /* XXX: beware that the kernel (as of writing) actually works
-                 * as if ss_max == 4 since the HW register that reports the
-                 * global subslice mask has 4 bits while in practice the limit
-                 * is 3. It's also important that we initialize $SubsliceMask
-                 * with 3 bits per slice since that's what the counter
-                 * availability expressions in XML expect.
-                 */
-                ss_max = 3;
-                gputop_devinfo.gen = 9;
-
-                if (IS_BROXTON(devid) || IS_GEMINILAKE(devid)) {
-                    threads_per_eu = 6;
-                    gputop_devinfo.timestamp_frequency = 19200000;
-                } else
-                    gputop_devinfo.timestamp_frequency = 12000000;
-            } else {
-                fprintf(stderr, "FIXME: unsupported system\n");
-                return false;
-            }
-
             gp.param = I915_PARAM_EU_TOTAL;
             gp.value = &n_eus;
-            perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
             gp.param = I915_PARAM_SLICE_MASK;
             gp.value = &slice_mask;
-            perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
             gp.param = I915_PARAM_SUBSLICE_MASK;
             gp.value = &ss_mask;
-            perf_ioctl(drm_fd, I915_IOCTL_GETPARAM, &gp);
+            perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
             gputop_devinfo.n_eus = n_eus;
             gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
@@ -793,6 +755,8 @@ init_dev_info(int drm_fd, uint32_t devid)
                     subslice_mask |= ss_mask << (ss_max * s);
                 }
             }
+            fprintf(stderr, "SliceMask=0x%x SubSliceMask=0x%x\n", slice_mask, ss_mask);
+
             gputop_devinfo.subslice_mask = subslice_mask;
             gputop_devinfo.n_eu_sub_slices = __builtin_popcount(ss_mask);
         }
@@ -802,9 +766,66 @@ init_dev_info(int drm_fd, uint32_t devid)
         gputop_devinfo.gt_max_freq = sysfs_card_read("gt_max_freq_mhz") * 1000000;
     }
 
-    gputop_devinfo.eu_threads_count = gputop_devinfo.n_eus * threads_per_eu;
+    gputop_devinfo.eu_threads_count = gputop_devinfo.n_eus * devinfo->num_thread_per_eu;
+
+    if (devinfo->is_haswell) {
+        SET_NAMES(gputop_devinfo, "hsw", "Haswell");
+        gputop_oa_add_metrics_hsw(&gputop_devinfo);
+    } else if (devinfo->is_broadwell) {
+        SET_NAMES(gputop_devinfo, "bdw", "Broadwell");
+        gputop_oa_add_metrics_bdw(&gputop_devinfo);
+    } else if (devinfo->is_cherryview) {
+        SET_NAMES(gputop_devinfo, "chv", "Cherryview");
+        gputop_oa_add_metrics_chv(&gputop_devinfo);
+    } else if (devinfo->is_skylake) {
+        switch (devinfo->gt) {
+        case 2:
+            SET_NAMES(gputop_devinfo, "sklgt2", "Skylake GT2");
+            gputop_oa_add_metrics_sklgt2(&gputop_devinfo);
+            break;
+        case 3:
+            SET_NAMES(gputop_devinfo, "sklgt3", "Skylake GT3");
+            gputop_oa_add_metrics_sklgt3(&gputop_devinfo);
+            break;
+        case 4:
+            SET_NAMES(gputop_devinfo, "sklgt4", "Skylake GT4");
+            gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
+            break;
+        default:
+            fprintf(stderr, "Unsupported GT%u Skylake System\n", devinfo->gt);
+            return false;
+        }
+    } else if (devinfo->is_broxton) {
+        SET_NAMES(gputop_devinfo, "bxt", "Broxton");
+        gputop_oa_add_metrics_bxt(&gputop_devinfo);
+    } else if (devinfo->is_kabylake) {
+        switch (devinfo->gt) {
+        case 2:
+            SET_NAMES(gputop_devinfo, "kblgt2", "Kabylake GT2");
+            gputop_oa_add_metrics_kblgt2(&gputop_devinfo);
+            break;
+        case 3:
+            SET_NAMES(gputop_devinfo, "kblgt3", "Kabylake GT3");
+            gputop_oa_add_metrics_kblgt3(&gputop_devinfo);
+            break;
+        default:
+            fprintf(stderr, "Unsupported GT%u Kabylake System\n", devinfo->gt);
+                return false;
+        }
+    } else if (devinfo->is_geminilake) {
+        SET_NAMES(gputop_devinfo, "glk", "Geminilake");
+        gputop_oa_add_metrics_glk(&gputop_devinfo);
+    } else {
+        fprintf(stderr, "Unknown System\n");
+        return false;
+    }
+
+    if (gputop_fake_mode)
+        SET_NAMES(gputop_devinfo, "bdw", "Fake Broadwell Intel device");
 
     return true;
+
+#undef SET_NAMES
 }
 
 static unsigned int
@@ -1069,13 +1090,13 @@ gputop_i915_perf_print_records(struct gputop_perf_stream *stream,
                                uint8_t *buf,
                                int len)
 {
-    const struct i915_perf_record_header *header;
+    const struct drm_i915_perf_record_header *header;
     int offset = 0;
 
     printf("records:\n");
 
     for (offset = 0; offset < len; offset += header->size) {
-        header = (const struct i915_perf_record_header *)(buf + offset);
+        header = (const struct drm_i915_perf_record_header *)(buf + offset);
 
         if (header->size == 0) {
             printf("Spurious header size == 0\n");
@@ -1112,7 +1133,7 @@ read_perf_samples(struct gputop_perf_stream *stream)
 
 struct report_layout
 {
-    struct i915_perf_record_header header;
+    struct drm_i915_perf_record_header header;
     uint32_t rep_id;
     uint32_t timest;
     uint32_t context_id;
@@ -1129,7 +1150,7 @@ gputop_perf_fake_read(struct gputop_perf_stream *stream,
                       uint8_t *buf, int buf_length)
 {
     struct report_layout *report = (struct report_layout *)buf;
-    struct i915_perf_record_header header;
+    struct drm_i915_perf_record_header header;
     uint32_t timestamp, elapsed_clocks;
     int i;
     uint64_t counter;
@@ -1228,8 +1249,8 @@ read_i915_perf_samples(struct gputop_perf_stream *stream)
             break;
 
         while (offset < count) {
-            const struct i915_perf_record_header *header =
-                (const struct i915_perf_record_header *)(buf + offset);
+            const struct drm_i915_perf_record_header *header =
+                (const struct drm_i915_perf_record_header *)(buf + offset);
 
             if (header->size == 0) {
                 dbg("Spurious header size == 0\n");
@@ -1452,9 +1473,8 @@ gputop_enumerate_metrics_fake(void)
     struct gputop_hash_entry *metrics_entry;
 
     int i;
-    int array_length = sizeof(fake_bdw_guids) / sizeof(fake_bdw_guids[0]);
 
-    for (i = 0; i < array_length; i++){
+    for (i = 0; i < ARRAY_SIZE(fake_bdw_guids); i++){
         metrics_entry = gputop_hash_table_search(metrics, fake_bdw_guids[i]);
         metric_set = (struct gputop_metric_set*)metrics_entry->data;
         metric_set->perf_oa_metrics_set = i;
@@ -1476,6 +1496,8 @@ gputop_register_oa_metric_set(struct gputop_metric_set *metric_set)
 bool
 gputop_perf_initialize(void)
 {
+    struct gen_device_info devinfo;
+
     if (gputop_devinfo.n_eus)
         return true;
 
@@ -1498,42 +1520,12 @@ gputop_perf_initialize(void)
                                        gputop_key_string_equal);
     gputop_perf_oa_supported_metric_set_guids = array_new(sizeof(char*), 1);
 
-    if (init_dev_info(drm_fd, intel_dev.device)) {
-        if (IS_HASWELL(intel_dev.device)) {
-            gputop_oa_add_metrics_hsw(&gputop_devinfo);
-        } else if (IS_BROADWELL(intel_dev.device)) {
-            gputop_oa_add_metrics_bdw(&gputop_devinfo);
-        } else if (IS_CHERRYVIEW(intel_dev.device)) {
-            gputop_oa_add_metrics_chv(&gputop_devinfo);
-        } else if (IS_SKYLAKE(intel_dev.device)) {
-            if (IS_SKL_GT2(intel_dev.device))
-                gputop_oa_add_metrics_sklgt2(&gputop_devinfo);
-            else if (IS_SKL_GT3(intel_dev.device))
-                gputop_oa_add_metrics_sklgt3(&gputop_devinfo);
-            else if (IS_SKL_GT4(intel_dev.device))
-                gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
-            else {
-                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Skylake GT size\n", -1);
-                return false;
-            }
-        } else if (IS_BROXTON(intel_dev.device)) {
-            gputop_oa_add_metrics_bxt(&gputop_devinfo);
-        } else if (IS_KABYLAKE(intel_dev.device)) {
-            if (IS_KBL_GT2(intel_dev.device))
-                gputop_oa_add_metrics_kblgt2(&gputop_devinfo);
-            else if (IS_KBL_GT3(intel_dev.device))
-                gputop_oa_add_metrics_kblgt3(&gputop_devinfo);
-            else {
-                gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Unsupported Kabylake GT size\n", -1);
-                return false;
-            }
-        } else if (IS_GEMINILAKE(intel_dev.device)) {
-            gputop_oa_add_metrics_glk(&gputop_devinfo);
-        } else {
-            gputop_log(GPUTOP_LOG_LEVEL_HIGH, "No supported metric sets for platform\n", -1);
-            return false;
-        }
+    if (!gen_get_device_info(intel_dev.device, &devinfo)) {
+        gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to recognize device id\n", -1);
+        return false;
+    }
 
+    if (init_dev_info(drm_fd, intel_dev.device, &devinfo)) {
         if (gputop_fake_mode)
             return gputop_enumerate_metrics_fake();
         else

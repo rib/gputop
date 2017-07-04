@@ -6,8 +6,6 @@
     "license": "MIT",
     "os": [ "linux" ],
     "files": [
-        "intel_chipset.h",
-        "i915_oa_drm.h",
         "gputop-oa-metrics.h"
     ],
     "main": "index.js"

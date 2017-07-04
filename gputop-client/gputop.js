@@ -1477,8 +1477,7 @@ Gputop.prototype.process_features = function(features){
             break;
         case "string":
             val = features.devinfo[field.name];
-            /* FIXME: allow forwarding string properties to cc via
-             * a _set_system_property_string() api */
+            cc._gputop_cc_set_system_property_string(name_c_string, val);
             break;
         default:
             console.error("Unexpected DevInfo " + field.name + " field type");

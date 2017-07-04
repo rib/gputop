@@ -26,13 +26,18 @@
 
 #include <stdint.h>
 
-#include <i915_oa_drm.h>
+#include <i915_drm.h>
+
+#include "common/gen_device_info.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct gputop_devinfo {
+    char devname[20];
+    char prettyname[100];
+
     uint32_t devid;
     uint32_t gen;
     uint64_t timestamp_frequency;

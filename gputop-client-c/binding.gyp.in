@@ -1,6 +1,7 @@
 {
   "variables": {
-    "system_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-system-headers\'), \'..\'));")'
+    "system_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-system-headers\'), \'..\'));")',
+    "mesa_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-mesa-headers\'), \'..\'));")'
   },
   "targets": [
     {
@@ -10,7 +11,11 @@
       ],
       "include_dirs": [
         ".",
-        "<(system_headers)"
+        "<(system_headers)",
+        "<(mesa_headers)/include",
+        "<(mesa_headers)/include/drm-uapi",
+        "<(mesa_headers)/src",
+        "<(mesa_headers)/src/intel",
       ],
       "cflags": [
           "-std=c11"
@@ -26,7 +31,7 @@
         "gputop-client-c-runtime-bindings.cpp",
         "gputop-client-c.c",
         "gputop-client-c-bindings.h",
-        "gputop-client-c-bindings.cpp",
+        "gputop-client-c-bindings.cpp"
       ],
     }
   ]

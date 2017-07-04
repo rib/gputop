@@ -190,6 +190,16 @@ gputop_cc_set_system_property_binding(const v8::FunctionCallbackInfo<Value>& arg
 }
 
 void
+gputop_cc_set_system_property_string_binding(const v8::FunctionCallbackInfo<Value>& args)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
+
+    gputop_cc_set_system_property_string(*String::Utf8Value(args[0]),
+                                         *String::Utf8Value(args[1]));
+}
+
+void
 gputop_cc_update_system_metrics_binding(const v8::FunctionCallbackInfo<Value>& args)
 {
     Isolate* isolate = Isolate::GetCurrent();
@@ -422,6 +432,7 @@ Init(Handle<Object> exports)
     EXPORT(gputop_cc_handle_i915_perf_message);
     EXPORT(gputop_cc_reset_system_properties);
     EXPORT(gputop_cc_set_system_property);
+    EXPORT(gputop_cc_set_system_property_string);
     EXPORT(gputop_cc_update_system_metrics);
     EXPORT(gputop_cc_oa_stream_new);
     EXPORT(gputop_cc_stream_destroy);

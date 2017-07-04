@@ -35,7 +35,6 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <intel_chipset.h>
 
 #include <uv.h>
 
@@ -51,6 +50,8 @@
 #include "gputop-log.h"
 #include "gputop.pb-c.h"
 #include "gputop-debugfs.h"
+
+#include "common/gen_device_info.h"
 
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
@@ -1164,149 +1165,116 @@ handle_get_features(h2o_websocket_conn_t *conn,
     char kernel_release[128];
     char kernel_version[256];
     char cpu_model[128];
-    Gputop__Message message = GPUTOP__MESSAGE__INIT;
-    Gputop__Features features = GPUTOP__FEATURES__INIT;
-    Gputop__DevInfo devinfo = GPUTOP__DEV_INFO__INIT;
+    Gputop__Message pb_message = GPUTOP__MESSAGE__INIT;
+    Gputop__Features pb_features = GPUTOP__FEATURES__INIT;
+    Gputop__DevInfo pb_devinfo = GPUTOP__DEV_INFO__INIT;
     char *notices[] = {
         "RC6 power saving mode disabled"
     };
 
     if (!gputop_perf_initialize()) {
-        message.reply_uuid = request->uuid;
-        message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-        message.error = "Failed to initialize perf\n";
-        send_pb_message(conn, &message.base);
+        pb_message.reply_uuid = request->uuid;
+        pb_message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
+        pb_message.error = "Failed to initialize perf\n";
+        send_pb_message(conn, &pb_message.base);
         return;
     }
 
-    features.server_pid = getpid();
+    pb_features.server_pid = getpid();
 
-    devinfo.devid = gputop_devinfo.devid;
-    devinfo.gen = gputop_devinfo.gen;
-    devinfo.n_eus = gputop_devinfo.n_eus;
-    devinfo.n_eu_slices = gputop_devinfo.n_eu_slices;
-    devinfo.n_eu_sub_slices = gputop_devinfo.n_eu_sub_slices;
-    devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
-    devinfo.subslice_mask = gputop_devinfo.subslice_mask;
-    devinfo.slice_mask = gputop_devinfo.slice_mask;
-    devinfo.timestamp_frequency = gputop_devinfo.timestamp_frequency;
-    devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
-    devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
+    pb_devinfo.devid = gputop_devinfo.devid;
+    pb_devinfo.gen = gputop_devinfo.gen;
+    pb_devinfo.n_eus = gputop_devinfo.n_eus;
+    pb_devinfo.n_eu_slices = gputop_devinfo.n_eu_slices;
+    pb_devinfo.n_eu_sub_slices = gputop_devinfo.n_eu_sub_slices;
+    pb_devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
+    pb_devinfo.subslice_mask = gputop_devinfo.subslice_mask;
+    pb_devinfo.slice_mask = gputop_devinfo.slice_mask;
+    pb_devinfo.timestamp_frequency = gputop_devinfo.timestamp_frequency;
+    pb_devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
+    pb_devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
 
-    if (IS_HASWELL(devinfo.devid)) {
-        devinfo.devname = "hsw";
-        devinfo.prettyname = "Haswell";
-    } else if (IS_BROADWELL(devinfo.devid)) {
-        devinfo.devname = "bdw";
-        devinfo.prettyname = "Broadwell";
-    } else if (IS_CHERRYVIEW(devinfo.devid)) {
-        devinfo.devname = "chv";
-        devinfo.prettyname = "Cherryview";
-    } else if (IS_SKYLAKE(devinfo.devid)) {
-        if (IS_SKL_GT2(devinfo.devid)) {
-            devinfo.devname = "sklgt2";
-            devinfo.prettyname = "Skylake GT2";
-        } else if (IS_SKL_GT3(devinfo.devid)) {
-            devinfo.devname = "sklgt3";
-            devinfo.prettyname = "Skylake GT3";
-        } else if (IS_SKL_GT4(devinfo.devid)) {
-            devinfo.devname = "sklgt4";
-            devinfo.prettyname = "Skylake GT4";
-        }
-    } else if (IS_BROXTON(devinfo.devid)) {
-        devinfo.devname = "bxt";
-        devinfo.prettyname = "Broxton";
-    } else if (IS_KABYLAKE(devinfo.devid)) {
-        if (IS_KBL_GT2(devinfo.devid)) {
-            devinfo.devname = "kblgt2";
-            devinfo.prettyname = "Kabylake GT2";
-        } else if (IS_KBL_GT3(devinfo.devid)) {
-            devinfo.devname = "kblgt3";
-            devinfo.prettyname = "Kabylake GT3";
-        }
-    } else if (IS_GEMINILAKE(devinfo.devid)) {
-        devinfo.devname = "glk";
-        devinfo.prettyname = "Geminilake";
-    }
+    pb_devinfo.devname = (char *) gputop_devinfo.devname;
+    pb_devinfo.prettyname = (char *) gputop_devinfo.prettyname;
 
-    features.fake_mode = gputop_fake_mode;
+    pb_features.fake_mode = gputop_fake_mode;
 
-    features.devinfo = &devinfo;
+    pb_features.devinfo = &pb_devinfo;
 
 #ifdef SUPPORT_GL
-    features.has_gl_performance_query = gputop_gl_has_intel_performance_query_ext;
+    pb_features.has_gl_performance_query = gputop_gl_has_intel_performance_query_ext;
 
     if (gputop_gl_has_intel_performance_query_ext && !gputop_fake_mode) {
         int n_gl_queries;
-        features.gl_queries = get_gl_query_info(&n_gl_queries);
-        features.n_gl_queries = n_gl_queries;
+        pb_features.gl_queries = get_gl_query_info(&n_gl_queries);
+        pb_features.n_gl_queries = n_gl_queries;
     }
 #else
-    features.has_gl_performance_query = false;
+    pb_features.has_gl_performance_query = false;
 #endif
-    features.has_i915_oa = true;
+    pb_features.has_i915_oa = true;
 
-    features.n_cpus = gputop_cpu_count();
+    pb_features.n_cpus = gputop_cpu_count();
 
     gputop_cpu_model(cpu_model, sizeof(cpu_model));
-    features.cpu_model = cpu_model;
+    pb_features.cpu_model = cpu_model;
 
-    features.tracepoints = gputop_debugfs_get_tracepoint_names();
-    if (features.tracepoints) {
-        for (features.n_tracepoints = 0;
-             features.tracepoints[features.n_tracepoints];
-             features.n_tracepoints++) {
+    pb_features.tracepoints = gputop_debugfs_get_tracepoint_names();
+    if (pb_features.tracepoints) {
+        for (pb_features.n_tracepoints = 0;
+             pb_features.tracepoints[pb_features.n_tracepoints];
+             pb_features.n_tracepoints++) {
         }
     }
 
     gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
-    features.kernel_release = kernel_release;
-    features.kernel_build = kernel_version;
-    features.n_supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->len;
-    features.supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->data;
+    pb_features.kernel_release = kernel_release;
+    pb_features.kernel_build = kernel_version;
+    pb_features.n_supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->len;
+    pb_features.supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->data;
 
-    features.n_notices = ARRAY_SIZE(notices);
-    features.notices = notices;
+    pb_features.n_notices = ARRAY_SIZE(notices);
+    pb_features.notices = notices;
 
-    message.reply_uuid = request->uuid;
-    message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;
-    message.features = &features;
+    pb_message.reply_uuid = request->uuid;
+    pb_message.cmd_case = GPUTOP__MESSAGE__CMD_FEATURES;
+    pb_message.features = &pb_features;
 
     dbg("GPU:\n");
-    dbg("  Device ID = 0x%x\n", devinfo.devid);
-    dbg("  Gen = %"PRIu32"\n", devinfo.gen);
-    dbg("  EU Slice Count = %"PRIu64"\n", devinfo.n_eu_slices);
-    dbg("  EU Sub Slice Count = %"PRIu64"\n", devinfo.n_eu_sub_slices);
-    dbg("  EU Count (total) = %"PRIu64"\n", devinfo.n_eus);
-    dbg("  EU Threads Count (total) = %"PRIu64"\n", devinfo.eu_threads_count);
-    dbg("  Slice Mask = 0x%"PRIx64"\n", devinfo.slice_mask);
-    dbg("  Sub Slice Mask = 0x%"PRIx64"\n", devinfo.subslice_mask);
-    dbg("  OA Metrics Available = %s\n", features.has_i915_oa ? "true" : "false");
-    dbg("  Timestamp Frequency = %"PRIu64"\n", devinfo.timestamp_frequency);
-    dbg("  Min Frequency = %"PRIu64"\n", devinfo.gt_min_freq);
-    dbg("  Max Frequency = %"PRIu64"\n", devinfo.gt_max_freq);
+    dbg("  Device ID = 0x%x\n", pb_devinfo.devid);
+    dbg("  Gen = %"PRIu32"\n", pb_devinfo.gen);
+    dbg("  EU Slice Count = %"PRIu64"\n", pb_devinfo.n_eu_slices);
+    dbg("  EU Sub Slice Count = %"PRIu64"\n", pb_devinfo.n_eu_sub_slices);
+    dbg("  EU Count (total) = %"PRIu64"\n", pb_devinfo.n_eus);
+    dbg("  EU Threads Count (total) = %"PRIu64"\n", pb_devinfo.eu_threads_count);
+    dbg("  Slice Mask = 0x%"PRIx64"\n", pb_devinfo.slice_mask);
+    dbg("  Sub Slice Mask = 0x%"PRIx64"\n", pb_devinfo.subslice_mask);
+    dbg("  OA Metrics Available = %s\n", pb_features.has_i915_oa ? "true" : "false");
+    dbg("  Timestamp Frequency = %"PRIu64"\n", pb_devinfo.timestamp_frequency);
+    dbg("  Min Frequency = %"PRIu64"\n", pb_devinfo.gt_min_freq);
+    dbg("  Max Frequency = %"PRIu64"\n", pb_devinfo.gt_max_freq);
     dbg("\n");
     dbg("CPU:\n");
-    dbg("  Model = %s\n", features.cpu_model);
-    dbg("  Core Count = %u\n", features.n_cpus);
+    dbg("  Model = %s\n", pb_features.cpu_model);
+    dbg("  Core Count = %u\n", pb_features.n_cpus);
     dbg("\n");
     dbg("SYSTEM:\n");
-    dbg("  Kernel Release = %s\n", features.kernel_release);
-    dbg("  Kernel Build = %s\n", features.kernel_build);
+    dbg("  Kernel Release = %s\n", pb_features.kernel_release);
+    dbg("  Kernel Build = %s\n", pb_features.kernel_build);
     dbg("NOTICES:\n");
-    for (int i = 0; i< features.n_notices; i++) {
-        const char *notice = features.notices[i];
+    for (int i = 0; i< pb_features.n_notices; i++) {
+        const char *notice = pb_features.notices[i];
         dbg("  %s\n", notice);
     }
 
-    send_pb_message(conn, &message.base);
+    send_pb_message(conn, &pb_message.base);
 
-    gputop_debugfs_free_tracepoint_names(features.tracepoints);
+    gputop_debugfs_free_tracepoint_names(pb_features.tracepoints);
 
 #ifdef SUPPORT_GL
-    if (features.n_gl_queries)
-        free_gl_query_info(features.gl_queries, features.n_gl_queries);
+    if (pb_features.n_gl_queries)
+        free_gl_query_info(pb_features.gl_queries, pb_features.n_gl_queries);
 #endif
 }
 

@@ -7,6 +7,7 @@ SUBDIRS += registry
 endif
 
 bin_PROGRAMS = gputop gputop-system
+noinst_LTLIBRARIES =
 
 gputop_SOURCES = gputop-main.c
 
@@ -25,7 +26,6 @@ lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
     gputop-hash-table.h \
     gputop-hash-table.c \
-    intel_chipset.h \
     $(oa_generated_sources) \
     gputop-perf.h \
     gputop-perf.c \
@@ -49,9 +49,17 @@ libgputop_la_SOURCES = \
 libgputop_la_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(top_srcdir)/libuv/include \
+    \
     -I$(top_srcdir)/h2o \
     -I$(top_srcdir)/h2o/include \
     -I$(top_srcdir)/h2o/hiredis \
+    \
+    -I$(top_srcdir)/mesa/include \
+    -I$(top_srcdir)/mesa/include/drm-uapi \
+    -I$(top_srcdir)/mesa/src \
+    -I$(top_srcdir)/mesa/src/intel \
+    -I$(top_srcdir)/mesa/src/util \
+    \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\"
 libgputop_la_CFLAGS = \
     $(GPUTOP_EXTRA_CFLAGS) \
@@ -68,10 +76,14 @@ libgputop_la_LIBADD = \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
+    $(top_builddir)/mesa/src/intel/common/libintel_common.la \
     -ldl -lm -lrt -lstdc++
 
 if SUPPORT_GL
-libgputop_la_SOURCES += \
+noinst_LTLIBRARIES += libgputop_gl.la
+libgputop_la_LIBADD += libgputop_gl.la
+
+libgputop_gl_la_SOURCES = \
     gputop-gl.h \
     gputop-gl.c
 
@@ -81,8 +93,11 @@ libgputop_la_SOURCES += \
 # gputop-gl.c is instead careful to lookup GLX symbols via
 # dlopen/dlsym so we don't need to be linked to the system GL library.
 #libgputop_la_LIBADD += $(GLX_DEP_LIBS)
-libgputop_la_LIBADD += -lX11
-libgputop_la_CFLAGS += $(GLX_DEP_CFLAGS)
+libgputop_gl_la_LIBADD = -lX11
+libgputop_gl_la_CFLAGS = \
+	$(libgputop_la_CPPFLAGS) \
+	$(libgputop_la_CFLAGS) \
+	$(GLX_DEP_CFLAGS)
 
 wrapperdir = $(libdir)/wrappers
 wrapper_LTLIBRARIES = libfakeGL.la #libEGL.la
@@ -116,9 +131,6 @@ BUILT_SOURCES = \
     $(oa_generated_sources) \
     gputop.pb-c.h \
     gputop.pb-c.c
-
-data_dir = $(top_srcdir)/gputop-data
-script_dir = $(top_srcdir)/scripts
 
 %.pb-c.c %.pb-c.h: $(data_dir)/%.proto Makefile.am
 	$(top_builddir)/protoc-c/protoc-c --c_out=$(top_builddir)/gputop-server -I$(data_dir) $(data_dir)/$(*F).proto

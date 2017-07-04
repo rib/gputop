@@ -96,6 +96,7 @@ void gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
 
 void gputop_cc_reset_system_properties(void);
 void gputop_cc_set_system_property(const char *name, double value);
+void gputop_cc_set_system_property_string(const char *name, const char *value);
 void gputop_cc_update_system_metrics(void);
 
 struct gputop_cc_stream *

@@ -644,6 +644,7 @@ static const struct gen_device_info gen_device_info_cfl_gt1 = {
    .gt = 1,
 
    .num_slices = 1,
+   .num_subslices = { 2, },
    .l3_banks = 2,
 };
 static const struct gen_device_info gen_device_info_cfl_gt2 = {
@@ -652,6 +653,7 @@ static const struct gen_device_info gen_device_info_cfl_gt2 = {
    .gt = 2,
 
    .num_slices = 1,
+   .num_subslices = { 3, },
    .l3_banks = 4,
 };
 
@@ -661,6 +663,7 @@ static const struct gen_device_info gen_device_info_cfl_gt3 = {
    .gt = 3,
 
    .num_slices = 2,
+   .num_subslices = { 3, 3, },
    .l3_banks = 8,
 };
 

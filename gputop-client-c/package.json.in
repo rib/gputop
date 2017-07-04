@@ -12,7 +12,8 @@
     },
     "dependencies": {
         "bindings": "^1.2.1",
-        "gputop-system-headers": "file:../gputop-server"
+        "gputop-system-headers": "file:../gputop-server",
+        "gputop-mesa-headers": "file:../mesa"
     },
     "files": [
         "binding.gyp",

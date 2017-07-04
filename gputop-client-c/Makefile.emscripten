@@ -11,6 +11,7 @@ top_srcdir=../..
 srcdir=$(top_srcdir)/gputop-client-c
 gputop_datadir=$(top_srcdir)/gputop-data
 gputop_serverdir=$(top_srcdir)/gputop-server
+gputop_mesadir=$(top_srcdir)/mesa
 top_builddir=../..
 builddir=.
 client_c_srcdir=$(gputop_datadir)/gputop-client-c
@@ -25,8 +26,18 @@ OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
 JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1
 
-_OBJ_CFLAGS=$(OBJ_CFLAGS) -I$(top_srcdir) -I$(gputop_datadir) -I$(gputop_serverdir) -I$(client_c_srcdir)
-_BC_CFLAGS=$(BC_CFLAGS) -I$(top_srcdir) -I$(gputop_datadir) -I$(gputop_serverdir) -I$(client_c_srcdir)
+_includes= \
+	-I$(top_srcdir) \
+	-I$(gputop_datadir) \
+	-I$(gputop_serverdir) \
+	-I$(client_c_srcdir) \
+	-I$(gputop_mesadir)/include \
+	-I$(gputop_mesadir)/include/drm-uapi \
+	-I$(gputop_mesadir)/src/intel \
+	-I$(gputop_mesadir)/src
+
+_OBJ_CFLAGS=$(OBJ_CFLAGS) $(_includes)
+_BC_CFLAGS=$(BC_CFLAGS) -I$(_includes)
 _JSFLAGS=$(JSFLAGS)
 
 

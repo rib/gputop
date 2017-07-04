@@ -37,8 +37,9 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <intel_chipset.h>
-#include <i915_oa_drm.h>
+#include <i915_drm.h>
+
+#include <util/macros.h>
 
 #include "gputop-client-c.h"
 #include "gputop-client-c-runtime.h"
@@ -65,7 +66,7 @@ struct perf_event_header {
 };
 
 struct oa_sample {
-   struct i915_perf_record_header header;
+   struct drm_i915_perf_record_header header;
    uint8_t oa_report[];
 };
 
@@ -204,7 +205,7 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                                    struct gputop_cc_oa_accumulator **accumulators,
                                    int n_accumulators)
 {
-    const struct i915_perf_record_header *header;
+    const struct drm_i915_perf_record_header *header;
     uint8_t *last = NULL;
 
     assert(stream);
@@ -341,11 +342,10 @@ gputop_cc_set_system_property(const char *name, double value)
         PROP(slice_mask),
         PROP(gt_min_freq),
         PROP(gt_max_freq),
-        { 0 },
     };
 #undef PROP
 
-    for (int i = 0; table[i].name; i++) {
+    for (uint32_t i = 0; ARRAY_SIZE(table); i++) {
         if (strcmp(name, table[i].name) == 0) {
             switch (table[i].type) {
             case TYPE_U32:
@@ -369,44 +369,63 @@ gputop_cc_set_system_property(const char *name, double value)
 }
 
 void EMSCRIPTEN_KEEPALIVE
+gputop_cc_set_system_property_string(const char *name, const char *value)
+{
+    /* Use _Generic so we don't get caught out by a silent error if
+     * we mess with struct gputop_devinfo...
+     */
+#define PROP(NAME) { #NAME, gputop_devinfo.NAME, sizeof(gputop_devinfo.NAME), }
+    static const struct {
+        const char *name;
+        char *symbol;
+        uint32_t max_size;
+    } table[] = {
+        PROP(devname),
+        PROP(prettyname),
+    };
+#undef PROP
+
+    for (uint32_t i = 0; ARRAY_SIZE(table); i++) {
+        if (strcmp(name, table[i].name) == 0) {
+            strncpy(table[i].symbol, value, table[i].max_size);
+            return;
+        }
+    }
+
+    gputop_cr_console_error("Unknown system property %s\n", name);
+}
+
+void EMSCRIPTEN_KEEPALIVE
 gputop_cc_update_system_metrics(void)
 {
     uint32_t devid = gputop_devinfo.devid;
+    struct {
+        char *devname;
+        void (*add_metrics_cb)(struct gputop_devinfo *devinfo);
+    } devname_to_metric_func[] = {
+        { "hsw", gputop_oa_add_metrics_hsw },
+        { "bdw", gputop_oa_add_metrics_bdw },
+        { "chv", gputop_oa_add_metrics_chv },
+        { "sklgt2", gputop_oa_add_metrics_sklgt2 },
+        { "sklgt3", gputop_oa_add_metrics_sklgt3 },
+        { "sklgt4", gputop_oa_add_metrics_sklgt4 },
+        { "kblgt2", gputop_oa_add_metrics_kblgt2 },
+        { "kblgt3", gputop_oa_add_metrics_kblgt3 },
+        { "bxt", gputop_oa_add_metrics_bxt },
+        { "glk", gputop_oa_add_metrics_glk },
+   };
 
     gputop_cr_console_assert(devid != 0, "Device ID not initialized before trying to update system metrics");
 
-    if (IS_HASWELL(devid))
-        gputop_oa_add_metrics_hsw(&gputop_devinfo);
-    else if (IS_BROADWELL(devid))
-        gputop_oa_add_metrics_bdw(&gputop_devinfo);
-    else if (IS_CHERRYVIEW(devid))
-        gputop_oa_add_metrics_chv(&gputop_devinfo);
-    else if (IS_SKYLAKE(devid)) {
-        if (IS_SKL_GT2(devid))
-            gputop_oa_add_metrics_sklgt2(&gputop_devinfo);
-        else if (IS_SKL_GT3(devid))
-            gputop_oa_add_metrics_sklgt3(&gputop_devinfo);
-        else if (IS_SKL_GT4(devid))
-            gputop_oa_add_metrics_sklgt4(&gputop_devinfo);
-        else {
-            gputop_cr_console_error("Unsupported Skylake GT size");
-            assert_not_reached();
+    for (uint32_t i = 0; i < ARRAY_SIZE(devname_to_metric_func); i++) {
+        if (!strcmp(gputop_devinfo.devname, devname_to_metric_func[i].devname)) {
+            devname_to_metric_func[i].add_metrics_cb(&gputop_devinfo);
+            return;
         }
-    } else if (IS_BROXTON(devid)) {
-        gputop_oa_add_metrics_bxt(&gputop_devinfo);
-    } else if (IS_KABYLAKE(devid)) {
-        if (IS_KBL_GT2(devid))
-            gputop_oa_add_metrics_kblgt2(&gputop_devinfo);
-        else if (IS_KBL_GT3(devid))
-            gputop_oa_add_metrics_kblgt3(&gputop_devinfo);
-        else {
-            gputop_cr_console_error("Unsupported Kabylake GT size");
-            assert_not_reached();
-        }
-    } else {
-        gputop_cr_console_error("FIXME: Unknown platform device ID 0x%x: " __FILE__, devid);
-        assert_not_reached();
     }
+
+    gputop_cr_console_error("FIXME: Unknown platform device ID 0x%x: " __FILE__, devid);
+    assert_not_reached();
 }
 
 struct gputop_cc_stream * EMSCRIPTEN_KEEPALIVE
