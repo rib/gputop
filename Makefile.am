@@ -2,7 +2,7 @@ SUBDIRS = libuv
 
 SUBDIRS += protobuf protobuf-c protoc-c h2o
 
-SUBDIRS += gputop-data gputop-server
+SUBDIRS += gputop-data mesa gputop-server
 
 if ENABLE_CLIENTS
 SUBDIRS += gputop-client-c gputop-client

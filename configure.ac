@@ -193,6 +193,7 @@ h2o/Makefile
 protobuf/Makefile
 protobuf-c/Makefile
 protoc-c/Makefile
+mesa/Makefile
 gputop-data/Makefile
 gputop-server/Makefile
 gputop-server/registry/Makefile
