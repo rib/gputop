@@ -40,6 +40,7 @@ struct gputop_devinfo {
 
     uint32_t devid;
     uint32_t gen;
+    uint32_t revision;
     uint64_t timestamp_frequency;
     uint64_t n_eus;
     uint64_t n_eu_slices;
@@ -103,6 +104,11 @@ struct gputop_metric_set_counter
    };
 };
 
+struct gputop_register_prog {
+    uint32_t reg;
+    uint32_t val;
+};
+
 struct gputop_metric_set
 {
     const char *name;
@@ -121,6 +127,15 @@ struct gputop_metric_set
     int a_offset;
     int b_offset;
     int c_offset;
+
+    struct gputop_register_prog *b_counter_regs;
+    uint32_t n_b_counter_regs;
+
+    struct gputop_register_prog *mux_regs;
+    uint32_t n_mux_regs;
+
+    struct gputop_register_prog *flex_regs;
+    uint32_t n_flex_regs;
 };
 
 

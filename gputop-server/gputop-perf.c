@@ -703,6 +703,9 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
         gputop_devinfo.gt_max_freq = 1100;
         gputop_devinfo.timestamp_frequency = 12500000;
     } else {
+        drm_i915_getparam_t gp;
+        int revision;
+
         gputop_devinfo.gen = devinfo->gen;
         gputop_devinfo.n_eu_slices = devinfo->num_slices;
         gputop_devinfo.n_eu_sub_slices = devinfo->num_subslices[0];
@@ -713,11 +716,15 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
         for (int ss = 0; ss < devinfo->num_subslices[0]; ss++)
             gputop_devinfo.subslice_mask = 1U << ss;
 
+        gp.param = I915_PARAM_REVISION;
+        gp.value = &revision;
+        perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+        gputop_devinfo.revision = revision;
+
         if (devinfo->is_haswell) {
             gputop_devinfo.n_eus =
                 devinfo->num_slices * devinfo->num_subslices[0] * 10;
         } else { /* Gen 8+ */
-            drm_i915_getparam_t gp;
             int n_eus = 0;
             int slice_mask = 0;
             int ss_mask = 0;

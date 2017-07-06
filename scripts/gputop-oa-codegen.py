@@ -210,6 +210,7 @@ hw_vars = {
         "$GpuTimestampFrequency": { 'c': "devinfo->timestamp_frequency" },
         "$GpuMinFrequency": { 'c': "devinfo->gt_min_freq" },
         "$GpuMaxFrequency": { 'c': "devinfo->gt_max_freq" },
+        "$SkuRevisionId": { 'c': "devinfo->revision" },
 }
 
 counter_vars = {}
@@ -279,7 +280,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
 
     c("\nreturn " + value + ";")
 
-def splice_rpn_expression(set, counter, expression):
+def splice_rpn_expression(set, counter_name, expression):
     tokens = expression.split()
     stack = []
 
@@ -295,7 +296,7 @@ def splice_rpn_expression(set, counter, expression):
                     if operand in hw_vars:
                         operand = hw_vars[operand]['c']
                     else:
-                        raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.get('name') + " :: " + counter.get('name'));
+                        raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.get('name') + " :: " + counter_name)
                 args.append(operand)
 
             subexp = callback(args)
@@ -304,7 +305,7 @@ def splice_rpn_expression(set, counter, expression):
 
     if len(stack) != 1:
         raise Exception("Spurious empty rpn expression for " + set.get('name') + " :: " +
-                counter.get('name') + ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
+                counter_name + ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
                 expression + "\"")
 
     return stack[-1]
@@ -382,6 +383,21 @@ semantic_type_map = {
     "ratio": "event"
     }
 
+def output_availability(set, availability, counter_name):
+    expression = splice_rpn_expression(set, counter_name, availability)
+    lines = expression.split(' && ')
+    n_lines = len(lines)
+    if n_lines == 1:
+        c("if (" + lines[0] + ") {")
+    else:
+        c("if (" + lines[0] + " &&")
+        c.indent(4)
+        for i in range(1, (n_lines - 1)):
+            c(lines[i] + " &&")
+        c(lines[(n_lines - 1)] + ") {")
+        c.outdent(4)
+
+
 def output_counter_report(set, counter):
     data_type = counter.get('data_type')
     data_type_uc = data_type.upper()
@@ -400,18 +416,7 @@ def output_counter_report(set, counter):
 
     availability = counter.get('availability')
     if availability:
-        expression = splice_rpn_expression(set, counter, availability)
-        lines = expression.split(' && ')
-        n_lines = len(lines)
-        if n_lines == 1:
-            c("if (" + lines[0] + ") {")
-        else:
-            c("if (" + lines[0] + " &&")
-            c.indent(4)
-            for i in range(1, (n_lines - 1)):
-                c(lines[i] + " &&")
-            c(lines[(n_lines - 1)] + ") {")
-            c.outdent(4)
+        output_availability(set, availability, counter.get('name'))
         c.indent(4)
 
     c("counter = &metric_set->counters[metric_set->n_counters++];\n")
@@ -426,6 +431,47 @@ def output_counter_report(set, counter):
     if availability:
         c.outdent(4)
         c("}\n")
+
+def generate_register_configs(set):
+    register_types = {
+        'FLEX': 'flex_regs',
+        'NOA': 'mux_regs',
+        'OA': 'b_counter_regs',
+    }
+
+    # allocate memory
+    total_n_registers = {}
+    register_configs = set.findall('register_config')
+    for register_config in register_configs:
+        t = register_types[register_config.get('type')]
+        if t not in total_n_registers:
+            total_n_registers[t] = len(register_config.findall('register'))
+        else:
+            total_n_registers[t] += len(register_config.findall('register'))
+
+    for reg in total_n_registers:
+        c("metric_set->%s = xmalloc0(sizeof(*metric_set->%s) * %i);" %
+          (reg, reg, total_n_registers[reg]))
+    c("\n")
+
+    # fill in register/values
+    register_configs = set.findall('register_config')
+    for register_config in register_configs:
+        t = register_types[register_config.get('type')]
+
+        availability = register_config.get('availability')
+        if availability:
+            output_availability(set, availability, register_config.get('type') + ' register config')
+            c.indent(3)
+
+        for register in register_config.findall('register'):
+            c("metric_set->%s[metric_set->n_%s++] = (struct gputop_register_prog) { .reg = %s, .val = %s };" %
+              (t, t, register.get('address'), register.get('value')))
+
+        if availability:
+            c.outdent(3)
+            c("}")
+        c("\n")
 
 
 def main():
@@ -545,6 +591,7 @@ def main():
         read_funcs = {}
         counter_vars = {}
         counters = set.findall("counter")
+        register_configs = set.findall("register_config")
 
         assert set.get('chipset').lower() == chipset
 
@@ -598,6 +645,8 @@ def main():
                 metric_set->c_offset = metric_set->b_offset + 8;
 
                 """))
+
+        generate_register_configs(set)
 
         for counter in counters:
             output_counter_report(set, counter)
