@@ -146,6 +146,38 @@ sysfs_card_read(const char *file, uint64_t *value)
 }
 
 
+static bool
+kernel_has_dynamic_config_support(int drm_fd)
+{
+    struct drm_i915_perf_oa_config config;
+    const char *uuid = "01234567-0123-0123-0123-0123456789ab";
+    uint32_t mux_regs[] = { 0x9888 /* NOA_WRITE */, 0x0 };
+    char config_path[256];
+    uint64_t config_id;
+    int ret;
+
+    snprintf(config_path, sizeof(config_path), "metrics/%s/id", uuid);
+
+    if (sysfs_card_read(config_path, &config_id)) {
+        if (ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id) == 0)
+            return true;
+    }
+
+    memset(&config, 0, sizeof(config));
+    memcpy(config.uuid, uuid, sizeof(config.uuid));
+    config.n_mux_regs = 1;
+    config.mux_regs_ptr = (uintptr_t) mux_regs;
+
+    ret = ioctl(drm_fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
+    if (ret < 0)
+        return false;
+    config_id = ret;
+
+    ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
+
+    return true;
+}
+
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
 {
     struct ctx_handle *handle = xmalloc0(sizeof(*handle));
@@ -705,6 +737,9 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
     } else {
         drm_i915_getparam_t gp;
         int revision;
+
+        gputop_devinfo.has_dynamic_configs =
+            kernel_has_dynamic_config_support(drm_fd);
 
         gputop_devinfo.gen = devinfo->gen;
         gputop_devinfo.n_eu_slices = devinfo->num_slices;

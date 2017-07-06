@@ -50,6 +50,8 @@ struct gputop_devinfo {
     uint64_t slice_mask;
     uint64_t gt_min_freq;
     uint64_t gt_max_freq;
+
+    bool has_dynamic_configs;
 };
 
 extern struct gputop_devinfo gputop_devinfo;
