@@ -512,6 +512,13 @@ for arg in args.xml:
 
         set_name = set_element.get('symbol_name')
 
+        # Exception on Haswell, which doesn't have a test config.
+        if chipset == 'HSW':
+          if set_name != 'RenderBasic':
+              continue
+        elif set_name != 'TestOa':
+            continue
+
         if args.whitelist:
             set_whitelist = args.whitelist.split()
             if set_name not in set_whitelist:
