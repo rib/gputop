@@ -532,6 +532,10 @@ def add_register_config(set, priority, availability, regs, type):
         elem.set('address', "0x%08X" % reg[0])
         elem.set('value', "0x%08X" % reg[1])
 
+def to_text(value):
+    if value == None:
+        return ""
+    return value
 
 # There are duplicated metric sets with the same symbol name so we
 # keep track of the sets we've read so we can skip duplicates...
@@ -726,13 +730,13 @@ for arg in args.xml:
             counter.set('symbol_name', mdapi_counter.get('SymbolName'))
             counter.set('underscore_name', underscore(mdapi_counter.get('SymbolName')))
             counter.set('description', apply_aliases(mdapi_counter.get('LongName'), aliases))
-            counter.set('mdapi_group', apply_aliases(mdapi_counter.get('Group'), aliases))
-            counter.set('mdapi_usage_flags', mdapi_counter.get('UsageFlags'))
+            counter.set('mdapi_group', apply_aliases(to_text(mdapi_counter.get('Group')), aliases))
+            counter.set('mdapi_usage_flags', to_text(mdapi_counter.get('UsageFlags')))
             counter.set('mdapi_supported_apis', strip_dx_apis(mdapi_counter.get('SupportedAPI')))
             low = mdapi_counter.get('LowWatermark')
             if low:
                 counter.set('low_watermark', low)
-            high = mdapi_counter.get('HighWatermark')
+            high = to_text(mdapi_counter.get('HighWatermark'))
             if high:
                 counter.set('high_watermark', high)
             counter.set('data_type', mdapi_counter.get('ResultType').lower())
