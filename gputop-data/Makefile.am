@@ -19,8 +19,8 @@ nobase_dist_remote_DATA = \
 	gputop.proto \
 	$(gputop_xml)
 
-gputop-%.xml: $(srcdir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py $(srcdir)/gen-client-xml.py
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/gen-client-xml.py
+gputop-%.xml: $(srcdir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
+	$(top_srcdir)/scripts/gputop-oa-codegen.py --chipset=$(*) --xml-out=gputop-$(*).xml oa-$(*).xml
 
 
 # Preferable to just use GNU make for running the xml import / i915

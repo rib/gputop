@@ -18,8 +18,5 @@
         "gputop-kblgt3.xml",
         "gputop-glk.xml",
         "gputop.proto"
-    ],
-    "scripts": {
-        "prepublish": "./gen-client-xml.py"
-    }
+    ]
 }
