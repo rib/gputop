@@ -200,6 +200,7 @@ sys_vars = { "EuCoresTotalCount",
 
 def underscore(name):
     s = re.sub('MHz', 'Mhz', name)
+    s = re.sub('\.', '_', s)
     s = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s).lower()
 
