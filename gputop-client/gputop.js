@@ -93,6 +93,17 @@ function get_file(filename, load_callback, error_callback) {
     }
 }
 
+function sanitize_address(address) {
+    var arr = address.split(':');
+
+    if (arr[0].length < 1)
+        arr[0] = 'localhost';
+    if (arr.length < 2 || arr[1].length < 1)
+        arr[1] = '7890';
+
+    return arr[0] + ':' + arr[1];
+}
+
 function Counter (metricParent) {
 
     this.metric = metricParent;
@@ -1788,7 +1799,7 @@ Gputop.prototype.connect = function(address, onopen, onclose, onerror) {
     this.load_emscripten(() => {
         this.load_gputop_proto(() => {
             if (!this.is_demo()) {
-                var websocket_url = 'ws://' + address + '/gputop/';
+                var websocket_url = 'ws://' + sanitize_address(address) + '/gputop/';
                 this.log('Connecting to ' + websocket_url);
                 this.socket_ = this.connect_web_socket(websocket_url, () => { //onopen
                     this.is_connected_ = true;
