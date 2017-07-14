@@ -91,7 +91,11 @@ GputopCSV.prototype.list_metric_set_counters = function(metric) {
         all += "," + counter.symbol_name;
     });
     all_counters.sort((a, b) => {
-        return a.symbol_name > b.symbol_name;
+        if (a.symbol_name < b.symbol_name)
+            return -1;
+        if (a.symbol_name > b.symbol_name)
+            return 1;
+        return 0;
     });
     for (var i = 0, len = all_counters.length; i < len; i++) {
         stderr_log.log(sp.sprintf("%-25s:%-25s - %s",
