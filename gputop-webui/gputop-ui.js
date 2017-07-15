@@ -938,8 +938,8 @@ GputopUI.prototype.update_features = function(features) {
 
         for (var i = 0; i < this.metrics_.length; i++) {
             (function(metric){
-                $("#metrics-menu-list").append('<li><a id="' + metric.guid_ + '" href="#">' + metric.name + '</a></li>');
-                $("#" + metric.guid_).click(() => {
+                $("#metrics-menu-list").append('<li><a id="' + metric.uuid + '" href="#">' + metric.name + '</a></li>');
+                $("#" + metric.uuid).click(() => {
                     //$('#metrics-menu').addClass("active");
                     $('#metrics-tab-anchor').tab('show');
                     this.select_metric_set(metric);

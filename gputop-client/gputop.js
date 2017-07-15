@@ -139,7 +139,7 @@ function Metric (gputopParent) {
     this.symbol_name = "UnInitialized";
     this.chipset_ = "not loaded";
 
-    this.guid_ = "undefined";
+    this.uuid = "undefined";
     this.metric_set_index_ = 0; //index into gputop.metrics[]
 
     this.xml_ = "<xml/>";
@@ -167,7 +167,7 @@ Metric.prototype.add_counter = function(counter) {
 
     var sp = cc.Runtime.stackSave();
 
-    var counter_idx = cc._gputop_cc_get_counter_id(String_pointerify_on_stack(this.guid_),
+    var counter_idx = cc._gputop_cc_get_counter_id(String_pointerify_on_stack(this.uuid),
                                                    String_pointerify_on_stack(symbol_name));
 
     cc.Runtime.stackRestore(sp);
@@ -270,7 +270,7 @@ function Gputop () {
     this.ERROR=2;
 
     this.metrics_ = [];
-    this.map_metrics_ = {}; // Map of metrics by GUID
+    this.map_metrics_ = {}; // Map of metrics by UUID
 
     this.tracepoints_ = [];
 
@@ -433,26 +433,26 @@ Gputop.prototype.get_metric_by_id = function(idx){
     return this.metrics_[idx];
 }
 
-Gputop.prototype.lookup_metric_for_guid = function(guid){
+Gputop.prototype.lookup_metric_for_uuid = function(uuid){
     var metric;
-    if (guid in this.map_metrics_) {
-        metric = this.map_metrics_[guid];
+    if (uuid in this.map_metrics_) {
+        metric = this.map_metrics_[uuid];
     } else {
         metric = new this.MetricConstructor(this);
-        metric.guid_ = guid;
-        this.map_metrics_[guid] = metric;
+        metric.uuid = uuid;
+        this.map_metrics_[uuid] = metric;
     }
     return metric;
 }
 
 Gputop.prototype.parse_metrics_set_xml = function (xml_elem) {
-    var guid = $(xml_elem).attr("hw_config_guid");
-    var metric = this.lookup_metric_for_guid(guid);
+    var uuid = $(xml_elem).attr("hw_config_guid");
+    var metric = this.lookup_metric_for_uuid(uuid);
     metric.xml_ = $(xml_elem);
     metric.name = $(xml_elem).attr("name");
 
     this.log('Parsing metric set:' + metric.name);
-    this.log("  HW config GUID: " + guid);
+    this.log("  HW config UUID: " + uuid);
 
     metric.symbol_name = $(xml_elem).attr("symbol_name");
     metric.underscore_name = $(xml_elem).attr("underscore_name");
@@ -759,7 +759,7 @@ Metric.prototype.open = function(config,
         stream.on('error', onerror);
 
     if (this.supported_ == false) {
-        var ev = { type: "error", msg: this.guid_ + " " + this.name + " not supported by this kernel" };
+        var ev = { type: "error", msg: this.uuid + " " + this.name + " not supported by this kernel" };
         stream.dispatchEvent(ev);
         return null;
     }
@@ -798,7 +798,7 @@ Metric.prototype.open = function(config,
         var sp = cc.Runtime.stackSave();
 
         stream.cc_stream_ptr_ =
-            cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(this.guid_));
+            cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(this.uuid));
 
         cc.Runtime.stackRestore(sp);
 
@@ -812,7 +812,7 @@ Metric.prototype.open = function(config,
     } else {
         var oa_stream = new this.gputop.gputop_proto_.OAStreamInfo();
 
-        oa_stream.set('guid', this.guid_);
+        oa_stream.set('uuid', this.uuid);
         oa_stream.set('period_exponent', config.oa_exponent);
         oa_stream.set('per_ctx_mode', false); /* TODO: add UI + way to select a specific ctx */
 
@@ -1436,7 +1436,7 @@ Gputop.prototype.request_features = function() {
         demo_features.set('cpu_model', 'Intel(R) Core(TM) i7-4500U CPU @ 1.80GHz');
         demo_features.set('kernel_release', '4.5.0-rc4');
         demo_features.set('fake_mode', false);
-        demo_features.set('supported_oa_guids', []);
+        demo_features.set('supported_oa_uuids', []);
 
         this.process_features(demo_features);
     }
@@ -1501,15 +1501,15 @@ Gputop.prototype.process_features = function(features){
         else {
             this.metrics_.forEach(function (metric) { metric.supported_ = false; });
 
-            if (features.supported_oa_guids.length == 0) {
+            if (features.supported_oa_uuids.length == 0) {
                 this.user_msg("No OA metrics are supported on this Kernel " +
                               features.get_kernel_release(), this.ERROR);
             } else {
                 this.log("Metrics:");
-                features.supported_oa_guids.forEach((guid, i, a) => {
-                    var metric = this.lookup_metric_for_guid(guid);
+                features.supported_oa_uuids.forEach((uuid, i, a) => {
+                    var metric = this.lookup_metric_for_uuid(uuid);
                     metric.supported_ = true;
-                    this.log("  " + metric.name + " (guid = " + guid + ")");
+                    this.log("  " + metric.name + " (uuid = " + uuid + ")");
                 });
             }
         }
@@ -1576,7 +1576,7 @@ Gputop.prototype.dispose = function() {
     });
 
     this.metrics_ = [];
-    this.map_metrics_ = {}; // Map of metrics by GUID
+    this.map_metrics_ = {}; // Map of metrics by UUID
 
     this.cc_stream_ptr_to_obj_map = {};
     this.server_handle_to_obj = {};

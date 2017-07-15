@@ -77,6 +77,28 @@ function GputopCSV(pretty_print)
 
 GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
 
+GputopCSV.prototype.list_metrics = function(features) {
+    var all_metrics = [];
+
+    for (var i = 0; i < features.supported_oa_uuids.length; i++) {
+        var uuid = features.supported_oa_uuids[i];
+        all_metrics.push(this.lookup_metric_for_uuid(uuid));
+    }
+
+    all_metrics.sort((a, b) => {
+        if (a.symbol_name < b.symbol_name)
+            return -1;
+        if (a.symbol_name > b.symbol_name)
+            return 1;
+        return 0;
+    });
+
+    for (var i = 0; i < all_metrics.length; i++) {
+        stderr_log.log("" + all_metrics[i].symbol_name + ": " + all_metrics[i].name + ", hw-config-guid=" + uuid);
+    }
+
+};
+
 GputopCSV.prototype.list_metric_set_counters = function(metric) {
     var all_counters = [{ symbol_name: "Timestamp", name: "Timestamp", desc: "Sample timestamp (nanosecond resolution)" }];
     var all = "Timestamp"
@@ -108,7 +130,7 @@ GputopCSV.prototype.list_metric_set_counters = function(metric) {
 
 GputopCSV.prototype.update_features = function(features)
 {
-    if (features.supported_oa_guids.length == 0) {
+    if (features.supported_oa_uuids.length == 0) {
         stderr_log.error("No OA metrics supported");
         process.exit(1);
         return;
@@ -116,17 +138,13 @@ GputopCSV.prototype.update_features = function(features)
 
     if (args.metrics === 'list') {
         stderr_log.log("\nList of metric sets selectable with --metrics=...");
-        for (var i = 0; i < features.supported_oa_guids.length; i++) {
-            var guid = features.supported_oa_guids[i];
-            var metric = this.lookup_metric_for_guid(guid);
-            stderr_log.log("" + metric.symbol_name + ": " + metric.name + ", hw-config-guid=" + guid);
-        }
+        this.list_metrics(features);
         process.exit(1);
     }
 
-    for (var i = 0; i < features.supported_oa_guids.length; i++) {
-        var guid = features.supported_oa_guids[i];
-        var metric = this.lookup_metric_for_guid(guid);
+    for (var i = 0; i < features.supported_oa_uuids.length; i++) {
+        var uuid = features.supported_oa_uuids[i];
+        var metric = this.lookup_metric_for_uuid(uuid);
 
         if (metric.symbol_name === args.metrics) {
             this.metric = metric;

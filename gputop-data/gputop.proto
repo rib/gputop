@@ -72,7 +72,7 @@ message Features
     required string kernel_release = 7;
     required string kernel_build = 8;
     required bool fake_mode = 9;
-    repeated string supported_oa_guids = 10;
+    repeated string supported_oa_uuids = 10;
     repeated string tracepoints = 11;
     repeated string notices = 12;
     required int32 server_pid = 13;
@@ -157,7 +157,7 @@ message Message
  */
 message OAStreamInfo
 {
-    required string guid = 1;
+    required string uuid = 1;
     //required uint32 format = 2;
     required uint32 period_exponent = 3;
     //TODO: allow specifying a specific context to profile

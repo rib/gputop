@@ -668,11 +668,11 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     }
     dbg("handle_open_i915_perf_oa_stream: id = %d\n", id);
 
-    entry = gputop_hash_table_search(metrics, oa_stream_info->guid);
+    entry = gputop_hash_table_search(metrics, oa_stream_info->uuid);
     if (entry != NULL) {
         metric_set = entry->data;
     } else {
-        int ret = asprintf(&error, "Guid is not available\n");
+        int ret = asprintf(&error, "uuid is not available\n");
         (void) ret;
         goto err;
     }
@@ -703,7 +703,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
         stream->live_updates = open_stream->live_updates;
     } else {
         dbg("Failed to open perf stream set=%s period=%d: %s\n",
-            oa_stream_info->guid, oa_stream_info->period_exponent,
+            oa_stream_info->uuid, oa_stream_info->period_exponent,
             error);
         goto err;
     }
@@ -1231,8 +1231,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
     pb_features.kernel_release = kernel_release;
     pb_features.kernel_build = kernel_version;
-    pb_features.n_supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->len;
-    pb_features.supported_oa_guids = gputop_perf_oa_supported_metric_set_guids->data;
+    pb_features.n_supported_oa_uuids = gputop_perf_oa_supported_metric_set_uuids->len;
+    pb_features.supported_oa_uuids = gputop_perf_oa_supported_metric_set_uuids->data;
 
     pb_features.n_notices = ARRAY_SIZE(notices);
     pb_features.notices = notices;

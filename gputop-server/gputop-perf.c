@@ -121,7 +121,7 @@ static struct intel_device intel_dev;
 static unsigned int page_size;
 
 struct gputop_hash_table *metrics;
-struct array *gputop_perf_oa_supported_metric_set_guids;
+struct array *gputop_perf_oa_supported_metric_set_uuids;
 struct perf_oa_user *gputop_perf_current_user;
 struct gputop_devinfo gputop_devinfo;
 
@@ -1433,7 +1433,7 @@ gputop_enumerate_metrics_via_sysfs(void)
                  drm_card, entry->d_name);
 
         metric_set->perf_oa_metrics_set = gputop_read_file_uint64(buffer);
-        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->hw_config_guid);
+        array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
     }
     closedir(metrics_dir);
 
@@ -1478,7 +1478,7 @@ gputop_enumerate_metrics_fake(void)
         metrics_entry = gputop_hash_table_search(metrics, fake_bdw_guids[i]);
         metric_set = (struct gputop_metric_set*)metrics_entry->data;
         metric_set->perf_oa_metrics_set = i;
-        array_append(gputop_perf_oa_supported_metric_set_guids, &metric_set->hw_config_guid);
+        array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
     }
 
     return true;
@@ -1518,7 +1518,7 @@ gputop_perf_initialize(void)
 
     metrics = gputop_hash_table_create(gputop_key_hash_string,
                                        gputop_key_string_equal);
-    gputop_perf_oa_supported_metric_set_guids = array_new(sizeof(char*), 1);
+    gputop_perf_oa_supported_metric_set_uuids = array_new(sizeof(char*), 1);
 
     if (!gen_get_device_info(intel_dev.device, &devinfo)) {
         gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to recognize device id\n", -1);
@@ -1544,5 +1544,5 @@ void
 gputop_perf_free(void)
 {
     gputop_hash_table_destroy(metrics, free_perf_oa_metrics);
-    array_free(gputop_perf_oa_supported_metric_set_guids);
+    array_free(gputop_perf_oa_supported_metric_set_uuids);
 }
