@@ -700,7 +700,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
         gputop_devinfo.slice_mask = 0x1;
         gputop_devinfo.subslice_mask = 0x1;
         gputop_devinfo.gt_min_freq = 500;
-        gputop_devinfo.gt_min_freq = 1100;
+        gputop_devinfo.gt_max_freq = 1100;
         gputop_devinfo.timestamp_frequency = 12500000;
     } else {
         gputop_devinfo.gen = devinfo->gen;
