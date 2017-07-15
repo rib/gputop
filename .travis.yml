@@ -17,13 +17,13 @@ env:
         # limited to builds of the rib/gputop repo
         - secure: "CXTLgHD8PYC3OQO88QHFaCu6tfF4Pp/fHvn9cguOptBUrkOad5IKq43r4wNv+VFKl9f99K4tvBThHOLAryi+2OFDwkKIiIHfhyaEewLQKFOxGlXLQf6JlKslzVU8/r5BeKt1KH1fuNmaqGqyv39snVmBE0HGmHntpY8U0CtISwL8riS8fQWT/Ae3vUVDnkCaHen6QfCvOQtwZey7GwFp2+Dn7lVC4xviOTR2zEydMzRnvhzwO4NkeCtigqgY5jEW6Irmk72Ng/27UTYY/ps+/dvtLeL2xGWziPRWf92z6qMGJAuX6CfAkwPHF4G/MNnOSQ2R3YZPDPzSLitpz/ThXnpfUlJMpa7fV/RZMp9+WjbSvyfi4mUG+fyvWPS3oXkF05U5rmZn5LHrTvjFUXt7lj3n/Ugkk2+1dTFxwHE1HzV85C1kNgOIgwhJLvfddyhUncwBHKMUs6q5w9sha+5zMF0YTttG8EJFwHKqjCdwycJ5g1/i0mmj6qzTFosUmH0N+3bIPAO/ca6DjUXzoH1f0BeL22M3Uy3CEeWgfn7X87fRGK8pgHE6d3VYb6VdO8ys17Cz3SkRn4S71VwXqZg6nl462C/nUR23Rpi/ijYWhPYAqXVGPUsCOAzUl1PTBMDsHqWk2hUto2WEXCnVhpBoq5FkJ0RhV03tPyAZCtoCNcw="
     matrix:
-        - CONFIG_OPTS="--enable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--disable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--enable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--disable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--enable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
-        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients --enable-web-ui" PREP_SCRIPT="scripts/travis-ci-prep-docker.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--enable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--disable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--enable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--disable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--enable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients --enable-web-ui" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
 
 before_install:
     - docker pull $BASE_IMAGE
