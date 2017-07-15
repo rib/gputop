@@ -36,7 +36,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     libssl-dev \
     curl \
     psmisc \
-    google-mock \
     unzip && \
     apt-get clean
 RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash - && \
