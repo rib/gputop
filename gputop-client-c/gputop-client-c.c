@@ -317,31 +317,30 @@ gputop_cc_set_system_property(const char *name, double value)
     /* Use _Generic so we don't get caught out by a silent error if
      * we mess with struct gputop_devinfo...
      */
-#define PROP(NAME) { #NAME, _Generic(gputop_devinfo.NAME, \
-                                     uint32_t: TYPE_U32, \
-                                     uint64_t: TYPE_U64, \
-                                     default: TYPE_UNKNOWN), \
-                    &gputop_devinfo.NAME }
+#define PROP(NAME, TYPE) { #NAME,                                \
+                           TYPE_ ## TYPE,                        \
+                           &gputop_devinfo.NAME,                 \
+                           sizeof(gputop_devinfo.NAME) }
     static const struct {
         const char *name;
         enum {
-            TYPE_UNKNOWN,
             TYPE_U32,
             TYPE_U64,
         } type;
         void *symbol;
+        size_t size;
     } table[] = {
-        PROP(devid),
-        PROP(gen),
-        PROP(timestamp_frequency),
-        PROP(n_eus),
-        PROP(n_eu_slices),
-        PROP(n_eu_sub_slices),
-        PROP(eu_threads_count),
-        PROP(subslice_mask),
-        PROP(slice_mask),
-        PROP(gt_min_freq),
-        PROP(gt_max_freq),
+        PROP(devid, U32),
+        PROP(gen, U32),
+        PROP(timestamp_frequency, U64),
+        PROP(n_eus, U64),
+        PROP(n_eu_slices, U64),
+        PROP(n_eu_sub_slices, U64),
+        PROP(eu_threads_count, U64),
+        PROP(subslice_mask, U64),
+        PROP(slice_mask, U64),
+        PROP(gt_min_freq, U64),
+        PROP(gt_max_freq, U64),
     };
 #undef PROP
 
@@ -349,16 +348,18 @@ gputop_cc_set_system_property(const char *name, double value)
         if (strcmp(name, table[i].name) == 0) {
             switch (table[i].type) {
             case TYPE_U32:
+                assert(sizeof(uint32_t) == table[i].size);
                 gputop_cr_console_assert(value >= 0 && value <= UINT32_MAX,
                                          "Value for uint32 property out of range");
                 *((uint32_t *)table[i].symbol) = (uint32_t)value;
                 return;
             case TYPE_U64:
+                assert(sizeof(uint64_t) == table[i].size);
                 gputop_cr_console_assert(value >= 0,
                                          "Value for uint64 property out of range");
                 *((uint64_t *)table[i].symbol) = (uint64_t)value;
                 return;
-            case TYPE_UNKNOWN:
+            default:
                 gputop_cr_console_assert(0, "Unexpected struct gputop_devinfo %s member type",
                                          table[i].name);
             }
