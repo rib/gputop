@@ -24,6 +24,13 @@ env:
         - CONFIG_OPTS="--enable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
         - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients --enable-web-ui" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci"
+        - CONFIG_OPTS="--enable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--disable-debug --enable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--enable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--disable-debug --disable-gl --disable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--enable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
+        - CONFIG_OPTS="--disable-debug --disable-gl --enable-node-clients --enable-web-ui" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos"
 
 before_install:
     - docker pull $BASE_IMAGE
