@@ -217,7 +217,6 @@ bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
 struct ctx_handle *get_first_available_ctx(char **error);
 
-bool gputop_enumerate_metrics_via_sysfs(void);
 bool gputop_perf_initialize(void);
 void gputop_perf_free(void);
 
