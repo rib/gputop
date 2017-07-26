@@ -74,8 +74,8 @@
 
 /* Samples read() from i915 perf */
 struct oa_sample {
-   struct drm_i915_perf_record_header header;
-   uint8_t oa_report[];
+    struct drm_i915_perf_record_header header;
+    uint8_t oa_report[];
 };
 
 #define MAX_I915_PERF_OA_SAMPLE_SIZE (8 +   /* drm_i915_perf_record_header */ \
@@ -687,9 +687,9 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
     gputop_devinfo.devid = devid;
 
-#define SET_NAMES(g, _devname, _prettyname) do { \
-        strncpy(g.devname, _devname, sizeof(g.devname)); \
-        strncpy(g.prettyname, _prettyname, sizeof(g.prettyname)); \
+#define SET_NAMES(g, _devname, _prettyname) do {                        \
+        strncpy(g.devname, _devname, sizeof(g.devname));                \
+        strncpy(g.prettyname, _prettyname, sizeof(g.prettyname));       \
     } while (0)
 
     if (gputop_fake_mode) {
@@ -821,7 +821,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
             break;
         default:
             fprintf(stderr, "Unsupported GT%u Kabylake System\n", devinfo->gt);
-                return false;
+            return false;
         }
     } else if (devinfo->is_geminilake) {
         SET_NAMES(gputop_devinfo, "glk", "Geminilake");
@@ -982,9 +982,9 @@ gputop_perf_update_header_offsets(struct gputop_perf_stream *stream)
     perf_head = read_perf_head(stream->perf.mmap_page);
 
     //if (hdr_buf->head == hdr_buf->tail)
-        //perf_tail = hdr_buf->last_perf_head;
+    //perf_tail = hdr_buf->last_perf_head;
     //else
-        perf_tail = stream->perf.mmap_page->data_tail;
+    perf_tail = stream->perf.mmap_page->data_tail;
 
 #if 0
     if (perf_tail > perf_head) {
@@ -1345,7 +1345,7 @@ get_card_for_fd(int drm_fd)
 
     while ((entry = readdir(drm_dir))) {
         if (entry->d_type == DT_DIR && strncmp(entry->d_name, "card", 4) == 0) {
-	    retval = strtoull(entry->d_name + 4, NULL, 10);
+            retval = strtoull(entry->d_name + 4, NULL, 10);
             break;
         }
     }
