@@ -121,6 +121,7 @@ void *gputop_debugfs_read(const char *filename, int *len)
 uint64_t gputop_debugfs_read_uint64(const char *filename)
 {
     char buf[1024];
+    uint64_t value;
 
     if (!debugfs_mount()) {
         return 0;
@@ -128,7 +129,10 @@ uint64_t gputop_debugfs_read_uint64(const char *filename)
 
     snprintf(buf, sizeof(buf), "%s/%s", debugfs_path, filename);
 
-    return gputop_read_file_uint64(buf);
+    if (!gputop_read_file_uint64(buf, &value))
+	return 0;
+
+    return value;
 }
 
 char **

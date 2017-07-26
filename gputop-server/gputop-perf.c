@@ -135,14 +135,14 @@ static gputop_list_t ctx_handles_list = {
 
 /******************************************************************************/
 
-static uint64_t
-sysfs_card_read(const char *file)
+static bool
+sysfs_card_read(const char *file, uint64_t *value)
 {
-        char buf[512];
+    char buf[512];
 
-        snprintf(buf, sizeof(buf), "/sys/class/drm/card%d/%s", drm_card, file);
+    snprintf(buf, sizeof(buf), "/sys/class/drm/card%d/%s", drm_card, file);
 
-        return gputop_read_file_uint64(buf);
+    return gputop_read_file_uint64(buf, value);
 }
 
 
@@ -769,8 +769,12 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
         }
 
         assert(drm_card >= 0);
-        gputop_devinfo.gt_min_freq = sysfs_card_read("gt_min_freq_mhz") * 1000000;
-        gputop_devinfo.gt_max_freq = sysfs_card_read("gt_max_freq_mhz") * 1000000;
+        if (!sysfs_card_read("gt_min_freq_mhz", &gputop_devinfo.gt_min_freq))
+            fprintf(stderr, "Unable to read GT min frequency\n");
+        if (!sysfs_card_read("gt_max_freq_mhz", &gputop_devinfo.gt_max_freq))
+            fprintf(stderr, "Unable to read GT max frequency\n");
+        gputop_devinfo.gt_min_freq *= 1000000;
+        gputop_devinfo.gt_max_freq *= 1000000;
     }
 
     gputop_devinfo.eu_threads_count = gputop_devinfo.n_eus * devinfo->num_thread_per_eu;
@@ -1356,14 +1360,15 @@ read_device_param(const char *stem, int id, const char *param)
 {
     char *name;
     int ret = asprintf(&name, "/sys/class/drm/%s%u/device/%s", stem, id, param);
-    uint32_t value;
+    uint64_t value;
+    bool success;
 
     assert(ret != -1);
 
-    value = gputop_read_file_uint64(name);
+    success = gputop_read_file_uint64(name, &value);
     free(name);
 
-    return value;
+    return success ? value : 0;
 }
 
 static int
@@ -1439,8 +1444,8 @@ gputop_enumerate_metrics_via_sysfs(void)
                  "/sys/class/drm/card%d/metrics/%s/id",
                  drm_card, entry->d_name);
 
-        metric_set->perf_oa_metrics_set = gputop_read_file_uint64(buffer);
-        array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
+        if (gputop_read_file_uint64(buffer, &metric_set->perf_oa_metrics_set))
+          array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
     }
     closedir(metrics_dir);
 

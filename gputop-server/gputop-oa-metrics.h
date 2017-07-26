@@ -117,7 +117,7 @@ struct gputop_metric_set
     struct gputop_metric_set_counter *counters;
     int n_counters;
 
-    int perf_oa_metrics_set;
+    uint64_t perf_oa_metrics_set;
     int perf_oa_format;
     int perf_raw_size;
 
