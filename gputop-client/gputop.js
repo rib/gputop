@@ -1476,7 +1476,7 @@ Gputop.prototype.process_features = function(features){
             cc._gputop_cc_set_system_property(name_c_string, val);
             break;
         case "string":
-            val = features.devinfo[field.name];
+            val = String_pointerify_on_stack(features.devinfo[field.name]);
             cc._gputop_cc_set_system_property_string(name_c_string, val);
             break;
         default:
