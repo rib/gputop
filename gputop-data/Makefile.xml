@@ -41,11 +41,11 @@ endif
 
 GUIDS=$(data_dir)/guids.xml
 
-all: $(oa_xml_files:%=$(data_dir)/%) $(drm_files)
+all: $(oa_xml_files) $(drm_files)
 oa-%.xml: mdapi/*.xml $(script_dir)/mdapi-xml-convert.py
 	$(script_dir)/mdapi-xml-convert.py --guids=$(GUIDS) $(CONVERT_ARGS) $($(*)_xml) > $@
 
-i915_oa_%.c i915_oa_%.h: $(data_dir)/oa-%.xml $(script_dir)/i915-perf-kernelgen.py
+i915_oa_%.c i915_oa_%.h: oa-%.xml $(script_dir)/i915-perf-kernelgen.py
 	$(script_dir)/i915-perf-kernelgen.py \
 	    --guids=$(GUIDS) \
 	    --chipset=$(*) \
