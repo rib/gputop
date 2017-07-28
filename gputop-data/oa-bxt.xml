@@ -726,6 +726,7 @@
                      availability="$SkuRevisionId 0x03 UGTE"
                      priority="0"
                      >
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x166C00F0" />
         <register type="NOA" address="0x00009888" value="0x12120280" />
         <register type="NOA" address="0x00009888" value="0x12320280" />
@@ -1358,6 +1359,7 @@
              mdapi_hw_unit_type="gpu"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x104F00E0" />
         <register type="NOA" address="0x00009888" value="0x124F1C00" />
         <register type="NOA" address="0x00009888" value="0x39900340" />
@@ -2044,6 +2046,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x0C2E001F" />
         <register type="NOA" address="0x00009888" value="0x0A2F0000" />
         <register type="NOA" address="0x00009888" value="0x10186800" />
@@ -2719,6 +2722,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x19800343" />
         <register type="NOA" address="0x00009888" value="0x39900340" />
         <register type="NOA" address="0x00009888" value="0x3F901000" />
@@ -3356,6 +3360,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x19800343" />
         <register type="NOA" address="0x00009888" value="0x39900340" />
         <register type="NOA" address="0x00009888" value="0x3F900000" />
@@ -3959,6 +3964,7 @@
              mdapi_hw_unit_type="gpu"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x104F00E0" />
         <register type="NOA" address="0x00009888" value="0x141C0160" />
         <register type="NOA" address="0x00009888" value="0x161C0015" />
@@ -4827,6 +4833,7 @@
              mdapi_hw_unit_type="gpu"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x166C03B0" />
         <register type="NOA" address="0x00009888" value="0x1593001E" />
         <register type="NOA" address="0x00009888" value="0x3F900C00" />
@@ -5443,6 +5450,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x104F0232" />
         <register type="NOA" address="0x00009888" value="0x124F4640" />
         <register type="NOA" address="0x00009888" value="0x11834400" />
@@ -6047,6 +6055,7 @@
                      availability="$SkuRevisionId 0x03 UGTE"
                      priority="0"
                      >
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x12643400" />
         <register type="NOA" address="0x00009888" value="0x12653400" />
         <register type="NOA" address="0x00009888" value="0x106C6800" />
@@ -6128,6 +6137,7 @@
                      availability="$SkuRevisionId 0x03 ULT"
                      priority="0"
                      >
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x14640340" />
         <register type="NOA" address="0x00009888" value="0x14650340" />
         <register type="NOA" address="0x00009888" value="0x106C6800" />
@@ -6793,6 +6803,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x102D7800" />
         <register type="NOA" address="0x00009888" value="0x122D79E0" />
         <register type="NOA" address="0x00009888" value="0x0C2F0004" />
@@ -7425,6 +7436,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x121300A0" />
         <register type="NOA" address="0x00009888" value="0x141600AB" />
         <register type="NOA" address="0x00009888" value="0x123300A0" />
@@ -8111,6 +8123,7 @@
              mdapi_hw_unit_type="subslice"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x141A0000" />
         <register type="NOA" address="0x00009888" value="0x143A0000" />
         <register type="NOA" address="0x00009888" value="0x145A0000" />
@@ -8796,6 +8809,7 @@
              mdapi_hw_unit_type="subslice"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x141A026B" />
         <register type="NOA" address="0x00009888" value="0x143A0173" />
         <register type="NOA" address="0x00009888" value="0x145A026B" />
@@ -8949,6 +8963,7 @@
              mdapi_hw_unit_type="gpu"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x141A001F" />
         <register type="NOA" address="0x00009888" value="0x143A001F" />
         <register type="NOA" address="0x00009888" value="0x145A001F" />
@@ -9170,6 +9185,7 @@
              mdapi_group="GPU"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x19800000" />
         <register type="NOA" address="0x00009888" value="0x07800063" />
         <register type="NOA" address="0x00009888" value="0x11800000" />

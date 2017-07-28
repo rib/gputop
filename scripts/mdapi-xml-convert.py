@@ -94,7 +94,6 @@ chipsets = {
                 0x27ac: { 'name': 'OACEC7_1' },
                 },
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OASTATUS1 register
                 },
             },
@@ -103,7 +102,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -112,7 +110,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -121,7 +118,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -130,7 +126,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -139,7 +134,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -148,7 +142,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -157,7 +150,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -166,7 +158,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
@@ -175,7 +166,6 @@ chipsets = {
             'b_offset': 192,
             'c_offset': 224,
             'config_reg_blacklist': {
-                0x9840, # GDT_CHICKEN_BITS/NOA_ENABLE
                 0x2364, # OACTXID
                 },
             },
