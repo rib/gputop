@@ -63,7 +63,6 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_C_HELPERS_H__
 #define GOOGLE_PROTOBUF_COMPILER_C_HELPERS_H__
 
-#include <set>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -75,12 +74,6 @@ namespace google {
 namespace protobuf {
 namespace compiler {
 namespace c {
-
-using std::back_insert_iterator;
-using std::map;
-using std::set;
-using std::string;
-using std::vector;
 
 // Returns the non-nested type name for the given type.  If "qualified" is
 // true, prefix the type with the full namespace.  For example, if you had:
@@ -185,6 +178,16 @@ struct NameIndex
   const char *name;
 };
 int compare_name_indices_by_name(const void*, const void*);
+
+// Return the syntax version of the file containing the field.
+// This wrapper is needed to be able to compile against protobuf2.
+inline int FieldSyntax(const FieldDescriptor* field) {
+#ifdef HAVE_PROTO3
+  return field->file()->syntax() == FileDescriptor::SYNTAX_PROTO3 ? 3 : 2;
+#else
+  return 2;
+#endif
+}
 
 }  // namespace c
 }  // namespace compiler
