@@ -382,7 +382,7 @@ def output_sysfs_code(sets):
         c("};")
 
         c("\n")
-        c("static struct attribute_group group_" + perf_name_lc + " = {")
+        c("static const struct attribute_group group_" + perf_name_lc + " = {")
         c.indent(8)
         c(".name = \"" + metric_set['guid'] + "\",")
         c(".attrs =  attrs_" + perf_name_lc + ",")
