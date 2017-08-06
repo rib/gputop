@@ -869,6 +869,45 @@ GputopUI.prototype.metric_not_supported = function(metric) {
     alert(" Metric not supported " + metric.title_)
 }
 
+GputopUI.prototype.get_vgpu_id = function(ctx_mode) {
+    var spstr;
+    if (ctx_mode === "Global")
+        return 0;
+    else {
+        spstr = ctx_mode.split("");
+        return (parseInt(spstr[spstr.length-1]));
+    }
+}
+
+GputopUI.prototype.update_vgpuID_hwID = function(hw_id) {
+    ctx_hw_id_ = [];
+    vgpu_id_ = [];
+    ctx_mode = ['Global'];
+    map_vgpuID_hwID = [0];
+
+    hw_id.ctx_hw_id.forEach((ctx_hw_id, i) => {
+         ctx_hw_id_.push(ctx_hw_id);
+    });
+    hw_id.vgpu_id.forEach((vgpu_id, i) => {
+         vgpu_id_.push(vgpu_id);
+    });
+
+    var map_length = Math.max.apply(Math, vgpu_id_);
+
+    for (var i = 0; i < map_length; i++ ) {
+         map_vgpuID_hwID[vgpu_id_[i]] = ctx_hw_id_[i];
+    }
+    for (var i = 1; i < vgpu_id_.length+1; i++) {
+         ctx_mode[i]='vGPU'+vgpu_id_[i-1];
+    }
+    ctx_mode.sort();
+
+    $("#ctx_mode-menu-list").empty();
+        for (var i = 0; i < ctx_mode.length; i++) {
+        $("#ctx_mode-menu-list").append('<li><a id="' + ctx_mode[i] + '" href="#">' + ctx_mode[i] + '</a></li>');
+        }
+}
+
 /* XXX: this is essentially the first entry point into GputopUI after
  * connecting to the server, after Gputop has been initialized */
 GputopUI.prototype.update_features = function(features) {
@@ -951,6 +990,13 @@ GputopUI.prototype.update_features = function(features) {
             }).call(this, this.metrics_[i]);
         }
         this.select_metric_set(this.metrics_[0]);
+
+        $("#ctx_mode-menu-list").empty();
+
+        $("#ctx_mode-dropdown-anchor").html('<h3>' + 'Global' + '<span class="caret"></span></h3>');
+        $('#ctx_mode-dropdown-anchor').click(() => {
+            this.request_hw_id_map();
+        });
 
         if (this.current_tab !== undefined &&
             this.current_tab.id === "overview-tab-anchor")

@@ -3,6 +3,12 @@
         <div style="display: flex; flex-direction: row;">
             <div style="display: flex; flex-direction: column; flex: 0 1 75%; align-items: center;">
                 <div style="display: flex; flex-direction: row; flex: 0 1; align-items: center;">
+                    <div class="dropdown" id="ctx_mode-menu" style="padding-right: 5em;">
+                        <a class="dropdown-toggle" data-toggle="dropdown" id="ctx_mode-dropdown-anchor" href="#">Ctx_Mode<span class="caret"></span></a>
+                        <ul class="dropdown-menu" id="ctx_mode-menu-list">
+                          <li>Loading... <span class="glyphicon glyphicon-refresh spinning"></span></li>
+                        </ul>
+                    </div>
                     <div class="dropdown" id="metrics-menu" style="padding-right: 1em;">
                         <a class="dropdown-toggle" data-toggle="dropdown" id="metrics-dropdown-anchor" href="#">Metric Set<span class="caret"></span></a>
                         <ul class="dropdown-menu" id="metrics-menu-list">
