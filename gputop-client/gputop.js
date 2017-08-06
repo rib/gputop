@@ -30,11 +30,6 @@
 var is_nodejs = false;
 var using_emscripten = true;
 
-var ctx_hw_id_ = [];
-var vgpu_id_ = [];
-var ctx_mode=['Global'];
-var map_vgpuID_hwID = [0];
-
 if (typeof module !== 'undefined' && module.exports) {
 
     var WebSocket = require('ws');
@@ -484,7 +479,7 @@ Gputop.prototype.clear_accumulated_metrics = function(metric) {
     }
 }
 
-Gputop.prototype.replay_i915_perf_history = function(metric) {
+Gputop.prototype.replay_i915_perf_history = function(metric, hw_id) {
     this.clear_accumulated_metrics(metric);
 
     var stream = metric.stream;
@@ -520,7 +515,9 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
                                                        stack_data,
                                                        data.length,
                                                        vec,
-                                                       n_accumulators);
+                                                       n_accumulators,
+                                                       hw_id,
+                                                       this.idle_flag);
         } else {
             var vec = [];
             for (var j = 0; j < n_accumulators; j++) {
@@ -532,7 +529,9 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
                                                    stack_data,
                                                    data.length,
                                                    vec,
-                                                   n_accumulators);
+                                                   n_accumulators,
+                                                   hw_id,
+                                                   this.idle_flag);
         }
 
         cc.Runtime.stackRestore(sp);
@@ -667,6 +666,10 @@ Gputop.prototype.accumulator_end_update = function () {
     this.notify_accumulator_events(metric,
                                    update.accumulator,
                                    update.events_mask);
+}
+
+Gputop.prototype.send_idle_flag = function (idle_flag) {
+    this.idle_flag = idle_flag;
 }
 
 Gputop.prototype.accumulator_clear = function (accumulator) {
@@ -1739,7 +1742,9 @@ function gputop_socket_on_message(evt) {
                                                            stack_data,
                                                            data.length,
                                                            vec,
-                                                           n_accumulators);
+                                                           n_accumulators,
+                                                           this.current_hw_id,
+                                                           this.idle_flag);
             } else {
                 var vec = [];
                 for (var i = 0; i < n_accumulators; i++) {
@@ -1751,7 +1756,9 @@ function gputop_socket_on_message(evt) {
                                                        stack_data,
                                                        data.length,
                                                        vec,
-                                                       n_accumulators);
+                                                       n_accumulators,
+                                                       this.current_hw_id,
+                                                       this.idle_flag);
             }
 
             cc.Runtime.stackRestore(sp);

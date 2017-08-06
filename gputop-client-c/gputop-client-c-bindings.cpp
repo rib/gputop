@@ -115,6 +115,8 @@ gputop_cc_handle_i915_perf_message_binding(const v8::FunctionCallbackInfo<Value>
     struct gputop_cc_stream *stream = (struct gputop_cc_stream *)ptr->ptr_;
 
     unsigned int len = args[2]->NumberValue();
+    unsigned int ctx_hw_id = args[5]->NumberValue();
+    unsigned int idle_flag = args[6]->NumberValue();
 
     if (!args[1]->IsArrayBufferView()) {
         isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Expected 2nd argument to be an ArrayBufferView")));
@@ -167,7 +169,9 @@ gputop_cc_handle_i915_perf_message_binding(const v8::FunctionCallbackInfo<Value>
                                        static_cast<uint8_t *>(data_contents.Data()) + offset,
                                        len,
                                        accumulators,
-                                       n_accumulators);
+                                       n_accumulators,
+                                       ctx_hw_id,
+                                       idle_flag);
 }
 
 void
