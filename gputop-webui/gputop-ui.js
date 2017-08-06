@@ -290,6 +290,8 @@ GputopUI.prototype.select_metric_set = function(metric) {
     for (var i = 0; i < metric.cc_counters.length; i++) {
         var counter = metric.cc_counters[i];
         var counter_row_id = "row_" + metric.underscore_name + '_' + counter.underscore_name;
+        counter.record_data = false;
+        counter.zero = true;
         var select_marker_id = counter_row_id + "_marker";
         var bar_id = counter_row_id + "_bar";
         var txt_value_id = counter_row_id + "_value";
@@ -525,11 +527,12 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
 
     var first = undefined;
     for (var i = 0; i < n_counters; i++) {
-        first = metric.graph_accumulator.accumulated_counters[i];
-        if (first.counter.record_data === true)
+        if (metric.graph_accumulator.accumulated_counters[i].counter.record_data === true) {
+            first = metric.graph_accumulator.accumulated_counters[i];
             break;
+        }
     }
-    if (!first)
+    if (!first.counter.record_data)
         return;
 
     var n_updates = first.updates.length;
