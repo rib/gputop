@@ -160,5 +160,15 @@ _gputop_cr_accumulator_end_update(void)
     fn->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
 
+void
+_gputop_cr_send_idle_flag(int idle_flag)
+{
+    Isolate* isolate = Isolate::GetCurrent();
+    HandleScope scope(isolate);
 
+    Local<Object> gputop = Local<Object>::New(isolate, gputop_cc_singleton);
+    Local<Function> fn = Local<Function>::Cast(gputop->Get(String::NewFromUtf8(isolate, "send_idle_flag")));
 
+    Local<Value> argv[] = {Number::New(isolate, idle_flag)};
+    fn->Call(gputop, ARRAY_LENGTH(argv), argv);
+}

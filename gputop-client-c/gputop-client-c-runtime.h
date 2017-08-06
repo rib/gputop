@@ -66,7 +66,7 @@ bool _gputop_cr_accumulator_start_update(struct gputop_cc_stream *stream,
 void _gputop_cr_accumulator_append_count(int counter,
                                          double max, double value);
 void _gputop_cr_accumulator_end_update(void);
-
+void _gputop_cr_send_idle_flag(int idle_flag);
 #ifdef __cplusplus
 }
 #endif

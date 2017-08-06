@@ -170,6 +170,9 @@ function GputopUI () {
 
     this.paused = false;
     this.current_metric_set = undefined;
+    this.current_hw_id = undefined;
+
+    this.idle_flag = 0;
 
     this.selected_counter = undefined;
 
@@ -280,24 +283,25 @@ GputopUI.prototype.filter_counters = function() {
     });
 }
 
-GputopUI.prototype.select_metric_set = function(metric) {
-    if (this.current_metric_set === metric)
+GputopUI.prototype.select_metric_set = function(metric, hw_id) {
+    if (this.current_metric_set === metric &&  this.current_hw_id === hw_id)
         return;
 
     $("#metrics-dropdown-anchor").html('<h3>' + metric.name + '<span class="caret"></span></h3>');
 
-    $('#counter_list').empty();
-    for (var i = 0; i < metric.cc_counters.length; i++) {
-        var counter = metric.cc_counters[i];
-        var counter_row_id = "row_" + metric.underscore_name + '_' + counter.underscore_name;
-        counter.record_data = false;
-        counter.zero = true;
-        var select_marker_id = counter_row_id + "_marker";
-        var bar_id = counter_row_id + "_bar";
-        var txt_value_id = counter_row_id + "_value";
-        var stats_toggle_id = counter_row_id + "_toggle";
+    if (this.current_metric_set === undefined || this.current_metric_set !== metric) {
+        $('#counter_list').empty();
+        for (var i = 0; i < metric.cc_counters.length; i++) {
+            var counter = metric.cc_counters[i];
+            var select_marker_id = counter_row_id + "_marker";
+            counter.record_data = false;
+            counter.zero = true;
+            var counter_row_id = "row_" + metric.underscore_name + '_' + counter.underscore_name;
+            var bar_id = counter_row_id + "_bar";
+            var txt_value_id = counter_row_id + "_value";
+            var stats_toggle_id = counter_row_id + "_toggle";
 
-        var row_template = `
+            var row_template = `
 <div class="metric_row" id="${counter_row_id}" data-toggle="tooltip" title="${counter.description}">
     <div class="counter-select-mark" id="${select_marker_id}" style="visibility: hidden;">❭</div>
     <div class="counter_name">${counter.name}</div>
@@ -308,51 +312,50 @@ GputopUI.prototype.select_metric_set = function(metric) {
     <div class="progress_text" id="${txt_value_id}"></div>
 </div>`;
 
-        $('#counter_list').append(row_template);
+            $('#counter_list').append(row_template);
 
-        counter.row_div_ = $('#' + counter_row_id);
-        counter.row_marker_div_ = $('#' + select_marker_id);
-        counter.bar_div_ = $('#' + bar_id);
-        counter.txt_value_div_ = $('#' + txt_value_id);
-        counter.row_div_.data("counter", counter);
-        counter.stats_toggle_div_ = $('#' +  stats_toggle_id);
-        counter.stats_toggle_div_.data("counter", counter);
-    }
-
-    $('.counter-stats-button').bootstrapToggle();
-    $('.counter-stats-button').css({
-        "height": "100%",
-    });
-    $('.counter-stats-button').change((ev) => {
-        var counter = $(ev.target).data("counter");
-        counter.record_data = !$(ev.target).prop('checked');
-
-        for (var i = 0; i < this.plotly_graphs.length; i++) {
-            var graph = this.plotly_graphs[i];
-            if (graph.counter === counter) {
-                if (graph.plotly_div !== undefined) {
-                    graph.plotly_div.remove();
-                    graph.plotly_div = undefined;
-                }
-                graph.counter.graph = undefined;
-                this.plotly_graphs.splice(i, 1);
-                break;
-            }
+            counter.row_div_ = $('#' + counter_row_id);
+            counter.row_marker_div_ = $('#' + select_marker_id);
+            counter.bar_div_ = $('#' + bar_id);
+            counter.txt_value_div_ = $('#' + txt_value_id);
+            counter.row_div_.data("counter", counter);
+            counter.stats_toggle_div_ = $('#' +  stats_toggle_id);
+            counter.stats_toggle_div_.data("counter", counter);
         }
-    });
 
-    $('.metric_row').click((ev) => {
-        var counter = $(ev.delegateTarget).data("counter");
-        this.select_counter(counter);
-    });
-    $('.equation').click((ev) => {
+        $('.counter-stats-button').bootstrapToggle();
+        $('.counter-stats-button').css({
+        "height": "100%",
+        });
+        $('.counter-stats-button').change((ev) => {
         var counter = $(ev.target).data("counter");
-        this.select_counter(counter);
-    });
+            counter.record_data = !$(ev.target).prop('checked');
 
-    this.filter_counters();
+            for (var i = 0; i < this.plotly_graphs.length; i++) {
+                var graph = this.plotly_graphs[i];
+                if (graph.counter === counter) {
+                    if (graph.plotly_div !== undefined) {
+                        graph.plotly_div.remove();
+                        graph.plotly_div = undefined;
+                    }  
+                    graph.counter.graph = undefined;
+                    this.plotly_graphs.splice(i, 1);
+                    break;
+                }  
+            }
+        });
 
-    this.update_metric_set_stream(metric);
+        $('.metric_row').click((ev) => {
+            var counter = $(ev.delegateTarget).data("counter");
+            this.select_counter(counter);
+        });
+        $('.equation').click((ev) => {
+            var counter = $(ev.target).data("counter");
+            this.select_counter(counter);
+        });
+    } 
+
+    this.update_metric_set_stream(metric, hw_id);
 }
 
 /* Returns: the duration that a single graph pixel corresponds to
@@ -392,7 +395,7 @@ GputopUI.prototype.calculate_sample_state_for_zoom = function () {
 /* Handles opening or re-opening a metric set stream, but is
  * also careful to avoid some redundant re-opens.
  */
-GputopUI.prototype.update_metric_set_stream = function(metric) {
+GputopUI.prototype.update_metric_set_stream = function(metric, hw_id) {
     var sampling_state = this.calculate_sample_state_for_zoom();
     var config = {
         oa_exponent: sampling_state.oa_exponent,
@@ -434,7 +437,7 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
                 metric.bars_accumulator = metric.create_oa_accumulator({ period_ns: 500000000 });
 
                 if (metric.open_config.paused)
-                    this.replay_i915_perf_history(metric);
+                    this.replay_i915_perf_history(metric, hw_id);
 
                 this.queue_redraw();
             },
@@ -443,7 +446,8 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
     }
 
     if (this.current_metric_set !== undefined &&
-        this.current_metric_set.open_config !== undefined)
+        this.current_metric_set.open_config !== undefined &&
+        this.current_hw_id !== undefined)
     {
         var current_metric = this.current_metric_set;
         var current_config = this.current_metric_set.open_config;
@@ -463,9 +467,11 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
 
         if (current_metric !== metric ||
             current_config.paused !== config.paused ||
-            current_config.oa_exponent !== config.oa_exponent)
+            current_config.oa_exponent !== config.oa_exponent ||
+            this.current_hw_id !== hw_id)
         {
             this.current_metric_set = metric;
+            this.current_hw_id = hw_id;
 
             current_metric.close((ev) => {
                 _do_open.call(this);
@@ -475,10 +481,11 @@ GputopUI.prototype.update_metric_set_stream = function(metric) {
              * update the graph accumulator in case the zoom level has changed.
              */
             metric.set_oa_accumulator_period(metric.graph_accumulator,
-                                             accumulator_period);
+                                             accumulation_period);
         }
     } else {
         this.current_metric_set = metric;
+        this.current_hw_id = hw_id;
 
         _do_open.call(this);
     }
@@ -493,7 +500,11 @@ GputopUI.prototype.set_zoom = function(zoom) {
     if (metric === undefined)
         return;
 
-    this.update_metric_set_stream(metric);
+    var hw_id = this.current_hw_id;
+    if (hw_id === undefined)
+        return;
+
+    this.update_metric_set_stream(metric, hw_id);
 }
 
 GputopUI.prototype.set_paused = function(paused) {
@@ -506,7 +517,11 @@ GputopUI.prototype.set_paused = function(paused) {
     if (metric === undefined)
         return;
 
-    this.update_metric_set_stream(metric);
+    var hw_id = this.current_hw_id;
+    if (hw_id === undefined)
+        return;
+
+    this.update_metric_set_stream(metric, hw_id);
 }
 
 GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
@@ -903,9 +918,18 @@ GputopUI.prototype.update_vgpuID_hwID = function(hw_id) {
     ctx_mode.sort();
 
     $("#ctx_mode-menu-list").empty();
-        for (var i = 0; i < ctx_mode.length; i++) {
-        $("#ctx_mode-menu-list").append('<li><a id="' + ctx_mode[i] + '" href="#">' + ctx_mode[i] + '</a></li>');
-        }
+    for (var i = 0; i < ctx_mode.length; i++) {
+        (function(ctx_mode) {
+            $("#ctx_mode-menu-list").append('<li><a id="' + ctx_mode  + '" href="#">' + ctx_mode + '</a></li>');
+            $("#" + ctx_mode).click(() => {
+                $("#ctx_mode-dropdown-anchor").html('<h3>'  + ctx_mode  +  '<span class="caret"></span></h3>');
+                var select_vgpu_id = this.get_vgpu_id(ctx_mode);
+                var select_hw_id = map_vgpuID_hwID[select_vgpu_id];
+                this.select_metric_set(this.current_metric_set, select_hw_id);
+            });
+         }).call(this, ctx_mode[i]);
+
+    }
 }
 
 /* XXX: this is essentially the first entry point into GputopUI after
@@ -985,11 +1009,11 @@ GputopUI.prototype.update_features = function(features) {
                 $("#" + metric.uuid).click(() => {
                     //$('#metrics-menu').addClass("active");
                     $('#metrics-tab-anchor').tab('show');
-                    this.select_metric_set(metric);
+                    this.select_metric_set(metric, this.current_hw_id);
                 });
             }).call(this, this.metrics_[i]);
         }
-        this.select_metric_set(this.metrics_[0]);
+        this.select_metric_set(this.metrics_[0], 0);
 
         $("#ctx_mode-menu-list").empty();
 
