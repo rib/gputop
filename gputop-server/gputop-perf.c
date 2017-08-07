@@ -1509,7 +1509,6 @@ gputop_enumerate_metrics_via_sysfs(void)
     while ((entry = readdir(metrics_dir))) {
         struct gputop_metric_set *metric_set;
         struct gputop_hash_entry *metrics_entry;
-        uint64_t config_id;
 
         if (entry->d_type != DT_DIR || entry->d_name[0] == '.')
             continue;
