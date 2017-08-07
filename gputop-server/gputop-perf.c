@@ -1444,8 +1444,10 @@ gputop_enumerate_metrics_via_sysfs(void)
                  "/sys/class/drm/card%d/metrics/%s/id",
                  drm_card, entry->d_name);
 
-        if (gputop_read_file_uint64(buffer, &metric_set->perf_oa_metrics_set))
-          array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
+        if (sysfs_card_read(buffer, &metric_set->perf_oa_metrics_set)) {
+	    array_append(gputop_perf_oa_supported_metric_set_uuids,
+			 &metric_set->hw_config_guid);
+	}
     }
     closedir(metrics_dir);
 
