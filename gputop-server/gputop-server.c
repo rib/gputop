@@ -35,6 +35,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <ifaddrs.h>
 
 #include <uv.h>
 
@@ -1398,6 +1399,43 @@ static void on_connect(uv_stream_t *server, int status)
 static h2o_iovec_t cache_control;
 static h2o_headers_command_t uncache_cmd[2];
 
+static void
+gputop_server_print_addresses(unsigned long port)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    char host[NI_MAXHOST];
+
+    printf("Web server listening on port %lu\n", port);
+
+    if (getifaddrs(&ifaddr) == -1) {
+        fprintf(stderr, "Unable to get network interfaces: %s\n",
+                strerror(errno));
+        return;
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        int s;
+
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
+                        host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+        if (ifa->ifa_addr->sa_family == AF_INET) {
+            if (s != 0) {
+                fprintf(stderr, "Unable to get interface '%s' ip address : %s\n",
+                        ifa->ifa_name,
+                        strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+
+            printf("\tInterface '%s' : https://gputop.com?remoteHost=%s&remotePort=%lu\n",
+                   ifa->ifa_name, host, port);
+        }
+    }
+}
+
 bool gputop_server_run(void)
 {
     uv_loop_t *loop;
@@ -1436,8 +1474,7 @@ bool gputop_server_run(void)
         dbg("uv_listen:%s\n", uv_strerror(r));
         goto error;
     }
-    printf("Web server listening on port %lu\n", port);
-
+    gputop_server_print_addresses(port);
 
     h2o_config_init(&config);
     hostconf = h2o_config_register_host(&config, h2o_iovec_init(H2O_STRLIT("default")), 7890);
