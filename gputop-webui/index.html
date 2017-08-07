@@ -138,14 +138,19 @@ function gputop_wip_error() {
     <script src="gputop-ui.js"></script>
 
     <script>
-        var gputop;
+        var ui;
+        var uriParams = new URLSearchParams(window.location.search);
 
         $( document ).ready(function() {
-            gputop = new GputopUI();
+            ui = new GputopUI();
 
-            gputop.init_interface(() => {
-                gputop.reconnect();
-            });
+            ui.init_interface(() => {
+                if (uriParams.has('remoteHost'))
+                    $('#target_address').val(uriParams.get('remoteHost'));
+                if (uriParams.has('remotePort'))
+                    $('#target_port').val(uriParams.get('remotePort'));
+                ui.reconnect();
+          });
         });
     </script>
   </body>
