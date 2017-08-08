@@ -101,7 +101,6 @@ GputopCSV.prototype.list_metrics = function(features) {
 
 GputopCSV.prototype.list_metric_set_counters = function(metric) {
     var all_counters = [{ symbol_name: "Timestamp", name: "Timestamp", desc: "Sample timestamp (nanosecond resolution)" }];
-    var all = "Timestamp"
 
     metric.cc_counters.forEach((counter, idx, arr) => {
         var units = counter.units;
@@ -110,7 +109,6 @@ GputopCSV.prototype.list_metric_set_counters = function(metric) {
             units += '/s';
 
         all_counters.push({ symbol_name: counter.symbol_name, name: counter.name, desc: counter.description + " (" + units + ")" });
-        all += "," + counter.symbol_name;
     });
     all_counters.sort((a, b) => {
         if (a.symbol_name < b.symbol_name)
@@ -119,12 +117,20 @@ GputopCSV.prototype.list_metric_set_counters = function(metric) {
             return 1;
         return 0;
     });
+
     for (var i = 0, len = all_counters.length; i < len; i++) {
         stderr_log.log(sp.sprintf("%-25s:%-25s - %s",
                        all_counters[i].symbol_name,
                        all_counters[i].name,
                        all_counters[i].desc));
     }
+
+    var all = "";
+    all_counters.forEach((counter) => {
+        if (all.length > 0)
+            all += ",";
+        all += counter.symbol_name;
+    });
     stderr_log.log("\nALL: " + all);
 }
 
