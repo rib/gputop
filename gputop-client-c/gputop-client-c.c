@@ -56,6 +56,7 @@
 #include "oa-kblgt2.h"
 #include "oa-kblgt3.h"
 #include "oa-glk.h"
+#include "oa-cflgt2.h"
 
 #define PERF_RECORD_SAMPLE 9
 
@@ -414,6 +415,7 @@ gputop_cc_update_system_metrics(void)
         { "kblgt3", gputop_oa_add_metrics_kblgt3 },
         { "bxt", gputop_oa_add_metrics_bxt },
         { "glk", gputop_oa_add_metrics_glk },
+        { "cflgt2", gputop_oa_add_metrics_cflgt2 },
    };
 
     gputop_cr_console_assert(devid != 0, "Device ID not initialized before trying to update system metrics");

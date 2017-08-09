@@ -70,6 +70,7 @@
 #include "oa-kblgt2.h"
 #include "oa-kblgt3.h"
 #include "oa-glk.h"
+#include "oa-cflgt2.h"
 
 
 /* Samples read() from i915 perf */
@@ -866,6 +867,16 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
     } else if (devinfo->is_geminilake) {
         SET_NAMES(gputop_devinfo, "glk", "Geminilake");
         gputop_oa_add_metrics_glk(&gputop_devinfo);
+    } else if (devinfo->is_coffeelake) {
+	switch (devinfo->gt) {
+	case 2:
+	    SET_NAMES(gputop_devinfo, "cflgt2", "Coffeelake GT2");
+	    gputop_oa_add_metrics_cflgt2(&gputop_devinfo);
+	    break;
+        default:
+            fprintf(stderr, "Unsupported GT%u Coffeelake System\n", devinfo->gt);
+            return false;
+        }
     } else {
         fprintf(stderr, "Unknown System\n");
         return false;
