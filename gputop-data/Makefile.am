@@ -1,26 +1,19 @@
 include $(top_srcdir)/Makefile.generated
 
-gputop_xml = \
-	gputop-hsw.xml \
-	gputop-bdw.xml \
-	gputop-chv.xml \
-	gputop-sklgt2.xml \
-	gputop-sklgt3.xml \
-	gputop-sklgt4.xml \
-	gputop-bxt.xml \
-	gputop-kblgt2.xml \
-	gputop-kblgt3.xml \
-	gputop-glk.xml
-
-BUILT_SOURCES = $(gputop_xml)
+BUILT_SOURCES = \
+	$(gputop_xml_files) \
+	package.json
 
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
 	gputop.proto \
-	$(gputop_xml)
+	$(gputop_xml_files)
 
 gputop-%.xml: $(srcdir)/oa-%.xml $(script_dir)/gputop-oa-codegen.py
 	$(top_srcdir)/scripts/gputop-oa-codegen.py --chipset=$(*) --xml-out=gputop-$(*).xml oa-$(*).xml
+
+package.json: $(top_srcdir)/scripts/gen-template.py Makefile.am $(top_srcdir)/Makefile.generated package.json.in
+	$(PYTHON2) $(PYTHON_FLAGS) $(top_srcdir)/scripts/gen-template.py --template=$(@).in --out=$(@) $(gputop_xml_files)
 
 
 # Preferable to just use GNU make for running the xml import / i915
