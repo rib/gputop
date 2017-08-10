@@ -59,6 +59,7 @@ function GputopCSV(pretty_print)
     this.endl = process.platform === "win32" ? "\r\n" : "\n";
 
     this.term_row_ = 0;
+    this.n_rows = 0;
 
     this.console = {
         log: (msg) => {
@@ -73,6 +74,10 @@ function GputopCSV(pretty_print)
             stderr_log.error(msg);
         },
     };
+
+    this.current_hw_id = 0;
+    this.idle_flag = 0;
+    this.warning_once = false;
 }
 
 GputopCSV.prototype = Object.create(Gputop.Gputop.prototype);
@@ -132,6 +137,59 @@ GputopCSV.prototype.list_metric_set_counters = function(metric) {
         all += counter.symbol_name;
     });
     stderr_log.log("\nALL: " + all);
+}
+
+GputopCSV.prototype.get_vgpu_id = function(vgpu_id_) {
+    var vgpu_id;
+
+    for (var i = 0; i < vgpu_id_.length; i++) {
+        if (vgpu_id_[i] === parseInt(args.vgpu)) {
+            vgpu_id = vgpu_id_[i];
+	    break;
+        }
+    }
+    return vgpu_id;
+}
+
+GputopCSV.prototype.update_vgpuID_hwID = function(hw_id) {
+    var ctx_hw_id_ = [];
+    var vgpu_id_ = [];
+    var map_vgpuID_hwID = [0];
+
+    hw_id.ctx_hw_id.forEach((ctx_hw_id, i) => {
+         ctx_hw_id_.push(ctx_hw_id.toInt());
+    });
+    hw_id.vgpu_id.forEach((vgpu_id, i) => {
+         vgpu_id_.push(vgpu_id.toInt());
+    });
+
+
+    var map_length = Math.max.apply(Math, vgpu_id_);
+
+    for (var i = 0; i < map_length; i++ ) {
+         map_vgpuID_hwID[vgpu_id_[i]] = ctx_hw_id_[i];
+    }
+    vgpu_id_.sort();
+
+    if (args.vgpu === 'list') {
+        if (vgpu_id_.length === 0) {
+            stderr_log.log("\nNo vGPU is running now!");
+        } else {
+            stderr_log.log("\nList of vGPU ID selectable with --vgpu=...");
+            for (var i = 0; i < vgpu_id_.length; i++)
+                stderr_log.log(vgpu_id_[i]);
+        }
+    } else {
+        var vgpu_id;
+        vgpu_id = this.get_vgpu_id(vgpu_id_);
+        this.current_hw_id = map_vgpuID_hwID[vgpu_id];
+
+        if (this.current_hw_id === undefined) {
+            stderr_log.error("Failed to look up to vGPU ID " + args.vgpu);
+            process.exit(1);
+            return;
+        }
+    }
 }
 
 GputopCSV.prototype.update_features = function(features)
@@ -375,16 +433,16 @@ function write_rows(metric, accumulator)
     stderr_log.assert(ref_accumulated_counter.counter === ref_counter,
                "Spurious reference counter state");
 
-    var n_rows = ref_accumulated_counter.updates.length;
+    this.n_rows = ref_accumulated_counter.updates.length;
 
-    if (n_rows <= 1)
+    if (this.n_rows <= 1)
         return;
 
     /* Ignore the latest updates in case we haven't received an update
      * for all counter yet... */
-    n_rows -= 1;
+    this.n_rows -= 1;
 
-    for (var r = 0; r < n_rows; r++) {
+    for (var r = 0; r < this.n_rows; r++) {
 
         var row_start = ref_accumulated_counter.updates[r][0];
         var row_end = ref_accumulated_counter.updates[r][1];
@@ -451,7 +509,7 @@ function write_rows(metric, accumulator)
             var accumulated_counter =
                 accumulator.accumulated_counters[counter.cc_counter_id_];
 
-            accumulated_counter.updates.splice(0, n_rows);
+            accumulated_counter.updates.splice(0, this.n_rows);
         }
     }
 }
@@ -463,12 +521,32 @@ GputopCSV.prototype.notify_accumulator_events = function(metric, accumulator, ev
     if (this.write_queued_)
         return;
 
-    setTimeout(() => {
-        this.write_queued_ = false;
-        write_rows.call(this, metric, accumulator);
-    }, 0.2);
+    if (this.idle_flag < 4) {
+        this.warning_once = false;
+        setTimeout(() => {
+            this.write_queued_ = false;
+            write_rows.call(this, metric, accumulator);
+        }, 0.2);
 
-    this.write_queued_ = true;
+        this.write_queued_ = true;
+    } else {
+        if (!this.warning_once) {
+            this.warning_once = true;
+            if (this.pretty_print_csv_)
+                stderr_log.error("No context is running on this vGPU now");
+            else
+                this.stream.write("No context is running on this vGPU now\n");
+        }
+
+        for (var c = 0; c < this.counters_.length; c++) {
+            var counter = this.counters_[c];
+            if (counter.record_data === true) {
+                var accumulated_counter =
+                    accumulator.accumulated_counters[counter.cc_counter_id_];
+                accumulated_counter.updates.splice(0, this.n_rows);
+            }
+        }
+    }
 }
 
 var parser = new ArgumentParser({
@@ -482,6 +560,16 @@ parser.addArgument(
     {
         help: 'host:port to connect to (default localhost:7890)',
         defaultValue: 'localhost:7890'
+    }
+);
+
+parser.addArgument(
+    [ '--vgpu', '--vgpu' ],
+    {
+        help: "specific vgpu mode to observe (default 'list')",
+        defaultValue: 'list',
+        constant: 'list',
+        nargs: '?'
     }
 );
 
