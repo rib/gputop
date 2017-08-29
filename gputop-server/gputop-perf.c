@@ -115,6 +115,7 @@ struct intel_device {
 };
 
 bool gputop_fake_mode = false;
+bool gputop_disable_oaconfig = false;
 
 static struct intel_device intel_dev;
 
@@ -145,37 +146,41 @@ sysfs_card_read(const char *file, uint64_t *value)
     return gputop_read_file_uint64(buf, value);
 }
 
-
 static bool
 kernel_has_dynamic_config_support(int drm_fd)
 {
-    struct drm_i915_perf_oa_config config;
-    const char *uuid = "01234567-0123-0123-0123-0123456789ab";
-    uint32_t mux_regs[] = { 0x9888 /* NOA_WRITE */, 0x0 };
-    char config_path[256];
-    uint64_t config_id;
-    int ret;
+    struct gputop_hash_entry *metrics_entry;
 
-    snprintf(config_path, sizeof(config_path), "metrics/%s/id", uuid);
+    if (gputop_disable_oaconfig)
+        return false;
 
-    if (sysfs_card_read(config_path, &config_id)) {
-        if (ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id) == 0)
+    gputop_hash_table_foreach(metrics, metrics_entry) {
+        struct gputop_metric_set *metric_set =
+            (struct gputop_metric_set*)metrics_entry->data;
+        struct drm_i915_perf_oa_config config;
+        char config_path[256];
+        uint32_t mux_regs[] = { 0x9888 /* NOA_WRITE */, 0x0 };
+        uint64_t config_id;
+
+        snprintf(config_path, sizeof(config_path), "metrics/%s/id",
+                 metric_set->hw_config_guid);
+
+        if (sysfs_card_read(config_path, &config_id) && config_id != 1)
+            continue;
+
+        memset(&config, 0, sizeof(config));
+
+        memcpy(config.uuid, metric_set->hw_config_guid, sizeof(config.uuid));
+
+        config.n_mux_regs = 1;
+        config.mux_regs_ptr = (uintptr_t) mux_regs;
+
+        if (ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id) < 0 &&
+            errno == ENOENT)
             return true;
     }
 
-    memset(&config, 0, sizeof(config));
-    memcpy(config.uuid, uuid, sizeof(config.uuid));
-    config.n_mux_regs = 1;
-    config.mux_regs_ptr = (uintptr_t) mux_regs;
-
-    ret = ioctl(drm_fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
-    if (ret < 0)
-        return false;
-    config_id = ret;
-
-    ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
-
-    return true;
+    return false;
 }
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
@@ -1606,6 +1611,9 @@ gputop_perf_initialize(void)
         }
         drm_card = get_card_for_fd(drm_fd);
     }
+
+    if (getenv("GPUTOP_DISABLE_OACONFIG") && strcmp(getenv("GPUTOP_DISABLE_OACONFIG"), "1") == 0)
+        gputop_disable_oaconfig = true;
 
     /* NB: eu_count needs to be initialized before declaring counters */
     page_size = sysconf(_SC_PAGE_SIZE);

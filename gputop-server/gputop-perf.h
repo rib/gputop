@@ -229,6 +229,7 @@ extern bool gputop_perf_trace_full;
 extern uint8_t *gputop_perf_trace_head;
 extern int gputop_perf_n_samples;
 extern bool gputop_fake_mode;
+extern bool gputop_disable_oaconfig;
 
 struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,

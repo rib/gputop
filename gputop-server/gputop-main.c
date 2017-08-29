@@ -59,8 +59,9 @@ usage(void)
     printf("Usage: gputop [options] <program> [program args...]\n"
            "\n"
            "     --disable-ioctl-intercept     Disable per-context monitoring by intercepting\n"
-           "                                   DRM_CONTEXT ioctl's\n\n"
+           "                                   DRM_CONTEXT ioctl's\n"
            "                                   without executing the program\n\n"
+           "     --disable-oaconfig            Disable loading of OA configs\n\n"
            "     --dry-run                     Print the environment variables\n"
            "                                   without executing the program\n\n"
            "     --fake                        Run gputop using fake metrics\n\n");
@@ -83,7 +84,10 @@ usage(void)
            "\n"
            " Environment:\n"
            "\n"
+           "     GPUTOP_DISABLE_OACONFIG=1     Prevents gputop to load OA configs\n"
+           "     GPUTOP_FAKE_MODE=1            Configure gputop to use fake mode\n"
            "     GPUTOP_MODE=remote            Currently only one mode\n"
+           "     GPUTOP_PORT=port              Port gputop should listen to\n"
            "\n"
 #ifdef SUPPORT_GL
            "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
@@ -388,6 +392,7 @@ main (int argc, char **argv)
 #define FAKE_OPT                (CHAR_MAX + 6)
 #define GPUTOP_SCISSOR_TEST     (CHAR_MAX + 7)
 #define PORT_OPT                (CHAR_MAX + 8)
+#define DISABLE_OACONFIG        (CHAR_MAX + 9)
 
     /* The initial '+' means that getopt will stop looking for
      * options after the first non-option argument. */
@@ -397,6 +402,7 @@ main (int argc, char **argv)
         {"dry-run",         no_argument,        0, DRY_RUN_OPT},
         {"fake",            no_argument,        0, FAKE_OPT},
         {"disable-ioctl-intercept", optional_argument,  0, DISABLE_IOCTL_OPT},
+        {"disable-oaconfig", optional_argument,  0, DISABLE_OACONFIG},
 #ifdef SUPPORT_GL
         {"libgl",                   optional_argument,  0, LIB_GL_OPT},
         {"libegl",                  optional_argument,  0, LIB_EGL_OPT},
@@ -433,6 +439,9 @@ main (int argc, char **argv)
                 break;
             case DISABLE_IOCTL_OPT:
                 disable_ioctl = true;
+                break;
+            case DISABLE_OACONFIG:
+                setenv("GPUTOP_DISABLE_OACONFIG", "1", true);
                 break;
 #ifdef SUPPORT_GL
             case LIB_GL_OPT:
