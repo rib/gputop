@@ -209,12 +209,12 @@ function create_default_markings(xaxis) {
 GputopUI.prototype.select_counter= function(counter) {
     var metric = counter.metric;
 
-    if (gputop.selected_counter !== undefined) {
-        gputop.selected_counter.row_div_.removeClass("counter-row-selected");
-        gputop.selected_counter.row_marker_div_.css("visibility", "hidden");
+    if (this.selected_counter !== undefined) {
+        this.selected_counter.row_div_.removeClass("counter-row-selected");
+        this.selected_counter.row_marker_div_.css("visibility", "hidden");
     }
 
-    gputop.selected_counter = counter;
+    this.selected_counter = counter;
 
     counter.row_div_.addClass("counter-row-selected");
     counter.row_marker_div_.css("visibility", "visible");
@@ -926,12 +926,12 @@ GputopUI.prototype.update_features = function(features) {
                 icon.removeClass('glyphicon-pause');
                 icon.addClass('glyphicon-play');
 
-                gputop.set_paused(true);
+                this.set_paused(true);
             } else {
                 icon.removeClass('glyphicon-play');
                 icon.addClass('glyphicon-pause');
 
-                gputop.set_paused(false);
+                this.set_paused(false);
             }
         });
 
