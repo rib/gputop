@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define MAYBE_UNUSED __attribute__((unused))
+
 #define unlikely(x) __builtin_expect(x, 0)
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
