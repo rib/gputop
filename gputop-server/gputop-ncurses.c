@@ -70,7 +70,8 @@ run(void *arg)
 {
     gputop_mainloop = uv_loop_new();
 
-    gputop_server_run();
+    if (!gputop_server_run())
+	_exit(EXIT_FAILURE);
 
     if (gputop_fake_mode && gputop_get_bool_env("GPUTOP_TRAVIS_MODE")) {
         uv_timer_init(gputop_mainloop, &fake_timer);
