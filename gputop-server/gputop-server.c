@@ -1457,7 +1457,7 @@ bool gputop_server_run(void)
     uv_idle_init(gputop_mainloop, &update_idle);
 
     if ((r = uv_tcp_init(loop, &listener)) != 0) {
-        dbg("uv_tcp_init:%s\n", uv_strerror(r));
+	fprintf(stderr, "uv_tcp_init:%s\n", uv_strerror(r));
         goto error;
     }
     port_env = getenv("GPUTOP_PORT");
@@ -1467,11 +1467,11 @@ bool gputop_server_run(void)
 
     uv_ip4_addr("0.0.0.0", port, &sockaddr);
     if ((r = uv_tcp_bind(&listener, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) != 0) {
-        dbg("uv_tcp_bind:%s\n", uv_strerror(r));
+        fprintf(stderr, "uv_tcp_bind:%s\n", uv_strerror(r));
         goto error;
     }
     if ((r = uv_listen((uv_stream_t *)&listener, 128, on_connect)) != 0) {
-        dbg("uv_listen:%s\n", uv_strerror(r));
+        fprintf(stderr, "uv_listen:%s\n", uv_strerror(r));
         goto error;
     }
     gputop_server_print_addresses(port);
