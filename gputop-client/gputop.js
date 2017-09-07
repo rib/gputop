@@ -1043,6 +1043,26 @@ Gputop.prototype.calculate_sample_state_for_accumulation_period = function(reque
     return undefined;
 }
 
+Gputop.prototype.parse_period_string = function(str) {
+    var units = {
+        's':  1000000000,
+        'ms': 1000000,
+        'us': 1000,
+        'ns': 1,
+    };
+    var groups = str.match(/^([0-9\.]+)([a-z]*)$/);
+    if (!groups)
+        return -1;
+
+    var unit = groups[2].toLowerCase();
+    if (unit.length == 0)
+        unit = 'ns';
+    if (!units[unit])
+        return -1;
+
+    return parseFloat(groups[1]) * units[unit];
+};
+
 var EventTarget = function() {
     this.listeners = {};
 };

@@ -164,7 +164,8 @@ GputopCSV.prototype.update_features = function(features)
         return;
     }
 
-    if (args.period < 0 || args.period > 1000000000) {
+    var period = this.parse_period_string(args.period);
+    if (period < 0 || period > 1000000000) {
         stderr_log.error('Sampling period out of range [0, 1000000000]');
         process.exit(1);
         return;
@@ -185,13 +186,13 @@ GputopCSV.prototype.update_features = function(features)
         var oa_sampling_state = {
             oa_exponent: args.oa_sample_exponent,
             period: hw_period,
-            factor: Math.ceil(args.period / hw_period)
+            factor: Math.ceil(period / hw_period)
         };
     } else {
         var oa_sampling_state =
-            this.calculate_sample_state_for_accumulation_period(args.period,
+            this.calculate_sample_state_for_accumulation_period(period,
                                                                 40000000, // max period to account for 32bit counter overflow
-                                                                args.period / 10); // 10% error margin
+                                                                period / 10); // 10% error margin
     }
 
     if (args.columns === 'list') {
@@ -305,7 +306,7 @@ GputopCSV.prototype.update_features = function(features)
         stderr_log.warn("CSV:   OA Hardware Period: " + oa_sampling_state.period + "ns / "  +
                         this.format_counter_value({ units: 'ns' }, false,
                                                   oa_sampling_state.period));
-        stderr_log.warn("CSV:   Accumulation period (requested): " + args.period + "ns");
+        stderr_log.warn("CSV:   Accumulation period (requested): " + period + "ns");
         var real_accumulation_period = oa_sampling_state.factor * oa_sampling_state.period;
         stderr_log.warn("CSV:   Accumulation period (actual): " + real_accumulation_period + "ns (" + oa_sampling_state.period + "ns * " + oa_sampling_state.factor + ")");
 
@@ -344,7 +345,7 @@ GputopCSV.prototype.update_features = function(features)
                              * requested accumulation period, so we slightly
                              * reduce what we request to avoid overshooting.
                              */
-                            metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: args.period * 0.9999 });
+                            metric.csv_row_accumulator = metric.create_oa_accumulator({ period_ns: period * 0.9999 });
 
                             this.column_titles_.map((line) => {
                                 this.stream.write(line + this.endl);
@@ -507,9 +508,9 @@ parser.addArgument(
 parser.addArgument(
     [ '-p', '--period' ],
     {
-        help: 'Accumulate HW samples over this period (in nanoseconds) before writting a CSV row. Actual accumulation period may overrun by up to 10%%. (default = one second)',
-        type: 'int',
-        defaultValue: 1000000000
+        help: 'Accumulate HW samples over this period (in nanoseconds) before writting a CSV row. Actual accumulation period may overrun by up to 10%%. Examples of valid values: 1s, 0.5s, 14ms, 500us, 1500ns. If no unit is specified, nanoseconds are assumed. (default = 1s)',
+        type: 'string',
+        defaultValue: '1s'
     }
 );
 
@@ -563,7 +564,6 @@ function init(pretty_print) {
     }, () => { // onerror
         stderr_log.log("Failed to connect to address = \"" + args.address + "\"");
     });
-
 }
 
 if (args.file) {
