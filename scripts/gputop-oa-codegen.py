@@ -579,6 +579,10 @@ def main():
 
         #include "gputop-oa-metrics.h"
 
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+
         """))
 
     c(copyright)
@@ -600,8 +604,6 @@ def main():
 
         #define MIN(x, y) (((x) < (y)) ? (x) : (y))
         #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-        extern void gputop_register_oa_metric_set(struct gputop_metric_set *metric_set);
 
         static inline void *
         xmalloc0(size_t size)
@@ -652,7 +654,8 @@ def main():
                 counter.append(et.fromstring(xml_max_equation))
 
         c("\nstatic void\n")
-        c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo)\n")
+        c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo,\n" +
+          "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data)\n")
         c("{\n")
         c.indent(3)
 
@@ -696,7 +699,7 @@ def main():
         for counter in counters:
             output_counter_report(set, counter)
 
-        c("\n\ngputop_register_oa_metric_set(metric_set);\n")
+        c("\nregister_metric_set(metric_set, data);\n")
 
         c.outdent(3)
         c("}\n")
@@ -704,15 +707,25 @@ def main():
     if args.xml_out:
         tree.write(args.xml_out)
 
-    h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo);\n")
+    h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo,\n"
+      "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data);\n\n")
+
+    h(textwrap.dedent("""\
+        #ifdef __cplusplus
+        } /* extern C */
+        #endif
+
+        """))
+
 
     c("\nvoid")
-    c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo)")
+    c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo,\n"
+      "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data)")
     c("{")
     c.indent(4)
 
     for set in tree.findall(".//set"):
-        c("add_" + set.get('underscore_name') + "_metric_set(devinfo);")
+        c("add_" + set.get('underscore_name') + "_metric_set(devinfo, register_metric_set, data);")
 
     c.outdent(4)
     c("}")
