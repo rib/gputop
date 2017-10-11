@@ -32,7 +32,7 @@
  */
 #include "stdatomic.h"
 
-#include "gputop-list.h"
+#include "util/list.h"
 
 struct intel_counter
 {
@@ -52,7 +52,7 @@ struct intel_counter
 
 struct intel_query_info
 {
-    gputop_list_t link;
+    struct list_head link;
 
     unsigned id;
     unsigned n_counters;
@@ -68,7 +68,7 @@ struct intel_query_info
 
 struct gl_perf_query
 {
-    gputop_list_t link;
+    struct list_head link;
     struct intel_query_info *info;
     unsigned handle;
     uint8_t data[]; /* len == query_info->max_counter_data_len */
@@ -86,11 +86,11 @@ struct winsys_context
 
     bool gl_initialised;
 
-    gputop_list_t queries;
+    struct list_head queries;
     struct intel_query_info *current_query;
 
     pthread_rwlock_t query_obj_cache_lock;
-    gputop_list_t query_obj_cache;
+    struct list_head query_obj_cache;
 
     bool try_create_new_context_failed;
     bool is_debug_context;
@@ -115,11 +115,11 @@ struct winsys_surface
     /* not pending until glEndPerfQueryINTEL is called... */
     struct gl_perf_query *open_query_obj;
 
-    gputop_list_t pending_queries;
+    struct list_head pending_queries;
 
     /* Finished queries, waiting to be picked up by the server thread */
     pthread_rwlock_t finished_queries_lock;
-    gputop_list_t finished_queries;
+    struct list_head finished_queries;
 };
 
 extern bool gputop_gl_has_intel_performance_query_ext;

@@ -54,6 +54,8 @@
 
 #include "common/gen_device_info.h"
 
+#include "util/list.h"
+
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
 #endif
@@ -1070,7 +1072,7 @@ get_gl_query_info(int *n_queries_ret)
         struct intel_query_info *q;
         int i;
 
-        n_queries = gputop_list_length(&first_wctx->queries);
+        n_queries = list_length(&first_wctx->queries);
 
         queries_vec = xmalloc(sizeof(void *) * n_queries);
         queries = xmalloc(sizeof(Gputop__GLQueryInfo) * n_queries);

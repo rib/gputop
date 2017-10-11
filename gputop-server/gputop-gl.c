@@ -458,10 +458,10 @@ query_obj_cache_pop(struct winsys_context *wctx)
 
     pthread_rwlock_wrlock(&wctx->query_obj_cache_lock);
 
-    first = gputop_list_first(&wctx->query_obj_cache, struct gl_perf_query, link);
+    first = list_first_entry(&wctx->query_obj_cache, struct gl_perf_query, link);
 
     if (first)
-        gputop_list_remove(&first->link);
+        list_del(&first->link);
 
     pthread_rwlock_unlock(&wctx->query_obj_cache_lock);
 
@@ -479,10 +479,9 @@ query_obj_destroy(struct gl_perf_query *obj)
 static void
 query_obj_cache_destroy(struct winsys_context *wctx)
 {
-    struct gl_perf_query *obj, *tmp;
-
-    gputop_list_for_each_safe(obj, tmp, &wctx->query_obj_cache, link) {
-        gputop_list_remove(&obj->link);
+    list_for_each_entry_safe(struct gl_perf_query, obj,
+                             &wctx->query_obj_cache, link) {
+        list_del(&obj->link);
         query_obj_destroy(obj);
     }
 }
@@ -532,7 +531,7 @@ winsys_context_gl_initialise(struct winsys_context *wctx)
     while (query_id) {
         struct intel_query_info *query_info = get_query_info(query_id);
 
-        gputop_list_insert(wctx->queries.prev, &query_info->link);
+        list_addtail(&query_info->link, &wctx->queries);
 
         pfn_glGetNextPerfQueryIdINTEL(query_id, &query_id);
 
@@ -575,9 +574,9 @@ winsys_context_create(GLXContext glx_ctx)
 
     wctx->ref++;
 
-    gputop_list_init(&wctx->queries);
+    list_inithead(&wctx->queries);
 
-    gputop_list_init(&wctx->query_obj_cache);
+    list_inithead(&wctx->query_obj_cache);
     pthread_rwlock_init(&wctx->query_obj_cache_lock, NULL);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
@@ -733,7 +732,6 @@ static void
 winsys_context_destroy(struct winsys_context *wctx)
 {
     int idx;
-    struct intel_query_info *q, *tmp;
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
 
@@ -743,8 +741,9 @@ winsys_context_destroy(struct winsys_context *wctx)
 
     pthread_rwlock_unlock(&gputop_gl_lock);
 
-    gputop_list_for_each_safe(q, tmp, &wctx->queries, link) {
-        gputop_list_remove(&q->link);
+    list_for_each_entry_safe(struct intel_query_info, q,
+                             &wctx->queries, link) {
+        list_del(&q->link);
         free(q);
     }
 
@@ -803,8 +802,8 @@ winsys_surface_create(struct winsys_context *wctx, GLXWindow glx_window)
 
     wsurface->glx_window = glx_window;
 
-    gputop_list_init(&wsurface->pending_queries);
-    gputop_list_init(&wsurface->finished_queries);
+    list_inithead(&wsurface->pending_queries);
+    list_inithead(&wsurface->finished_queries);
     pthread_rwlock_init(&wsurface->finished_queries_lock, NULL);
 
     pthread_rwlock_wrlock(&gputop_gl_lock);
@@ -975,7 +974,8 @@ winsys_surface_end_frame(struct winsys_surface *wsurface)
 {
     if (wsurface->open_query_obj) {
         pfn_glEndPerfQueryINTEL(wsurface->open_query_obj->handle);
-        gputop_list_insert(wsurface->pending_queries.prev, &wsurface->open_query_obj->link);
+        list_addtail(&wsurface->open_query_obj->link,
+                     &wsurface->pending_queries);
         wsurface->open_query_obj = NULL;
     }
 }
@@ -984,12 +984,12 @@ static void
 winsys_surface_check_for_finished_queries(struct winsys_surface *wsurface)
 {
     struct winsys_context *wctx = wsurface->wctx;
-    struct gl_perf_query *obj, *tmp;
-    gputop_list_t finished;
+    struct list_head finished;
 
-    gputop_list_init(&finished);
+    list_inithead(&finished);
 
-    gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
+    list_for_each_entry_safe(struct gl_perf_query, obj,
+                             &wsurface->pending_queries, link) {
         unsigned data_len = 0;
 
         GE(pfn_glGetPerfQueryDataINTEL(
@@ -1000,8 +1000,8 @@ winsys_surface_check_for_finished_queries(struct winsys_surface *wsurface)
                 &data_len));
 
         if (data_len) {
-            gputop_list_remove(&obj->link);
-            gputop_list_insert(finished.prev, &obj->link);
+            list_del(&obj->link);
+            list_addtail(&obj->link, &finished);
         } else
             break;
     }
@@ -1009,27 +1009,27 @@ winsys_surface_check_for_finished_queries(struct winsys_surface *wsurface)
     /* FIXME: we should throttle here if we're somehow producing too
      * much data for the UI to process? */
     pthread_rwlock_wrlock(&wsurface->finished_queries_lock);
-    gputop_list_append_list(&wsurface->finished_queries, &finished);
+    list_addtail(&finished, &wsurface->finished_queries);
     pthread_rwlock_unlock(&wsurface->finished_queries_lock);
 }
 
 static void
 winsys_surface_delete_surface_queries(struct winsys_surface *wsurface)
 {
-    struct gl_perf_query *obj, *tmp;
-
     if (wsurface->open_query_obj) {
         query_obj_destroy(wsurface->open_query_obj);
         wsurface->open_query_obj = NULL;
     }
 
-    gputop_list_for_each_safe(obj, tmp, &wsurface->pending_queries, link) {
-        gputop_list_remove(&obj->link);
+    list_for_each_entry_safe(struct gl_perf_query, obj,
+                             &wsurface->pending_queries, link) {
+        list_del(&obj->link);
         query_obj_destroy(obj);
     }
 
-    gputop_list_for_each_safe(obj, tmp, &wsurface->finished_queries, link) {
-        gputop_list_remove(&obj->link);
+    list_for_each_entry_safe(struct gl_perf_query, obj,
+                             &wsurface->finished_queries, link) {
+        list_del(&obj->link);
         query_obj_destroy(obj);
     }
 }
