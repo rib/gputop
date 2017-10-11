@@ -123,8 +123,8 @@ static unsigned int page_size;
 
 struct gputop_hash_table *metrics;
 struct array *gputop_perf_oa_supported_metric_set_uuids;
-struct perf_oa_user *gputop_perf_current_user;
-struct gputop_devinfo gputop_devinfo;
+static struct perf_oa_user *gputop_perf_current_user;
+static struct gputop_devinfo gputop_devinfo;
 
 static int drm_fd = -1;
 static int drm_card = -1;
@@ -1666,4 +1666,10 @@ gputop_perf_free(void)
 {
     gputop_hash_table_destroy(metrics, free_perf_oa_metrics);
     array_free(gputop_perf_oa_supported_metric_set_uuids);
+}
+
+const struct gputop_devinfo *
+gputop_perf_get_devinfo(void)
+{
+    return &gputop_devinfo;
 }

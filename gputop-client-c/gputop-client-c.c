@@ -71,6 +71,7 @@ struct oa_sample {
    uint8_t oa_report[];
 };
 
+static struct gputop_devinfo gputop_devinfo;
 
 static void __attribute__((noreturn))
 assert_not_reached(void)
@@ -461,6 +462,7 @@ gputop_cc_oa_accumulator_new(struct gputop_cc_stream *stream,
     assert(stream);
 
     gputop_cc_oa_accumulator_init(accumulator,
+                                  &gputop_devinfo,
                                   stream->oa_metric_set,
                                   enable_ctx_switch_events,
                                   aggregation_period);

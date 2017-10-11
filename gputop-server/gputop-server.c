@@ -1193,20 +1193,21 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     pb_features.server_pid = getpid();
 
-    pb_devinfo.devid = gputop_devinfo.devid;
-    pb_devinfo.gen = gputop_devinfo.gen;
-    pb_devinfo.n_eus = gputop_devinfo.n_eus;
-    pb_devinfo.n_eu_slices = gputop_devinfo.n_eu_slices;
-    pb_devinfo.n_eu_sub_slices = gputop_devinfo.n_eu_sub_slices;
-    pb_devinfo.eu_threads_count = gputop_devinfo.eu_threads_count;
-    pb_devinfo.subslice_mask = gputop_devinfo.subslice_mask;
-    pb_devinfo.slice_mask = gputop_devinfo.slice_mask;
-    pb_devinfo.timestamp_frequency = gputop_devinfo.timestamp_frequency;
-    pb_devinfo.gt_min_freq = gputop_devinfo.gt_min_freq;
-    pb_devinfo.gt_max_freq = gputop_devinfo.gt_max_freq;
+    const struct gputop_devinfo *devinfo = gputop_perf_get_devinfo();
+    pb_devinfo.devid = devinfo->devid;
+    pb_devinfo.gen = devinfo->gen;
+    pb_devinfo.n_eus = devinfo->n_eus;
+    pb_devinfo.n_eu_slices = devinfo->n_eu_slices;
+    pb_devinfo.n_eu_sub_slices = devinfo->n_eu_sub_slices;
+    pb_devinfo.eu_threads_count = devinfo->eu_threads_count;
+    pb_devinfo.subslice_mask = devinfo->subslice_mask;
+    pb_devinfo.slice_mask = devinfo->slice_mask;
+    pb_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
+    pb_devinfo.gt_min_freq = devinfo->gt_min_freq;
+    pb_devinfo.gt_max_freq = devinfo->gt_max_freq;
 
-    pb_devinfo.devname = (char *) gputop_devinfo.devname;
-    pb_devinfo.prettyname = (char *) gputop_devinfo.prettyname;
+    pb_devinfo.devname = (char *) devinfo->devname;
+    pb_devinfo.prettyname = (char *) devinfo->prettyname;
 
     pb_features.fake_mode = gputop_fake_mode;
 

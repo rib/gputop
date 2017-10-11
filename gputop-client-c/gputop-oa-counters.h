@@ -41,7 +41,7 @@ extern "C" {
  * gputop_u32_clock api accumulates a 64bit monotonic timestamp in nanoseconds
  */
 struct gputop_u32_clock {
-    bool initialized;
+    const struct gputop_devinfo *devinfo;
     uint64_t start;
     uint64_t timestamp;
     uint32_t last_u32;
@@ -55,7 +55,8 @@ enum gputop_accumulator_flags {
 
 struct gputop_cc_oa_accumulator
 {
-    struct gputop_metric_set *metric_set;
+    const struct gputop_devinfo *devinfo;
+    const struct gputop_metric_set *metric_set;
 
     uint64_t aggregation_period;
     bool enable_ctx_switch_events;
@@ -72,13 +73,16 @@ struct gputop_cc_oa_accumulator
     void *js_priv;
 };
 
-void gputop_u32_clock_init(struct gputop_u32_clock *clock, uint32_t u32_start);
+void gputop_u32_clock_init(struct gputop_u32_clock *clock,
+                           const struct gputop_devinfo *devinfo,
+                           uint32_t u32_start);
 uint64_t gputop_u32_clock_get_time(struct gputop_u32_clock *clock);
 void gputop_u32_clock_progress(struct gputop_u32_clock *clock,
                                uint32_t u32_timestamp);
 
 void gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
-                                   struct gputop_metric_set *metric_set,
+                                   const struct gputop_devinfo *devinfo,
+                                   const struct gputop_metric_set *metric_set,
                                    bool enable_ctx_switch_events,
                                    int aggregation_period);
 void gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator);

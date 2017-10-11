@@ -212,8 +212,6 @@ struct perf_oa_user {
                    uint8_t *start, uint8_t *end);
 };
 
-extern struct perf_oa_user *gputop_perf_current_user;
-
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id);
 bool gputop_remove_ctx_handle(uint32_t ctx_id);
 struct ctx_handle *get_first_available_ctx(char **error);
@@ -278,3 +276,5 @@ void gputop_perf_stream_close(struct gputop_perf_stream *stream,
                               void (*on_close_cb)(struct gputop_perf_stream *stream));
 void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
 void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
+
+const struct gputop_devinfo *gputop_perf_get_devinfo(void);

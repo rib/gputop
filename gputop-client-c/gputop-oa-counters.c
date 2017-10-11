@@ -41,20 +41,20 @@
 #include "gputop-log.h"
 #endif
 
-struct gputop_devinfo gputop_devinfo;
-
 static uint64_t
-timebase_scale(uint64_t u32_time)
+timebase_scale(const struct gputop_devinfo *devinfo, uint64_t u32_time)
 {
-    return (u32_time * 1000000000) / gputop_devinfo.timestamp_frequency;
+    return (u32_time * 1000000000) / devinfo->timestamp_frequency;
 }
 
 void
-gputop_u32_clock_init(struct gputop_u32_clock *clock, uint32_t u32_start)
+gputop_u32_clock_init(struct gputop_u32_clock *clock,
+                      const struct gputop_devinfo *devinfo,
+                      uint32_t u32_start)
 {
-    clock->timestamp = clock->start = timebase_scale(u32_start);
+    clock->timestamp = clock->start = timebase_scale(devinfo, u32_start);
     clock->last_u32 = u32_start;
-    clock->initialized = true;
+    clock->devinfo = devinfo;
 }
 
 uint64_t
@@ -69,7 +69,7 @@ gputop_u32_clock_progress(struct gputop_u32_clock *clock,
 {
     uint32_t delta = u32_timestamp - clock->last_u32;
 
-    clock->timestamp += timebase_scale(delta);
+    clock->timestamp += timebase_scale(clock->devinfo, delta);
     clock->last_u32 = u32_timestamp;
 }
 
@@ -108,7 +108,7 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
                                 const uint8_t *report0,
                                 const uint8_t *report1)
 {
-    struct gputop_metric_set *metric_set = accumulator->metric_set;
+    const struct gputop_metric_set *metric_set = accumulator->metric_set;
     uint64_t *deltas = accumulator->deltas;
     const uint32_t *start = (const uint32_t *)report0;
     const uint32_t *end = (const uint32_t *)report1;
@@ -125,8 +125,8 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
         return false;
     }
 
-    if (!accumulator->clock.initialized)
-        gputop_u32_clock_init(&accumulator->clock, start[1]);
+    if (!accumulator->clock.devinfo)
+        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo, start[1]);
 
     switch (metric_set->perf_oa_format) {
     case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
@@ -181,7 +181,8 @@ gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator)
 
 void
 gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
-                              struct gputop_metric_set *metric_set,
+                              const struct gputop_devinfo *devinfo,
+                              const struct gputop_metric_set *metric_set,
                               bool enable_ctx_switch_events,
                               int aggregation_period)
 {
@@ -190,6 +191,7 @@ gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
     assert(metric_set->perf_oa_format);
 
     memset(accumulator, 0, sizeof(*accumulator));
+    accumulator->devinfo = devinfo;
     accumulator->metric_set = metric_set;
     accumulator->aggregation_period = aggregation_period;
     accumulator->enable_ctx_switch_events = enable_ctx_switch_events;

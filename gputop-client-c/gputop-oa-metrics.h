@@ -54,8 +54,6 @@ struct gputop_devinfo {
     bool has_dynamic_configs;
 };
 
-extern struct gputop_devinfo gputop_devinfo;
-
 typedef enum {
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
     GPUTOP_PERFQUERY_COUNTER_DATA_UINT32,
