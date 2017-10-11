@@ -53,7 +53,6 @@
 #include "common/gen_device_info.h"
 
 #include "gputop-util.h"
-#include "gputop-list.h"
 #include "gputop-mainloop.h"
 #include "gputop-log.h"
 #include "gputop-perf.h"
@@ -130,10 +129,7 @@ struct gputop_devinfo gputop_devinfo;
 static int drm_fd = -1;
 static int drm_card = -1;
 
-static gputop_list_t ctx_handles_list = {
-    .prev = &ctx_handles_list,
-    .next= &ctx_handles_list
-};
+static struct list_head ctx_handles_list;
 
 /******************************************************************************/
 
@@ -193,17 +189,16 @@ bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
     handle->id = ctx_id;
     handle->fd = ctx_fd;
 
-    gputop_list_insert(&ctx_handles_list, &handle->link);
+    list_addtail(&handle->link, &ctx_handles_list);
 
     return true;
 }
 
 bool gputop_remove_ctx_handle(uint32_t ctx_id)
 {
-    struct ctx_handle *ctx;
-    gputop_list_for_each(ctx, &ctx_handles_list, link) {
+    list_for_each_entry(struct ctx_handle, ctx, &ctx_handles_list, link) {
 	if (ctx->id == ctx_id) {
-	    gputop_list_remove(&ctx->link);
+	    list_del(&ctx->link);
 	    free(ctx);
 	    return true;
 	}
@@ -215,7 +210,7 @@ struct ctx_handle *get_first_available_ctx(char **error)
 {
     struct ctx_handle *ctx = NULL;
 
-    ctx = gputop_list_first(&ctx_handles_list, struct ctx_handle, link);
+    ctx = list_first_entry(&ctx_handles_list, struct ctx_handle, link);
     if (!ctx) {
 	int ret = asprintf(error, "Error unable to find a context\n");
 	(void) ret;
@@ -226,13 +221,11 @@ struct ctx_handle *get_first_available_ctx(char **error)
 
 struct ctx_handle *lookup_ctx_handle(uint32_t ctx_id)
 {
-    struct ctx_handle *ctx = NULL;
-    gputop_list_for_each(ctx, &ctx_handles_list, link) {
-	if (ctx->id == ctx_id) {
-	    break;
-	}
+    list_for_each_entry(struct ctx_handle, ctx, &ctx_handles_list, link) {
+	if (ctx->id == ctx_id)
+            return ctx;
     }
-    return ctx;
+    return NULL;
 }
 
 /* Handle restarting ioctl if interrupted... */
@@ -1618,6 +1611,8 @@ bool
 gputop_perf_initialize(void)
 {
     struct gen_device_info devinfo;
+
+    list_inithead(&ctx_handles_list);
 
     if (gputop_devinfo.n_eus)
 	return true;

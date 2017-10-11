@@ -132,8 +132,8 @@ on_protobuf_msg_sent_cb(const union wslay_event_msg_source *source, void *user_d
     free(closure);
 }
 
-static gputop_list_t streams;
-static gputop_list_t closing_streams;
+static struct list_head streams;
+static struct list_head closing_streams;
 
 /*
  * FIXME: don't duplicate these...
@@ -239,7 +239,7 @@ stream_closed_cb(struct gputop_perf_stream *stream)
 
     send_pb_message(h2o_conn, &message.base);
 
-    gputop_list_remove(&stream->user.link);
+    list_del(&stream->user.link);
 
     gputop_perf_stream_unref(stream);
 }
@@ -582,9 +582,7 @@ update_perf_head_pointers(struct gputop_perf_stream *stream)
 static void
 update_streams(void)
 {
-    struct gputop_perf_stream *stream;
-
-    gputop_list_for_each(stream, &streams, user.link) {
+    list_for_each_entry_safe(struct gputop_perf_stream, stream, &streams, user.link) {
         if (stream->live_updates)
             flush_stream_samples(stream);
         else if (stream->type == GPUTOP_STREAM_PERF)
@@ -700,8 +698,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
                                              &error);
     if (stream) {
         stream->user.id = id;
-        gputop_list_init(&stream->user.link);
-        gputop_list_insert(streams.prev, &stream->user.link);
+        list_addtail(&stream->user.link, &streams);
 
         stream->live_updates = open_stream->live_updates;
     } else {
@@ -766,8 +763,7 @@ handle_open_tracepoint(h2o_websocket_conn_t *conn,
                                          &error);
     if (stream) {
         stream->user.id = id;
-        gputop_list_init(&stream->user.link);
-        gputop_list_insert(streams.prev, &stream->user.link);
+        list_addtail(&stream->user.link, &streams);
 
         stream->live_updates = open_stream->live_updates;
     } else {
@@ -818,8 +814,8 @@ handle_open_generic_stream(h2o_websocket_conn_t *conn,
                                               &error);
     if (stream) {
         stream->user.id = id;
-        gputop_list_init(&stream->user.link);
-        gputop_list_insert(streams.prev, &stream->user.link);
+        list_inithead(&stream->user.link);
+        list_addtail(&stream->user.link, &streams);
 
         stream->live_updates = open_stream->live_updates;
     } else {
@@ -855,8 +851,8 @@ handle_open_cpu_stats(h2o_websocket_conn_t *conn,
                                         stats_info->sample_period_ms);
     if (stream) {
         stream->user.id = id;
-        gputop_list_init(&stream->user.link);
-        gputop_list_insert(streams.prev, &stream->user.link);
+        list_inithead(&stream->user.link);
+        list_addtail(&stream->user.link, &streams);
 
         stream->live_updates = open_stream->live_updates;
     }
@@ -904,8 +900,8 @@ close_stream(struct gputop_perf_stream *stream)
      * won't forward anymore for the stream in case we can't close the
      * stream immediately.
      */
-    gputop_list_remove(&stream->user.link);
-    gputop_list_insert(closing_streams.prev, &stream->user.link);
+    list_del(&stream->user.link);
+    list_addtail(&stream->user.link, &closing_streams);
     stream->pending_close = true;
 
     /* NB: we can't synchronously close the perf event if we're in the
@@ -918,9 +914,8 @@ close_stream(struct gputop_perf_stream *stream)
 static void
 close_all_streams(void)
 {
-    struct gputop_perf_stream *stream, *tmp;
-
-    gputop_list_for_each_safe(stream, tmp, &streams, user.link) {
+    list_for_each_entry_safe(struct gputop_perf_stream, stream,
+                             &streams, user.link) {
         close_stream(stream);
     }
 }
@@ -929,12 +924,11 @@ static void
 handle_close_stream(h2o_websocket_conn_t *conn,
                    Gputop__Request *request)
 {
-    struct gputop_perf_stream *stream;
     uint32_t id = request->close_stream;
 
     dbg("handle_close_stream: id=%d, request_uuid=%s\n", id, request->uuid);
 
-    gputop_list_for_each(stream, &streams, user.link) {
+    list_for_each_entry_safe(struct gputop_perf_stream, stream, &streams, user.link) {
         if (stream->user.id == id) {
             assert(stream->user.data == NULL);
 
@@ -1069,7 +1063,6 @@ get_gl_query_info(int *n_queries_ret)
     if (gputop_gl_contexts->len) {
         struct winsys_context **contexts = gputop_gl_contexts->data;
         struct winsys_context *first_wctx = contexts[0];
-        struct intel_query_info *q;
         int i;
 
         n_queries = list_length(&first_wctx->queries);
@@ -1078,7 +1071,8 @@ get_gl_query_info(int *n_queries_ret)
         queries = xmalloc(sizeof(Gputop__GLQueryInfo) * n_queries);
 
         i = 0;
-        gputop_list_for_each(q, &first_wctx->queries, link) {
+        list_for_each_entry(struct intel_query_info, q,
+                            &first_wctx->queries, link) {
             Gputop__GLQueryInfo *query = &queries[i];
             Gputop__GLCounter **counters_vec;
             Gputop__GLCounter *counters;
@@ -1464,8 +1458,8 @@ bool gputop_server_run(void)
     char *port_env;
     unsigned long port;
 
-    gputop_list_init(&streams);
-    gputop_list_init(&closing_streams);
+    list_inithead(&streams);
+    list_inithead(&closing_streams);
 
     loop = gputop_mainloop;
 

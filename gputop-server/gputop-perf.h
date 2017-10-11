@@ -29,14 +29,15 @@
 #include <uv.h>
 #include <time.h>
 
-#include "gputop-list.h"
+#include "util/list.h"
+
 #include "gputop-hash-table.h"
 #include "gputop-oa-metrics.h"
 
 uint64_t get_time(void);
 
 struct ctx_handle {
-    gputop_list_t link;
+    struct list_head link;
 
     uint32_t id;
     int fd;
@@ -198,7 +199,7 @@ struct gputop_perf_stream
     /* XXX: reserved for whoever opens the stream */
     struct {
         uint32_t id;
-        gputop_list_t link;
+        struct list_head link;
         void *data;
         void (*destroy_cb)(struct gputop_perf_stream *stream);
         bool flushing;
