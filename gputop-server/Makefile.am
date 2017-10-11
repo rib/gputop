@@ -76,7 +76,7 @@ libgputop_la_LIBADD = \
     $(top_builddir)/libuv/libuv.la \
     $(top_builddir)/h2o/libh2o.la \
     $(top_builddir)/protobuf-c/libprotobuf-c.la \
-    $(top_builddir)/mesa/src/intel/common/libintel_common.la \
+    $(top_builddir)/mesa/libmesa.la \
     -ldl -lm -lrt -lstdc++
 
 if SUPPORT_GL

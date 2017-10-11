@@ -1,13 +1,15 @@
-noinst_LTLIBRARIES = src/intel/common/libintel_common.la
+noinst_LTLIBRARIES = libmesa.la
 
 noinst_DATA = \
 	include/drm-uapi/README
 
-src_intel_common_libintel_common_la_CPPFLAGS = \
+libmesa_la_CPPFLAGS = \
+	-DHAVE_PTHREAD \
 	-I$(srcdir)/include \
 	-I$(srcdir)/src \
+	-I$(srcdir)/src/mesa \
 	-I$(srcdir)/util
-src_intel_common_libintel_common_la_SOURCES = \
+libmesa_la_SOURCES = \
 	include/c99_compat.h \
 	include/no_extern_c.h \
 	include/drm-uapi/drm.h \
@@ -21,10 +23,16 @@ src_intel_common_libintel_common_la_SOURCES = \
 	src/intel/common/gen_device_info.c \
 	src/intel/common/gen_device_info.h \
 	\
-	src/util/macros.h
+	src/util/hash_table.c \
+	src/util/hash_table.h \
+	src/util/list.h \
+	src/util/macros.h \
+	src/util/ralloc.c \
+	src/util/ralloc.h
+
 
 BUILT_SOURCES = \
 	package.json
 
 package.json: $(top_srcdir)/scripts/gen-template.py Makefile.am package.json.in
-	$(PYTHON2) $(PYTHON_FLAGS) $(top_srcdir)/scripts/gen-template.py --template=$(@).in --out=$(@) $(src_intel_common_libintel_common_la_SOURCES)
+	$(PYTHON2) $(PYTHON_FLAGS) $(top_srcdir)/scripts/gen-template.py --template=$(@).in --out=$(@) $(libmesa_la_SOURCES)
