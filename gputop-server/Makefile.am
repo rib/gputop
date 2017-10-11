@@ -20,6 +20,7 @@ gputop_CFLAGS = \
     -std=gnu99
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
+    -I$(top_srcdir)/gputop-client-c \
     -I$(srcdir)
 
 lib_LTLIBRARIES = libgputop.la
@@ -59,6 +60,8 @@ libgputop_la_CPPFLAGS = \
     -I$(top_srcdir)/mesa/src \
     -I$(top_srcdir)/mesa/src/intel \
     -I$(top_srcdir)/mesa/src/util \
+    \
+    -I$(top_srcdir)/gputop-client-c \
     \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\"
 libgputop_la_CFLAGS = \

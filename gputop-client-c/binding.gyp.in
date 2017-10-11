@@ -1,6 +1,5 @@
 {
   "variables": {
-    "system_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-system-headers\'), \'..\'));")',
     "mesa_headers%": '<!(node -e "console.log(require(\'path\').resolve(require.resolve(\'gputop-mesa-headers\'), \'..\'));")'
   },
   "targets": [
@@ -11,7 +10,6 @@
       ],
       "include_dirs": [
         ".",
-        "<(system_headers)",
         "<(mesa_headers)/include",
         "<(mesa_headers)/include/drm-uapi",
         "<(mesa_headers)/src",

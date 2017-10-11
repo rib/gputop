@@ -12,7 +12,6 @@
     },
     "dependencies": {
         "bindings": "^1.2.1",
-        "gputop-system-headers": "file:../gputop-server",
         "gputop-mesa-headers": "file:../mesa"
     },
     "files": [
@@ -28,7 +27,8 @@
         "gputop-client-c.h",
         "gputop-client-c.c",
         "gputop-client-c-bindings.h",
-        "gputop-client-c-bindings.cpp"
+        "gputop-client-c-bindings.cpp",
+        "gputop-oa-metrics.h"
     ],
     "scripts": {
         "install": "node-gyp rebuild $NODE_GYP_FLAGS"

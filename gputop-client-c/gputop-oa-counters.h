@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <inttypes.h>
 
-#include <gputop-oa-metrics.h>
+#include "gputop-oa-metrics.h"
 
 
 #ifdef __cplusplus

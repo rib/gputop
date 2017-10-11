@@ -10,7 +10,6 @@ CC=emcc
 top_srcdir=../..
 srcdir=$(top_srcdir)/gputop-client-c
 gputop_datadir=$(top_srcdir)/gputop-data
-gputop_serverdir=$(top_srcdir)/gputop-server
 gputop_mesadir=$(top_srcdir)/mesa
 top_builddir=../..
 builddir=.
@@ -29,7 +28,6 @@ JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1
 _includes= \
 	-I$(top_srcdir) \
 	-I$(gputop_datadir) \
-	-I$(gputop_serverdir) \
 	-I$(client_c_srcdir) \
 	-I$(gputop_mesadir)/include \
 	-I$(gputop_mesadir)/include/drm-uapi \
