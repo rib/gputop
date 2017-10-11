@@ -35,12 +35,12 @@ pthread_once_t gputop_log_init_once = PTHREAD_ONCE_INIT;
 pthread_rwlock_t gputop_log_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 int gputop_log_len;
-gputop_list_t gputop_log_entries;
+struct list_head gputop_log_entries;
 
 void
 gputop_log_init(void)
 {
-    gputop_list_init(&gputop_log_entries);
+    list_inithead(&gputop_log_entries);
 }
 
 void
@@ -59,9 +59,9 @@ gputop_log(int level, const char *message, int len)
     pthread_rwlock_wrlock(&gputop_log_lock);
 
     if (gputop_log_len > 10000) {
-        entry = gputop_container_of(gputop_log_entries.prev,
-                                    struct gputop_log_entry, link);
-        gputop_list_remove(&entry->link);
+        entry = list_last_entry(&gputop_log_entries,
+                                struct gputop_log_entry, link);
+        list_del(&entry->link);
         free(entry->msg);
         gputop_log_len--;
     } else
@@ -70,7 +70,7 @@ gputop_log(int level, const char *message, int len)
     entry->level = level;
     entry->msg = strndup(message, len);
 
-    gputop_list_insert(gputop_log_entries.prev, &entry->link);
+    list_addtail(&entry->link, &gputop_log_entries);
     gputop_log_len++;
 
     pthread_rwlock_unlock(&gputop_log_lock);
@@ -80,7 +80,6 @@ Gputop__Log *
 gputop_get_pb_log(void)
 {
     Gputop__Log *log = NULL;
-    struct gputop_log_entry *entry, *tmp;
     int i = 0;
 
     pthread_once(&gputop_log_init_once, gputop_log_init);
@@ -96,7 +95,8 @@ gputop_get_pb_log(void)
     log->n_entries = gputop_log_len;
     log->entries = xmalloc(gputop_log_len * sizeof(void *));
 
-    gputop_list_for_each_safe(entry, tmp, &gputop_log_entries, link) {
+    list_for_each_entry_safe(struct gputop_log_entry, entry,
+                             &gputop_log_entries, link) {
         Gputop__LogEntry *pb_entry = xmalloc(sizeof(Gputop__LogEntry));
 
         gputop__log_entry__init(pb_entry);
@@ -106,7 +106,7 @@ gputop_get_pb_log(void)
 
         i++;
 
-        gputop_list_remove(&entry->link);
+        list_del(&entry->link);
     }
     gputop_log_len = 0;
 

@@ -29,10 +29,9 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#include "gputop-list.h"
+#include "util/list.h"
 
 #include "gputop.pb-c.h"
-
 
 #ifdef GPUTOP_ENABLE_DEBUG
 
@@ -54,7 +53,7 @@
 extern pthread_once_t gputop_log_init_once;
 extern pthread_rwlock_t gputop_log_lock;
 extern int gputop_log_len;
-extern gputop_list_t gputop_log_entries;
+extern struct list_head gputop_log_entries;
 
 enum gputop_log_level {
     GPUTOP_LOG_LEVEL_HIGH = 1,
@@ -64,7 +63,7 @@ enum gputop_log_level {
 };
 
 struct gputop_log_entry {
-    gputop_list_t link;
+    struct list_head link;
     char *msg;
     int level;
 };
