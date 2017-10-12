@@ -35,7 +35,7 @@
 using namespace v8;
 
 
-static std::map<std::string, struct gputop_metric_set *> _guid_to_metric_set_map;
+static std::map<std::string, const struct gputop_metric_set *> _guid_to_metric_set_map;
 
 static void
 gputop_console(int level, const char *message)
@@ -92,12 +92,12 @@ _gputop_cr_console_assert(bool condition, const char *message)
 }
 
 void
-gputop_cr_index_metric_set(const char *guid, struct gputop_metric_set *metric_set)
+gputop_cr_index_metric_set(const char *guid, const struct gputop_metric_set *metric_set)
 {
     _guid_to_metric_set_map[guid] = metric_set;
 }
 
-struct gputop_metric_set *
+const struct gputop_metric_set *
 gputop_cr_lookup_metric_set(const char *guid)
 {
     return _guid_to_metric_set_map[guid];

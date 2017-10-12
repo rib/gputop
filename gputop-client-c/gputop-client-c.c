@@ -86,10 +86,10 @@ assert_not_reached(void)
 int EMSCRIPTEN_KEEPALIVE
 gputop_cc_get_counter_id(const char *hw_config_guid, const char *counter_symbol_name)
 {
-    struct gputop_metric_set *metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
+    const struct gputop_metric_set *metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
 
     for (int t=0; t<metric_set->n_counters; t++) {
-        struct gputop_metric_set_counter *counter = &metric_set->counters[t];
+        const struct gputop_metric_set_counter *counter = &metric_set->counters[t];
         if (!strcmp(counter->symbol_name, counter_symbol_name))
             return t;
     }
@@ -101,7 +101,7 @@ forward_oa_accumulator_events(struct gputop_cc_stream *stream,
                               struct gputop_cc_oa_accumulator *oa_accumulator,
                               uint32_t events)
 {
-    struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
+    const struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
     int i;
 
     //printf("start ts = %"PRIu64" end ts = %"PRIu64" agg. period =%"PRIu64"\n",
@@ -119,7 +119,7 @@ forward_oa_accumulator_events(struct gputop_cc_stream *stream,
         double d_value = 0;
         uint64_t max = 0;
 
-        struct gputop_metric_set_counter *counter = &oa_metric_set->counters[i];
+        const struct gputop_metric_set_counter *counter = &oa_metric_set->counters[i];
 
         switch(counter->data_type) {
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
@@ -390,7 +390,7 @@ gputop_cc_set_system_property_string(const char *name, const char *value)
 }
 
 static void
-register_metric_set(struct gputop_metric_set *metric_set, void *data)
+register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 {
     gputop_cr_index_metric_set(metric_set->hw_config_guid, metric_set);
 }
@@ -401,8 +401,8 @@ gputop_cc_update_system_metrics(void)
     uint32_t devid = gputop_devinfo.devid;
     struct {
         char *devname;
-        void (*add_metrics_cb)(struct gputop_devinfo *devinfo,
-                               void (*register_metric_set)(struct gputop_metric_set *,
+        void (*add_metrics_cb)(const struct gputop_devinfo *devinfo,
+                               void (*register_metric_set)(const struct gputop_metric_set *,
                                                            void *),
                                void *data);
     } devname_to_metric_func[] = {

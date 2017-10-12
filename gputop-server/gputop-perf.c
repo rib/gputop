@@ -715,9 +715,10 @@ gputop_perf_open_cpu_stats(bool overwrite, uint64_t sample_period_ms)
 }
 
 static void
-register_metric_set(struct gputop_metric_set *metric_set, void *data)
+register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 {
-    gputop_hash_table_insert(metrics, metric_set->hw_config_guid, metric_set);
+    gputop_hash_table_insert(metrics, metric_set->hw_config_guid,
+                             (void *) metric_set);
 }
 
 static bool

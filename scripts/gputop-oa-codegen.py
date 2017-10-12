@@ -373,7 +373,7 @@ def output_counter_read(set, counter, counter_vars):
 
     c("static " + ret_ctype)
     read_sym = "{0}__{1}__{2}__read".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
-    c(read_sym + "(struct gputop_devinfo *devinfo,\n")
+    c(read_sym + "(const struct gputop_devinfo *devinfo,\n")
     c.indent(len(read_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
@@ -406,7 +406,7 @@ def output_counter_max(set, counter, counter_vars):
     c("/* {0} :: {1} */".format(set.get('name'), counter.get('name')))
     c("static " + ret_ctype)
     max_sym = "{0}__{1}__{2}__max".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
-    c(max_sym + "(struct gputop_devinfo *devinfo,\n")
+    c(max_sym + "(const struct gputop_devinfo *devinfo,\n")
     c.indent(len(max_sym) + 1)
     c("const struct gputop_metric_set *metric_set,\n")
     c("uint64_t *accumulator)\n")
@@ -616,7 +616,7 @@ def main():
         }
 
         static double
-        percentage_max_callback_float(struct gputop_devinfo *devinfo,
+        percentage_max_callback_float(const struct gputop_devinfo *devinfo,
                                       const struct gputop_metric_set *metric_set,
                                       uint64_t *accumulator)
         {
@@ -624,7 +624,7 @@ def main():
         }
 
         static uint64_t
-        percentage_max_callback_uint64(struct gputop_devinfo *devinfo,
+        percentage_max_callback_uint64(const struct gputop_devinfo *devinfo,
                                        const struct gputop_metric_set *metric_set,
                                        uint64_t *accumulator)
         {
@@ -654,8 +654,8 @@ def main():
                 counter.append(et.fromstring(xml_max_equation))
 
         c("\nstatic void\n")
-        c("add_" + set.get('underscore_name') + "_metric_set(struct gputop_devinfo *devinfo,\n" +
-          "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data)\n")
+        c("add_" + set.get('underscore_name') + "_metric_set(const struct gputop_devinfo *devinfo,\n" +
+          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)\n")
         c("{\n")
         c.indent(3)
 
@@ -707,8 +707,8 @@ def main():
     if args.xml_out:
         tree.write(args.xml_out)
 
-    h("void gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo,\n"
-      "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data);\n\n")
+    h("void gputop_oa_add_metrics_" + chipset + "(const struct gputop_devinfo *devinfo,\n"
+      "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data);\n\n")
 
     h(textwrap.dedent("""\
         #ifdef __cplusplus
@@ -719,8 +719,8 @@ def main():
 
 
     c("\nvoid")
-    c("gputop_oa_add_metrics_" + chipset + "(struct gputop_devinfo *devinfo,\n"
-      "    void (*register_metric_set)(struct gputop_metric_set *, void *), void *data)")
+    c("gputop_oa_add_metrics_" + chipset + "(const struct gputop_devinfo *devinfo,\n"
+      "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)")
     c("{")
     c.indent(4)
 

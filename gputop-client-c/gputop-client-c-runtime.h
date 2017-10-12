@@ -47,8 +47,8 @@ void gputop_cr_console_error(const char *format, ...);
 void _gputop_cr_console_assert(bool condition, const char *message);
 void gputop_cr_console_assert(bool condition, const char *format, ...);
 
-void gputop_cr_index_metric_set(const char *guid, struct gputop_metric_set *metric_set);
-struct gputop_metric_set *gputop_cr_lookup_metric_set(const char *guid);
+void gputop_cr_index_metric_set(const char *guid, const struct gputop_metric_set *metric_set);
+const struct gputop_metric_set *gputop_cr_lookup_metric_set(const char *guid);
 
 enum gputop_cr_accumulator_event {
     ACCUMULATOR_EVENT_PERIOD_ELAPSED    = 1,
