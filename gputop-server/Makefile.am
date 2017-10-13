@@ -30,8 +30,8 @@ libgputop_la_SOURCES = \
     $(oa_generated_sources) \
     gputop-perf.h \
     gputop-perf.c \
-    gputop-util.h \
-    gputop-util.c \
+    gputop-sysutil.h \
+    gputop-sysutil.c \
     gputop-log.h \
     gputop-log.c \
     gputop-mainloop.h \

@@ -46,6 +46,7 @@
 #include "gputop-server.h"
 #include "gputop-perf.h"
 #include "gputop-util.h"
+#include "gputop-sysutil.h"
 #include "gputop-cpu.h"
 #include "gputop-mainloop.h"
 #include "gputop-log.h"

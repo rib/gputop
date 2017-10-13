@@ -53,6 +53,7 @@
 #include "common/gen_device_info.h"
 
 #include "gputop-util.h"
+#include "gputop-sysutil.h"
 #include "gputop-mainloop.h"
 #include "gputop-log.h"
 #include "gputop-perf.h"

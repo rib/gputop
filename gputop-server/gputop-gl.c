@@ -41,6 +41,7 @@
 #include "gputop-gl.h"
 #include "gputop-mainloop.h"
 #include "gputop-util.h"
+#include "gputop-sysutil.h"
 #include "gputop-log.h"
 
 /* XXX: As a GL interposer we have to be extra paranoid about

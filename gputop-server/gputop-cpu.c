@@ -32,6 +32,7 @@
 #include <pthread.h>
 
 #include "gputop-util.h"
+#include "gputop-sysutil.h"
 #include "gputop-log.h"
 #include "gputop-cpu.h"
 

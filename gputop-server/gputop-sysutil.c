@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "gputop-sysutil.h"
 
 bool
 gputop_get_bool_env(const char *var)

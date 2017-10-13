@@ -144,34 +144,3 @@ array_append(struct array *array, void *data)
 }
 
 #define array_value_at(ARRAY, TYPE, IDX) *(((TYPE *)(ARRAY)->data) + IDX)
-
-bool
-gputop_get_bool_env(const char *var);
-
-uint64_t
-gputop_get_time(void);
-
-bool
-gputop_read_file(const char *filename, void *buf, int max);
-
-static bool __attribute__((unused))
-gputop_read_file_uint64(const char *file, uint64_t *value)
-{
-    char buf[32];
-    int fd, n;
-
-    fd = open(file, 0);
-    if (fd < 0)
-        return false;
-    n = read(fd, buf, sizeof (buf) - 1);
-    close(fd);
-    if (n < 0)
-        return false;
-
-    buf[n] = '\0';
-    *value = strtoull(buf, 0, 0);
-
-    return true;
-}
-
-

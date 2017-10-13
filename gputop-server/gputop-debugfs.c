@@ -35,7 +35,7 @@
 #include <fcntl.h>
 
 #include "gputop-util.h"
-
+#include "gputop-sysutil.h"
 
 static const char *debugfs_path = "/sys/kernel/debug";
 static bool debugfs_mounted;
