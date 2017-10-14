@@ -442,6 +442,8 @@ def output_availability(set, availability, counter_name):
         c(lines[(n_lines - 1)] + ") {")
         c.outdent(4)
 
+def output_units(unit):
+    return unit.replace(' ', '_').upper()
 
 def output_counter_report(set, counter):
     data_type = counter.get('data_type')
@@ -471,6 +473,7 @@ def output_counter_report(set, counter):
     c("counter->desc = \"" + counter.get('description') + "\";\n")
     c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
+    c("counter->units = GPUTOP_PERFQUERY_COUNTER_UNITS_" + output_units(counter.get('units')) + ";\n")
     c("counter->max_" + data_type + " = " + max_funcs[counter.get('symbol_name')] + "\n")
 
     if availability:

@@ -71,6 +71,38 @@ typedef enum {
     GPUTOP_PERFQUERY_COUNTER_TIMESTAMP,
 } gputop_counter_type_t;
 
+typedef enum {
+    /* size */
+    GPUTOP_PERFQUERY_COUNTER_UNITS_BYTES,
+
+    /* frequency */
+    GPUTOP_PERFQUERY_COUNTER_UNITS_HZ,
+
+    /* time */
+    GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_US,
+
+    /**/
+    GPUTOP_PERFQUERY_COUNTER_UNITS_PIXELS,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_TEXELS,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_THREADS,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT,
+
+    /* events */
+    GPUTOP_PERFQUERY_COUNTER_UNITS_MESSAGES,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_NUMBER,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_CYCLES,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_EVENTS,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_UTILIZATION,
+
+    /**/
+    GPUTOP_PERFQUERY_COUNTER_UNITS_EU_SENDS_TO_L3_CACHE_LINES,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_EU_ATOMIC_REQUESTS_TO_L3_CACHE_LINES,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_EU_REQUESTS_TO_L3_CACHE_LINES,
+    GPUTOP_PERFQUERY_COUNTER_UNITS_EU_BYTES_PER_L3_CACHE_LINE,
+
+    GPUTOP_PERFQUERY_COUNTER_UNITS_MAX
+} gputop_counter_units_t;
 
 #define OAREPORT_REASON_MASK           0x3f
 #define OAREPORT_REASON_SHIFT          19
@@ -78,30 +110,30 @@ typedef enum {
 #define OAREPORT_REASON_CTX_SWITCH     (1<<3)
 
 struct gputop_metric_set;
-struct gputop_metric_set_counter
-{
-   const char *name;
-   const char *symbol_name;
-   const char *desc;
-   gputop_counter_type_t type;
-   gputop_counter_data_type_t data_type;
-   union {
-       uint64_t (*max_uint64)(const struct gputop_devinfo *devinfo,
-                              const struct gputop_metric_set *metric_set,
-                              uint64_t *deltas);
-       double (*max_float)(const struct gputop_devinfo *devinfo,
-                           const struct gputop_metric_set *metric_set,
-                           uint64_t *deltas);
-   };
+struct gputop_metric_set_counter {
+    const char *name;
+    const char *symbol_name;
+    const char *desc;
+    gputop_counter_type_t type;
+    gputop_counter_data_type_t data_type;
+    gputop_counter_units_t units;
+    union {
+        uint64_t (*max_uint64)(const struct gputop_devinfo *devinfo,
+                               const struct gputop_metric_set *metric_set,
+                               uint64_t *deltas);
+        double (*max_float)(const struct gputop_devinfo *devinfo,
+                            const struct gputop_metric_set *metric_set,
+                            uint64_t *deltas);
+    };
 
-   union {
-      uint64_t (*oa_counter_read_uint64)(const struct gputop_devinfo *devinfo,
-                                         const struct gputop_metric_set *metric_set,
-                                         uint64_t *deltas);
-      double (*oa_counter_read_float)(const struct gputop_devinfo *devinfo,
-                                      const struct gputop_metric_set *metric_set,
-                                      uint64_t *deltas);
-   };
+    union {
+        uint64_t (*oa_counter_read_uint64)(const struct gputop_devinfo *devinfo,
+                                           const struct gputop_metric_set *metric_set,
+                                           uint64_t *deltas);
+        double (*oa_counter_read_float)(const struct gputop_devinfo *devinfo,
+                                        const struct gputop_metric_set *metric_set,
+                                        uint64_t *deltas);
+    };
 };
 
 struct gputop_register_prog {
@@ -109,8 +141,7 @@ struct gputop_register_prog {
     uint32_t val;
 };
 
-struct gputop_metric_set
-{
+struct gputop_metric_set {
     const char *name;
     const char *symbol_name;
     const char *hw_config_guid;
