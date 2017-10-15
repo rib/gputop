@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="GPU Top - GPU profiling tool">
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" type="text/css" href="gputop-ui.css">
+    <title>GPU Top</title>
+  </head>
+
+  <body>
+    <canvas class="emscripten" id="canvas"/>
+    <script>
+      Module = {
+        canvas: document.getElementById('canvas')
+      }
+    </script>
+    <script src="gputop-ui.js"></script>
+  </body>
+</html>

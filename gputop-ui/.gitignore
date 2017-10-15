@@ -1,0 +1,4 @@
+gputop.pb-c.[ch]
+gputop-ui
+tracepoint_format.leg.c
+tracepoint_parser
