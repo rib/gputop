@@ -903,7 +903,7 @@ for arg in args.xml:
                         #             mdapi_set.get('ShortName') + "\" Metric=\"" + mdapi_counter.get('ShortName') + "\"")
 
                     elif token[1:] not in raw_equations and token[1:] not in sys_vars:
-                        print_err("Unknown variable name: \"" + token + "\"")
+                        print_err("Unknown variable name: \"" + token + "\" in equation \"" + equation + "\"")
 
             symbol_name = counter.get('symbol_name')
 
