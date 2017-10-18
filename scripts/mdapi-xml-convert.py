@@ -194,6 +194,9 @@ sys_vars = { "EuCoresTotalCount",
              "GpuMinFrequencyMHz",
              "GpuMaxFrequencyMHz",
              "GpuTimestampFrequency",
+             "SliceMask",
+             "SubsliceMask",
+             "EuSubslicesTotalCount"
            }
 
 def underscore(name):
