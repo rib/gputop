@@ -16,6 +16,7 @@ kblgt2_xml = mdapi/MetricsXML_KBL_GT2.xml
 kblgt3_xml = mdapi/MetricsXML_KBL_GT3.xml
 glk_xml = mdapi/MetricsXML_GLK.xml
 cflgt2_xml = mdapi/MetricsXML_CFL_GT2.xml
+cflgt3_xml = mdapi/MetricsXML_CFL_GT3.xml
 cnl_xml = mdapi/MetricsXML_CNL.xml
 
 INTERNAL=0

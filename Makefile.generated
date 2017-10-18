@@ -13,6 +13,7 @@ oa_xml_files = \
 	oa-kblgt3.xml \
 	oa-glk.xml \
 	oa-cflgt2.xml \
+	oa-cflgt3.xml \
 	oa-cnl.xml
 
 gputop_xml_files = $(oa_xml_files:oa-%.xml=gputop-%.xml)
@@ -40,6 +41,8 @@ oa_generated_sources = \
 	oa-glk.c \
 	oa-cflgt2.h \
 	oa-cflgt2.c \
+	oa-cflgt3.h \
+	oa-cflgt3.c \
 	oa-cnl.h \
 	oa-cnl.c
 
