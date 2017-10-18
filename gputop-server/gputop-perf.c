@@ -733,7 +733,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
     } while (0)
 
     if (gputop_fake_mode) {
-	gputop_devinfo.gen = 8;
+	gputop_devinfo.gen = devinfo->gen;
 	gputop_devinfo.n_eus = 10;
 	gputop_devinfo.n_eu_slices = 1;
 	gputop_devinfo.n_eu_sub_slices = 1;
@@ -741,7 +741,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gputop_devinfo.subslice_mask = 0x1;
 	gputop_devinfo.gt_min_freq = 500;
 	gputop_devinfo.gt_max_freq = 1100;
-	gputop_devinfo.timestamp_frequency = 12500000;
+	gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
     } else {
 	drm_i915_getparam_t gp;
 	int revision;
