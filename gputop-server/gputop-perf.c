@@ -328,7 +328,6 @@ finish_stream_close(struct gputop_perf_stream *stream)
 	break;
     case GPUTOP_STREAM_CPU:
 	free(stream->cpu.stats_buf);
-	uv_timer_stop(&stream->cpu.sample_timer);
 	stream->cpu.stats_buf = NULL;
 	fprintf(stderr, "closed cpu stats stream\n");
 	break;
@@ -375,6 +374,8 @@ gputop_perf_stream_close(struct gputop_perf_stream *stream,
 	}
 	break;
     case GPUTOP_STREAM_CPU:
+        uv_close((uv_handle_t *)&stream->cpu.sample_timer, stream_handle_closed_cb);
+        stream->n_closing_uv_handles++;
 	break;
     }
 
