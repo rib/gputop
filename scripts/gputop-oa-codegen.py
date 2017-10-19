@@ -54,10 +54,13 @@ def check_operand_type(arg):
             return "<mi>" + arg + "</mi>"
     return arg
 
-mul_precedence = 2
-add_precedence = 1
-sub_precedence = 1
-default_precedence = 10 #a high value which denotes no brackets needed
+# http://en.cppreference.com/w/c/language/operator_precedence
+and_precedence = 8
+shft_precedence = 5
+mul_precedence = 3
+add_precedence = 2
+sub_precedence = 2
+default_precedence = 16 #a high value which denotes no brackets needed
 
 def put_brackets(arg):
     return "\n<mtext>(</mtext>" + arg + "\n<mtext>)</mtext>"
@@ -106,6 +109,33 @@ def mathml_splice_min(args):
     operand_0 = check_operand_type(args[0][0])
     operand_1 = check_operand_type(args[1][0])
     return ["\n<mtext>min ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
+
+def mathml_splice_lshft(args):
+    operand_0 = check_operand_type(args[0][0])
+    operand_1 = check_operand_type(args[1][0])
+    if args[0][1] < shft_precedence:
+        operand_0 = put_brackets(args[0][0])
+    if args[1][1] < shft_precedence:
+        operand_1 = put_brackets(args[1][0])
+    return [operand_1 + "\n<mo>&lt;&lt;</mo>" + operand_0, shft_precedence]
+
+def mathml_splice_rshft(args):
+    operand_0 = check_operand_type(args[0][0])
+    operand_1 = check_operand_type(args[1][0])
+    if args[0][1] < mul_precedence:
+        operand_0 = put_brackets(args[0][0])
+    if args[1][1] < mul_precedence:
+        operand_1 = put_brackets(args[1][0])
+    return [operand_1 + "\n<mo>&gt;&gt;</mo>" + operand_0, mul_precedence]
+
+def mathml_splice_and(args):
+    operand_0 = check_operand_type(args[0][0])
+    operand_1 = check_operand_type(args[1][0])
+    if args[0][1] < and_precedence:
+        operand_0 = put_brackets(args[0][0])
+    if args[1][1] < and_precedence:
+        operand_1 = put_brackets(args[1][0])
+    return [operand_1 + "\n<mo>&amp;</mo>" + operand_0, and_precedence]
 
 def emit_fadd(tmp_id, args):
     c("double tmp{0} = {1} + {2};".format(tmp_id, args[1], args[0]))
@@ -160,6 +190,18 @@ def emit_umin(tmp_id, args):
     c("uint64_t tmp{0} = MIN({1}, {2});".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
 
+def emit_lshft(tmp_id, args):
+    c("uint64_t tmp{0} = {1} << {2};".format(tmp_id, args[1], args[0]))
+    return tmp_id + 1
+
+def emit_rshft(tmp_id, args):
+    c("uint64_t tmp{0} = {1} >> {2};".format(tmp_id, args[1], args[0]))
+    return tmp_id + 1
+
+def emit_and(tmp_id, args):
+    c("uint64_t tmp{0} = {1} & {2};".format(tmp_id, args[1], args[0]))
+    return tmp_id + 1
+
 ops = {}
 #             (n operands, emitter1, emitter2)
 ops["FADD"] = (2, emit_fadd, mathml_splice_add)
@@ -173,6 +215,9 @@ ops["UDIV"] = (2, emit_udiv, mathml_splice_div)
 ops["UMUL"] = (2, emit_umul, mathml_splice_mul)
 ops["USUB"] = (2, emit_usub, mathml_splice_sub)
 ops["UMIN"] = (2, emit_umin, mathml_splice_min)
+ops["<<"]   = (2, emit_lshft, mathml_splice_lshft)
+ops[">>"]   = (2, emit_rshft, mathml_splice_rshft)
+ops["AND"]  = (2, emit_and, mathml_splice_and)
 
 def brkt(subexp):
     if " " in subexp:
