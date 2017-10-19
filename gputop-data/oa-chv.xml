@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1491577975" merge_md5="">
+<metrics version="1508420698" merge_md5="">
   <set name="Render Metrics Basic Gen8LP"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -7832,7 +7832,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Vertex Shader"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice1 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice1"
              description="The percentage of time in which PS thread is ready for dispatch on slice1 subslice1 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -7860,7 +7860,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice1 Subslice2 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice1 Subslice2"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice1 subslice2 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -7914,7 +7914,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice1 Subslice0 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice1 Subslice0"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice1 subslice0 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -7929,7 +7929,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice1 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice0 Subslice1 Port 0"
              description="The percentage of time in which thread header is ready on slice0 subslice1 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -7944,7 +7944,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice1 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice0 Subslice1 Port 1"
              description="The percentage of time in which thread header is ready on slice0 subslice1 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -8082,7 +8082,7 @@
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice2 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice0 Subslice2 Port 1"
              description="The percentage of time in which thread header is ready on slice0 subslice2 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -8097,7 +8097,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice2 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice0 Subslice2 Port 0"
              description="The percentage of time in which thread header is ready on slice0 subslice2 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -8205,7 +8205,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice2 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice2"
              description="The percentage of time in which PS thread is ready for dispatch on slice1 subslice2 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8220,7 +8220,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice0 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice1 Subslice0"
              description="The percentage of time in which PS thread is ready for dispatch on slice1 subslice0 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8235,7 +8235,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice1 Subslice1 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice1 Subslice1"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice1 subslice1 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8317,7 +8317,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice0 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice0 Subslice0 Port 0"
              description="The percentage of time in which thread header is ready on slice0 subslice0 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -8345,7 +8345,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="L3/Data Port/Atomics"
              />
-    <counter name="Thread Header Ready on Slice0 Subslice0 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice0 Subslice0 Port 1"
              description="The percentage of time in which thread header is ready on slice0 subslice0 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -8592,7 +8592,7 @@
              mdapi_group="EU Array/Pipes"
              mdapi_hw_unit_type="gpu"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice1 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice1 Subslice1 Port 1"
              description="The percentage of time in which thread header is ready on slice1 subslice1 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -8701,7 +8701,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Fragment Shader"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice0 Subslice2 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice0 Subslice2"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice0 subslice2 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8795,7 +8795,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="Sampler/Sampler Cache"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice0 Subslice0 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice0 Subslice0"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice0 subslice0 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8837,7 +8837,7 @@
              mdapi_group="L3/Data Port/SLM"
              mdapi_hw_unit_type="gpu"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice1 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice1 Subslice1 Port 0"
              description="The percentage of time in which thread header is ready on slice1 subslice1 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -8908,7 +8908,7 @@
              mdapi_group="GPU"
              mdapi_hw_unit_type="gpu"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice2 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice1 Subslice2 Port 0"
              description="The percentage of time in which thread header is ready on slice1 subslice2 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -8923,7 +8923,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice0 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice0"
              description="The percentage of time in which PS thread is ready for dispatch on slice0 subslice0 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -8991,7 +8991,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Output Merger"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice0 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice1 Subslice0 Port 1"
              description="The percentage of time in which thread header is ready on slice1 subslice0 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -9046,7 +9046,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice1 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice1"
              description="The percentage of time in which PS thread is ready for dispatch on slice0 subslice1 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -9061,7 +9061,7 @@
              mdapi_group="GPU/Thread Dispatcher"
              mdapi_hw_unit_type="subslice"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice2 Thread Dispatcher Port 1"
+    <counter name="Thread Header Ready on Slice1 Subslice2 Port 1"
              description="The percentage of time in which thread header is ready on slice1 subslice2 thread dispatcher port 1"
              data_type="float"
              max_equation="100"
@@ -9102,7 +9102,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="EU Array/Hull Shader"
              />
-    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice2 Thread Dispatcher"
+    <counter name="PS Thread Ready For Dispatch on Slice0 Subslice2"
              description="The percentage of time in which PS thread is ready for dispatch on slice0 subslice2 thread dispatcher"
              data_type="float"
              max_equation="100"
@@ -9158,7 +9158,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="3D Pipe/Fragment Shader"
              />
-    <counter name="Thread Header Ready on Slice1 Subslice0 Thread Dispatcher Port 0"
+    <counter name="Thread Header Ready on Slice1 Subslice0 Port 0"
              description="The percentage of time in which thread header is ready on slice1 subslice0 thread dispatcher port 0"
              data_type="float"
              max_equation="100"
@@ -9186,7 +9186,7 @@
              mdapi_hw_unit_type="gpu"
              mdapi_group="L3/Data Port/Atomics"
              />
-    <counter name="Non-PS Thread Ready For Dispatch on Slice0 Subslice1 Thread Dispatcher"
+    <counter name="NonPS Thread Ready For Dispatch on Slice0 Subslice1"
              description="The percentage of time in which non-PS thread is ready for dispatch on slice0 subslice1 thread dispatcher"
              data_type="float"
              max_equation="100"
