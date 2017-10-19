@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1508420698" merge_md5="">
+<metrics version="1508421574" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -10116,7 +10116,7 @@
     <counter name="GPU Time Elapsed"
              description="Time elapsed on the GPU during the measurement."
              data_type="uint64"
-             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
              underscore_name="gpu_time"
              units="ns"
              symbol_name="GpuTime"
@@ -10130,7 +10130,7 @@
              description="Average GPU Core Frequency in the measurement."
              data_type="uint64"
              max_equation="$GpuMaxFrequency"
-             equation="$GpuCoreClocks 1000000000 UMUL  GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV UDIV"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
              underscore_name="avg_gpu_core_frequency"
              units="hz"
              symbol_name="AvgGpuCoreFrequency"
