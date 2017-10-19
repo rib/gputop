@@ -270,7 +270,6 @@ def read_token_to_rpn_read(chipset, token, raw_offsets):
 
     assert 0
 
-
 def replace_read_tokens_with_rpn_read_ops(chipset, equation, raw_offsets):
     # MDAPI MetricSet equations use tokens like 'dw@0xff' for reading raw
     # values from snapshots, but this doesn't seem convenient for a few
@@ -372,6 +371,10 @@ def expand_macros(equation):
     equation = equation.replace('EuAggrDuration', "$Self $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV")
     return equation
 
+def fixup_equation(equation):
+    if equation is None:
+        return None
+    return equation.replace('$SubliceMask', '$SubsliceMask')
 
 # The MDAPI XML files sometimes duplicate the same Flex EU/OA regs
 # between configs with different AvailabilityEquations even though the
@@ -683,10 +686,10 @@ for arg in args.xml:
                 continue;
 
             deps = []
-            equations = str(mdapi_counter.get('SnapshotReportReadEquation')) + " " + \
-                        str(mdapi_counter.get('SnapshotReportDeltaEquation')) + " " + \
-                        str(mdapi_counter.get('DeltaReportReadEquation')) + " " + \
-                        str(mdapi_counter.get('NormalizationEquation'))
+            equations = fixup_equation(str(mdapi_counter.get('SnapshotReportReadEquation'))) + " " + \
+                        fixup_equation(str(mdapi_counter.get('SnapshotReportDeltaEquation'))) + " " + \
+                        fixup_equation(str(mdapi_counter.get('DeltaReportReadEquation'))) + " " + \
+                        fixup_equation(str(mdapi_counter.get('NormalizationEquation')))
             equations = expand_macros(equations)
             equations = equations.replace('$$', "$")
             for token in equations.split():
@@ -742,7 +745,7 @@ for arg in args.xml:
                 counter.set('high_watermark', high)
             counter.set('data_type', mdapi_counter.get('ResultType').lower())
 
-            max_eq = mdapi_counter.get('MaxValueEquation')
+            max_eq = fixup_equation(mdapi_counter.get('MaxValueEquation'))
             if max_eq:
                 counter.set('max_equation', max_eq)
 
@@ -814,7 +817,7 @@ for arg in args.xml:
             # delta report offsets (accumulated 64bit values that correspond
             # to the 32bit or 40bit values from raw repots)
 
-            raw_read_eq = mdapi_counter.get('SnapshotReportReadEquation')
+            raw_read_eq = fixup_equation(mdapi_counter.get('SnapshotReportReadEquation'))
             if raw_read_eq:
                 if raw_read_eq == "":
                     raw_read_eq = None
@@ -823,7 +826,7 @@ for arg in args.xml:
                                                                         raw_read_eq,
                                                                         True) #raw offsets
 
-            delta_read_eq = mdapi_counter.get('DeltaReportReadEquation')
+            delta_read_eq = fixup_equation(mdapi_counter.get('DeltaReportReadEquation'))
             if delta_read_eq:
                 if delta_read_eq == "":
                     delta_read_eq = None
@@ -856,7 +859,7 @@ for arg in args.xml:
                 set.remove(counter)
                 continue
 
-            normalize_eq = mdapi_counter.get('NormalizationEquation')
+            normalize_eq = fixup_equation(mdapi_counter.get('NormalizationEquation'))
             if normalize_eq and normalize_eq == "":
                 normalize_eq = None
 
@@ -925,7 +928,7 @@ for arg in args.xml:
 
             counter.set('equation', equation.strip())
 
-            availability = mdapi_counter.get('AvailabilityEquation')
+            availability = fixup_equation(mdapi_counter.get('AvailabilityEquation'))
             if availability == "":
                 availability = None
 
