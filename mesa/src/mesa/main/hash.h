@@ -32,6 +32,11 @@
 #define HASH_H
 
 typedef uint GLuint;
+typedef uint GLboolean;
+typedef uint mtx_t;
+
+static inline void mtx_lock(mtx_t *mtx) {}
+static inline void mtx_unlock(mtx_t *mtx) {}
 
 /**
  * Magic GLuint object name that gets stored outside of the struct hash_table.
@@ -94,6 +99,88 @@ uint_key(GLuint id)
    return (void *)(uintptr_t) id;
 }
 /** @} */
+
+/**
+ * The hash table data structure.
+ */
+struct _mesa_HashTable {
+   struct hash_table *ht;
+   GLuint MaxKey;                        /**< highest key inserted so far */
+   mtx_t Mutex;                          /**< mutual exclusion lock */
+   GLboolean InDeleteAll;                /**< Debug check */
+   /** Value that would be in the table for DELETED_KEY_VALUE. */
+   void *deleted_key_data;
+};
+
+extern struct _mesa_HashTable *_mesa_NewHashTable(void);
+
+extern void _mesa_DeleteHashTable(struct _mesa_HashTable *table);
+
+extern void *_mesa_HashLookup(struct _mesa_HashTable *table, GLuint key);
+
+extern void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data);
+
+extern void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key);
+
+/**
+ * Lock the hash table mutex.
+ *
+ * This function should be used when multiple objects need
+ * to be looked up in the hash table, to avoid having to lock
+ * and unlock the mutex each time.
+ *
+ * \param table the hash table.
+ */
+static inline void
+_mesa_HashLockMutex(struct _mesa_HashTable *table)
+{
+   assert(table);
+   mtx_lock(&table->Mutex);
+}
+
+
+/**
+ * Unlock the hash table mutex.
+ *
+ * \param table the hash table.
+ */
+static inline void
+_mesa_HashUnlockMutex(struct _mesa_HashTable *table)
+{
+   assert(table);
+   mtx_unlock(&table->Mutex);
+}
+
+extern void *_mesa_HashLookupLocked(struct _mesa_HashTable *table, GLuint key);
+
+extern void _mesa_HashInsertLocked(struct _mesa_HashTable *table,
+                                   GLuint key, void *data);
+
+extern void _mesa_HashRemoveLocked(struct _mesa_HashTable *table, GLuint key);
+
+extern void
+_mesa_HashDeleteAll(struct _mesa_HashTable *table,
+                    void (*callback)(GLuint key, void *data, void *userData),
+                    void *userData);
+
+extern void
+_mesa_HashWalk(const struct _mesa_HashTable *table,
+               void (*callback)(GLuint key, void *data, void *userData),
+               void *userData);
+
+extern void
+_mesa_HashWalkLocked(const struct _mesa_HashTable *table,
+                     void (*callback)(GLuint key, void *data, void *userData),
+                     void *userData);
+
+extern void _mesa_HashPrint(const struct _mesa_HashTable *table);
+
+extern GLuint _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys);
+
+extern GLuint
+_mesa_HashNumEntries(const struct _mesa_HashTable *table);
+
+extern void _mesa_test_hash_functions(void);
 
 
 #endif
