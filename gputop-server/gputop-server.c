@@ -1103,6 +1103,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message pb_message = GPUTOP__MESSAGE__INIT;
     Gputop__Features pb_features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo pb_devinfo = GPUTOP__DEV_INFO__INIT;
+    Gputop__DevTopology pb_topology = GPUTOP__DEV_TOPOLOGY__INIT;
     char *notices[] = {
         "RC6 power saving mode disabled"
     };
@@ -1120,18 +1121,25 @@ handle_get_features(h2o_websocket_conn_t *conn,
     const struct gputop_devinfo *devinfo = gputop_perf_get_devinfo();
     pb_devinfo.devid = devinfo->devid;
     pb_devinfo.gen = devinfo->gen;
-    pb_devinfo.n_eus = devinfo->n_eus;
-    pb_devinfo.n_eu_slices = devinfo->n_eu_slices;
-    pb_devinfo.n_eu_sub_slices = devinfo->n_eu_sub_slices;
-    pb_devinfo.eu_threads_count = devinfo->eu_threads_count;
-    pb_devinfo.subslice_mask = devinfo->subslice_mask;
-    pb_devinfo.slice_mask = devinfo->slice_mask;
     pb_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
     pb_devinfo.gt_min_freq = devinfo->gt_min_freq;
     pb_devinfo.gt_max_freq = devinfo->gt_max_freq;
 
     pb_devinfo.devname = (char *) devinfo->devname;
     pb_devinfo.prettyname = (char *) devinfo->prettyname;
+
+    const struct gputop_devtopology *devtopology = &devinfo->topology;
+    pb_topology.max_slices = devtopology->max_slices;
+    pb_topology.max_subslices = devtopology->max_subslices;
+    pb_topology.max_eus_per_subslice = devtopology->max_eus_per_subslice;
+    pb_topology.n_threads_per_eu = devtopology->n_threads_per_eu;
+    pb_topology.slices_mask.len = ARRAY_SIZE(devtopology->slices_mask);
+    pb_topology.slices_mask.data = (uint8_t *) devtopology->slices_mask;
+    pb_topology.subslices_mask.len = ARRAY_SIZE(devtopology->subslices_mask);
+    pb_topology.subslices_mask.data = (uint8_t *) devtopology->subslices_mask;
+    pb_topology.eus_mask.len = ARRAY_SIZE(devtopology->eus_mask);
+    pb_topology.eus_mask.data = (uint8_t *) devtopology->eus_mask;
+    pb_devinfo.topology = &pb_topology;
 
     pb_features.fake_mode = gputop_fake_mode;
 

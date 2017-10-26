@@ -4,21 +4,27 @@ package gputop;
  * To Browser
  */
 
+message DevTopology
+{
+    required uint32 max_slices = 1;
+    required uint32 max_subslices = 2;
+    required uint32 max_eus_per_subslice = 3;
+    required uint32 n_threads_per_eu = 4;
+    required bytes slices_mask = 5;
+    required bytes subslices_mask = 6;
+    required bytes eus_mask = 7;
+}
+
 message DevInfo
 {
     required uint32 devid = 1;
-    required uint64 n_eus = 2;
-    required uint64 n_eu_slices = 3;
-    required uint64 n_eu_sub_slices = 4;
-    required uint64 eu_threads_count = 5;
-    required uint64 subslice_mask = 6;
-    required uint64 slice_mask = 7;
-    required uint32 gen = 8;
-    required uint64 timestamp_frequency=9;
-    required uint64 gt_min_freq=10;
-    required uint64 gt_max_freq=11;
-    required string devname = 12;
-    required string prettyname = 13;
+    required uint32 gen = 2;
+    required uint64 timestamp_frequency = 3;
+    required uint64 gt_min_freq = 4;
+    required uint64 gt_max_freq = 5;
+    required string devname = 6;
+    required string prettyname = 7;
+    required DevTopology topology = 8;
 }
 
 enum GLCounterType

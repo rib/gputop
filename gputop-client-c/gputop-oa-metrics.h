@@ -34,6 +34,18 @@
 extern "C" {
 #endif
 
+struct gputop_devtopology {
+    uint32_t max_slices;
+    uint32_t max_subslices;
+    uint32_t max_eus_per_subslice;
+    uint32_t n_threads_per_eu;
+
+    /* Max values should be enough for a while. */
+    uint8_t slices_mask[1];
+    uint8_t subslices_mask[10];
+    uint8_t eus_mask[128];
+};
+
 struct gputop_devinfo {
     char devname[20];
     char prettyname[100];
@@ -42,16 +54,22 @@ struct gputop_devinfo {
     uint32_t gen;
     uint32_t revision;
     uint64_t timestamp_frequency;
-    uint64_t n_eus;
-    uint64_t n_eu_slices;
-    uint64_t n_eu_sub_slices;
-    uint64_t eu_threads_count;
-    uint64_t subslice_mask;
-    uint64_t slice_mask;
     uint64_t gt_min_freq;
     uint64_t gt_max_freq;
 
     bool has_dynamic_configs;
+
+    struct gputop_devtopology topology;
+
+    /* The following fields are prepared for equations from the XML files.
+     * Their values are build up from the topology fields.
+     */
+    uint64_t n_eus;
+    uint64_t n_eu_slices;
+    uint64_t n_eu_sub_slices;
+    uint64_t subslice_mask;
+    uint64_t slice_mask;
+    uint64_t eu_threads_count;
 };
 
 typedef enum {

@@ -73,6 +73,8 @@
 #include "oa-glk.h"
 #include "oa-cflgt2.h"
 
+#include "util/bitscan.h"
+#include "util/macros.h"
 
 /* Samples read() from i915 perf */
 struct oa_sample {
@@ -726,9 +728,95 @@ register_metric_set(const struct gputop_metric_set *metric_set, void *data)
                              (void *) metric_set);
 }
 
+static void
+devinfo_build_topology(const struct gen_device_info *devinfo,
+                       struct gputop_devtopology *topology)
+{
+    int s, ss, eug;
+    int slice_stride, subslice_stride;
+
+    topology->max_slices = devinfo->num_slices;
+    topology->max_subslices = devinfo->num_subslices[0];
+    if (devinfo->is_haswell)
+        topology->max_eus_per_subslice = 10;
+    else
+        topology->max_eus_per_subslice = 8; // TODO.
+
+    subslice_stride = DIV_ROUND_UP(topology->max_eus_per_subslice, 8);
+    slice_stride = subslice_stride * topology->max_subslices;
+
+    for (s = 0; s < devinfo->num_slices; s++) {
+        topology->slices_mask[0] |= 1U << s;
+
+        for (ss = 0; ss < devinfo->num_subslices[s]; ss++) {
+            /* Assuming we have never more than 8 subslices. */
+            topology->subslices_mask[s] |= 1U << ss;
+
+            for (eug = 0; eug < subslice_stride; eug++) {
+                topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
+                    (((1UL << topology->max_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
+            }
+        }
+    }
+}
+
+static void
+i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
+{
+    drm_i915_getparam_t gp;
+    int s_mask = 0, ss_mask = 0, n_eus = 0, n_slices = 0, n_subslices = 0;
+    int s, ss, eug;
+
+    gp.param = I915_PARAM_SLICE_MASK;
+    gp.value = &s_mask;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
+        topology->slices_mask[0] = s_mask;
+        topology->max_slices = util_last_bit(s_mask);
+        n_slices = __builtin_popcount(s_mask);
+    }
+
+    gp.param = I915_PARAM_SUBSLICE_MASK;
+    gp.value = &ss_mask;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
+        memset(topology->subslices_mask, 0, sizeof(topology->subslices_mask));
+        for (ss = 0; ss < DIV_ROUND_UP(util_last_bit(ss_mask), 8); ss++) {
+            topology->subslices_mask[ss] = ss_mask & (0xff << (ss * 8));
+        }
+        topology->max_subslices = util_last_bit(ss_mask);
+        n_subslices = __builtin_popcount(ss_mask);
+    }
+
+    gp.param = I915_PARAM_EU_TOTAL;
+    gp.value = &n_eus;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
+        int subslice_stride =
+            DIV_ROUND_UP(n_eus / (topology->max_slices * topology->max_subslices), 8);
+        int slice_stride = subslice_stride * topology->max_subslices;
+        int n_eus_per_subslice = n_eus / (n_slices * n_subslices);
+
+        int subslice_slice_stride = DIV_ROUND_UP(topology->max_subslices, 8);
+
+        topology->max_eus_per_subslice = 8 * DIV_ROUND_UP(n_eus_per_subslice, 8);
+
+        memset(topology->eus_mask, 0, sizeof(topology->eus_mask));
+        for (s = 0; s < topology->max_slices; s++) {
+            for (ss = 0; ss < topology->max_subslices; ss++) {
+                if (topology->subslices_mask[s * subslice_slice_stride + ss / 8] & (1UL << (ss % 8))) {
+                    for (eug = 0; eug < subslice_stride; eug++) {
+                        topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
+                            (((1UL << n_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
+                    }
+                }
+            }
+        }
+    }
+}
+
 static bool
 init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
+    struct gputop_devtopology *topology = &gputop_devinfo.topology;
+
     memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
     gputop_devinfo.devid = devid;
 
@@ -737,29 +825,19 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	strncpy(g.prettyname, _prettyname, sizeof(g.prettyname));       \
     } while (0)
 
+    gputop_devinfo.gen = devinfo->gen;
+    gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
+    topology->n_threads_per_eu = devinfo->num_thread_per_eu;
+
     if (gputop_fake_mode) {
-	gputop_devinfo.gen = devinfo->gen;
-	gputop_devinfo.n_eus = 10;
-	gputop_devinfo.n_eu_slices = 1;
-	gputop_devinfo.n_eu_sub_slices = 1;
-	gputop_devinfo.slice_mask = 0x1;
-	gputop_devinfo.subslice_mask = 0x1;
+	topology->slices_mask[0] = 0x1;
+	topology->subslices_mask[0] = 0x1;
+	topology->eus_mask[0] = 0xff;
 	gputop_devinfo.gt_min_freq = 500;
 	gputop_devinfo.gt_max_freq = 1100;
-	gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
     } else {
-	drm_i915_getparam_t gp;
+        drm_i915_getparam_t gp;
 	int revision, timestamp_frequency;
-
-	gputop_devinfo.gen = devinfo->gen;
-	gputop_devinfo.n_eu_slices = devinfo->num_slices;
-	gputop_devinfo.n_eu_sub_slices = devinfo->num_subslices[0];
-	gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
-
-	for (int s = 0; s < devinfo->num_slices; s++)
-	    gputop_devinfo.slice_mask |= 1U << s;
-	for (int ss = 0; ss < devinfo->num_subslices[0]; ss++)
-	    gputop_devinfo.subslice_mask = 1U << ss;
 
 	gp.param = I915_PARAM_REVISION;
 	gp.value = &revision;
@@ -774,51 +852,9 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
         if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
             gputop_devinfo.timestamp_frequency = timestamp_frequency;
 
-	if (devinfo->is_haswell) {
-	    gputop_devinfo.n_eus =
-		devinfo->num_slices * devinfo->num_subslices[0] * 10;
-	} else { /* Gen 8+ */
-	    int n_eus = 0;
-	    int slice_mask = 0;
-	    int ss_mask = 0;
-	    int s_max = devinfo->num_slices;
-	    int ss_max = devinfo->num_subslices[0];
-	    uint64_t subslice_mask = 0;
-	    int s;
-
-	    gp.param = I915_PARAM_EU_TOTAL;
-	    gp.value = &n_eus;
-	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
-	    gp.param = I915_PARAM_SLICE_MASK;
-	    gp.value = &slice_mask;
-	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
-	    gp.param = I915_PARAM_SUBSLICE_MASK;
-	    gp.value = &ss_mask;
-	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
-	    gputop_devinfo.n_eus = n_eus;
-	    gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
-	    gputop_devinfo.slice_mask = slice_mask;
-
-	    /* Note: the _SUBSLICE_MASK param only reports a global subslice
-	     * mask which applies to all slices.
-	     *
-	     * Note: some of the metrics we have (as described in XML) are
-	     * conditional on a $SubsliceMask variable which is expected to
-	     * also reflect the slice mask by packing together subslice masks
-	     * for each slice in one value..
-	     */
-	    for (s = 0; s < s_max; s++) {
-		if (slice_mask & (1<<s)) {
-		    subslice_mask |= ss_mask << (ss_max * s);
-		}
-	    }
-
-	    gputop_devinfo.subslice_mask = subslice_mask;
-	    gputop_devinfo.n_eu_sub_slices = __builtin_popcount(ss_mask);
-	}
+        devinfo_build_topology(devinfo, topology);
+        if (!devinfo->is_haswell)
+            i915_query_old_slice_masks(fd, topology);
 
 	assert(drm_card >= 0);
 	if (!sysfs_card_read("gt_min_freq_mhz", &gputop_devinfo.gt_min_freq))
@@ -828,8 +864,6 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gputop_devinfo.gt_min_freq *= 1000000;
 	gputop_devinfo.gt_max_freq *= 1000000;
     }
-
-    gputop_devinfo.eu_threads_count = gputop_devinfo.n_eus * devinfo->num_thread_per_eu;
 
     if (devinfo->is_haswell) {
 	SET_NAMES(gputop_devinfo, "hsw", "Haswell");
@@ -1628,7 +1662,7 @@ gputop_perf_initialize(void)
 
     list_inithead(&ctx_handles_list);
 
-    if (gputop_devinfo.n_eus)
+    if (gputop_devinfo.topology.max_slices)
 	return true;
 
     if (getenv("GPUTOP_FAKE_MODE") && strcmp(getenv("GPUTOP_FAKE_MODE"), "1") == 0) {
