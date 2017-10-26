@@ -35,14 +35,26 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#ifndef MAYBE_UNUSED
 #define MAYBE_UNUSED __attribute__((unused))
+#endif
 
+#ifndef unlikely
 #define unlikely(x) __builtin_expect(x, 0)
+#endif
 
+#ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+#ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
+#endif
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+#endif
+#ifndef ALIGN
+#define ALIGN(x, align) (((x) % (align)) == 0 ? (x) : ((x) + ((align) - (x) % (align))))
+#endif
 
 static inline void *
 xmalloc(size_t size)
@@ -87,7 +99,7 @@ struct array
 static inline struct array *
 array_new(size_t elem_size, int alloc_len)
 {
-    struct array *array = xmalloc(sizeof(struct array));
+    struct array *array = (struct array *) xmalloc(sizeof(struct array));
 
     array->elem_size = elem_size;
     array->len = 0;
