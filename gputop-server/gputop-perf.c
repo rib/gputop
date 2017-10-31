@@ -1516,6 +1516,18 @@ gputop_enumerate_metrics_via_sysfs(void)
     DIR *metrics_dir;
     struct dirent *entry;
     char buffer[128];
+    uint64_t paranoid = 0;
+
+    if (!gputop_read_file_uint64("/proc/sys/dev/i915/perf_stream_paranoid", &paranoid)) {
+        fprintf(stderr, "Kernel is missing i915 perf support\n");
+        return false;
+    }
+
+    if (getuid() != 0 && paranoid) {
+        fprintf(stderr, "Warning, i915 perf is in paranoid mode\n"
+                "You might want to run :\n"
+                "\tsudo sysctl dev.i915.perf_stream_paranoid=0\n");
+    }
 
     assert(drm_card >= 0);
     snprintf(buffer, sizeof(buffer), "/sys/class/drm/card%d/metrics", drm_card);
