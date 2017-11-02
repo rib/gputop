@@ -284,10 +284,10 @@ def output_sysfs_code(sets):
     c.indent(8)
 
     for metric_set in sets:
-        c("strncpy(dev_priv->perf.oa.test_config.uuid,")
+        c("strlcpy(dev_priv->perf.oa.test_config.uuid,")
         c.indent(8)
         c("\"" + metric_set['guid'] + "\",")
-        c("UUID_STRING_LEN);")
+        c("sizeof(dev_priv->perf.oa.test_config.uuid));")
         c.outdent(8)
         c("dev_priv->perf.oa.test_config.id = 1;")
         c("\n")
