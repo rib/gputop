@@ -190,7 +190,7 @@ def count_config_mux_registers(config):
 
 def output_mux_config(metric_set, config):
     c("\nstatic const struct i915_oa_reg mux_config_" + metric_set['perf_name_lc'] + "[] = {")
-    
+
     c.indent(8)
     for reg in config.findall("register"):
         assert reg.get('type') == 'NOA'
@@ -198,10 +198,10 @@ def output_mux_config(metric_set, config):
         addr_str = "0x%x" % addr
         val = int(reg.get('value'), 16)
         val_str = "0x%08x" % val
-        
+
         c("{ _MMIO(" + addr_str + "), " + val_str + " },")
     c.outdent(8)
-    
+
     c("};")
 
 
@@ -227,7 +227,7 @@ def output_config(metric_set, config):
     c("},")
     c.outdent(8)
     c("};")
-    
+
 def output_config_select(metric_set):
     c("dev_priv->perf.oa.mux_regs =")
     c.indent(8)
