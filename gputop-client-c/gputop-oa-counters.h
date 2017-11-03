@@ -90,6 +90,42 @@ bool gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulato
                                      const uint8_t *report0,
                                      const uint8_t *report1);
 
+static inline uint32_t
+gputop_cc_oa_accumulator_get_ctx_id(struct gputop_cc_oa_accumulator *accumulator,
+                                    const uint8_t *report)
+{
+    if (accumulator->devinfo->gen < 8)
+        return 0;
+    return ((uint32_t *) report)[2];
+}
+
+static inline bool
+gputop_cc_oa_report_ctx_is_valid(const struct gputop_devinfo *devinfo,
+                                 const uint8_t *_report)
+{
+    const uint32_t *report = (const uint32_t *) _report;
+
+    if (devinfo->gen < 8) {
+        return false; /* TODO */
+    } else if (devinfo->gen == 8) {
+        return report[0] & (1ul << 25);
+    } else if (devinfo->gen > 8) {
+        return report[0] & (1ul << 16);
+    }
+
+    return false;
+}
+
+
+static inline uint32_t
+gputop_cc_oa_report_get_ctx_id(const struct gputop_devinfo *devinfo,
+                               const uint8_t *report)
+{
+    if (!gputop_cc_oa_report_ctx_is_valid(devinfo, report))
+        return 0xffffffff;
+    return ((const uint32_t *) report)[2];
+}
+
 #ifdef __cplusplus
 }
 #endif
