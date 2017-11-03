@@ -54,25 +54,25 @@ gputop_console(int level, const char *message)
     log->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
 
-void
+extern "C" void
 _gputop_cr_console_log(const char *message)
 {
     gputop_console(0, message);
 }
 
-void
+extern "C" void
 _gputop_cr_console_warn(const char *message)
 {
     gputop_console(1, message);
 }
 
-void
+extern "C" void
 _gputop_cr_console_error(const char *message)
 {
     gputop_console(2, message);
 }
 
-void
+extern "C" void
 _gputop_cr_console_assert(bool condition, const char *message)
 {
     Isolate* isolate = Isolate::GetCurrent();
@@ -91,7 +91,7 @@ _gputop_cr_console_assert(bool condition, const char *message)
     fn->Call(ctx_scope, ARRAY_LENGTH(argv), argv);
 }
 
-void
+extern "C" void
 gputop_cr_index_metric_set(const char *guid, const struct gputop_metric_set *metric_set)
 {
     _guid_to_metric_set_map[guid] = metric_set;
@@ -103,7 +103,7 @@ gputop_cr_lookup_metric_set(const char *guid)
     return _guid_to_metric_set_map[guid];
 }
 
-bool
+extern "C" bool
 _gputop_cr_accumulator_start_update(struct gputop_cc_stream *stream,
                                     struct gputop_cc_oa_accumulator *accumulator,
                                     uint32_t events,
@@ -131,7 +131,7 @@ _gputop_cr_accumulator_start_update(struct gputop_cc_stream *stream,
 }
 
 
-void
+extern "C" void
 _gputop_cr_accumulator_append_count(int counter,
                                     double max, double value)
 {
@@ -147,7 +147,7 @@ _gputop_cr_accumulator_append_count(int counter,
     fn->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
 
-void
+extern "C" void
 _gputop_cr_accumulator_end_update(void)
 {
     Isolate* isolate = Isolate::GetCurrent();
