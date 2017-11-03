@@ -159,6 +159,3 @@ _gputop_cr_accumulator_end_update(void)
     Local<Value> argv[] = { };
     fn->Call(gputop, ARRAY_LENGTH(argv), argv);
 }
-
-
-
