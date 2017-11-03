@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+#define GPUTOP_OA_INVALID_CTX_ID (0xffffffff)
+
 /* NB: the timestamps written by the OA unit are 32 bits counting in ~80
  * nanosecond units (at least on Haswell) so it wraps every ~ 6 minutes, this
  * gputop_u32_clock api accumulates a 64bit monotonic timestamp in nanoseconds
@@ -121,7 +123,7 @@ gputop_cc_oa_report_get_ctx_id(const struct gputop_devinfo *devinfo,
                                const uint8_t *report)
 {
     if (!gputop_cc_oa_report_ctx_is_valid(devinfo, report))
-        return 0xffffffff;
+        return GPUTOP_OA_INVALID_CTX_ID;
     return ((const uint32_t *) report)[2];
 }
 
