@@ -599,7 +599,7 @@ forward_logs(void)
     if (log) {
         Gputop__Message msg = GPUTOP__MESSAGE__INIT;
 
-        fprintf(stderr, "forwarding log to UI\n");
+        server_dbg("forwarding log to UI\n");
 
         msg.cmd_case = GPUTOP__MESSAGE__CMD_LOG;
         msg.log = log;
@@ -1320,27 +1320,27 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
 
         switch (request->req_case) {
         case GPUTOP__REQUEST__REQ_GET_TRACEPOINT_INFO:
-            fprintf(stderr, "GetTracepointInfo request received\n");
+            server_dbg("GetTracepointInfo request received\n");
             handle_get_tracepoint_info(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_GET_PROCESS_INFO:
-            fprintf(stderr, "GetProcessInfo request received\n");
+            server_dbg("GetProcessInfo request received\n");
             handle_get_process_info(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_GET_FEATURES:
-            fprintf(stderr, "GetFeatures request received\n");
+            server_dbg("GetFeatures request received\n");
             handle_get_features(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_OPEN_STREAM:
-            fprintf(stderr, "OpenStream request received\n");
+            server_dbg("OpenStream request received\n");
             handle_open_stream(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_CLOSE_STREAM:
-            fprintf(stderr, "CloseStream request received\n");
+            server_dbg("CloseStream request received\n");
             handle_close_stream(conn, request);
             break;
         case GPUTOP__REQUEST__REQ_TEST_LOG:
-            fprintf(stderr, "TEST LOG: %s\n", request->test_log);
+            server_dbg("TEST LOG: %s\n", request->test_log);
             break;
         case GPUTOP__REQUEST__REQ__NOT_SET:
             assert(0);

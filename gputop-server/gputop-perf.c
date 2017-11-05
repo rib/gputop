@@ -300,7 +300,7 @@ finish_stream_close(struct gputop_perf_stream *stream)
 	    close(stream->fd);
 	    stream->fd = -1;
 
-	    fprintf(stderr, "closed perf stream\n");
+	    server_dbg("closed perf stream\n");
 	}
 
 	break;
@@ -312,18 +312,18 @@ finish_stream_close(struct gputop_perf_stream *stream)
 	    }
 	}
 	if (stream->fd == -1)
-	    fprintf(stderr, "closed i915 fake perf stream\n");
+	    server_dbg("closed i915 fake perf stream\n");
 	else if (stream->fd > 0) {
 	    close(stream->fd);
 	    stream->fd = -1;
-	    fprintf(stderr, "closed i915 perf stream\n");
+	    server_dbg("closed i915 perf stream\n");
 	}
 
 	break;
     case GPUTOP_STREAM_CPU:
 	free(stream->cpu.stats_buf);
 	stream->cpu.stats_buf = NULL;
-	fprintf(stderr, "closed cpu stats stream\n");
+	server_dbg("closed cpu stats stream\n");
 	break;
     }
 
@@ -389,7 +389,7 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 	    stream->user.destroy_cb(stream);
 
 	free(stream);
-	fprintf(stderr, "freed gputop-perf stream\n");
+	server_dbg("freed gputop-perf stream\n");
     }
 }
 
@@ -802,7 +802,6 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 		    subslice_mask |= ss_mask << (ss_max * s);
 		}
 	    }
-	    fprintf(stderr, "SliceMask=0x%x SubSliceMask=0x%x\n", slice_mask, ss_mask);
 
 	    gputop_devinfo.subslice_mask = subslice_mask;
 	    gputop_devinfo.n_eu_sub_slices = __builtin_popcount(ss_mask);

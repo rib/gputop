@@ -49,6 +49,9 @@
 
 #endif
 
+#define server_dbg(format, ...) do { \
+    fprintf(stderr, format, ##__VA_ARGS__); \
+} while(0)
 
 extern pthread_once_t gputop_log_init_once;
 extern pthread_rwlock_t gputop_log_lock;
