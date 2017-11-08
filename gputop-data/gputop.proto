@@ -1,8 +1,19 @@
+syntax = "proto2";
+
 package gputop;
 
 /*
  * To Browser
  */
+
+enum EngineClass
+{
+    OTHER = 0;
+    RENDER = 1;
+    COPY = 2;
+    VIDEO = 3;
+    VIDEO_ENHANCE = 4;
+}
 
 message DevTopology
 {
@@ -13,6 +24,8 @@ message DevTopology
     required bytes slices_mask = 5;
     required bytes subslices_mask = 6;
     required bytes eus_mask = 7;
+
+    repeated uint32 engines = 8;
 }
 
 message DevInfo

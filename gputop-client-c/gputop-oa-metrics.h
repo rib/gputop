@@ -44,6 +44,8 @@ struct gputop_devtopology {
     uint8_t slices_mask[1];
     uint8_t subslices_mask[10];
     uint8_t eus_mask[128];
+
+    uint32_t engines[5];
 };
 
 struct gputop_devinfo {
