@@ -16,12 +16,13 @@ gputop_LDFLAGS = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     -ldl
 gputop_CFLAGS = \
-    $(GPUTOP_EXTRA_CFLAGS) \
-    -std=gnu99
+    -std=c99 \
+    $(GPUTOP_EXTRA_CFLAGS)
 gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(top_srcdir)/gputop-client-c \
-    -I$(srcdir)
+    -I$(srcdir) \
+    -DHAVE_FUNC_ATTRIBUTE_UNUSED
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
@@ -61,13 +62,14 @@ libgputop_la_CPPFLAGS = \
     \
     -I$(top_srcdir)/gputop-client-c \
     \
-    -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\"
+    -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
+    -DHAVE_FUNC_ATTRIBUTE_UNUSED
 libgputop_la_CFLAGS = \
+    -std=c99 \
     $(GPUTOP_EXTRA_CFLAGS) \
     $(PTHREAD_CFLAGS) \
     $(CRYPTO_DEP_CFLAGS) \
-    $(SSL_DEP_CFLAGS) \
-    -std=gnu11
+    $(SSL_DEP_CFLAGS)
 libgputop_la_LIBADD = \
     $(GPUTOP_EXTRA_LDFLAGS) \
     $(PTHREAD_LIBS) \

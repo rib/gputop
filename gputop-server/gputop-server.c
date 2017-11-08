@@ -56,6 +56,7 @@
 #include "common/gen_device_info.h"
 
 #include "util/list.h"
+#include "util/macros.h"
 
 #ifdef SUPPORT_GL
 #include "gputop-gl.h"
@@ -1345,6 +1346,9 @@ static void on_ws_message(h2o_websocket_conn_t *conn,
         case GPUTOP__REQUEST__REQ_TEST_LOG:
             server_dbg("TEST LOG: %s\n", request->test_log);
             break;
+        case _GPUTOP__REQUEST__REQ_IS_INT_SIZE:
+            server_dbg("TODO: INT_SIZE request\n");
+            break;
         case GPUTOP__REQUEST__REQ__NOT_SET:
             assert(0);
         }
@@ -1457,8 +1461,6 @@ bool gputop_server_run(void)
     struct sockaddr_in sockaddr;
     h2o_hostconf_t *hostconf;
     h2o_pathconf_t *pathconf;
-    h2o_pathconf_t *root;
-    const char *web_root;
     int r;
     char *port_env;
     unsigned long port;
@@ -1500,9 +1502,9 @@ bool gputop_server_run(void)
      * a websocket + protocol buffers, we just don't host the web ui assets.
      */
 #ifdef ENABLE_WEBUI
-    root = h2o_config_register_path(hostconf, "/", 0);
+    h2o_pathconf_t *root = h2o_config_register_path(hostconf, "/", 0);
 
-    web_root = getenv("GPUTOP_WEB_ROOT");
+    const char *web_root = getenv("GPUTOP_WEB_ROOT");
     if (!web_root)
             web_root = GPUTOP_WEB_ROOT;
 

@@ -35,14 +35,6 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#ifndef MAYBE_UNUSED
-#define MAYBE_UNUSED __attribute__((unused))
-#endif
-
-#ifndef unlikely
-#define unlikely(x) __builtin_expect(x, 0)
-#endif
-
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
