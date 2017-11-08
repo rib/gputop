@@ -1139,7 +1139,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     pb_topology.subslices_mask.data = (uint8_t *) devtopology->subslices_mask;
     pb_topology.eus_mask.len = ARRAY_SIZE(devtopology->eus_mask);
     pb_topology.eus_mask.data = (uint8_t *) devtopology->eus_mask;
-    pb_topology.engines = devtopology->engines;
+    pb_topology.engines = (uint32_t *) devtopology->engines;
     pb_topology.n_engines = ARRAY_SIZE(devtopology->engines);
     pb_devinfo.topology = &pb_topology;
 

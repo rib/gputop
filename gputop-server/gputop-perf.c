@@ -877,6 +877,38 @@ i915_has_query_info(int fd)
     return perf_ioctl(fd, DRM_IOCTL_I915_QUERY, &query) == 0 && item.length > 0;
 }
 
+
+static void
+i915_query_engines(int fd, struct gputop_devtopology *topology)
+{
+    DIR *engines_dir;
+    struct dirent *entry;
+    char path[512];
+
+    assert(ARRAY_SIZE(topology->engines) >= I915_ENGINE_CLASS_VIDEO_ENHANCE + 1);
+
+    snprintf(path, sizeof(path), "/sys/class/drm/card%d/engines", drm_card);
+    engines_dir = opendir(path);
+    if (!engines_dir)
+        return;
+
+    while ((entry = readdir(engines_dir))) {
+	if (entry->d_type != DT_DIR)
+            continue;
+
+        uint64_t engine_class = 0;
+        snprintf(path, sizeof(path), "engines/%s/class", entry->d_name);
+        if (!sysfs_card_read(path, &engine_class))
+            continue;
+        if (engine_class >= ARRAY_SIZE(topology->engines))
+            continue;
+
+        topology->engines[engine_class]++;
+    }
+
+    closedir(engines_dir);
+}
+
 static bool
 init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
@@ -919,6 +951,7 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 
         if (i915_has_query_info(fd)) {
             i915_query_topology(fd, topology);
+            i915_query_engines(fd, topology);
         } else {
             devinfo_build_topology(devinfo, topology);
             if (!devinfo->is_haswell)
