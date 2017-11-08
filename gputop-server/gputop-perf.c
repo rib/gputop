@@ -725,6 +725,7 @@ register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 static bool
 init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
+    memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
     gputop_devinfo.devid = devid;
 
 #define SET_NAMES(g, _devname, _prettyname) do {                        \
