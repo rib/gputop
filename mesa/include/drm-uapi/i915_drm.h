@@ -102,6 +102,46 @@ enum drm_i915_gem_engine_class {
 	I915_ENGINE_CLASS_INVALID	= -1
 };
 
+/**
+ * DOC: perf_events exposed by i915 through /sys/bus/event_sources/drivers/i915
+ *
+ */
+
+enum drm_i915_pmu_engine_sample {
+	I915_SAMPLE_BUSY = 0,
+	I915_SAMPLE_WAIT = 1,
+	I915_SAMPLE_SEMA = 2
+};
+
+#define I915_PMU_SAMPLE_BITS (4)
+#define I915_PMU_SAMPLE_MASK (0xf)
+#define I915_PMU_SAMPLE_INSTANCE_BITS (8)
+#define I915_PMU_CLASS_SHIFT \
+	(I915_PMU_SAMPLE_BITS + I915_PMU_SAMPLE_INSTANCE_BITS)
+
+#define __I915_PMU_ENGINE(class, instance, sample) \
+	((class) << I915_PMU_CLASS_SHIFT | \
+	(instance) << I915_PMU_SAMPLE_BITS | \
+	(sample))
+
+#define I915_PMU_ENGINE_BUSY(class, instance) \
+	__I915_PMU_ENGINE(class, instance, I915_SAMPLE_BUSY)
+
+#define I915_PMU_ENGINE_WAIT(class, instance) \
+	__I915_PMU_ENGINE(class, instance, I915_SAMPLE_WAIT)
+
+#define I915_PMU_ENGINE_SEMA(class, instance) \
+	__I915_PMU_ENGINE(class, instance, I915_SAMPLE_SEMA)
+
+#define __I915_PMU_OTHER(x) (__I915_PMU_ENGINE(0xff, 0xff, 0xf) + 1 + (x))
+
+#define I915_PMU_ACTUAL_FREQUENCY	__I915_PMU_OTHER(0)
+#define I915_PMU_REQUESTED_FREQUENCY	__I915_PMU_OTHER(1)
+#define I915_PMU_INTERRUPTS		__I915_PMU_OTHER(2)
+#define I915_PMU_RC6_RESIDENCY		__I915_PMU_OTHER(3)
+
+#define I915_PMU_LAST I915_PMU_RC6_RESIDENCY
+
 /* Each region is a minimum of 16k, and there are at most 255 of them.
  */
 #define I915_NR_TEX_REGIONS 255	/* table size 2k - maximum due to use
@@ -278,6 +318,7 @@ typedef struct _drm_i915_sarea {
 #define DRM_I915_PERF_OPEN		0x36
 #define DRM_I915_PERF_ADD_CONFIG	0x37
 #define DRM_I915_PERF_REMOVE_CONFIG	0x38
+#define DRM_I915_QUERY			0x39
 
 #define DRM_IOCTL_I915_INIT		DRM_IOW( DRM_COMMAND_BASE + DRM_I915_INIT, drm_i915_init_t)
 #define DRM_IOCTL_I915_FLUSH		DRM_IO ( DRM_COMMAND_BASE + DRM_I915_FLUSH)
@@ -335,6 +376,7 @@ typedef struct _drm_i915_sarea {
 #define DRM_IOCTL_I915_PERF_OPEN	DRM_IOW(DRM_COMMAND_BASE + DRM_I915_PERF_OPEN, struct drm_i915_perf_open_param)
 #define DRM_IOCTL_I915_PERF_ADD_CONFIG	DRM_IOW(DRM_COMMAND_BASE + DRM_I915_PERF_ADD_CONFIG, struct drm_i915_perf_oa_config)
 #define DRM_IOCTL_I915_PERF_REMOVE_CONFIG	DRM_IOW(DRM_COMMAND_BASE + DRM_I915_PERF_REMOVE_CONFIG, __u64)
+#define DRM_IOCTL_I915_QUERY			DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_QUERY, struct drm_i915_query)
 
 /* Allow drivers to submit batchbuffers directly to hardware, relying
  * on the security mechanisms provided by hardware.
@@ -1466,6 +1508,24 @@ enum drm_i915_perf_property_id {
 	 */
 	DRM_I915_PERF_PROP_OA_EXPONENT,
 
+	/**
+	 * The value of this property set to 1 requests inclusion of GPU
+	 * timestamp in the perf sample data.
+	 */
+	DRM_I915_PERF_PROP_SAMPLE_GPU_TS,
+
+	/**
+	 * This property requests inclusion of one of the following system
+	 * clock time in the perf sample data :
+	 *    - CLOCK_REALTIME
+	 *    - CLOCK_REALTIME_COARSE
+	 *    - CLOCK_MONOTONIC
+	 *    - CLOCK_MONOTONIC_COARSE
+	 *    - CLOCK_MONOTONIC_RAW
+	 *    - CLOCK_BOOTTIME
+	 */
+	DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS,
+
 	DRM_I915_PERF_PROP_MAX /* non-ABI */
 };
 
@@ -1531,6 +1591,8 @@ enum drm_i915_perf_record_type {
 	 * struct {
 	 *     struct drm_i915_perf_record_header header;
 	 *
+	 *     { u64 gpu_timestamp; } && DRM_I915_PERF_PROP_SAMPLE_GPU_TS
+	 *     { u64 system_timestamp; } && DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS
 	 *     { u32 oa_report[]; } && DRM_I915_PERF_PROP_SAMPLE_OA
 	 * };
 	 */
@@ -1571,6 +1633,116 @@ struct drm_i915_perf_oa_config {
 	__u64 mux_regs_ptr;
 	__u64 boolean_regs_ptr;
 	__u64 flex_regs_ptr;
+};
+
+
+struct drm_i915_query_item {
+	__u64 query_id;
+#define DRM_I915_QUERY_SLICE_INFO	0x01
+#define DRM_I915_QUERY_SUBSLICE_INFO	0x02
+#define DRM_I915_QUERY_EU_INFO		0x03
+
+	/*
+	 * When set to zero by userspace, this is filled with the size of the
+	 * data to be written at the data_ptr pointer. The kernel set this
+	 * value to a negative value to signal an error on a particular query
+	 * item.
+	 */
+	__s32 length;
+
+	/*
+	 * Unused for now.
+	 */
+	__u32 flags;
+
+	/*
+	 * Data will be written at the location pointed by data_ptr when the
+	 * value of length matches the length of the data to be written by the
+	 * kernel.
+	 */
+	__u64 data_ptr;
+};
+
+struct drm_i915_query {
+	__u32 num_items;
+
+	/*
+	 * Unused for now.
+	 */
+	__u32 flags;
+
+	/*
+	 * This point to an array of num_items drm_i915_query_item structures.
+	 */
+	__u64 items_ptr;
+};
+
+#define DRM_I915_BIT(bit) ((__u32)1 << (bit))
+#define DRM_I915_DIV_ROUND_UP(val, div) (((val) + (div) - 1) / (div))
+
+/*
+ * Data written by the kernel with query DRM_I915_QUERY_SLICE_INFO :
+ *
+ * data: each bit indicates whether a slice is available (1) or fused off (0).
+ *       Formula to tell if slice X is available :
+ *
+ *            (data[X / 8] >> (X % 8)) & 1
+ *
+ *       Alternatively, use DRM_I915_QUERY_SLICE_AVAILABLE() to query a
+ *       given subslice's availability.
+ */
+struct drm_i915_query_slice_info {
+	__u32 max_slices;
+
+#define DRM_I915_QUERY_SLICE_AVAILABLE(info, slice) \
+	!!((info)->data[(slice) / 8] & DRM_I915_BIT((slice) % 8))
+	__u8 data[];
+};
+
+/*
+ * Data written by the kernel with query DRM_I915_QUERY_SUBSLICE_INFO :
+ *
+ * data: each bit indicates whether a subslice is available (1) or fused off
+ *       (0). Formula to tell if slice X subslice Y is available :
+ *
+ *            (data[(X * ALIGN(max_subslices, 8) / 8) + Y / 8] >> (Y % 8)) & 1
+ *
+ *       Alternatively, use DRM_I915_QUERY_SUBSLICE_AVAILABLE() to query a
+ *       given subslice's availability.
+ */
+struct drm_i915_query_subslice_info {
+	__u32 max_slices;
+	__u32 max_subslices;
+
+#define DRM_I915_QUERY_SUBSLICE_AVAILABLE(info, slice, subslice) \
+	!!((info)->data[(slice) * DRM_I915_DIV_ROUND_UP((info)->max_subslices, 8) + \
+			(subslice) / 8] & DRM_I915_BIT((subslice) % 8))
+	__u8 data[];
+};
+
+/*
+ * Data written by the kernel with query DRM_I915_QUERY_EU_INFO :
+ *
+ * data: Each bit indicates whether an EU is available (1) or fused off (0).
+ *       Formula to tell if slice X subslice Y eu Z is available :
+ *
+ *           (data[X * max_subslices * ALIGN(max_eus_per_subslice, 8) / 8 +
+ *                 Y * ALIGN(max_eus_per_subslice, 8) / 8 +
+ *                 Z / 8] >> (Z % 8)) & 1
+ *
+ *       Alternatively, use DRM_I915_QUERY_EU_AVAILABLE() to query a given
+ *       EU's availability.
+ */
+struct drm_i915_query_eu_info {
+	__u32 max_slices;
+	__u32 max_subslices;
+	__u32 max_eus_per_subslice;
+
+#define DRM_I915_QUERY_EU_AVAILABLE(info, slice, subslice, eu) \
+	!!((info)->data[(slice) * DRM_I915_DIV_ROUND_UP((info)->max_eus_per_subslice, 8) * (info)->max_subslices + \
+			(subslice) * DRM_I915_DIV_ROUND_UP((info)->max_eus_per_subslice, 8) + \
+			(eu) / 8] & DRM_I915_BIT((eu) % 8))
+	__u8 data[];
 };
 
 #if defined(__cplusplus)
