@@ -525,9 +525,7 @@ gputop_perf_open_tracepoint(int pid,
     attr.config = id;
 
     attr.sample_type = PERF_SAMPLE_RAW | PERF_SAMPLE_TIME;
-    //attr.sample_type = PERF_SAMPLE_RAW;
     attr.sample_period = 1;
-
     //attr.wakeup_events = 1;
     attr.watermark = true;
     attr.wakeup_watermark = perf_buffer_size / 4;
