@@ -1501,11 +1501,12 @@ Gputop.prototype.process_features = function(features){
             val = String_pointerify_on_stack(features.devinfo[field.name]);
             cc._gputop_cc_set_system_property_string(name_c_string, val);
             break;
-        case "topology":
-            /* Unused for now. */
-            break;
+        case "message":
+            if (field.name == 'topology')
+                break
+            /* fall-through */
         default:
-            console.error("Unexpected DevInfo " + field.name + " field type");
+            console.error("Unexpected DevInfo " + field.type.name + "/" + field.name + " field type");
             val = features.devinfo[field.name];
             break;
         }
