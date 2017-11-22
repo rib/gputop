@@ -530,6 +530,8 @@ gputop_perf_open_tracepoint(int pid,
     //attr.wakeup_events = 1;
     attr.watermark = true;
     attr.wakeup_watermark = perf_buffer_size / 4;
+    attr.clockid = CLOCK_MONOTONIC;
+    attr.use_clockid = true;
 
     event_fd = perf_event_open(&attr,
 			       pid,
