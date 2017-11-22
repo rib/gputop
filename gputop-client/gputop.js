@@ -1221,10 +1221,10 @@ Gputop.prototype.get_tracepoint_info = function(name, callback) {
         tracepoint.id = msg.tracepoint_info.id;
 
         var format = msg.tracepoint_info.sample_format;
-        console.log("Full format description = " + format);
+        this.log("Full format description = " + format);
 
         var tracepoint = parse_tracepoint_format(format);
-        console.log("Structured format = " + JSON.stringify(tracepoint));
+        this.log("Structured format = " + JSON.stringify(tracepoint));
 
         callback(tracepoint);
     });
