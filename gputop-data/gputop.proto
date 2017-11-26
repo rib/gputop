@@ -82,6 +82,7 @@ message ProcessInfo
 {
     required uint32 pid = 1;
     required string cmd_line = 2;
+    required string comm = 3;
 }
 
 message LogEntry

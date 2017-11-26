@@ -943,8 +943,8 @@ handle_close_stream(h2o_websocket_conn_t *conn,
     }
 }
 
-bool
-gputop_get_cmd_line_pid(uint32_t pid, char *buf, int len)
+static bool
+gputop_get_pid_prop(uint32_t pid, const char *prop, char *buf, int len)
 {
     FILE *fp;
     char *line = NULL;
@@ -956,14 +956,21 @@ gputop_get_cmd_line_pid(uint32_t pid, char *buf, int len)
     memset(buf, 0, len);
     snprintf(buf, len, "Unknown");
 
-    snprintf(pid_path, sizeof(pid_path), "/proc/%d/cmdline", pid);
+    snprintf(pid_path, sizeof(pid_path), "/proc/%d/%s", pid, prop);
     fp = fopen(pid_path, "r");
     if (!fp)
         return false;
 
     read = getline(&line, &line_len, fp);
     if (read!= -1) {
-        printf("Reading line %s", line);
+        int i;
+        for (i = 0; i < line_len; i++) {
+            if (line[i] == '\n') {
+                line[i] = '\0';
+                break;
+            }
+        }
+        printf("Reading line %s\n", line);
         snprintf(buf, len, "%s", line);
         res = true;
     }
@@ -978,26 +985,34 @@ handle_get_process_info(h2o_websocket_conn_t *conn,
                     Gputop__Request *request)
 {
 
-    char cmdline[128];
+    char cmdline[256];
+    char comm[256];
+    char error[80];
     uint32_t pid = request->get_process_info;
+    bool cmdline_good, comm_good;
 
     Gputop__Message message = GPUTOP__MESSAGE__INIT;
     Gputop__ProcessInfo process_info = GPUTOP__PROCESS_INFO__INIT;
 
     message.reply_uuid = request->uuid;
 
-    if (gputop_get_cmd_line_pid(pid, cmdline, sizeof(cmdline))) {
+    cmdline_good = gputop_get_pid_prop(pid, "cmdline", cmdline, sizeof(cmdline));
+    comm_good = gputop_get_pid_prop(pid, "comm", comm, sizeof(comm));
+
+    if (cmdline_good || comm_good) {
         dbg("  Sending PID = %d\n", pid);
         message.cmd_case = GPUTOP__MESSAGE__CMD_PROCESS_INFO;
         process_info.pid = pid;
         process_info.cmd_line = cmdline;
+        process_info.comm = comm;
         message.process_info = &process_info;
         send_pb_message(conn, &message.base);
         return;
     }
 
+    snprintf(error, sizeof(error), "Failed to find process %d", pid);
     message.cmd_case = GPUTOP__MESSAGE__CMD_ERROR;
-    message.error = "Failed to find process\n";
+    message.error = error;
     send_pb_message(conn, &message.base);
     dbg("Failed to find process %d\n", pid);
 }
