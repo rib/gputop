@@ -970,7 +970,6 @@ gputop_get_pid_prop(uint32_t pid, const char *prop, char *buf, int len)
                 break;
             }
         }
-        printf("Reading line %s\n", line);
         snprintf(buf, len, "%s", line);
         res = true;
     }
