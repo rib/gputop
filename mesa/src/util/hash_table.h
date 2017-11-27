@@ -49,6 +49,7 @@ struct hash_table {
    uint32_t (*key_hash_function)(const void *key);
    bool (*key_equals_function)(const void *a, const void *b);
    const void *deleted_key;
+   const void *freed_key;
    uint32_t size;
    uint32_t rehash;
    uint32_t max_entries;
@@ -68,6 +69,8 @@ void _mesa_hash_table_clear(struct hash_table *ht,
                             void (*delete_function)(struct hash_entry *entry));
 void _mesa_hash_table_set_deleted_key(struct hash_table *ht,
                                       const void *deleted_key);
+void _mesa_hash_table_set_freed_key(struct hash_table *ht,
+                                    const void *freed_key);
 
 static inline uint32_t _mesa_hash_table_num_entries(struct hash_table *ht)
 {
@@ -117,6 +120,8 @@ static inline uint32_t
 _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
 {
    const uint8_t *bytes = (const uint8_t *)data;
+
+   assert(bytes != NULL);
 
    while (size-- != 0) {
       hash ^= *bytes;
