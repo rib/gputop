@@ -41,18 +41,12 @@
 #include "gputop-log.h"
 #endif
 
-static uint64_t
-timebase_scale(const struct gputop_devinfo *devinfo, uint64_t u32_time)
-{
-    return (u32_time * 1000000000) / devinfo->timestamp_frequency;
-}
-
 void
 gputop_u32_clock_init(struct gputop_u32_clock *clock,
                       const struct gputop_devinfo *devinfo,
                       uint32_t u32_start)
 {
-    clock->timestamp = clock->start = timebase_scale(devinfo, u32_start);
+    clock->timestamp = clock->start = gputop_timebase_scale_ns(devinfo, u32_start);
     clock->last_u32 = u32_start;
     clock->devinfo = devinfo;
 }
@@ -69,7 +63,7 @@ gputop_u32_clock_progress(struct gputop_u32_clock *clock,
 {
     uint32_t delta = u32_timestamp - clock->last_u32;
 
-    clock->timestamp += timebase_scale(clock->devinfo, delta);
+    clock->timestamp += gputop_timebase_scale_ns(clock->devinfo, delta);
     clock->last_u32 = u32_timestamp;
 }
 
