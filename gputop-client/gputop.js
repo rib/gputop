@@ -817,6 +817,8 @@ Metric.prototype.open = function(config,
         oa_stream.set('uuid', this.uuid);
         oa_stream.set('period_exponent', config.oa_exponent);
         oa_stream.set('per_ctx_mode', false); /* TODO: add UI + way to select a specific ctx */
+        oa_stream.set('gpu_timestamps', false);
+        oa_stream.set('cpu_timestamps', false);
 
         var open = new this.gputop.gputop_proto_.OpenStream();
 

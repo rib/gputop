@@ -478,7 +478,9 @@ struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 				int period_exponent,
 				struct ctx_handle *ctx,
-				void (*ready_cb)(struct gputop_perf_stream *),
+                                bool cpu_timestamps,
+                                bool gpu_timestamps,
+                                void (*ready_cb)(struct gputop_perf_stream *),
 				bool overwrite,
 				char **error)
 {

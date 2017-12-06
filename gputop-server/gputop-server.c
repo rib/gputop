@@ -613,6 +613,8 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     stream = gputop_open_i915_perf_oa_stream(metric_set,
                                              oa_stream_info->period_exponent,
                                              ctx,
+                                             oa_stream_info->cpu_timestamps,
+                                             oa_stream_info->gpu_timestamps,
                                              (open_stream->live_updates ?
                                               i915_perf_ready_cb : NULL),
                                              open_stream->overwrite,
