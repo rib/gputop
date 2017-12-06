@@ -68,6 +68,7 @@ struct gputop_cc_stream {
      * OA streams...
      */
     const struct gputop_metric_set *oa_metric_set;
+    struct gputop_i915_perf_configuration i915_perf_config;
 
     /* Aggregation may happen accross multiple perf data messages
      * so we may need to copy the last report so that aggregation

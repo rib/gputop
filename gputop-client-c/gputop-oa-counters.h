@@ -157,6 +157,45 @@ gputop_cc_oa_report_get_reason(const struct gputop_devinfo *devinfo,
     return "unknown";
 }
 
+struct gputop_i915_perf_configuration {
+    bool oa_reports;
+    bool cpu_timestamps;
+    bool gpu_timestamps;
+};
+
+enum gputop_i915_perf_field {
+    GPUTOP_I915_PERF_FIELD_OA_REPORT,
+    GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP,
+    GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP,
+};
+
+static inline const void *
+gputop_i915_perf_report_field(const struct gputop_i915_perf_configuration *config,
+                              const struct drm_i915_perf_record_header *header,
+                              enum gputop_i915_perf_field field)
+{
+    const uint8_t *ptr = (const uint8_t *) (header + 1);
+
+    if (config->gpu_timestamps) {
+        if (field == GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP)
+            return ptr;
+        ptr += sizeof(uint64_t);
+    }
+
+    if (config->cpu_timestamps) {
+        if (field == GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP)
+            return ptr;
+        ptr += sizeof(uint64_t);
+    }
+
+    if (config->oa_reports) {
+        if (field == GPUTOP_I915_PERF_FIELD_OA_REPORT)
+            return ptr;
+    }
+
+    return NULL;
+}
+
 #ifdef __cplusplus
 }
 #endif

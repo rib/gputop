@@ -249,7 +249,10 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
             break;
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
-            struct oa_sample *sample = (struct oa_sample *)header;
+            uint8_t *oa_report = (uint8_t *)
+                gputop_i915_perf_report_field(&stream->i915_perf_config,
+                                              header,
+                                              GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
             if (last) {
                 for (int i = 0; i < n_accumulators; i++) {
@@ -259,7 +262,7 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                     assert(oa_accumulator);
 
                     if (gputop_cc_oa_accumulate_reports(oa_accumulator,
-                                                        last, sample->oa_report))
+                                                        last, oa_report))
                     {
                         uint64_t elapsed = (oa_accumulator->last_timestamp -
                                             oa_accumulator->first_timestamp);
@@ -277,7 +280,7 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                 }
             }
 
-            last = sample->oa_report;
+            last = oa_report;
 
             break;
         }
@@ -447,6 +450,8 @@ gputop_cc_oa_stream_new(const char *hw_config_guid)
     stream->oa_metric_set = gputop_cr_lookup_metric_set(hw_config_guid);
     assert(stream->oa_metric_set);
     assert(stream->oa_metric_set->perf_oa_format);
+
+    stream->i915_perf_config.oa_reports = true;
 
     return stream;
 }
