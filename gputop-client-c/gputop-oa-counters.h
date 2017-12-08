@@ -139,7 +139,7 @@ gputop_cc_oa_report_get_timestamp(const uint8_t *report)
     return ((uint32_t *)report)[1];
 }
 
-static const char *
+static inline const char *
 gputop_cc_oa_report_get_reason(const struct gputop_devinfo *devinfo,
                                const uint8_t *report)
 {
