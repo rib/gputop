@@ -127,7 +127,7 @@ gputop_cc_oa_report_get_ctx_id(const struct gputop_devinfo *devinfo,
     return ((const uint32_t *) report)[2];
 }
 
-static const char *
+static inline const char *
 gputop_cc_oa_report_get_reason(const struct gputop_devinfo *devinfo,
                                const uint8_t *report)
 {
