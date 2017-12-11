@@ -120,7 +120,12 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
     }
 
     if (!accumulator->clock.devinfo)
-        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo, start[1]);
+        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo,
+                              gputop_cc_oa_report_get_timestamp(report0));
+    //gputop_u32_clock_progress(&accumulator->clock, start[1]);
+    if (!accumulator->first_timestamp)
+        accumulator->first_timestamp =
+            gputop_u32_clock_get_time(&accumulator->clock);
 
     switch (metric_set->perf_oa_format) {
     case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
@@ -152,11 +157,6 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
         assert(0);
     }
 
-    gputop_u32_clock_progress(&accumulator->clock, start[1]);
-    if (accumulator->first_timestamp == 0)
-        accumulator->first_timestamp =
-            gputop_u32_clock_get_time(&accumulator->clock);
-
     gputop_u32_clock_progress(&accumulator->clock, end[1]);
     accumulator->last_timestamp =
         gputop_u32_clock_get_time(&accumulator->clock);
@@ -178,7 +178,8 @@ gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
                               const struct gputop_devinfo *devinfo,
                               const struct gputop_metric_set *metric_set,
                               bool enable_ctx_switch_events,
-                              int aggregation_period)
+                              int aggregation_period,
+                              const uint8_t *first_report)
 {
     assert(accumulator);
     assert(metric_set);
@@ -189,4 +190,10 @@ gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
     accumulator->metric_set = metric_set;
     accumulator->aggregation_period = aggregation_period;
     accumulator->enable_ctx_switch_events = enable_ctx_switch_events;
+
+    if (first_report) {
+        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo,
+                              gputop_cc_oa_report_get_timestamp(first_report));
+        accumulator->first_timestamp = gputop_u32_clock_get_time(&accumulator->clock);
+    }
 }

@@ -86,7 +86,8 @@ void gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
                                    const struct gputop_devinfo *devinfo,
                                    const struct gputop_metric_set *metric_set,
                                    bool enable_ctx_switch_events,
-                                   int aggregation_period);
+                                   int aggregation_period,
+                                   const uint8_t *first_report);
 void gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator);
 bool gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
                                      const uint8_t *report0,

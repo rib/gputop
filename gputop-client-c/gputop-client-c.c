@@ -465,7 +465,8 @@ gputop_cc_oa_accumulator_new(struct gputop_cc_stream *stream,
                                   &gputop_devinfo,
                                   stream->oa_metric_set,
                                   enable_ctx_switch_events,
-                                  aggregation_period);
+                                  aggregation_period,
+                                  NULL);
     return accumulator;
 }
 
