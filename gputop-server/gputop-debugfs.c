@@ -33,7 +33,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <assert.h>
 
+#include "gputop-debugfs.h"
 #include "gputop-util.h"
 #include "gputop-sysutil.h"
 
@@ -192,5 +195,68 @@ gputop_debugfs_free_tracepoint_names(char **names)
     for (int i = 0; names[i]; i++)
         free(names[i]);
 
+    free(names);
+}
+
+char **
+gputop_get_events_names(void)
+{
+    DIR *devices_dir;
+    struct dirent *device_entry;
+    char **names;
+    int max_names = 100;
+    int n_names = 0;
+
+    names = xmalloc0(sizeof(char *) * (max_names + 1));
+
+    devices_dir = opendir("/sys/devices");
+    assert(devices_dir != NULL);
+
+    while ((device_entry = readdir(devices_dir))) {
+        char device_path[1024];
+        DIR *device_dir;
+        struct dirent *event_entry;
+
+	if (device_entry->d_type != DT_DIR)
+            continue;
+
+        snprintf(device_path, sizeof(device_path),
+                 "/sys/devices/%s/events", device_entry->d_name);
+        device_dir = opendir(device_path);
+        if (!device_dir)
+            continue;
+
+        while ((event_entry = readdir(device_dir))) {
+            char event_relative_path[1024];
+
+            if (strstr(event_entry->d_name, ".") != NULL)
+                continue;
+
+            if (n_names >= max_names) {
+                max_names *= 2;
+                names = xrealloc(names, sizeof(char *) * (max_names + 1));
+            }
+
+            snprintf(event_relative_path, sizeof(event_relative_path),
+                     "%s/events/%s", device_entry->d_name, event_entry->d_name);
+
+            names[n_names++] = strdup(event_relative_path);
+        }
+
+        closedir(device_dir);
+    }
+    closedir(devices_dir);
+
+    return names;
+}
+
+void
+gputop_free_events_names(char **names)
+{
+    if (!names)
+        return;
+
+    for (int i = 0; names[i]; i++)
+        free(names[i]);
     free(names);
 }

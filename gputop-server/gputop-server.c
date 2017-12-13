@@ -1241,6 +1241,13 @@ handle_get_features(h2o_websocket_conn_t *conn,
              pb_features.n_tracepoints++) {
         }
     }
+    pb_features.events = gputop_get_events_names();
+    if (pb_features.events) {
+        for (pb_features.n_events = 0;
+             pb_features.events[pb_features.n_events];
+             pb_features.n_events++) {
+        }
+    }
 
     gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
     string_rstrip(kernel_release);
@@ -1288,6 +1295,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     send_pb_message(conn, &pb_message.base);
 
     gputop_debugfs_free_tracepoint_names(pb_features.tracepoints);
+    gputop_free_events_names(pb_features.events);
 
 #ifdef SUPPORT_GL
     if (pb_features.n_gl_queries)

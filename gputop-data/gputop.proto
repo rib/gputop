@@ -76,6 +76,7 @@ message Features
     repeated string tracepoints = 11;
     repeated string notices = 12;
     required int32 server_pid = 13;
+    repeated string events = 14;
 }
 
 message ProcessInfo

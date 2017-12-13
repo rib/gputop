@@ -37,3 +37,9 @@ gputop_debugfs_get_tracepoint_names(void);
 
 void
 gputop_debugfs_free_tracepoint_names(char **names);
+
+char **
+gputop_get_events_names(void);
+
+void
+gputop_free_events_names(char **names);
