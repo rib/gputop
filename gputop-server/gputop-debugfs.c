@@ -63,25 +63,25 @@ static bool debugfs_mount(void)
 
 int gputop_debugfs_open(const char *filename, int mode)
 {
-	char buf[1024];
-        
-        if (!debugfs_mount())
-            return -1;
+    char buf[1024];
 
-	sprintf(buf, "%s/%s", debugfs_path, filename);
-	return open(buf, mode);
+    if (!debugfs_mount())
+        return -1;
+
+    snprintf(buf, sizeof(buf), "%s/%s", debugfs_path, filename);
+    return open(buf, mode);
 }
 
 FILE *gputop_debugfs_fopen(const char *filename,
                            const char *mode)
 {
-	char buf[1024];
+    char buf[1024];
 
-        if (!debugfs_mount())
-            return NULL;
+    if (!debugfs_mount())
+        return NULL;
 
-	sprintf(buf, "%s/%s", debugfs_path, filename);
-	return fopen(buf, mode);
+    snprintf(buf, sizeof(buf), "%s/%s", debugfs_path, filename);
+    return fopen(buf, mode);
 }
 
 /* Returns entire file contents as a NUL terminated string
