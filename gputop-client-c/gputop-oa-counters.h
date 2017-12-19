@@ -98,15 +98,6 @@ gputop_timebase_scale_ns(const struct gputop_devinfo *devinfo, uint64_t u32_time
     return (u32_time * 1000000000UL) / devinfo->timestamp_frequency;
 }
 
-static inline uint32_t
-gputop_cc_oa_accumulator_get_ctx_id(struct gputop_cc_oa_accumulator *accumulator,
-                                    const uint8_t *report)
-{
-    if (accumulator->devinfo->gen < 8)
-        return 0;
-    return ((uint32_t *) report)[2];
-}
-
 static inline bool
 gputop_cc_oa_report_ctx_is_valid(const struct gputop_devinfo *devinfo,
                                  const uint8_t *_report)
