@@ -1397,6 +1397,8 @@ gputop_server_print_addresses(unsigned long port)
 
             printf("\tInterface '%s' : https://gputop.com?remoteHost=%s&remotePort=%lu\n",
                    ifa->ifa_name, host, port);
+            printf("\tInterface '%s' : gputop-ui -h %s:%lu\n",
+                   ifa->ifa_name, host, port);
         }
     }
 }
