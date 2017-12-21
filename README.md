@@ -6,7 +6,7 @@ GPU Top is a tool to help developers understand GPU performance counters and pro
 
 GPU Top so far includes a web based interactive UI as well as a non-interactive CSV logging tool suited to being integrated into continuous regression testing systems. Both of these tools can capture metrics from a remote system so as to try an minimize their impact on the system being profiled.
 
-GPUs supported so far include: Haswell, Broadwell, Cherryview, Skylake, Broxton and Apollo Lake.
+GPUs supported so far include: Haswell, Broadwell, Cherryview, Skylake, Broxton, Apollo Lake, Kabylake, Cannonlake and Coffeelake.
 
 It's not necessary to build the web UI from source to use it since the latest tested version is automatically deployed to http://gputop.github.io
 
