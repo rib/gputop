@@ -186,6 +186,7 @@ h2o_includes = \
 libh2o_la_CFLAGS= $(h2o_includes)
 libh2o_la_CXXFLAGS= $(h2o_includes)
 libh2o_la_LDFLAGS= -lz -lstdc++
+libh2o_la_LIBADD = $(CRYPTO_DEP_LIBS) $(SSL_DEP_LIBS)
 
 libh2o_la_SOURCES= \
     $(brotli_source) \

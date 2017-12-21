@@ -60,5 +60,7 @@ libuv_la_SOURCES += \
 	src/unix/linux-syscalls.h \
 	src/unix/proctitle.c
 
+libuv_la_LIBADD = $(CRYPTO_DEP_LIBS) $(SSL_DEP_LIBS)
+
 EXTRA_DIST = \
 	LICENSE
