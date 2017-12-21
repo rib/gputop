@@ -1230,6 +1230,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     pb_features.n_cpus = gputop_cpu_count();
 
     gputop_cpu_model(cpu_model, sizeof(cpu_model));
+    string_rstrip(cpu_model);
     pb_features.cpu_model = cpu_model;
 
     pb_features.tracepoints = gputop_debugfs_get_tracepoint_names();
@@ -1241,7 +1242,9 @@ handle_get_features(h2o_websocket_conn_t *conn,
     }
 
     gputop_read_file("/proc/sys/kernel/osrelease", kernel_release, sizeof(kernel_release));
+    string_rstrip(kernel_release);
     gputop_read_file("/proc/sys/kernel/version", kernel_version, sizeof(kernel_version));
+    string_rstrip(kernel_version);
     pb_features.kernel_release = kernel_release;
     pb_features.kernel_build = kernel_version;
     pb_features.n_supported_oa_uuids = gputop_perf_oa_supported_metric_set_uuids->len;

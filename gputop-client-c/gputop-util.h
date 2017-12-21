@@ -33,6 +33,7 @@
 #include <strings.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define MAYBE_UNUSED __attribute__((unused))
 
@@ -144,3 +145,14 @@ array_append(struct array *array, void *data)
 }
 
 #define array_value_at(ARRAY, TYPE, IDX) *(((TYPE *)(ARRAY)->data) + IDX)
+
+static inline void
+string_rstrip(char *string)
+{
+    int len = strlen(string);
+
+    while (isspace(string[len - 1])) {
+        string[len - 1] = '\0';
+        len--;
+    }
+}
