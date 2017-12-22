@@ -111,6 +111,7 @@ typedef enum {
 
 struct gputop_metric_set;
 struct gputop_metric_set_counter {
+    const struct gputop_metric_set *metric_set;
     const char *name;
     const char *symbol_name;
     const char *desc;

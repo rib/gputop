@@ -467,6 +467,7 @@ def output_counter_report(set, counter):
         c.indent(4)
 
     c("counter = &metric_set->counters[metric_set->n_counters++];\n")
+    c("counter->metric_set = metric_set;\n")
     c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
     c("counter->name = \"" + counter.get('name') + "\";\n")
     c("counter->symbol_name = \"" + counter.get('symbol_name') + "\";\n")
