@@ -92,7 +92,9 @@ int gputop_cc_get_counter_id(const char *guid, const char *counter_symbol_name);
 void gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                                         uint8_t *data, int data_len,
                                         struct gputop_cc_oa_accumulator **accumulators,
-                                        int n_accumulators);
+                                        int n_accumulators,
+                                        int ctx_hw_id,
+                                        int idle_flag);
 
 void gputop_cc_reset_system_properties(void);
 void gputop_cc_set_system_property(const char *name, double value);

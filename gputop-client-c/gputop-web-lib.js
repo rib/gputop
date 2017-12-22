@@ -93,6 +93,13 @@ var LibraryGpuTopWeb = {
         else
             console.error("Gputop singleton not initialized");
     },
+    _gputop_cr_send_idle_flag: function(idle_flag) {
+    var gputop = Module['gputop_singleton'];
+        if (gputop !== undefined)
+            gputop.send_idle_flag.call(gputop, idle_flag);
+        else
+            console.error("Gputop singleton not initialized");
+    },
 };
 
 autoAddDeps(LibraryGpuTopWeb, '$GPUTop');
