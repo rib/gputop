@@ -135,6 +135,11 @@ message TracepointInfo
     required string sample_format = 2;
 }
 
+message HW_ID
+{
+    repeated uint64 ctx_hw_id = 1;
+    repeated uint64 vgpu_id = 2;
+}
 
 message Message
 {
@@ -150,6 +155,7 @@ message Message
         ProcessInfo process_info = 8;
         CpuStatsSet cpu_stats = 9;
         TracepointInfo tracepoint_info = 10;
+        HW_ID hw_id = 11;
     }
 }
 
@@ -211,5 +217,6 @@ message Request
         uint32 get_process_info = 5;
         string test_log=6;
         string get_tracepoint_info = 7;
+        bool get_hw_id_map = 8;
     }
 }

@@ -96,6 +96,30 @@ gputop_cc_get_counter_id(const char *hw_config_guid, const char *counter_symbol_
 }
 
 static void
+reset_forward_oa_accumulator_events(struct gputop_cc_stream *stream,
+                              struct gputop_cc_oa_accumulator *oa_accumulator,
+                              uint32_t events)
+{
+    struct gputop_metric_set *oa_metric_set = stream->oa_metric_set;
+
+    if (!_gputop_cr_accumulator_start_update(stream,
+                                             oa_accumulator,
+                                             events,
+                                             oa_accumulator->first_timestamp,
+                                             oa_accumulator->last_timestamp))
+        return;
+
+    for (int i = 0; i < oa_metric_set->n_counters; i++) {
+
+        double d_value = 0;
+        uint64_t max = 0;
+       _gputop_cr_accumulator_append_count(i, max, d_value);
+    }
+
+    _gputop_cr_accumulator_end_update();
+}
+
+static void
 forward_oa_accumulator_events(struct gputop_cc_stream *stream,
                               struct gputop_cc_oa_accumulator *oa_accumulator,
                               uint32_t events)
@@ -204,14 +228,16 @@ void EMSCRIPTEN_KEEPALIVE
 gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
                                    uint8_t *data, int data_len,
                                    struct gputop_cc_oa_accumulator **accumulators,
-                                   int n_accumulators)
+                                   int n_accumulators,
+                                   int ctx_hw_id,
+                                   int idle_flag)
 {
     const struct drm_i915_perf_record_header *header;
     uint8_t *last = NULL;
 
     assert(stream);
 
-    if (stream->continuation_report)
+    if (stream->continuation_report && (idle_flag < 4))
         last = stream->continuation_report;
     else {
         for (int i = 0; i < n_accumulators; i++) {
@@ -220,8 +246,13 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
 
             assert(oa_accumulator);
             gputop_cc_oa_accumulator_clear(oa_accumulator);
+            reset_forward_oa_accumulator_events(stream, oa_accumulator, 1);
+            idle_flag = 4;
         }
     }
+
+    if (idle_flag < 4)
+        idle_flag++;
 
     //int i = 0;
     for (header = (void *)data;
@@ -250,34 +281,35 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
         case DRM_I915_PERF_RECORD_SAMPLE: {
             struct oa_sample *sample = (struct oa_sample *)header;
 
-            if (last) {
-                for (int i = 0; i < n_accumulators; i++) {
-                    struct gputop_cc_oa_accumulator *oa_accumulator =
-                        accumulators[i];
+            if (sample->oa_report[8] == ctx_hw_id || ctx_hw_id == 0) {
+                idle_flag = 0;
 
-                    assert(oa_accumulator);
+                if (last) {
+                    for (int i = 0; i < n_accumulators; i++) {
+                        struct gputop_cc_oa_accumulator *oa_accumulator =
+                            accumulators[i];
 
-                    if (gputop_cc_oa_accumulate_reports(oa_accumulator,
+                        assert(oa_accumulator);
+
+                        if (gputop_cc_oa_accumulate_reports(oa_accumulator,
                                                         last, sample->oa_report))
-                    {
-                        uint64_t elapsed = (oa_accumulator->last_timestamp -
+                        {
+                            uint64_t elapsed = (oa_accumulator->last_timestamp -
                                             oa_accumulator->first_timestamp);
-                        uint32_t events = 0;
-                        //gputop_cr_console_log("i915_oa: accumulated reports\n");
+                            uint32_t events = 0;
+                            //gputop_cr_console_log("i915_oa: accumulated reports\n");
 
-                        if (elapsed > oa_accumulator->aggregation_period) {
-                            //gputop_cr_console_log("i915_oa: PERIOD ELAPSED (%d)\n", (int)oa_accumulator->aggregation_period);
-                            events |= ACCUMULATOR_EVENT_PERIOD_ELAPSED;
+                            if (elapsed > oa_accumulator->aggregation_period) {
+                                //gputop_cr_console_log("i915_oa: PERIOD ELAPSED (%d)\n", (int)oa_accumulator->aggregation_period);
+                                events |= ACCUMULATOR_EVENT_PERIOD_ELAPSED;
+                            }
+                            if (events)
+                                forward_oa_accumulator_events(stream, oa_accumulator, events);
                         }
-
-                        if (events)
-                            forward_oa_accumulator_events(stream, oa_accumulator, events);
                     }
                 }
-            }
-
             last = sample->oa_report;
-
+            }
             break;
         }
 
@@ -286,6 +318,8 @@ gputop_cc_handle_i915_perf_message(struct gputop_cc_stream *stream,
             return;
         }
     }
+
+    _gputop_cr_send_idle_flag(idle_flag);
 
     if (last) {
         int raw_size = stream->oa_metric_set->perf_raw_size;
