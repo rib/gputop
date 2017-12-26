@@ -20,4 +20,8 @@ if ENABLE_WEBUI
 SUBDIRS += gputop-webui
 endif
 
+if ENABLE_WRAPPER
+SUBDIRS += gputop-wrapper
+endif
+
 ACLOCAL_AMFLAGS = -I build/autotools ${ACLOCAL_FLAGS}

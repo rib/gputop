@@ -159,6 +159,20 @@ AS_IF([test "$enable_ui" = "yes"],
 AM_CONDITIONAL(ENABLE_UI, [test "$enable_ui" = "yes"])
 
 AC_ARG_ENABLE(
+  [ui],
+  [AC_HELP_STRING([--enable-wrapper=@<:@no/yes@:>@],
+                  [Build ui @<:@default=auto@:>@])],
+  [enable_wrapper="$enableval"],
+  [enable_wrapper="no"]
+)
+AS_IF([test "$enable_wrapper" = "yes"],
+      [
+        PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.60.3])
+        AC_DEFINE([ENABLE_WRAPPER], [1], [Build wrapper])
+      ])
+AM_CONDITIONAL(ENABLE_WRAPPER, [test "$enable_wrapper" = "yes"])
+
+AC_ARG_ENABLE(
   [web-ui],
   [AC_HELP_STRING([--enable-web-ui=@<:@no/yes@:>@],
                   [Build web ui @<:@default=auto@:>@])],
@@ -220,6 +234,7 @@ gputop-client/Makefile
 gputop-client-c/Makefile
 gputop-ui/Makefile
 gputop-webui/Makefile
+gputop-wrapper/Makefile
 gputop-csv/Makefile
 gputop-tracepoints/Makefile
 )
