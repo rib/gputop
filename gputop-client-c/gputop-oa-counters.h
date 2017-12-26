@@ -96,7 +96,13 @@ bool gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulato
 static inline uint64_t
 gputop_timebase_scale_ns(const struct gputop_devinfo *devinfo, uint64_t u32_time)
 {
-    return (u32_time * 1000000000UL) / devinfo->timestamp_frequency;
+    return (u32_time * 1000000000ULL) / devinfo->timestamp_frequency;
+}
+
+static inline uint64_t
+gputop_oa_exponent_to_period_ns(const struct gputop_devinfo *devinfo, uint32_t exponent)
+{
+    return ((2ULL << exponent) * 1000000000ULL) / devinfo->timestamp_frequency;
 }
 
 static inline bool

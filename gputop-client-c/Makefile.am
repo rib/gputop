@@ -11,6 +11,8 @@ BUILT_SOURCES = \
 noinst_DATA = \
 	$(templated_files)
 
+noinst_PROGRAMS = tracepoint_parser
+
 EXTRA_DIST = \
 	$(templated_files:%=%.in)
 
@@ -19,6 +21,41 @@ package.json: $(top_srcdir)/scripts/gen-template.py Makefile.am $(top_srcdir)/Ma
 
 binding.gyp: $(top_srcdir)/scripts/gen-template.py Makefile.am $(top_srcdir)/Makefile.generated binding.gyp.in
 	$(PYTHON2) $(PYTHON_FLAGS) $(top_srcdir)/scripts/gen-template.py --template=$(@).in --out=$(@) $(oa_generated_sources)
+
+noinst_LTLIBRARIES = libgputop-client.la
+
+libgputop_client_la_CPPFLAGS = \
+	-DGPUTOP_CLIENT \
+	\
+	-I$(top_srcdir)/mesa/include \
+	-I$(top_srcdir)/mesa/include/drm-uapi \
+	-I$(top_srcdir)/mesa/src \
+	-I$(top_srcdir)/mesa/src/intel \
+	-I$(top_srcdir)/mesa/src/util
+libgputop_client_la_SOURCES = \
+	gputop-client-context.c \
+	gputop-client-context.h \
+	gputop-oa-counters.c \
+	gputop-oa-counters.h \
+	gputop-oa-metrics.h \
+	gputop-util.h \
+	gputop.pb-c.h \
+	gputop.pb-c.c \
+	$(oa_generated_sources)
+libgputop_client_la_LIBADD = \
+	$(top_builddir)/protobuf-c/libprotobuf-c.la \
+	$(top_builddir)/mesa/libmesa.la
+
+%.pb-c.c %.pb-c.h: $(data_dir)/%.proto Makefile.am
+	$(top_builddir)/protoc-c/protoc-c --c_out=$(builddir) -I$(data_dir) $(data_dir)/$(*F).proto
+
+tracepoint_format.leg.h: $(srcdir)/tracepoint_format.leg
+	$(LEG) -o $@ $<
+
+BUILT_SOURCES += \
+	gputop.pb-c.h \
+	gputop.pb-c.c \
+	tracepoint_format.leg.h
 
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote
@@ -46,3 +83,6 @@ distclean-local:
 	$(MAKE) $(EMCC_PROXY_MAKEFLAGS) distclean
 
 endif
+
+tracepoint_parser_SOURCES = \
+	tracepoint_parser.c

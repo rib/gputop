@@ -1,0 +1,34 @@
+TracepointFormat =
+    'name' ':' Space PropertyName EndLine
+    'ID' ':' Space Number EndLine
+    'format' ':' EndLine
+    Field+
+    'print fmt' ':' .*
+    !.
+
+Field         = Space (Property ';' Space)+ EndLine
+        { yy->ctx.tp->n_fields++; }
+              | EndLine
+
+Property      = 'offset' ':' v:Number
+        { yy->ctx.tp->fields[yy->ctx.tp->n_fields].offset = v.integer; }
+              | 'size' ':' v:Number
+        { yy->ctx.tp->fields[yy->ctx.tp->n_fields].size = v.integer; }
+              | 'signed' ':' v:Number
+        { yy->ctx.tp->fields[yy->ctx.tp->n_fields].is_signed = v.integer != 0; }
+              | 'field' ':' v:PropertyValue
+        { snprintf(yy->ctx.tp->fields[yy->ctx.tp->n_fields].name,
+                   sizeof(yy->ctx.tp->fields[yy->ctx.tp->n_fields].name),
+                   "%s", strrchr(v.string, ' ') + 1); free(v.string); }
+              | n:PropertyName ':' v:PropertyValue
+        { free(n.string); free(v.string); }
+
+PropertyName  = < [A-Za-z0-9_]+ >
+        { $$.string = strdup(yytext); }
+PropertyValue = < [^;]+ >
+        { $$.string = strdup(yytext); }
+Number        = < [0-9]+ >
+        { $$.integer = atoi(yytext); }
+
+EndLine       = [\n]
+Space         = [ \t]*
