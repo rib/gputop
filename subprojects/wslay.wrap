@@ -1,0 +1,10 @@
+[wrap-file]
+directory = wslay-d72ea2ea9e24032144ab85f840e3aaf8cd5d6e07
+
+source_url = https://github.com/djdeath/wslay/archive/d72ea2e.tar.gz
+source_filename = d72ea2e.tar.gz
+source_hash = 75f282ae17ef3f59b99279a5ace9830da0fad66bcfa88f878a60a009eb193450
+
+patch_url = https://fake.url.to.please.meson.but.file.in.packagecache/
+patch_filename = wslay-wrap.tar
+patch_hash = ea9f31b957f95a1ffdfbd4e4d83aeb5fe6e58cf4b3b2f512d77efa28d2707407

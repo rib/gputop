@@ -1,0 +1,2 @@
+option('webui', type : 'boolean', value : 'false')
+option('native_ui', type : 'boolean', value : 'false')

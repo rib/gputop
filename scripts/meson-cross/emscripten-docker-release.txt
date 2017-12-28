@@ -1,0 +1,18 @@
+[binaries]
+c = '/opt/emsdk-portable/emscripten/1.37.27/emcc'
+cpp = '/opt/emsdk-portable/emscripten/1.37.27/em++'
+ar = '/opt/emsdk-portable/emscripten/1.37.27/emar'
+#exe_wrapper = 'node'
+
+[properties]
+root = '/opt/emsdk-portable/emscripten/1.37.27/system'
+c_args = ['-s', 'WASM=1', '-O2', '-s', 'FULL_ES2=1', '-s', 'USE_SDL=2']
+c_link_args = ['-s', 'WASM=1','-O2', '-s', 'FULL_ES2=1', '-s', 'USE_SDL=2', '-s', 'TOTAL_MEMORY=96MB']
+cpp_args = ['-s', 'WASM=1','-O2', '-s', 'FULL_ES2=1', '-s', 'USE_SDL=2']
+cpp_link_args = ['-s', 'WASM=1','-O2', '-s', 'FULL_ES2=1', '-s', 'USE_SDL=2', '-s', 'TOTAL_MEMORY=96MB']
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'x86'
+cpu = 'i686'
+endian = 'little'

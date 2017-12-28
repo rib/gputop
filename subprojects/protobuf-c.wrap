@@ -1,0 +1,10 @@
+[wrap-file]
+directory = protobuf-c-1.3.0
+
+source_url = https://github.com/protobuf-c/protobuf-c/releases/download/v1.3.0/protobuf-c-1.3.0.tar.gz
+source_filename = protobuf-c-1.3.0.tar.gz
+source_hash = 5dc9ad7a9b889cf7c8ff6bf72215f1874a90260f60ad4f88acf21bb15d2752a1
+
+patch_url = https://fake.url.to.please.meson.but.file.in.packagecache/
+patch_filename = protobuf-c-wrap-1.3.0.tar
+patch_hash = cdaf6932f5e7e20f7f1cfd37a25a91a223a4eced8d60c4fe2112569b381040f8

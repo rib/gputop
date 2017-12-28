@@ -1,0 +1,10 @@
+[wrap-file]
+directory = h2o-2.2.4
+
+source_url = https://github.com/h2o/h2o/archive/v2.2.4.tar.gz
+source_filename = v2.2.4.tar.gz
+source_hash = ebacf3b15f40958c950e18e79ad5a647f61e989c6dbfdeea858ce943ef5e3cd8
+
+patch_url = https://fake.url.to.please.meson.but.file.in.packagecache/
+patch_filename = h2o-wrap-2.2.4.tar
+patch_hash = 659b2da9dc17b522dac9a86b67d9295408b036df9e485625bb2382a9ce0a7597

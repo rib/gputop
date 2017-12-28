@@ -195,6 +195,11 @@ get_lib_dirs(void)
     if (lib_dirs[i] != NULL)
         return (const char * const *)lib_dirs;
 
+    if (asprintf(&lib_dirs[i++], "%s", bin_dir) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
+
     if (asprintf(&lib_dirs[i++], "%s/.libs", bin_dir) < 0) {
         perror("Failed to resolve libdir");
         exit(1);
