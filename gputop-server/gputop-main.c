@@ -243,7 +243,11 @@ resolve_gputop_lib(const char *lib)
         free(path);
     }
 
-    fprintf(stderr, "Failed to find %s", lib);
+    fprintf(stderr, "Failed to find %s\n", lib);
+    fprintf(stderr, "Tried directories:\n");
+    for (int i = 0; lib_dirs[i]; i++) {
+        fprintf(stderr, "%s\n" , lib_dirs[i]);
+    }
     exit(1);
 
     return NULL;
