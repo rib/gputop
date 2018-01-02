@@ -94,15 +94,22 @@ struct protobuf_msg_closure {
 static ssize_t
 fragmented_protobuf_msg_read_cb(wslay_event_context_ptr ctx,
                                 uint8_t *data, size_t len,
-                                const union wslay_event_msg_source *source,
+                                const union wslay_event_msg_source *_source,
                                 int *eof,
                                 void *user_data)
 {
+    union wslay_event_msg_source *source =
+        (union wslay_event_msg_source *) _source;
     struct protobuf_msg_closure *closure =
         (struct protobuf_msg_closure *)source->data;
     int remaining;
     int read_len;
     int total = 0;
+
+    if (!closure) {
+        *eof = 1;
+        return 0;
+    }
 
     if (closure->current_offset == 0) {
         assert(len > 8);
@@ -119,19 +126,14 @@ fragmented_protobuf_msg_read_cb(wslay_event_context_ptr ctx,
     closure->current_offset += read_len;
     total += read_len;
 
-    if(closure->current_offset == closure->len)
+    if(closure->current_offset == closure->len) {
         *eof = 1;
+        free(closure->data);
+        free(closure);
+        source->data = NULL;
+    }
 
     return total;
-}
-
-static void
-on_protobuf_msg_sent_cb(const union wslay_event_msg_source *source, void *user_data)
-{
-    struct protobuf_msg_closure *closure = (void *)source->data;
-
-    free(closure->data);
-    free(closure);
 }
 
 static struct list_head streams;
@@ -204,7 +206,6 @@ send_pb_message(h2o_websocket_conn_t *conn, ProtobufCMessage *pb_message)
     msg.opcode = WSLAY_BINARY_FRAME;
     msg.source.data = closure;
     msg.read_callback = fragmented_protobuf_msg_read_cb;
-    msg.finish_callback = on_protobuf_msg_sent_cb;
 
     wslay_event_queue_fragmented_msg(conn->ws_ctx, &msg);
     wslay_event_send(conn->ws_ctx);
@@ -246,34 +247,19 @@ stream_closed_cb(struct gputop_perf_stream *stream)
     gputop_perf_stream_unref(stream);
 }
 
-static void
-on_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
-{
-    struct perf_flush_closure *closure =
-        (struct perf_flush_closure *)source->data;
-
-    //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
-    closure->stream->user.flushing = false;
-
-    if (closure->stream->pending_close)
-        gputop_perf_stream_close(closure->stream, stream_closed_cb);
-
-    gputop_perf_stream_unref(closure->stream);
-
-    free(closure);
-}
-
 static ssize_t
 fragmented_perf_read_cb(wslay_event_context_ptr ctx,
                         uint8_t *data, size_t len,
-                        const union wslay_event_msg_source *source,
+                        const union wslay_event_msg_source *_source,
                         int *eof,
                         void *user_data)
 {
+    union wslay_event_msg_source *source =
+        (union wslay_event_msg_source *) _source;
     struct perf_flush_closure *closure =
         (struct perf_flush_closure *)source->data;
-    struct gputop_perf_stream *stream = closure->stream;
-    const uint64_t mask = stream->perf.buffer_size - 1;
+    struct gputop_perf_stream *stream;
+    uint64_t mask;
     int read_len;
     int total = 0;
     uint64_t head;
@@ -281,6 +267,14 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     uint64_t remainder;
     uint8_t *buffer;
     uint8_t *p;
+
+    if (!closure) {
+        *eof = 1;
+        return 0;
+    }
+
+    stream = closure->stream;
+    mask = stream->perf.buffer_size - 1;
 
     if (!closure->header_written) {
         assert(len > 8);
@@ -331,6 +325,14 @@ fragmented_perf_read_cb(wslay_event_context_ptr ctx,
     if (TAKEN(head, tail, stream->perf.buffer_size) == 0) {
         *eof = 1;
         write_perf_tail(stream->perf.mmap_page, tail);
+
+        closure->stream->user.flushing = false;
+        if (closure->stream->pending_close)
+            gputop_perf_stream_close(closure->stream, stream_closed_cb);
+        gputop_perf_stream_unref(closure->stream);
+        free(closure);
+
+        source->data = NULL;
     }
 
     return total;
@@ -364,7 +366,6 @@ flush_perf_stream_samples(struct gputop_perf_stream *stream)
     msg.opcode = WSLAY_BINARY_FRAME;
     msg.source.data = closure;
     msg.read_callback = fragmented_perf_read_cb;
-    msg.finish_callback = on_perf_flush_done;
 
     wslay_event_queue_fragmented_msg(h2o_conn->ws_ctx, &msg);
 
@@ -378,35 +379,27 @@ struct i915_perf_flush_closure {
     struct gputop_perf_stream *stream;
 };
 
-static void
-on_i915_perf_flush_done(const union wslay_event_msg_source *source, void *user_data)
-{
-    struct i915_perf_flush_closure *closure =
-        (struct i915_perf_flush_closure *)source->data;
-
-    //fprintf(stderr, "wrote perf message: len=%d\n", closure->total_len);
-    closure->stream->user.flushing = false;
-
-    if (closure->stream->pending_close)
-        gputop_perf_stream_close(closure->stream, stream_closed_cb);
-
-    gputop_perf_stream_unref(closure->stream);
-
-    free(closure);
-}
-
 static ssize_t
 fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
                              uint8_t *data, size_t len,
-                             const union wslay_event_msg_source *source,
+                             const union wslay_event_msg_source *_source,
                              int *eof,
                              void *user_data)
 {
+    union wslay_event_msg_source *source =
+        (union wslay_event_msg_source *) _source;
     struct i915_perf_flush_closure *closure =
         (struct i915_perf_flush_closure *)source->data;
-    struct gputop_perf_stream *stream = closure->stream;
+    struct gputop_perf_stream *stream;
     int total = 0;
     int read_len;
+
+    if (!closure) {
+        *eof = 1;
+        return 0;
+    }
+
+    stream = closure->stream;
 
     if (!closure->header_written) {
         assert(len > 8);
@@ -433,6 +426,14 @@ fragmented_i915_perf_read_cb(wslay_event_context_ptr ctx,
         *eof = 1;
         if (!gputop_fake_mode && errno != EAGAIN)
             dbg("Error reading i915 perf stream %m\n");
+
+        closure->stream->user.flushing = false;
+        if (closure->stream->pending_close)
+            gputop_perf_stream_close(closure->stream, stream_closed_cb);
+        gputop_perf_stream_unref(closure->stream);
+        free(closure);
+
+        source->data = NULL;
     }
 
     return total;
@@ -462,7 +463,6 @@ flush_i915_perf_stream_samples(struct gputop_perf_stream *stream)
     msg.opcode = WSLAY_BINARY_FRAME;
     msg.source.data = closure;
     msg.read_callback = fragmented_i915_perf_read_cb;
-    msg.finish_callback = on_i915_perf_flush_done;
 
     wslay_event_queue_fragmented_msg(h2o_conn->ws_ctx, &msg);
 
