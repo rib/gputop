@@ -31,9 +31,9 @@
 #ifndef HASH_H
 #define HASH_H
 
-typedef uint GLuint;
-typedef uint GLboolean;
-typedef uint mtx_t;
+typedef unsigned int GLuint;
+typedef unsigned int GLboolean;
+typedef unsigned int mtx_t;
 
 static inline void mtx_lock(mtx_t *mtx) {}
 static inline void mtx_unlock(mtx_t *mtx) {}
