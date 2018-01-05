@@ -22,7 +22,8 @@ gputop_CPPFLAGS = \
     -I$(top_srcdir) \
     -I$(top_srcdir)/gputop-client-c \
     -I$(srcdir) \
-    -DHAVE_FUNC_ATTRIBUTE_UNUSED
+    -DHAVE_FUNC_ATTRIBUTE_UNUSED \
+    -D_GNU_SOURCE
 
 lib_LTLIBRARIES = libgputop.la
 libgputop_la_SOURCES = \
@@ -63,7 +64,8 @@ libgputop_la_CPPFLAGS = \
     -I$(top_srcdir)/gputop-client-c \
     \
     -DGPUTOP_WEB_ROOT=\"$(datadir)/remote\" \
-    -DHAVE_FUNC_ATTRIBUTE_UNUSED
+    -DHAVE_FUNC_ATTRIBUTE_UNUSED \
+    -D_GNU_SOURCE
 libgputop_la_CFLAGS = \
     -std=c99 \
     $(GPUTOP_EXTRA_CFLAGS) \

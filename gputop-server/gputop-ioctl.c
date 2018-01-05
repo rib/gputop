@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <dlfcn.h>
 
 #include <i915_drm.h>
