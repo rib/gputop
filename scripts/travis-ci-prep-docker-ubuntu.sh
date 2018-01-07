@@ -38,9 +38,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     psmisc \
     unzip && \
     apt-get clean
-RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash - && \
-    apt-get install -y --no-install-recommends --no-install-suggests nodejs && \
-    apt-get clean
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G sudo -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
 

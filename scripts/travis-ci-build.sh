@@ -10,11 +10,12 @@ fi
 gcc --version
 g++ --version
 
-export LLVM=/usr/local/llvm-fastcomp/bin
-
-git clone --branch 1.37.3 --single-branch --depth 1 https://github.com/kripken/emscripten
-export PATH="$PWD/emscripten:$PATH"
+# When the emscripten SDK is installed, we don't install the node and
+# instead use the one from the SDK.
+if [ -d /opt/emsdk-portable ]; then
+export PATH="/opt/emsdk-portable/clang/e1.37.27_64bit:/opt/emsdk-portable/node/4.1.1_64bit/bin:/opt/emsdk-portable/emscripten/1.37.27:$PATH"
 emcc -v
+fi
 
 # Fetch glext.h header including INTEL_performance_query enums
 #$(mkdir GL && cd GL && wget https://raw.githubusercontent.com/rib/mesa/wip/rib/oa-next/include/GL/glext.h)

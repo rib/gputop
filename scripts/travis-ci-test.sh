@@ -6,6 +6,13 @@ if test -z "$TRAVIS_BUILD_DIR"; then
     TRAVIS_BUILD_DIR=$PWD
 fi
 
+# When the emscripten SDK is installed, we don't install the node and
+# instead use the one from the SDK.
+if [ -d /opt/emsdk-portable ]; then
+export PATH="/opt/emsdk-portable/clang/e1.37.27_64bit:/opt/emsdk-portable/node/4.1.1_64bit/bin:/opt/emsdk-portable/emscripten/1.37.27:$PATH"
+emcc -v
+fi
+
 #export GPUTOP_TRAVIS_MODE=1
 
 export PATH=$TRAVIS_BUILD_DIR/gputop-travis-build/bin:$PATH
@@ -31,4 +38,3 @@ fi
 
 echo "PASSED"
 exit 0
-
