@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo docker build -t djdeath/gputop-travis-ci-centos .
+docker build -t djdeath/gputop-travis-ci-centos7-18.01.08 .
