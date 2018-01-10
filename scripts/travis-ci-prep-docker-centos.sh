@@ -23,6 +23,7 @@ fi
 cat << EOF > Dockerfile
 FROM $1
 USER root
+RUN yum clean all
 RUN yum update -y && yum install -y \
     make \
     sudo \
