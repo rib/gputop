@@ -27,23 +27,31 @@ RUN yum clean all
 RUN yum update -y && yum install -y \
     make \
     sudo \
-    automake \
-    libtool \
-    autopoint \
     pkg-config \
     gettext \
+    python34-pip \
+    python34-setuptools \
     python-lxml \
     python-mako \
     ncurses-devel \
     mesa-libGL-devel \
     openssl-devel \
+    glfw-devel \
+    libepoxy-devel \
+    mesa-libEGL-devel \
+    ninja-build \
     curl \
     psmisc \
-    unzip && \
+    unzip \
+    which && \
     yum clean all
 RUN curl -sL https://rpm.nodesource.com/setup_6.x | sudo -E bash - && \
     yum install -y nodejs && \
     yum clean all
+RUN ln -sf /usr/bin/ninja-build /usr/bin/ninja
+RUN pip3 install meson
+RUN curl http://piumarta.com/software/peg/peg-0.1.18.tar.gz | tar xvz
+RUN make -C peg-0.1.18 PREFIX=/usr install && rm -rf peg-0.1.18
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G wheel -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
 

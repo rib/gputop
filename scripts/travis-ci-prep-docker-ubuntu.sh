@@ -25,19 +25,24 @@ FROM $1
 USER root
 RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install-suggests \
     sudo \
-    automake \
-    libtool \
-    autopoint \
     pkg-config \
     gettext \
+    python3-pip \
+    python3-setuptools \
     python-lxml \
     libncursesw5-dev \
     libgl1-mesa-dev \
     libssl-dev \
+    libglfw3-dev \
+    libepoxy-dev \
+    libegl1-mesa-dev \
     curl \
     psmisc \
     unzip && \
     apt-get clean
+RUN pip3 install meson
+RUN curl http://piumarta.com/software/peg/peg-0.1.18.tar.gz | tar xvz
+RUN make -C peg-0.1.18 PREFIX=/usr install && rm -rf peg-0.1.18
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G sudo -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
 
