@@ -12,6 +12,6 @@
         "gputop-tracepoints": "gputop-tracepoints.js"
     },
     "engines": {
-        "node": ">=5.0.0"
+        "node": ">=4.1.0"
     }
 }
