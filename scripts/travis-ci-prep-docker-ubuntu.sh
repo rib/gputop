@@ -59,7 +59,7 @@ echo ""
 echo "  This is adding a '$_USER' user that matches the current host user"
 echo "  to allow seamless mounting of host directories"
 echo ""
-sudo docker build -t $2 .
+docker build -t $2 .
 
 cat << EOF > build.sh
 sudo docker run -t -i -v \$PWD:/home/$USER/src $2 build/scripts/travis-ci-build.sh
