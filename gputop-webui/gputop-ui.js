@@ -532,7 +532,7 @@ GputopUI.prototype.update_gpu_metrics_graph = function (timestamp) {
             break;
         }
     }
-    if (!first.counter.record_data)
+    if (!first || !first.counter.record_data)
         return;
 
     var n_updates = first.updates.length;
