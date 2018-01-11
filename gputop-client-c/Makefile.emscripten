@@ -23,7 +23,8 @@ W_FLAGS=-Wall -Wuninitialized -Wno-strict-aliasing -Wempty-body -Wformat -Wforma
 CFLAGS=-std=c11 -g -O0 $(W_FLAGS) -DGPUTOP_CLIENT
 OBJ_CFLAGS=$(CFLAGS)
 BC_CFLAGS=$(CFLAGS)
-JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1
+JSFLAGS=-g4 -O0 -s NO_FILESYSTEM=1 \
+	-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "intArrayFromString", "allocate", "stackSave", "stackRestore", "setValue"]'
 
 _includes= \
 	-I$(top_srcdir) \

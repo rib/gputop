@@ -46,7 +46,7 @@ if (typeof module !== 'undefined' && module.exports) {
      */
     if (process.env.GPUTOP_NODE_USE_WEBC !== undefined) {
         using_emscripten = true;
-        cc = require("./gputop-web.js");
+        cc = this;
         cc.gputop_singleton = undefined;
     } else {
         using_emscripten = false;
@@ -55,8 +55,8 @@ if (typeof module !== 'undefined' && module.exports) {
 
         /* For code compatibility with using the Emscripten compiled bindings... */
         cc.ALLOC_STACK = 0;
-        cc.Runtime = { stackSave: function() { return 0; },
-                       stackRestore: function(sp) {} };
+        cc.stackSave = function() { return 0; };
+        cc.stackRestore = function(sp) {};
         cc.allocate = function (data, type, where) { return data; };
         cc.intArrayFromString = function (str) { return str; };
 
@@ -165,12 +165,12 @@ Metric.prototype.find_counter_by_name = function(symbol_name) {
 Metric.prototype.add_counter = function(counter) {
     var symbol_name = counter.symbol_name;
 
-    var sp = cc.Runtime.stackSave();
+    var sp = cc.stackSave();
 
     var counter_idx = cc._gputop_cc_get_counter_id(String_pointerify_on_stack(this.uuid),
                                                    String_pointerify_on_stack(symbol_name));
 
-    cc.Runtime.stackRestore(sp);
+    cc.stackRestore(sp);
 
     counter.cc_counter_id_ = counter_idx;
     if (counter_idx != -1) {
@@ -487,7 +487,7 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
     for (var i = 0; i < this.i915_perf_history.length; i++) {
         var data = this.i915_perf_history[i];
 
-        var sp = cc.Runtime.stackSave();
+        var sp = cc.stackSave();
 
         var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
@@ -530,7 +530,7 @@ Gputop.prototype.replay_i915_perf_history = function(metric) {
                                                    n_accumulators);
         }
 
-        cc.Runtime.stackRestore(sp);
+        cc.stackRestore(sp);
     }
 }
 
@@ -797,12 +797,12 @@ Metric.prototype.open = function(config,
     function _alloc_cc_stream() {
         this.gputop.log("Opened OA metric set " + this.name);
 
-        var sp = cc.Runtime.stackSave();
+        var sp = cc.stackSave();
 
         stream.cc_stream_ptr_ =
             cc._gputop_cc_oa_stream_new(String_pointerify_on_stack(this.uuid));
 
-        cc.Runtime.stackRestore(sp);
+        cc.stackRestore(sp);
 
         this.gputop.cc_stream_ptr_to_obj_map[stream.cc_stream_ptr_] = this;
     }
@@ -859,14 +859,14 @@ Metric.prototype.create_oa_accumulator = function(config) {
 
     accumulator.accumulated_counters = [];
 
-    var sp = cc.Runtime.stackSave();
+    var sp = cc.stackSave();
 
     accumulator.cc_accumulator_ptr_ =
         cc._gputop_cc_oa_accumulator_new(stream.cc_stream_ptr_,
                                          config.period_ns,
                                          config.enable_ctx_switch_events);
 
-    cc.Runtime.stackRestore(sp);
+    cc.stackRestore(sp);
 
     this.gputop.cc_oa_accumulator_ptr_to_obj_map[accumulator.cc_accumulator_ptr_] = accumulator;
 
@@ -1273,7 +1273,7 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, onopen, onc
     function _finalize_open() {
         this.log("Opened tracepoint " + tracepoint_info.name);
 
-        var sp = cc.Runtime.stackSave();
+        var sp = cc.stackSave();
 
         stream.cc_stream_ptr_ = cc._gputop_cc_tracepoint_stream_new();
 
@@ -1301,7 +1301,7 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, onopen, onc
                                                field.signed);
         });
 
-        cc.Runtime.stackRestore(sp);
+        cc.stackRestore(sp);
 
         this.cc_stream_ptr_to_obj_map[stream.cc_stream_ptr_] = stream;
 
@@ -1614,7 +1614,7 @@ function gputop_socket_on_message(evt) {
         var server_handle = dv.getUint16(4, true /* little endian */);
 
         if (server_handle in this.server_handle_to_obj) {
-            var sp = cc.Runtime.stackSave();
+            var sp = cc.stackSave();
 
             var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
@@ -1632,7 +1632,7 @@ function gputop_socket_on_message(evt) {
                                                     stack_data,
                                                     data.length);
 
-            cc.Runtime.stackRestore(sp);
+            cc.stackRestore(sp);
         } else {
             console.log("Ignoring i915 perf data for unknown Metric object")
         }
@@ -1692,7 +1692,7 @@ function gputop_socket_on_message(evt) {
             if (this.i915_perf_history_size > 1048576) // 1 MB of data
                 this.i915_perf_history.shift();
 
-            var sp = cc.Runtime.stackSave();
+            var sp = cc.stackSave();
 
             var stack_data = cc.allocate(data, 'i8', cc.ALLOC_STACK);
 
@@ -1735,7 +1735,7 @@ function gputop_socket_on_message(evt) {
                                                        n_accumulators);
             }
 
-            cc.Runtime.stackRestore(sp);
+            cc.stackRestore(sp);
         } else {
             console.log("Ignoring i915 perf data for unknown Metric object")
         }
