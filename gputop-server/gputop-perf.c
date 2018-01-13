@@ -137,6 +137,18 @@ static struct list_head ctx_handles_list;
 
 /******************************************************************************/
 
+/* Handle restarting ioctl if interrupted... */
+static int
+perf_ioctl(int fd, unsigned long request, void *arg)
+{
+    int ret;
+
+    do {
+	ret = ioctl(fd, request, arg);
+    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+    return ret;
+}
+
 static bool
 sysfs_card_read(const char *file, uint64_t *value)
 {
@@ -182,6 +194,81 @@ kernel_has_dynamic_config_support(int fd)
     }
 
     return false;
+}
+
+static const struct gputop_metric_set *
+get_test_metric_set(void)
+{
+    struct gputop_hash_entry *metrics_entry;
+
+    gputop_hash_table_foreach(metrics, metrics_entry) {
+	struct gputop_metric_set *metric_set =
+            (struct gputop_metric_set*)metrics_entry->data;
+
+        if (!strcmp(metric_set->symbol_name, "TestOa"))
+            return metric_set;
+    }
+
+    return NULL;
+}
+
+static bool
+kernel_supports_open_property(uint64_t prop, uint64_t value)
+{
+        const struct gputop_metric_set *metric_set = get_test_metric_set();
+    struct drm_i915_perf_open_param param;
+    uint64_t properties[DRM_I915_PERF_PROP_MAX * 2];
+    int p = 0, stream_fd;
+
+    if (gputop_fake_mode || !metric_set)
+        return false;
+
+    memset(&param, 0, sizeof(param));
+
+    param.flags = 0;
+    param.flags |= I915_PERF_FLAG_FD_CLOEXEC;
+    param.flags |= I915_PERF_FLAG_FD_NONBLOCK;
+
+    properties[p++] = DRM_I915_PERF_PROP_SAMPLE_OA;
+    properties[p++] = true;
+
+    properties[p++] = DRM_I915_PERF_PROP_OA_METRICS_SET;
+    properties[p++] = metric_set->perf_oa_metrics_set;
+
+    properties[p++] = DRM_I915_PERF_PROP_OA_FORMAT;
+    properties[p++] = metric_set->perf_oa_format;
+
+    properties[p++] = DRM_I915_PERF_PROP_OA_EXPONENT;
+    properties[p++] = 5;
+
+    properties[p++] = DRM_I915_PERF_PROP_CTX_HANDLE;
+    properties[p++] = 999; /* invalid on purpose */
+
+    properties[p++] = prop;
+    properties[p++] = value;
+
+    param.properties_ptr = (uintptr_t)properties;
+    param.num_properties = p / 2;
+
+    stream_fd = perf_ioctl(drm_fd, DRM_IOCTL_I915_PERF_OPEN, &param);
+    assert(stream_fd == -1);
+
+    return errno == ENOENT;
+
+}
+
+bool
+gputop_perf_kernel_has_i915_oa_cpu_timestamps(void)
+{
+    return kernel_supports_open_property(DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS,
+                                         true);
+}
+
+bool
+gputop_perf_kernel_has_i915_oa_gpu_timestamps(void)
+{
+    return kernel_supports_open_property(DRM_I915_PERF_PROP_SAMPLE_GPU_TS,
+                                         true);
 }
 
 bool gputop_add_ctx_handle(int ctx_fd, uint32_t ctx_id)
@@ -230,18 +317,6 @@ struct ctx_handle *lookup_ctx_handle(uint32_t ctx_id)
             return ctx;
     }
     return NULL;
-}
-
-/* Handle restarting ioctl if interrupted... */
-static int
-perf_ioctl(int fd, unsigned long request, void *arg)
-{
-    int ret;
-
-    do {
-	ret = ioctl(fd, request, arg);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-    return ret;
 }
 
 static long
@@ -450,6 +525,16 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 		ctx->fd, ctx->id);
 	}
 
+        if (cpu_timestamps) {
+            properties[p++] = DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS;
+            properties[p++] = true;
+        }
+
+        if (gpu_timestamps) {
+            properties[p++] = DRM_I915_PERF_PROP_SAMPLE_GPU_TS;
+            properties[p++] = true;
+        }
+
 	param.properties_ptr = (uintptr_t)properties;
 	param.num_properties = p / 2;
 
@@ -480,7 +565,9 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
      * counter deltas */
-    stream->oa.buf_sizes = MAX_I915_PERF_OA_SAMPLE_SIZE * 100;
+    stream->oa.buf_sizes = (MAX_I915_PERF_OA_SAMPLE_SIZE +
+                            (cpu_timestamps ? 8 : 0) +
+                            (gpu_timestamps ? 8 : 0)) * 100;
     stream->oa.bufs[0] = xmalloc0(stream->oa.buf_sizes);
     stream->oa.bufs[1] = xmalloc0(stream->oa.buf_sizes);
 

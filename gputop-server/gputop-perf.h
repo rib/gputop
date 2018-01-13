@@ -286,3 +286,6 @@ void gputop_perf_stream_ref(struct gputop_perf_stream *stream);
 void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
 
 const struct gputop_devinfo *gputop_perf_get_devinfo(void);
+
+bool gputop_perf_kernel_has_i915_oa_cpu_timestamps(void);
+bool gputop_perf_kernel_has_i915_oa_gpu_timestamps(void);

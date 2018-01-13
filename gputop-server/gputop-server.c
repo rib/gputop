@@ -1144,6 +1144,8 @@ handle_get_features(h2o_websocket_conn_t *conn,
     pb_devinfo.topology = &pb_topology;
 
     pb_features.fake_mode = gputop_fake_mode;
+    pb_features.has_i915_oa_cpu_timestamps = gputop_perf_kernel_has_i915_oa_cpu_timestamps();
+    pb_features.has_i915_oa_gpu_timestamps = gputop_perf_kernel_has_i915_oa_gpu_timestamps();
 
     pb_features.devinfo = &pb_devinfo;
 
