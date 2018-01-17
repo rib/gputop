@@ -947,7 +947,7 @@ gputop_get_pid_prop(uint32_t pid, const char *prop, char *buf, int len)
     FILE *fp;
     char *line = NULL;
     size_t line_len = 0;
-    ssize_t read;
+    ssize_t nread;
     char pid_path[512];
     bool res = false;
 
@@ -959,10 +959,10 @@ gputop_get_pid_prop(uint32_t pid, const char *prop, char *buf, int len)
     if (!fp)
         return false;
 
-    read = getline(&line, &line_len, fp);
-    if (read!= -1) {
+    nread = getline(&line, &line_len, fp);
+    if (nread != -1) {
         int i;
-        for (i = 0; i < line_len; i++) {
+        for (i = 0; i < nread; i++) {
             if (line[i] == '\n') {
                 line[i] = '\0';
                 break;
