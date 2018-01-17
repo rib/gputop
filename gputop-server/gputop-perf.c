@@ -388,6 +388,9 @@ gputop_perf_stream_unref(struct gputop_perf_stream *stream)
 
 	if (stream->user.destroy_cb)
 	    stream->user.destroy_cb(stream);
+        if (stream->user.data)
+            free(stream->user.data);
+        stream->user.data = NULL;
 
 	free(stream);
 	server_dbg("freed gputop-perf stream\n");

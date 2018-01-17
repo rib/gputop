@@ -155,6 +155,9 @@ struct gputop_perf_stream
             uint8_t *bufs[2];
             uint8_t *last;
             int last_buf_idx;
+
+            bool header_written;
+            uint32_t total_len;
         } oa;
         /* linux perf event */
         struct {
@@ -164,6 +167,11 @@ struct gputop_perf_stream
             size_t buffer_size;
 
             struct gputop_perf_header_buf header_buf;
+
+            bool header_written;
+            uint32_t total_len;
+            uint64_t head;
+            uint64_t tail;
         } perf;
         /* /proc/stat */
         struct {
