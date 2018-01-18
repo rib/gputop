@@ -38,6 +38,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "util/macros.h"
+
 /* We resolve the location of various libraries and files at runtime adding them
  * here so we can list them for user feedback... */
 #define MAX_RESOURCES 10
@@ -186,7 +188,7 @@ get_bin_dir(void)
 static const char * const *
 get_lib_dirs(void)
 {
-    static char *lib_dirs[6] = { 0 };
+    static char *lib_dirs[7] = { 0 };
     const char *bin_dir = get_bin_dir();
     const char *prefix;
     char dir[1024];
@@ -212,6 +214,10 @@ get_lib_dirs(void)
         perror("Failed to resolve libdir");
         exit(1);
     }
+    if (asprintf(&lib_dirs[i++], "%s/lib/x86_64-linux-gnu", prefix) < 0) {
+        perror("Failed to resolve libdir");
+        exit(1);
+    }
     if (asprintf(&lib_dirs[i++], "%s/lib64", prefix) < 0) {
         perror("Failed to resolve libdir");
         exit(1);
@@ -224,6 +230,8 @@ get_lib_dirs(void)
         perror("Failed to resolve libdir");
         exit(1);
     }
+
+    assert(i <= ARRAY_SIZE(lib_dirs));
 
     return (const char * const *)lib_dirs;
 }
