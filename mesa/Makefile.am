@@ -23,6 +23,9 @@ libmesa_la_SOURCES = \
 	src/intel/common/gen_device_info.c \
 	src/intel/common/gen_device_info.h \
 	\
+	src/util/bitscan.c \
+	src/util/bitscan.h \
+	src/util/bitset.h \
 	src/util/hash_table.c \
 	src/util/hash_table.h \
 	src/util/list.h \
