@@ -146,7 +146,7 @@ sysfs_card_read(const char *file, uint64_t *value)
 }
 
 static bool
-kernel_has_dynamic_config_support(int drm_fd)
+kernel_has_dynamic_config_support(int fd)
 {
     struct gputop_hash_entry *metrics_entry;
 
@@ -174,7 +174,7 @@ kernel_has_dynamic_config_support(int drm_fd)
 	config.n_mux_regs = 1;
 	config.mux_regs_ptr = (uintptr_t) mux_regs;
 
-	if (ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id) < 0 &&
+	if (ioctl(fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id) < 0 &&
 	    errno == ENOENT)
 	    return true;
     }
@@ -724,7 +724,7 @@ register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 }
 
 static bool
-init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
+init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
     memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
     gputop_devinfo.devid = devid;
@@ -760,7 +760,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 
 	gp.param = I915_PARAM_REVISION;
 	gp.value = &revision;
-	perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	gputop_devinfo.revision = revision;
 
 	if (devinfo->is_haswell) {
@@ -777,15 +777,15 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 
 	    gp.param = I915_PARAM_EU_TOTAL;
 	    gp.value = &n_eus;
-	    perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
 	    gp.param = I915_PARAM_SLICE_MASK;
 	    gp.value = &slice_mask;
-	    perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
 	    gp.param = I915_PARAM_SUBSLICE_MASK;
 	    gp.value = &ss_mask;
-	    perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	    perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
 	    gputop_devinfo.n_eus = n_eus;
 	    gputop_devinfo.n_eu_slices = __builtin_popcount(slice_mask);
@@ -886,7 +886,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 	SET_NAMES(gputop_devinfo, "bdw", "Fake Broadwell Intel device");
     else {
       gputop_devinfo.has_dynamic_configs =
-	kernel_has_dynamic_config_support(drm_fd);
+	kernel_has_dynamic_config_support(fd);
     }
 
     return true;
@@ -1376,7 +1376,7 @@ gputop_perf_read_samples(struct gputop_perf_stream *stream)
 }
 
 static int
-get_card_for_fd(int drm_fd)
+get_card_for_fd(int fd)
 {
     struct stat sb;
     int mjr, mnr;
@@ -1385,7 +1385,7 @@ get_card_for_fd(int drm_fd)
     struct dirent *entry;
     int retval = -1;
 
-    if (fstat(drm_fd, &sb)) {
+    if (fstat(fd, &sb)) {
 	gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
 	return false;
     }
@@ -1467,7 +1467,7 @@ open_render_node(struct intel_device *dev)
 }
 
 static void
-gputop_reload_userspace_metrics(int drm_fd)
+gputop_reload_userspace_metrics(int fd)
 {
     struct gputop_hash_entry *metrics_entry;
 
@@ -1487,7 +1487,7 @@ gputop_reload_userspace_metrics(int drm_fd)
 
 	if (sysfs_card_read(config_path, &config_id)) {
 	    if (config_id > 1)
-		ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
+		ioctl(fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
 	    else if (config_id == 1)
 		continue; /* Leave the test config untouched */
 	}
@@ -1505,7 +1505,7 @@ gputop_reload_userspace_metrics(int drm_fd)
 	config.n_flex_regs = metric_set->n_flex_regs;
 	config.flex_regs_ptr = (uintptr_t) metric_set->flex_regs;
 
-	ret = ioctl(drm_fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
+	ret = ioctl(fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
 	if (ret < 0)
 	    fprintf(stderr, "Failed to load %s (%s) metrics set in kernel: %s\n",
 		    metric_set->symbol_name, metric_set->hw_config_guid, strerror(errno));
