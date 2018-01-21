@@ -746,7 +746,7 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
     } else {
 	drm_i915_getparam_t gp;
-	int revision;
+	int revision, timestamp_frequency;
 
 	gputop_devinfo.gen = devinfo->gen;
 	gputop_devinfo.n_eu_slices = devinfo->num_slices;
@@ -762,6 +762,14 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gp.value = &revision;
 	perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	gputop_devinfo.revision = revision;
+
+        /* This might not be available on all kernels, save the value
+         * only if the ioctl succeeds.
+         */
+        gp.param = I915_PARAM_CS_TIMESTAMP_FREQUENCY;
+	gp.value = &timestamp_frequency;
+        if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
+            gputop_devinfo.timestamp_frequency = timestamp_frequency;
 
 	if (devinfo->is_haswell) {
 	    gputop_devinfo.n_eus =
