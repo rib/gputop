@@ -170,17 +170,6 @@ struct gputop_metric_set {
     uint32_t n_flex_regs;
 };
 
-static inline bool
-gputop_device_has_slice(const struct gputop_devinfo *devinfo, uint32_t slice)
-{
-    return (devinfo->slice_mask & slice) != 0;
-}
-
-static inline bool
-gputop_device_has_subslice(const struct gputop_devinfo *devinfo, uint32_t subslice)
-{
-    return (devinfo->subslice_mask & subslice) != 0;
-}
 
 #ifdef __cplusplus
 }

@@ -226,14 +226,6 @@ def brkt(subexp):
         return subexp
 
 def splice_bitwise_and(args):
-    if args[1] == "devinfo->slice_mask":
-        return "gputop_device_has_slice(devinfo, %s)" % args[0]
-    if args[0] == "devinfo->slice_mask":
-        return "gputop_device_has_slice(devinfo, %s)" % args[1]
-    if args[1] == "devinfo->subslice_mask":
-        return "gputop_device_has_subslice(devinfo, %s)" % args[0]
-    if args[0] == "devinfo->subslice_mask":
-        return "gputop_device_has_subslice(devinfo, %s)" % args[1]
     return brkt(args[1]) + " & " + brkt(args[0])
 
 def splice_logical_and(args):
