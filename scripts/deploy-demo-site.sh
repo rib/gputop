@@ -4,8 +4,8 @@ mkdir deploy
 cd deploy
 git config --global user.email "Travis@travis.org"
 git config --global user.name "Travis CI"
-git clone --quiet https://${GH_TOKEN}@github.com/gputop/gputop.github.io.git &> /dev/null
-cd gputop.github.io
+git clone --quiet https://${DJDEATH_GH_TOKEN}@github.com/djdeath/djdeath.github.io.git &> /dev/null
+cd djdeath.github.io/gputop-imgui
 rm -rf *
 cp ${TRAVIS_BUILD_DIR}/travis-build/gputop-ui/*.js ${TRAVIS_BUILD_DIR}/travis-build/gputop-ui/*.wasm .
 if [ -d ${TRAVIS_BUILD_DIR}/travis-build/gputop-ui/gputop-ui.wasm.map ]; then
@@ -20,4 +20,4 @@ echo "www.gputop.com" >> CNAME
 git add --all
 git status
 git commit -m "Deployed by Travis"
-git push origin master &> /dev/null
+git push origin master

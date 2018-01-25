@@ -13,9 +13,9 @@ compiler:
 
 env:
     global:
-        # GH_TOKEN scope=public_repo, for pushing to gh-pages demo site,
-        # limited to builds of the rib/gputop repo
-        - secure: "CXTLgHD8PYC3OQO88QHFaCu6tfF4Pp/fHvn9cguOptBUrkOad5IKq43r4wNv+VFKl9f99K4tvBThHOLAryi+2OFDwkKIiIHfhyaEewLQKFOxGlXLQf6JlKslzVU8/r5BeKt1KH1fuNmaqGqyv39snVmBE0HGmHntpY8U0CtISwL8riS8fQWT/Ae3vUVDnkCaHen6QfCvOQtwZey7GwFp2+Dn7lVC4xviOTR2zEydMzRnvhzwO4NkeCtigqgY5jEW6Irmk72Ng/27UTYY/ps+/dvtLeL2xGWziPRWf92z6qMGJAuX6CfAkwPHF4G/MNnOSQ2R3YZPDPzSLitpz/ThXnpfUlJMpa7fV/RZMp9+WjbSvyfi4mUG+fyvWPS3oXkF05U5rmZn5LHrTvjFUXt7lj3n/Ugkk2+1dTFxwHE1HzV85C1kNgOIgwhJLvfddyhUncwBHKMUs6q5w9sha+5zMF0YTttG8EJFwHKqjCdwycJ5g1/i0mmj6qzTFosUmH0N+3bIPAO/ca6DjUXzoH1f0BeL22M3Uy3CEeWgfn7X87fRGK8pgHE6d3VYb6VdO8ys17Cz3SkRn4S71VwXqZg6nl462C/nUR23Rpi/ijYWhPYAqXVGPUsCOAzUl1PTBMDsHqWk2hUto2WEXCnVhpBoq5FkJ0RhV03tPyAZCtoCNcw="
+        # DJDEATH_GH_TOKEN scope=public_repo, for deployment testing
+        # on imgui branch. Limited to builds of the rib/gputop repo
+        - secure: "DgKbaylcOKYumClt4kzsGZUeP98d0m4jM/mPWq7I9wM78/AOm3y52JRt3w7yWAWLKGLEM2J92TwO75/skpZBIZ8RB1tCJfq+z2AaIXtLL5U/dcwG5ehL51+3whMjlOYe+HBMnKpguJWaVjUC9HBfwF8S1Ibkgxh6wcdIBY4/tFxjB3E4COxaYpsbaWUnmpmyItmIYGBH1S4fsgxZW1v45Hs2U/943DKot8LRwkuiU9L3W7plMBVTqt+/qhGjXKwN0Zb1XgjbGPGZDut1XOwQcTcjtaQJEbTYa0KUQ+7Ta9KCNAO6GEhQGh/UpFYyO81ojairqWZZyiu8k3u5CHrVc8wv6ZZrFsbRJRwhF/zzMPaqqk71I+PYohRaMsGZwpZ/7igmqiSkRJC96+f/0AwKWpLaySHkNrTIC1alg5NyfGSUrAN7hjw6z4UmJs6I06huhfO4BD5wizdXjUpmROw6Wzfbm21GWb1pCoC315rSU3ruKm2/rB7bHtLfSbrW+ks3t1P106CTCE+Mnt//VtxjJlBOAHnS346jYOGhQosJ1Cd4G86Eb0QhL9JhUAKHWL8qUiqTdach+33Pm9FJykzE8m2OAjD0qkKdEy9WK5pJrI748YcfuiAC2fR8dY/HqdNrftcDSefI8pQewaDiW/FLGCjWCxFHXNPnKXb3gl8tYHM="
     matrix:
         - CONFIG_OPTS="--buildtype=debug" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci-ubuntu16.04-18.01.09"
         - CONFIG_OPTS="--buildtype=release" PREP_SCRIPT="scripts/travis-ci-prep-docker-ubuntu.sh" BASE_IMAGE="djdeath/gputop-travis-ci-ubuntu16.04-18.01.09"
@@ -27,6 +27,7 @@ env:
         - CONFIG_OPTS="--buildtype=release" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos7-18.01.08"
         - CONFIG_OPTS="--buildtype=debug -Dnative_ui=true" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos7-18.01.08"
         - CONFIG_OPTS="--buildtype=release -Dnative_ui=true" PREP_SCRIPT="scripts/travis-ci-prep-docker-centos.sh" BASE_IMAGE="djdeath/gputop-travis-ci-centos7-18.01.08"
+
 
 before_install:
     - docker pull $BASE_IMAGE
@@ -42,4 +43,4 @@ deploy:
     skip_cleanup: true
     on:
         condition: $CONFIG_OPTS = "--buildtype=release --cross=scripts/meson-cross/emscripten-docker-release.txt -Dwebui=true"
-        branch: master
+        branch: imgui

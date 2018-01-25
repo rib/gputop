@@ -1058,6 +1058,7 @@ gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint32_t period_
         if ((oa_period / 1000000) > period_ms)
             return MAX2(0, i - 1);
     }
+    printf("period_ms=%u\n", period_ms);
 
     unreachable("Period out of range");
     return 0;
