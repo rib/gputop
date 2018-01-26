@@ -1412,7 +1412,7 @@ gputop_server_print_addresses(unsigned long port)
 bool gputop_server_run(void)
 {
     uv_loop_t *loop;
-    struct sockaddr_in sockaddr;
+    struct sockaddr_in6 sockaddr;
     h2o_hostconf_t *hostconf;
     h2o_pathconf_t *pathconf;
     int r;
@@ -1436,7 +1436,7 @@ bool gputop_server_run(void)
         port_env = "7890";
     port = strtoul(port_env, NULL, 10);
 
-    uv_ip4_addr("0.0.0.0", port, &sockaddr);
+    uv_ip6_addr("::", port, &sockaddr);
     if ((r = uv_tcp_bind(&listener, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) != 0) {
         fprintf(stderr, "uv_tcp_bind:%s\n", uv_strerror(r));
         goto error;
