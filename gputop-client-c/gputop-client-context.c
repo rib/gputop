@@ -18,7 +18,7 @@
 #include "oa-cflgt3.h"
 #include "oa-cnl.h"
 
-#include "gputop-client-c-runtime.h"
+#include "gputop-log.h"
 
 static void i915_perf_empty_samples(struct gputop_client_context *ctx);
 static void clear_perf_tracepoints_data(struct gputop_client_context *ctx);

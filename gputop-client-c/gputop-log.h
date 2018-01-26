@@ -76,3 +76,5 @@ void gputop_log(int level, const char *message, int len);
 
 Gputop__Log *gputop_get_pb_log(void);
 void gputop_pb_log_free(Gputop__Log *log);
+
+void gputop_cr_console_log(const char *format, ...);
