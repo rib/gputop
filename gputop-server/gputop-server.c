@@ -1369,6 +1369,7 @@ gputop_server_print_addresses(unsigned long port)
 {
     struct ifaddrs *ifaddr, *ifa;
     char host[NI_MAXHOST];
+    size_t host_size = sizeof(host);
 
     printf("Web server listening on port %lu\n", port);
 
@@ -1376,6 +1377,11 @@ gputop_server_print_addresses(unsigned long port)
         fprintf(stderr, "Unable to get network interfaces: %s\n",
                 strerror(errno));
         return;
+    }
+
+    if (uv_os_gethostname(host, &host_size) == 0) {
+        printf("\tDefault : https://gputop.com?remoteHost=%s&remotePort=%lu\n",
+               host, port);
     }
 
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
