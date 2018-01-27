@@ -47,8 +47,6 @@ bool EndTimeline(const char **units = NULL, int n_units = 0,
                  const char *row_labels[] = NULL,
                  int64_t *zoom_start = NULL, uint64_t *zoom_end = NULL);
 
-ImColor GetTimelineRowColor(int row, int n_rows);
-
 };
 
 #endif /* __GPUTOP_UI_TIMELINE_H__ */

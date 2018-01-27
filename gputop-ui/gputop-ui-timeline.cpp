@@ -137,7 +137,7 @@ void BeginTimeline(const char *label, int rows, int events, uint64_t length, ImV
 
 bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
 {
-    ImColor color(GetTimelineRowColor(row, timeline_n_rows));
+    ImColor color(GetHueColor(row, timeline_n_rows));
 
     ImGuiWindow* window = GetCurrentWindow();
     double width = timeline_inner_bb.GetWidth();
@@ -165,7 +165,7 @@ bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
 
 bool TimelineEvent(int event, uint64_t time, bool selected)
 {
-    ImColor color(GetTimelineRowColor(event, timeline_n_events));
+    ImColor color(GetHueColor(event, timeline_n_events));
 
     ImGuiWindow* window = GetCurrentWindow();
     double width = timeline_inner_bb.GetWidth();
@@ -381,11 +381,6 @@ bool EndTimeline(const char **units, int n_units,
         ClearActiveID();
 
     return zoom_changed;
-}
-
-ImColor GetTimelineRowColor(int row, int n_rows)
-{
-    return ImColor::HSV(row * 1.0f / ImMax(1, n_rows), 0.5f, 0.5f);
 }
 
 } // namespace Gputop

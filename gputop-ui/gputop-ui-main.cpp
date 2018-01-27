@@ -1188,7 +1188,7 @@ display_timeline_window(struct window *win)
     ImGui::Columns(2);
     int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     ImGui::ColorButton("##selected_context",
-                       Gputop::GetTimelineRowColor(window->selected_context.timeline_row, n_contexts),
+                       Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip); ImGui::SameLine();
     ImGui::Text("%s", window->selected_context.name); ImGui::SameLine();
     static ImGuiTextFilter filter;
@@ -1231,7 +1231,7 @@ display_timeline_window(struct window *win)
         char desc[20];
         snprintf(desc, sizeof(desc), "##%p", data);
         ImGui::ColorButton(desc,
-                           Gputop::GetTimelineRowColor(data->tp->idx, n_tps),
+                           Gputop::GetHueColor(data->tp->idx, n_tps),
                            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip); ImGui::SameLine();
         char point_desc[200];
         gputop_client_context_print_tracepoint_data(ctx, point_desc, sizeof(point_desc), data, true);

@@ -62,6 +62,8 @@ ImU32 GetColor(enum Colors color);
 int GetProperty(enum Properties prop);
 void DisplayColorsProperties();
 
+ImColor GetHueColor(int element, int n_elements, float brightness = 0.5);
+
 };
 
 #endif /* __GPUTOP_UI_UTILS_H__ */

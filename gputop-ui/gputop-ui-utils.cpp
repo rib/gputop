@@ -127,4 +127,10 @@ void DisplayColorsProperties()
     }
 }
 
+ImColor GetHueColor(int element, int n_elements, float brightness)
+{
+    return ImColor::HSV(element * 1.0f / ImMax(1, n_elements),
+                        brightness, brightness);
+}
+
 } // namespace Gputop
