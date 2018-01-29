@@ -5,15 +5,15 @@ gputop_client_src = [
 
 gputop_client_src += custom_target(
   'proto-files',
-  input : [join_paths(meson.current_source_dir(), '../gputop-data/gputop.proto')],
+  input : [join_paths(meson.current_source_dir(), '../data/gputop.proto')],
   output : ['gputop.pb-c.c', 'gputop.pb-c.h'],
   command : [protoc_c, '--c_out=@OUTDIR@',
-             '-I' + join_paths(meson.current_source_dir(), '../gputop-data'),
-             join_paths(meson.current_source_dir(), '../gputop-data/gputop.proto')])
+             '-I' + join_paths(meson.current_source_dir(), '../data'),
+             join_paths(meson.current_source_dir(), '../data/gputop.proto')])
 
 oa_generator = generator(
   prog_python2,
-  arguments : ['@CURRENT_SOURCE_DIR@/../scripts/gputop-oa-codegen.py', '@INPUT@',
+  arguments : [join_paths(meson.current_source_dir(), '../scripts/gputop-oa-codegen.py'), '@INPUT@',
                '--chipset', '@EXTRA_ARGS@', '--code', '@OUTPUT0@',
                '--header', '@OUTPUT1@'],
   output : ['@BASENAME@.c', '@BASENAME@.h'],
@@ -22,7 +22,7 @@ oa_generator = generator(
 oa_sources = []
 foreach hw : ['hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt',
               'kblgt2', 'kblgt3', 'glk', 'cflgt2', 'cflgt3', 'cnl']
-  _xml = '../gputop-data/oa-@0@.xml'.format(hw)
+  _xml = '../data/oa-@0@.xml'.format(hw)
   oa_sources += oa_generator.process(_xml, extra_args : hw)
 endforeach
 

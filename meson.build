@@ -33,15 +33,13 @@ endif
 
 
 subdir('mesa')
-subdir('gputop-client-c')
+subdir('lib')
 if not build_webui
   libuv_dep = subproject('libuv').get_variable('libuv_dep')
   wslay_dep = subproject('wslay').get_variable('wslay_dep')
   h2o_dep = subproject('h2o').get_variable('h2o_dep')
 
-  subdir('gputop-server')
-  subdir('gputop-wrapper')
-  subdir('gputop-ui')
-else
-  subdir('gputop-ui')
+  subdir('server')
+  subdir('wrapper')
 endif
+subdir('ui')
