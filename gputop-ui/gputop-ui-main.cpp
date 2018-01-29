@@ -156,6 +156,17 @@ hide_window(struct window *win)
     /* NOP */
 }
 
+static void
+toggle_show_window(struct window *win)
+{
+    if (win->opened)
+        win->opened = false;
+    else {
+        win->opened = true;
+        list_add(&win->link, &context.windows);
+    }
+}
+
 /**/
 
 static void *
@@ -1045,31 +1056,11 @@ display_timeline_window(struct window *win)
                                          max_length : window->zoom_length,
                                          time, sizeof(time));
         ImGui::Text("time interval : %s", time);
-    } ImGui::SameLine();
-    if (ImGui::Button("Counters")) {
-        if (!window->counters_window.opened) {
-            window->counters_window.opened = true;
-            list_add(&window->counters_window.link, &context.windows);
-        }
-    } ImGui::SameLine();
-    if (ImGui::Button("Events")) {
-        if (!window->events_window.opened) {
-            window->events_window.opened = true;
-            list_add(&window->events_window.link, &context.windows);
-        }
-    } ImGui::SameLine();
-    if (ImGui::Button("RCS usage")) {
-        if (!window->usage_window.opened) {
-            window->usage_window.opened = true;
-            list_add(&window->usage_window.link, &context.windows);
-        }
-    } ImGui::SameLine();
-    if (ImGui::Button("OA reports")) {
-        if (!window->reports_window.opened) {
-            window->reports_window.opened = true;
-            list_add(&window->reports_window.link, &context.windows);
-        }
     }
+    if (ImGui::Button("Counters")) { toggle_show_window(&window->counters_window); } ImGui::SameLine();
+    if (ImGui::Button("Events")) { toggle_show_window(&window->events_window); } ImGui::SameLine();
+    if (ImGui::Button("RCS usage")) { toggle_show_window(&window->usage_window); } ImGui::SameLine();
+    if (ImGui::Button("OA reports")) { toggle_show_window(&window->reports_window); }
 
     uint64_t start_ts, end_ts;
     get_timeline_bounds(window, ctx, true, &start_ts, &end_ts,
