@@ -26,6 +26,7 @@
 
 #include "imgui.h"
 #include "gputop-ui-multilines.h"
+#include "gputop-ui-piechart.h"
 #include "gputop-ui-timeline.h"
 #include "gputop-ui-topology.h"
 #include "gputop-ui-utils.h"
@@ -94,6 +95,8 @@ struct timeline_window {
     struct gputop_perf_tracepoint tracepoint;
     uint64_t tracepoint_selected_ts;
 
+    struct window counters_window;
+    struct window events_window;
     struct window reports_window;
     struct window usage_window;
 
@@ -335,11 +338,52 @@ add_counter_i915_perf_window(struct i915_perf_window *window,
 }
 
 static void
+display_i915_perf_counters(struct gputop_client_context *ctx,
+                           ImGuiTextFilter *filter,
+                           struct gputop_accumulated_samples *samples,
+                           bool add_buttons)
+{
+    if (!ctx->metric_set) {
+        ImGui::Text("No metric set selected");
+        return;
+    }
+
+    for (int c = 0; c < ctx->metric_set->n_counters; c++) {
+        const struct gputop_metric_set_counter *counter = &ctx->metric_set->counters[c];
+
+        if (!filter->PassFilter(counter->name)) continue;
+
+        if (add_buttons) {
+            ImGui::PushID(counter);
+            if (ImGui::Button("+")) {
+                if (context.global_i915_perf_window.base.opened)
+                    add_counter_i915_perf_window(&context.global_i915_perf_window, counter);
+                if (context.contexts_i915_perf_window.base.opened)
+                    add_counter_i915_perf_window(&context.contexts_i915_perf_window, counter);
+            } ImGui::SameLine();
+            ImGui::PopID();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Add counter to timeline windows");
+        }
+
+        double value = gputop_client_context_read_counter_value(ctx, samples, counter);
+        ImGui::ProgressBar(value / read_counter_max(ctx, samples, counter, MAX2(1.0f, value)),
+                           ImVec2(100, 0)); ImGui::SameLine();
+
+        char text[100];
+        pretty_print_counter_value(counter, value, text, sizeof(text));
+        ImGui::Text("%s : %s", counter->name, text);
+    }
+}
+
+
+static void
 display_live_i915_perf_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
 
     ImGui::Text("Metric set: %s", ctx->metric_set ? ctx->metric_set->name : "<None>");
+    static ImGuiTextFilter filter;
+    filter.Draw();
 
     if (!ctx->metric_set)
         return;
@@ -347,29 +391,7 @@ display_live_i915_perf_window(struct window *win)
     struct gputop_accumulated_samples *last_sample =
         list_last_entry(&ctx->graphs, struct gputop_accumulated_samples, link);
 
-    ImGui::BeginChild("##block");
-    for (int c = 0; c < ctx->metric_set->n_counters; c++) {
-        const struct gputop_metric_set_counter *counter = &ctx->metric_set->counters[c];
-        double value = gputop_client_context_read_counter_value(ctx, last_sample, counter);
-
-        ImGui::PushID(counter);
-        if (ImGui::Button("+")) {
-            if (context.global_i915_perf_window.base.opened)
-                add_counter_i915_perf_window(&context.global_i915_perf_window, counter);
-            if (context.contexts_i915_perf_window.base.opened)
-                add_counter_i915_perf_window(&context.contexts_i915_perf_window, counter);
-        } ImGui::SameLine();
-        ImGui::PopID();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Add counter to timeline windows");
-
-        ImGui::ProgressBar(value / read_counter_max(ctx, last_sample, counter, MAX2(1.0f, value)),
-                           ImVec2(100, 0)); ImGui::SameLine();
-
-        char text[100];
-        pretty_print_counter_value(counter, value, text, sizeof(text));
-        ImGui::Text("%s : %s", counter->name, text);
-    }
-    ImGui::EndChild();
+    display_i915_perf_counters(ctx, &filter, last_sample, true);
 }
 
 static void
@@ -958,7 +980,7 @@ get_timeline_bounds(struct timeline_window *window,
     *end = end_ts;
 }
 
-void
+static void
 tracepoint_print_prev_next(struct gputop_client_context *ctx,
                            char *buf, size_t len,
                            struct gputop_perf_tracepoint_data *data)
@@ -993,9 +1015,11 @@ tracepoint_print_prev_next(struct gputop_client_context *ctx,
 }
 
 static void
-display_i915_perf_timeline_window(struct timeline_window *window,
-                                  struct gputop_client_context *ctx)
+display_timeline_window(struct window *win)
 {
+    struct gputop_client_context *ctx = &context.ctx;
+    struct timeline_window *window = (struct timeline_window *) win;
+
     const uint64_t max_length = ctx->oa_visible_timeline_s * 1000000000ULL;
 
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); }
@@ -1022,16 +1046,28 @@ display_i915_perf_timeline_window(struct timeline_window *window,
                                          time, sizeof(time));
         ImGui::Text("time interval : %s", time);
     } ImGui::SameLine();
-    if (ImGui::Button("Show reports")) {
-        if (!window->reports_window.opened) {
-            window->reports_window.opened = true;
-            list_add(&window->reports_window.link, &context.windows);
+    if (ImGui::Button("Counters")) {
+        if (!window->counters_window.opened) {
+            window->counters_window.opened = true;
+            list_add(&window->counters_window.link, &context.windows);
         }
-    }  ImGui::SameLine();
-    if (ImGui::Button("Show context usage")) {
+    } ImGui::SameLine();
+    if (ImGui::Button("Events")) {
+        if (!window->events_window.opened) {
+            window->events_window.opened = true;
+            list_add(&window->events_window.link, &context.windows);
+        }
+    } ImGui::SameLine();
+    if (ImGui::Button("RCS usage")) {
         if (!window->usage_window.opened) {
             window->usage_window.opened = true;
             list_add(&window->usage_window.link, &context.windows);
+        }
+    } ImGui::SameLine();
+    if (ImGui::Button("OA reports")) {
+        if (!window->reports_window.opened) {
+            window->reports_window.opened = true;
+            list_add(&window->reports_window.link, &context.windows);
         }
     }
 
@@ -1178,14 +1214,12 @@ display_i915_perf_timeline_window(struct timeline_window *window,
 }
 
 static void
-display_timeline_window(struct window *win)
+display_timeline_counters(struct window *win)
 {
+    struct timeline_window *window =
+      (struct timeline_window *) container_of(win, window, counters_window);
     struct gputop_client_context *ctx = &context.ctx;
-    struct timeline_window *window = (struct timeline_window *) win;
 
-    display_i915_perf_timeline_window(window, ctx);
-
-    ImGui::Columns(2);
     int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     ImGui::ColorButton("##selected_context",
                        Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
@@ -1193,23 +1227,17 @@ display_timeline_window(struct window *win)
     ImGui::Text("%s", window->selected_context.name); ImGui::SameLine();
     static ImGuiTextFilter filter;
     filter.Draw();
-    if (ctx->metric_set) {
-        ImGui::BeginChild("##counters");
-        for (int c = 0; c < ctx->metric_set->n_counters; c++) {
-            const struct gputop_metric_set_counter *counter =
-                &ctx->metric_set->counters[c];
-            if (!filter.PassFilter(counter->name)) continue;
-            double value =
-              gputop_client_context_read_counter_value(ctx, &window->selected_samples, counter);
-            char svalue[100];
-            pretty_print_counter_value(counter, value, svalue, sizeof(svalue));
-            ImGui::Text("%s : %s", counter->name, svalue);
-        }
-        ImGui::EndChild();
-    }
 
-    ImGui::NextColumn();
-    ImGui::BeginChild("##data-samples");
+    display_i915_perf_counters(ctx, &filter, &window->selected_samples, false);
+}
+
+static void
+display_timeline_events(struct window *win)
+{
+    struct timeline_window *window =
+      (struct timeline_window *) container_of(win, window, events_window);
+    struct gputop_client_context *ctx = &context.ctx;
+
     uint64_t start_ts, end_ts;
     if (ctx->i915_perf_config.cpu_timestamps) {
         get_timeline_bounds(window, ctx, false, &start_ts, &end_ts,
@@ -1240,7 +1268,6 @@ display_timeline_window(struct window *win)
 
         n_items++;
     }
-    ImGui::EndChild();
 }
 
 static void
@@ -1253,10 +1280,8 @@ display_timeline_reports(struct window *win)
     if (ctx->is_sampling)
         return;
 
-    ImGui::BeginChild("##reports");
     if (window->selected_samples.start_report.chunk)
       display_accumulated_reports(ctx, &window->selected_samples, true);
-    ImGui::EndChild();
 }
 
 static void
@@ -1265,12 +1290,42 @@ display_timeline_usage(struct window *win)
     struct timeline_window *window =
       (struct timeline_window *) container_of(win, window, usage_window);
     struct gputop_client_context *ctx = &context.ctx;
+    char pretty_time[80];
+
+    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                     window->zoom_length,
+                                     pretty_time, sizeof(pretty_time));
+    ImGui::Text("Total time: %s", pretty_time);
 
     if (window->zoom_length < 1)
         return;
 
-    uint64_t contexts_time = 0UL;
-    char pretty_time[80];
+    uint64_t contexts_time = 0ULL;
+    const int n_clients = list_length(&ctx->hw_contexts) + 1;
+    Gputop::BeginPieChart(n_clients,
+                          ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0.0f)); ImGui::SameLine();
+    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+        double percent = (double) context->visible_time_spent / window->zoom_length;
+        if (Gputop::PieChartItem(percent)) {
+            gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                             context->visible_time_spent,
+                                             pretty_time, sizeof(pretty_time));
+            ImGui::SetTooltip("%s: %s", context->name, pretty_time);
+        }
+
+        contexts_time += context->visible_time_spent;
+    }
+    uint64_t idle_time = window->zoom_length - contexts_time;
+    double idle_percent = (float) idle_time / window->zoom_length;
+    if (Gputop::PieChartItem(idle_percent)) {
+        gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                         idle_time, pretty_time, sizeof(pretty_time));
+        ImGui::SetTooltip("Idle: %s", pretty_time);
+    }
+    Gputop::EndPieChart();
+
+    ImGui::BeginChild("#contextlist");
+    contexts_time = 0ULL;
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
         ImGui::ProgressBar((double) context->visible_time_spent / window->zoom_length,
                            ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
@@ -1279,17 +1334,14 @@ display_timeline_usage(struct window *win)
                                          context->visible_time_spent,
                                          pretty_time, sizeof(pretty_time));
         ImGui::Text("%s: %s", context->name, pretty_time);
-
-        contexts_time += context->visible_time_spent;
     }
 
-    uint64_t idle_time = window->zoom_length - contexts_time;
-    ImGui::ProgressBar((double) idle_time / window->zoom_length,
-                       ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
+    ImGui::ProgressBar(idle_percent, ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
     ImGui::SameLine();
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                      idle_time, pretty_time, sizeof(pretty_time));
     ImGui::Text("Idle: %s", pretty_time);
+    ImGui::EndChild();
 }
 
 static void
@@ -1318,6 +1370,20 @@ show_timeline_window(void)
     window->base.display = display_timeline_window;
     window->base.destroy = hide_timeline_window;
     window->base.opened = true;
+
+    snprintf(window->counters_window.name, sizeof(window->counters_window.name),
+             "i915 perf timeline counters##%p", &window->counters_window);
+    window->counters_window.size = ImVec2(400, 400);
+    window->counters_window.display = display_timeline_counters;
+    window->counters_window.destroy = hide_window;
+    window->counters_window.opened = false;
+
+    snprintf(window->events_window.name, sizeof(window->events_window.name),
+             "i915 perf timeline events##%p", &window->events_window);
+    window->events_window.size = ImVec2(400, 400);
+    window->events_window.display = display_timeline_events;
+    window->events_window.destroy = hide_window;
+    window->events_window.opened = false;
 
     snprintf(window->reports_window.name, sizeof(window->reports_window.name),
              "i915 perf timeline reports##%p", &window->reports_window);
