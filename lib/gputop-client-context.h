@@ -270,6 +270,7 @@ struct gputop_client_context {
 
     /**/
     struct hash_table *pid_to_process_table;
+    struct hash_table *hw_id_to_process_table;
 
     /**/
     struct {

@@ -457,6 +457,8 @@ add_tracepoint_stream_data(struct gputop_client_context *ctx,
 
         if (tp->hw_id_field >= 0) {
             uint32_t hw_id = *((uint32_t *)&tp_data->data.data[tp->fields[tp->hw_id_field].offset]);
+            _mesa_hash_table_insert(ctx->hw_id_to_process_table, (void *)(uintptr_t)hw_id, process);
+
             struct hash_entry *entry =
                 _mesa_hash_table_search(ctx->hw_contexts_table, (void *)(uintptr_t)hw_id);
             if (entry) {
@@ -542,12 +544,12 @@ static void put_accumulated_sample(struct gputop_client_context *ctx,
 static struct gputop_hw_context *
 get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
 {
-    struct hash_entry *entry =
+    struct hash_entry *hw_entry =
         _mesa_hash_table_search(ctx->hw_contexts_table, (void *)(uintptr_t)hw_id);
 
     struct gputop_hw_context *new_context;
-    if (entry) {
-        new_context = (struct gputop_hw_context *) entry->data;
+    if (hw_entry) {
+        new_context = (struct gputop_hw_context *) hw_entry->data;
         new_context->n_samples++;
         return new_context;
     }
@@ -559,7 +561,10 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
     new_context->n_samples = 1;
     list_inithead(&new_context->graphs);
 
-    //get_process_info(ctx, pid);
+    struct hash_entry *process_entry =
+        _mesa_hash_table_search(ctx->hw_id_to_process_table, (void *)(uintptr_t)hw_id);
+    if (process_entry)
+        new_context->process = (struct gputop_process_info *) process_entry->data;
 
     new_context->current_graph_samples =
         get_accumulated_sample(ctx,
@@ -1236,6 +1241,7 @@ gputop_client_context_start_sampling(struct gputop_client_context *ctx)
         gputop_client_context_stop_sampling(ctx);
 
     _mesa_hash_table_clear(ctx->pid_to_process_table, delete_process_entry);
+    _mesa_hash_table_clear(ctx->hw_id_to_process_table, NULL);
 
     open_i915_perf_stream(ctx);
     open_perf_events_streams(ctx);
@@ -1518,6 +1524,8 @@ gputop_client_context_init(struct gputop_client_context *ctx)
 
     ctx->pid_to_process_table =
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+    ctx->hw_id_to_process_table =
+        _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
     ctx->i915_perf_config.oa_reports = true;
 }
@@ -1560,6 +1568,7 @@ gputop_client_context_reset(struct gputop_client_context *ctx,
 
     /**/
     _mesa_hash_table_clear(ctx->pid_to_process_table, delete_process_entry);
+    _mesa_hash_table_clear(ctx->hw_id_to_process_table, NULL);
 
     gputop_client_context_clear_logs(ctx);
 
