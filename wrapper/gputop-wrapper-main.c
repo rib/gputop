@@ -56,6 +56,7 @@ static struct {
     int width;
 } *metric_columns = NULL;
 static int n_metric_columns = 0;
+static int n_accumulations = 0;
 static struct gputop_accumulated_samples *last_samples;
 static int current_pid = -1;
 static bool human_units = true;
@@ -167,11 +168,6 @@ static void start_child_process(void)
         return;
     }
 
-    comment("Monitoring: ");
-    for (i = 0; i < n_child_process_args; i++)
-        comment("%s ", child_process_args[i]);
-    comment("\n");
-
     current_pid = fork();
     switch (current_pid) {
     case 0:
@@ -189,12 +185,17 @@ static void start_child_process(void)
         }
         execvp(child_process_args[0], &child_process_args[1]);
         break;
-        case -1:
-            comment("Cannot start child process: %s\n", strerror(errno));
-            quit();
-            break;
-        default:
-            break;
+    case -1:
+        comment("Cannot start child process: %s\n", strerror(errno));
+        quit();
+        break;
+    default:
+        comment("Monitoring pid=%u: ", current_pid);
+        for (i = 0; i < n_child_process_args; i++)
+            comment("%s ", child_process_args[i]);
+        comment("\n");
+
+        break;
     }
 }
 
@@ -204,19 +205,25 @@ static void on_ctrl_c(uv_signal_t* handle, int signum)
 }
 
 static uv_timer_t child_process_timer_handle;
+static int child_process_exit_accumulations;
 
 static void on_child_timer(uv_timer_t* handle)
 {
     uv_timer_stop(&child_process_timer_handle);
-    quit();
+    if (n_accumulations > child_process_exit_accumulations) {
+        quit();
+    } else
+        uv_timer_again(&child_process_timer_handle);
 }
 
 static void on_child_process_exit(uv_signal_t* handle, int signum)
 {
     /* Given it another aggregation period and quit. */
+    comment("Child exited.\n");
+    child_process_exit_accumulations = n_accumulations;
     uv_timer_init(uv_default_loop(), &child_process_timer_handle);
     uv_timer_start(&child_process_timer_handle, on_child_timer,
-                   ctx.oa_aggregation_period_ms, 0);
+                   ctx.oa_aggregation_period_ms, ctx.oa_aggregation_period_ms);
 }
 
 static void print_system_info(void)
@@ -341,6 +348,7 @@ static void print_columns(struct gputop_client_context *ctx,
     if (!match_process(context))
         return;
 
+    n_accumulations++;
     list = context == NULL ? &ctx->graphs : &context->graphs;
 
     if (last_samples == NULL) {
@@ -478,7 +486,7 @@ static void usage(void)
            "\t -O, --child-output <filename>     Outputs the child's standard output to filename\n"
            "\t -o, --output <filename>           Outputs gputop-wrapper's data to filename (disables human readable units)\n"
            "\n"
-           );
+        );
 }
 
 int
