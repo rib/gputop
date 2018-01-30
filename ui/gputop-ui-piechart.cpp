@@ -60,16 +60,19 @@ void BeginPieChart(int n_values, ImVec2 graph_size)
     if (graph_size.y == 0.0f)
         graph_size.y = graph_size.x;
 
-    ImGuiContext& g = *GImGui;
+    pie_radius = graph_size.x / 2;
+    pie_i_value = 0;
+    pie_n_values = n_values;
+    pie_accumulated_pos = 0.0f;
 
     const ImRect total_bb(window->DC.CursorPos,
                           window->DC.CursorPos + ImVec2(graph_size.x, graph_size.y));
+    pie_center = total_bb.GetCenter();
     ItemSize(total_bb, 0);
     if (!ItemAdd(total_bb, 0))
         return;
 
-    pie_center = total_bb.GetCenter();
-    pie_radius = graph_size.x / 2;
+    ImGuiContext& g = *GImGui;
     const ImVec2 mouse(g.IO.MousePos);
 
     if (ItemHoverable(total_bb, 0) && in_circle(pie_center, pie_radius, mouse))
@@ -93,17 +96,17 @@ void BeginPieChart(int n_values, ImVec2 graph_size)
         }
     } else
         pie_focus_pos = -1.0f;
-
-    pie_i_value = 0;
-    pie_n_values = n_values;
-    pie_accumulated_pos = 0.0f;
 }
 
 bool PieChartItem(float value)
 {
     ImGuiWindow* window = GetCurrentWindow();
-    const double max_sides = 60;
+    if (window->SkipItems)
+        return false;
 
+    assert(value <= 1.0f);
+
+    const float max_sides = 60;
     const float start = pie_accumulated_pos * 2 * M_PI;
     const float end = (pie_accumulated_pos + value) * 2 * M_PI;
     const bool hovered = (pie_focus_pos >= start && pie_focus_pos <= end);
