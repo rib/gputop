@@ -962,15 +962,10 @@ show_report_window(void)
 
 /**/
 
-static void
-get_timeline_bounds(struct timeline_window *window,
-                    struct gputop_client_context *ctx,
-                    bool for_i915_perf,
-                    uint64_t *start, uint64_t *end,
-                    uint64_t zoom_start, uint64_t zoom_length)
+static uint64_t
+get_end_timeline_ts(struct gputop_client_context *ctx,
+                    bool for_i915_perf)
 {
-    const uint64_t max_length = ctx->oa_visible_timeline_s * 1000000000ULL;
-
     struct gputop_accumulated_samples *oa_end = list_empty(&ctx->timelines) ?
         NULL : list_last_entry(&ctx->timelines, struct gputop_accumulated_samples, link);
     struct gputop_perf_tracepoint_data *tp_end = list_empty(&ctx->perf_tracepoints_data) ?
@@ -980,9 +975,20 @@ get_timeline_bounds(struct timeline_window *window,
     if (for_i915_perf && !ctx->i915_perf_config.cpu_timestamps)
         tp_end = NULL;
 
-    uint64_t merged_end_ts = MAX2(oa_end ? oa_end->timestamp_end : 0,
-                                  tp_end ? tp_end->data.time : 0);
+    return MAX2(oa_end ? oa_end->timestamp_end : 0,
+                tp_end ? tp_end->data.time : 0);
+}
 
+static void
+get_timeline_bounds(struct timeline_window *window,
+                    struct gputop_client_context *ctx,
+                    bool for_i915_perf,
+                    uint64_t *start, uint64_t *end,
+                    uint64_t zoom_start, uint64_t zoom_length)
+{
+    uint64_t merged_end_ts = get_end_timeline_ts(ctx, for_i915_perf);
+
+    const uint64_t max_length = ctx->oa_visible_timeline_s * 1000000000ULL;
     uint64_t start_ts = merged_end_ts - MIN2(max_length, merged_end_ts) + zoom_start;
     uint64_t end_ts = zoom_length == 0 ?
         merged_end_ts : start_ts + zoom_length;
@@ -1025,6 +1031,56 @@ tracepoint_print_prev_next(struct gputop_client_context *ctx,
     }
 }
 
+static bool
+timeline_select_context(struct timeline_window *window,
+                        struct gputop_client_context *ctx,
+                        struct gputop_hw_context **out_context)
+{
+    bool selected = false;
+    if (ImGui::Button("Move to.."))
+        ImGui::OpenPopup("Contexts");
+    if (ImGui::BeginPopup("Contexts")) {
+        list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+            if (ImGui::Selectable(context->name)) {
+                *out_context = context;
+                selected = true;
+            }
+        }
+        ImGui::EndPopup();
+    }
+    return selected;
+}
+
+static void
+timeline_focus_on_first_sample(struct timeline_window *window,
+                               struct gputop_client_context *ctx,
+                               struct gputop_hw_context *context)
+{
+    uint64_t start_ts, end_ts;
+    get_timeline_bounds(window, ctx, true, &start_ts, &end_ts,
+                        window->zoom_start, window->zoom_length);
+
+    list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
+        if (samples->timestamp_end < start_ts)
+            continue;
+        if (samples->timestamp_start > end_ts)
+            break;
+        if (samples->context != context)
+            continue;
+
+        const uint64_t max_length = ctx->oa_visible_timeline_s * 1000000000ULL;
+        uint64_t total_end_ts = get_end_timeline_ts(ctx, true);
+
+        uint64_t ts_length = samples->timestamp_end - samples->timestamp_start;
+        ts_length *= 2;
+
+        window->zoom_start = (samples->timestamp_start - ts_length / 4) - (total_end_ts - max_length);
+        window->zoom_length = ts_length;
+
+        break;
+    }
+}
+
 static void
 display_timeline_window(struct window *win)
 {
@@ -1048,6 +1104,10 @@ display_timeline_window(struct window *win)
     if (ImGui::Button("Zoom in##i915")) {
         window->zoom_start += window->zoom_length / 4;
         window->zoom_length /= 2;
+    } ImGui::SameLine();
+    struct gputop_hw_context *selected_context = NULL;
+    if (timeline_select_context(window, ctx, &selected_context)) {
+        timeline_focus_on_first_sample(window, ctx, selected_context);
     } ImGui::SameLine();
     {
         char time[20];
@@ -1074,7 +1134,6 @@ display_timeline_window(struct window *win)
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link)
         row_names[n_rows++] = context->name;
     int n_tps = list_length(&ctx->perf_tracepoints);
-    ImGui::Text("ts window : %" PRIx64 " - %" PRIx64, start_ts, end_ts);
     Gputop::BeginTimeline("i915-perf-timeline", n_rows, n_tps,
                           end_ts - start_ts,
                           ImVec2(ImGui::GetContentRegionAvailWidth(), 300.0f));
