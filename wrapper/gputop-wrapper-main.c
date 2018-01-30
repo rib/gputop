@@ -60,6 +60,7 @@ static int n_accumulations = 0;
 static struct gputop_accumulated_samples *last_samples;
 static int current_pid = -1;
 static bool human_units = true;
+static bool print_headers = true;
 static FILE *wrapper_output = NULL;
 
 static void comment(const char *format, ...)
@@ -406,7 +407,8 @@ static bool handle_features()
         info_printed = true;
         print_system_info();
     }
-    print_metric_colum_names();
+    if (print_headers)
+        print_metric_colum_names();
     return false;
 }
 
@@ -483,6 +485,7 @@ static void usage(void)
            "\t -m, --metric <name>               Metric set to use (printed out if this option is missing)\n"
            "\t -c, --columns <col0,col1,..>      Columns to print out (printed out if this option is missing)\n"
            "\t -n, --no-human-units              Disable human readable units (for machine readable output)\n"
+           "\t -N, --no-headers                  Disable headers (for machine readable output)\n"
            "\t -O, --child-output <filename>     Outputs the child's standard output to filename\n"
            "\t -o, --output <filename>           Outputs gputop-wrapper's data to filename (disables human readable units)\n"
            "\n"
@@ -500,6 +503,7 @@ main (int argc, char **argv)
         { "metric",          required_argument,  0, 'm' },
         { "columns",         required_argument,  0, 'c' },
         { "no-human-units",  no_argument,        0, 'n' },
+        { "no-headers",      no_argument,        0, 'N' },
         { "child-output",    required_argument,  0, 'O' },
         { "output",          required_argument,  0, 'o' },
         { NULL,              required_argument,  0, '-' },
@@ -520,7 +524,7 @@ main (int argc, char **argv)
     wrapper_output = stdout;
 
     while (!opt_done &&
-           (opt = getopt_long(argc, argv, "c:hH:m:p:P:-nO:o:", long_options, NULL)) != -1)
+           (opt = getopt_long(argc, argv, "c:hH:m:p:P:-nNO:o:", long_options, NULL)) != -1)
     {
         switch (opt) {
         case 'h':
@@ -555,6 +559,9 @@ main (int argc, char **argv)
             break;
         case 'n':
             human_units = false;
+            break;
+        case 'N':
+            print_headers = false;
             break;
         case 'O':
             child_process_output_file = optarg;
