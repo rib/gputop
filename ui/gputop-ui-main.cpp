@@ -1138,8 +1138,10 @@ display_timeline_window(struct window *win)
                           end_ts - start_ts,
                           ImVec2(ImGui::GetContentRegionAvailWidth(), 300.0f));
 
-    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link)
+    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+        context->visible_time = end_ts - start_ts;
         context->visible_time_spent = 0UL;
+    }
 
     uint32_t n_entries = 0;
     list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
@@ -1350,12 +1352,14 @@ display_timeline_usage(struct window *win)
     if (window->zoom_length < 1)
         return;
 
-    uint64_t contexts_time = 0ULL;
+    uint64_t contexts_time = 0ULL, visible_time = window->zoom_length;
     const int n_clients = list_length(&ctx->hw_contexts) + 1;
-    Gputop::BeginPieChart(n_clients,
-                          ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0.0f)); ImGui::SameLine();
+    float pie_ray = MIN2(ImGui::GetContentRegionAvail().y,
+                            ImGui::GetWindowContentRegionWidth() / 2);
+    Gputop::BeginPieChart(n_clients, ImVec2(pie_ray, pie_ray)); ImGui::SameLine();
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
-        double percent = (double) context->visible_time_spent / window->zoom_length;
+        visible_time = context->visible_time;
+        double percent = (double) context->visible_time_spent / context->visible_time;
         if (Gputop::PieChartItem(percent)) {
             gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                              context->visible_time_spent,
@@ -1365,8 +1369,9 @@ display_timeline_usage(struct window *win)
 
         contexts_time += context->visible_time_spent;
     }
-    uint64_t idle_time = window->zoom_length - contexts_time;
-    double idle_percent = (float) idle_time / window->zoom_length;
+
+    uint64_t idle_time = visible_time - contexts_time;
+    double idle_percent = (double) idle_time / visible_time;
     if (Gputop::PieChartItem(idle_percent)) {
         gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                          idle_time, pretty_time, sizeof(pretty_time));

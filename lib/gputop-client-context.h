@@ -74,6 +74,8 @@ struct gputop_hw_context {
 
     /* UI state */
     uint64_t visible_time_spent;
+    uint64_t visible_time;
+
     uint32_t timeline_row;
     bool selected;
 };
