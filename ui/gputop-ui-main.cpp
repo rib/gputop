@@ -402,7 +402,9 @@ display_live_i915_perf_window(struct window *win)
     struct gputop_accumulated_samples *last_sample =
         list_last_entry(&ctx->graphs, struct gputop_accumulated_samples, link);
 
+    ImGui::BeginChild("##counters");
     display_i915_perf_counters(ctx, &filter, last_sample, true);
+    ImGui::EndChild();
 }
 
 static void
@@ -1280,7 +1282,9 @@ display_timeline_counters(struct window *win)
     static ImGuiTextFilter filter;
     filter.Draw();
 
+    ImGui::BeginChild("##counters");
     display_i915_perf_counters(ctx, &filter, &window->selected_samples, false);
+    ImGui::EndChild();
 }
 
 static void
