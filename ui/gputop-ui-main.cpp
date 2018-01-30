@@ -1357,11 +1357,14 @@ display_timeline_usage(struct window *win)
         return;
 
     uint64_t contexts_time = 0ULL, visible_time = window->zoom_length;
-    const int n_clients = list_length(&ctx->hw_contexts) + 1;
     float pie_ray = MIN2(ImGui::GetContentRegionAvail().y,
                             ImGui::GetWindowContentRegionWidth() / 2);
+    int n_clients = list_length(&ctx->hw_contexts) + 1;
     Gputop::BeginPieChart(n_clients, ImVec2(pie_ray, pie_ray)); ImGui::SameLine();
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+        if (context->visible_time == 0) /* Data not computed yet. */
+            continue;
+
         visible_time = context->visible_time;
         double percent = (double) context->visible_time_spent / context->visible_time;
         if (Gputop::PieChartItem(percent)) {
