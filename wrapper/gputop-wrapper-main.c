@@ -183,7 +183,7 @@ static void start_child_process(void)
             comment("Error redirecting output stream: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        execvp(child_process_args[0], &child_process_args[1]);
+        execvp(child_process_args[0], child_process_args);
         break;
     case -1:
         comment("Cannot start child process: %s\n", strerror(errno));
