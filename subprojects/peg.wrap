@@ -1,0 +1,10 @@
+[wrap-file]
+directory = peg-0.1.18
+
+source_url = http://piumarta.com/software/peg/peg-0.1.18.tar.gz
+source_filename = peg-0.1.18.tar.gz
+source_hash = 20193bdd673fc7487a38937e297fff08aa73751b633a086ac28c3b34890f9084
+
+patch_url = https://fake.url.to.please.meson.but.file.in.packagecache/
+patch_filename = peg-wrap-0.1.18.tar
+patch_hash = e55fea3835fb5b07d592eb87050c4a0229b3402a73145f5ddc993dfbd0ab0066
