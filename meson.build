@@ -27,8 +27,10 @@ endif
 
 if meson.is_cross_build()
   protoc_c = subproject('protobuf-c').get_variable('protoc_c_native')
+  leg = subproject('peg').get_variable('leg_native')
 else
   protoc_c = subproject('protobuf-c').get_variable('protoc_c')
+  leg = subproject('peg').get_variable('leg')
 endif
 
 

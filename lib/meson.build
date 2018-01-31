@@ -26,7 +26,6 @@ foreach hw : ['hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt',
   oa_sources += oa_generator.process(_xml, extra_args : hw)
 endforeach
 
-leg = find_program('leg')
 gputop_client_src += custom_target(
   'tracepoint-parser',
   output: 'tracepoint_format.leg.h',
