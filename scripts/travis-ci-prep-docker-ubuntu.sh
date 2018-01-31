@@ -41,8 +41,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     unzip && \
     apt-get clean
 RUN pip3 install meson
-RUN curl http://piumarta.com/software/peg/peg-0.1.18.tar.gz | tar xvz
-RUN make -C peg-0.1.18 PREFIX=/usr install && rm -rf peg-0.1.18
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G sudo -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
 
