@@ -229,7 +229,6 @@ static void on_child_process_exit(uv_signal_t* handle, int signum)
 
 static void print_system_info(void)
 {
-    const Gputop__DevInfo *pb_devinfo = ctx.features->features->devinfo;
     const struct gputop_devinfo *devinfo = &ctx.devinfo;
     char temp[80];
 
@@ -243,7 +242,7 @@ static void print_system_info(void)
 
     comment("GPU info:\n");
     comment("\tGT name: %s (Gen %u, PCI 0x%x)\n",
-            pb_devinfo->prettyname, devinfo->gen, devinfo->devid);
+            devinfo->prettyname, devinfo->gen, devinfo->devid);
     comment("\tTopology: %llu threads, %llu EUs, %llu slices, %llu subslices\n",
             devinfo->eu_threads_count, devinfo->n_eus,
             devinfo->n_slices, devinfo->n_subslices);

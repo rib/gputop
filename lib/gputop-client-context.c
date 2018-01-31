@@ -1017,9 +1017,12 @@ register_platform_metrics(struct gputop_client_context *ctx,
 
     struct gputop_devinfo *devinfo = &ctx->devinfo;
     snprintf(devinfo->devname, sizeof(devinfo->devname), "%s", pb_devinfo->devname);
+    snprintf(devinfo->prettyname, sizeof(devinfo->prettyname), "%s", pb_devinfo->prettyname);
     devinfo->timestamp_frequency = pb_devinfo->timestamp_frequency;
     devinfo->devid = pb_devinfo->devid;
     devinfo->gen = pb_devinfo->gen;
+    devinfo->gt_min_freq = pb_devinfo->gt_min_freq;
+    devinfo->gt_max_freq = pb_devinfo->gt_max_freq;
 
     const Gputop__DevTopology *pb_topology = pb_devinfo->topology;
     struct gputop_devtopology *topology = &ctx->devinfo.topology;

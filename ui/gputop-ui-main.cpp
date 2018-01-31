@@ -1924,10 +1924,9 @@ display_main_window(struct window *win)
     /* GPU */
     ImGui::Separator();
     if (ctx->features) {
-        const Gputop__DevInfo *pb_devinfo = ctx->features->features->devinfo;
         const struct gputop_devinfo *devinfo = &ctx->devinfo;
         ImGui::Text("GT name: %s (Gen %u, PCI 0x%x)",
-                    pb_devinfo->prettyname, devinfo->gen, devinfo->devid);
+                    devinfo->prettyname, devinfo->gen, devinfo->devid);
         ImGui::Text("%" PRIu64 " threads, %" PRIu64 " EUs, %" PRIu32 " slices, %" PRIu32 " subslices",
                     devinfo->eu_threads_count, devinfo->n_eus,
                     devinfo->n_slices, devinfo->n_subslices);
