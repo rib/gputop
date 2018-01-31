@@ -280,11 +280,21 @@ static void print_metrics(void)
 
 static void print_metric_counter(const struct gputop_metric_set *metric_set)
 {
-    int i;
+    int i, max_symbol_length = 0;
     comment("ALL: Timestamp");
-    for (i = 0; i < metric_set->n_counters; i++)
+    for (i = 0; i < metric_set->n_counters; i++) {
         comment(",%s", metric_set->counters[i].symbol_name);
-    comment("\n");
+        max_symbol_length = MAX2(strlen(metric_set->counters[i].symbol_name),
+                                 max_symbol_length);
+    }
+    comment("\n\n");
+    comment("Detailed:\n");
+    for (i = 0; i < metric_set->n_counters; i++) {
+        comment("%s:%*s %s\n",
+                metric_set->counters[i].symbol_name,
+                max_symbol_length - strlen(metric_set->counters[i].symbol_name), "",
+                metric_set->counters[i].desc);
+    }
 }
 
 static void print_metric_colum_names(void)
