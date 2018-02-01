@@ -38,9 +38,6 @@
 
 #include <uv.h>
 
-static struct gputop_client_context ctx;
-static const char *metric_name = NULL;
-
 const struct gputop_metric_set_counter timestamp_counter = {
     .metric_set = NULL,
     .name = "Timestamp",
@@ -50,18 +47,32 @@ const struct gputop_metric_set_counter timestamp_counter = {
     .data_type = GPUTOP_PERFQUERY_COUNTER_DATA_UINT64,
     .units = GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
 };
+
 static struct {
-    char *symbol_name;
-    const struct gputop_metric_set_counter *counter;
-    int width;
-} *metric_columns = NULL;
-static int n_metric_columns = 0;
-static int n_accumulations = 0;
-static struct gputop_accumulated_samples *last_samples;
-static int current_pid = -1;
-static bool human_units = true;
-static bool print_headers = true;
-static FILE *wrapper_output = NULL;
+    struct gputop_client_context ctx;
+    const char *metric_name;
+
+    struct {
+        char *symbol_name;
+        const struct gputop_metric_set_counter *counter;
+        int width;
+    } *metric_columns;
+    int n_metric_columns;
+    bool human_units;
+    bool print_headers;
+    FILE *wrapper_output;
+
+    int n_accumulations;
+    struct gputop_accumulated_samples *last_samples;
+
+    int child_process_pid;
+    char **child_process_args;
+    const char *child_process_output_file;
+    uint32_t n_child_process_args;
+    uv_timer_t child_process_timer_handle;
+    bool child_exited;
+    uint32_t max_idle_child_time;
+} context;
 
 static void comment(const char *format, ...)
 {
@@ -77,7 +88,7 @@ static void output(const char *format, ...)
     va_list ap;
 
     va_start(ap, format);
-    vfprintf(wrapper_output, format, ap);
+    vfprintf(context.wrapper_output, format, ap);
     va_end(ap);
 }
 
@@ -151,51 +162,46 @@ static const char *unit_to_string(gputop_counter_units_t unit)
 
 static void quit(void)
 {
-    gputop_client_context_stop_sampling(&ctx);
-    gputop_connection_close(ctx.connection);
+    gputop_client_context_stop_sampling(&context.ctx);
+    gputop_connection_close(context.ctx.connection);
 }
-
-static char **child_process_args = NULL;
-static const char *child_process_output_file = "wrapper_child_output.txt";
-static uint32_t n_child_process_args = 0;
 
 static void start_child_process(void)
 {
     int i, fd_out;
 
-    if (ctx.devinfo.gen < 8) {
+    if (context.ctx.devinfo.gen < 8) {
         comment("Process monitoring not supported in Haswell\n");
         quit();
         return;
     }
 
-    current_pid = fork();
-    switch (current_pid) {
+    context.child_process_pid = fork();
+    switch (context.child_process_pid) {
     case 0:
         close(1);
-        fd_out = open(child_process_output_file, O_CREAT | O_CLOEXEC,
+        fd_out = open(context.child_process_output_file, O_CREAT | O_CLOEXEC,
                       S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
         if (fd_out == -1) {
             comment("Cannot create output file '%s': %s\n",
-                    child_process_output_file, strerror(errno));
+                    context.child_process_output_file, strerror(errno));
             exit(EXIT_FAILURE);
         }
         if (dup2(fd_out, 1) == -1) {
             comment("Error redirecting output stream: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        execvp(child_process_args[0], child_process_args);
+        execvp(context.child_process_args[0], context.child_process_args);
         break;
     case -1:
         comment("Cannot start child process: %s\n", strerror(errno));
         quit();
         break;
     default:
-        comment("Monitoring pid=%u: ", current_pid);
-        for (i = 0; i < n_child_process_args; i++)
-            comment("%s ", child_process_args[i]);
+        comment("Monitoring pid=%u: ", context.child_process_pid);
+        for (i = 0; i < context.n_child_process_args; i++)
+            comment("%s ", context.child_process_args[i]);
         comment("\n");
-
         break;
     }
 }
@@ -205,40 +211,35 @@ static void on_ctrl_c(uv_signal_t* handle, int signum)
     quit();
 }
 
-static uv_timer_t child_process_timer_handle;
-static int child_process_exit_accumulations;
-
 static void on_child_timer(uv_timer_t* handle)
 {
-    uv_timer_stop(&child_process_timer_handle);
-    if (n_accumulations > child_process_exit_accumulations) {
-        quit();
-    } else
-        uv_timer_again(&child_process_timer_handle);
+    uv_timer_stop(&context.child_process_timer_handle);
+    quit();
 }
 
 static void on_child_process_exit(uv_signal_t* handle, int signum)
 {
     /* Given it another aggregation period and quit. */
     comment("Child exited.\n");
-    child_process_exit_accumulations = n_accumulations;
-    uv_timer_init(uv_default_loop(), &child_process_timer_handle);
-    uv_timer_start(&child_process_timer_handle, on_child_timer,
-                   ctx.oa_aggregation_period_ms, ctx.oa_aggregation_period_ms);
+    context.child_exited = true;
+    uv_timer_init(uv_default_loop(), &context.child_process_timer_handle);
+    uv_timer_start(&context.child_process_timer_handle, on_child_timer,
+                   MAX2(context.max_idle_child_time, context.ctx.oa_aggregation_period_ms),
+                   0);
 }
 
 static void print_system_info(void)
 {
-    const struct gputop_devinfo *devinfo = &ctx.devinfo;
+    const struct gputop_devinfo *devinfo = &context.ctx.devinfo;
     char temp[80];
 
     comment("System info:\n");
-    comment("\tKernel release: %s\n", ctx.features->features->kernel_release);
-    comment("\tKernel build: %s\n", ctx.features->features->kernel_build);
+    comment("\tKernel release: %s\n", context.ctx.features->features->kernel_release);
+    comment("\tKernel build: %s\n", context.ctx.features->features->kernel_build);
 
     comment("CPU info:\n");
-    comment("\tCPU model: %s\n", ctx.features->features->cpu_model);
-    comment("\tCPU cores: %i\n", ctx.features->features->n_cpus);
+    comment("\tCPU model: %s\n", context.ctx.features->features->cpu_model);
+    comment("\tCPU cores: %i\n", context.ctx.features->features->n_cpus);
 
     comment("GPU info:\n");
     comment("\tGT name: %s (Gen %u, PCI 0x%x)\n",
@@ -255,15 +256,16 @@ static void print_system_info(void)
 
     comment("OA info:\n");
     comment("\tOA Hardware Sampling Exponent: %u\n",
-            gputop_period_to_oa_exponent(&ctx, ctx.oa_aggregation_period_ms));
+            gputop_period_to_oa_exponent(&context.ctx, context.ctx.oa_aggregation_period_ms));
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
-                                     gputop_oa_exponent_to_period_ns(&ctx.devinfo,
-                                                                     gputop_period_to_oa_exponent(&ctx,
-                                                                                                  ctx.oa_aggregation_period_ms)),
+                                     gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
+                                                                     gputop_period_to_oa_exponent(&context.ctx,
+                                                                                                  context.ctx.oa_aggregation_period_ms)),
                                      temp, sizeof(temp));
     comment("\tOA Hardware Period: %u ns / %s\n",
-            gputop_oa_exponent_to_period_ns(&ctx.devinfo,
-                                            gputop_period_to_oa_exponent(&ctx, ctx.oa_aggregation_period_ms)),
+            gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
+                                            gputop_period_to_oa_exponent(&context.ctx,
+                                                                         context.ctx.oa_aggregation_period_ms)),
             temp);
 }
 
@@ -271,7 +273,7 @@ static void print_metrics(void)
 {
     struct hash_entry *entry;
     comment("List of metric sets selectable with -m/--metrics=...\n");
-    hash_table_foreach(ctx.metrics_map, entry) {
+    hash_table_foreach(context.ctx.metrics_map, entry) {
         const struct gputop_metric_set *metric_set = entry->data;
         comment("\t%s: %s hw-config-guid=%s\n",
                 metric_set->symbol_name, metric_set->name, metric_set->hw_config_guid);
@@ -300,123 +302,131 @@ static void print_metric_counter(const struct gputop_metric_set *metric_set)
 static void print_metric_colum_names(void)
 {
     int i;
-    for (i = 0; i < n_metric_columns; i++) {
+    for (i = 0; i < context.n_metric_columns; i++) {
         output("%*s%s ",
-               metric_columns[i].width - strlen(metric_columns[i].counter->symbol_name), "",
-               metric_columns[i].counter->symbol_name);
+               context.metric_columns[i].width -
+               strlen(context.metric_columns[i].counter->symbol_name), "",
+               context.metric_columns[i].counter->symbol_name);
     }
     output("\n");
-    for (i = 0; i < n_metric_columns; i++) {
-        const char *units = unit_to_string(metric_columns[i].counter->units);
-        output("%*s(%s) ", metric_columns[i].width - strlen(units) - 2, "", units);
+    for (i = 0; i < context.n_metric_columns; i++) {
+        const char *units = unit_to_string(context.metric_columns[i].counter->units);
+        output("%*s(%s) ", context.metric_columns[i].width - strlen(units) - 2, "", units);
     }
     output("\n");
 }
 
-static bool match_process(struct gputop_hw_context *context)
+static bool match_process(struct gputop_hw_context *hw_context)
 {
-    if (context == NULL) {
-        if (current_pid == 0)
+    if (hw_context == NULL) {
+        if (context.child_process_pid == 0)
             return true;
         return false;
     }
 
-    if (!context->process)
+    if (!hw_context->process)
         return false;
 
-    return context->process->pid == current_pid;
+    return hw_context->process->pid == context.child_process_pid;
 }
 
 static void print_accumulated_columns(struct gputop_client_context *ctx,
                                       struct gputop_accumulated_samples *samples)
 {
     int i;
-    for (i = 0; i < n_metric_columns; i++) {
-        const struct gputop_metric_set_counter *counter = metric_columns[i].counter;
+    for (i = 0; i < context.n_metric_columns; i++) {
+        const struct gputop_metric_set_counter *counter =
+            context.metric_columns[i].counter;
         char svalue[20];
 
         if (counter == &timestamp_counter) {
-            snprintf(svalue, sizeof(svalue), "%" PRIu64, samples->accumulator.first_timestamp);
+            snprintf(svalue, sizeof(svalue), "%" PRIu64,
+                     samples->accumulator.first_timestamp);
         } else {
             double value = gputop_client_context_read_counter_value(ctx, samples, counter);
-            if (human_units)
+            if (context.human_units)
                 gputop_client_pretty_print_value(counter->units, value, svalue, sizeof(svalue));
             else
                 snprintf(svalue, sizeof(svalue), "%.2f", value);
         }
-        output("%*s%s%s", metric_columns[i].width - strlen(svalue), "",
-               svalue, i == (n_metric_columns - 1) ? "" : ",");
+        output("%*s%s%s", context.metric_columns[i].width - strlen(svalue), "",
+               svalue, i == (context.n_metric_columns - 1) ? "" : ",");
     }
     output("\n");
 }
 
 static void print_columns(struct gputop_client_context *ctx,
-                          struct gputop_hw_context *context)
+                          struct gputop_hw_context *hw_context)
 {
     struct list_head *list;
 
-    if (!match_process(context))
+    if (!match_process(hw_context))
         return;
 
-    n_accumulations++;
-    list = context == NULL ? &ctx->graphs : &context->graphs;
+    context.n_accumulations++;
+    list = hw_context == NULL ? &ctx->graphs : &hw_context->graphs;
 
-    if (last_samples == NULL) {
+    if (context.last_samples == NULL) {
         list_for_each_entry(struct gputop_accumulated_samples, samples, list, link) {
             print_accumulated_columns(ctx, samples);
         }
-        last_samples = list_last_entry(list, struct gputop_accumulated_samples, link);
+        context.last_samples = list_last_entry(list, struct gputop_accumulated_samples, link);
     } else {
-        last_samples = list_last_entry(list, struct gputop_accumulated_samples, link);
-        print_accumulated_columns(ctx, last_samples);
+        context.last_samples = list_last_entry(list, struct gputop_accumulated_samples, link);
+        print_accumulated_columns(ctx, context.last_samples);
     }
+
+    if (context.child_exited)
+        quit();
 }
 
 static bool handle_features()
 {
     static bool info_printed = false;
+    struct gputop_client_context *ctx = &context.ctx;
     int i;
 
-    if (!metric_name ||
-        (ctx.metric_set = gputop_client_context_symbol_to_metric_set(&ctx, metric_name)) == NULL) {
+    if (!context.metric_name ||
+        (ctx->metric_set = gputop_client_context_symbol_to_metric_set(ctx, context.metric_name)) == NULL) {
         print_metrics();
         return true;
     }
-    if (!metric_columns) {
-        print_metric_counter(ctx.metric_set);
+    if (!context.metric_columns) {
+        print_metric_counter(ctx->metric_set);
         return true;
     }
-    if (!metric_columns[0].counter) {
-        for (i = 0; i < n_metric_columns; i++) {
+    if (!context.metric_columns[0].counter) {
+        for (i = 0; i < context.n_metric_columns; i++) {
             int j;
 
-            if (!strcmp("Timestamp", metric_columns[i].symbol_name)) {
-                metric_columns[i].counter = &timestamp_counter;
+            if (!strcmp("Timestamp", context.metric_columns[i].symbol_name)) {
+                context.metric_columns[i].counter = &timestamp_counter;
             } else {
-                for (j = 0; j < ctx.metric_set->n_counters; j++) {
-                    if (!strcmp(ctx.metric_set->counters[j].symbol_name,
-                                metric_columns[i].symbol_name)) {
-                        metric_columns[i].counter = &ctx.metric_set->counters[j];
+                for (j = 0; j < ctx->metric_set->n_counters; j++) {
+                    if (!strcmp(ctx->metric_set->counters[j].symbol_name,
+                                context.metric_columns[i].symbol_name)) {
+                        context.metric_columns[i].counter = &ctx->metric_set->counters[j];
                         break;
                     }
                 }
 
-                if (!metric_columns[i].counter) {
-                    comment("Unknown counter '%s'\n", metric_columns[i]);
+                if (!context.metric_columns[i].counter) {
+                    comment("Unknown counter '%s'\n", context.metric_columns[i]);
                     return true;
                 }
             }
 
-            metric_columns[i].width = MAX3(strlen(metric_columns[i].counter->symbol_name),
-                                           strlen(unit_to_string(metric_columns[i].counter->units)) + 2,
-                                           unit_to_width(metric_columns[i].counter->units)) + 1;
+            context.metric_columns[i].width =
+                MAX3(strlen(context.metric_columns[i].counter->symbol_name),
+                     strlen(unit_to_string(context.metric_columns[i].counter->units)) + 2,
+                     unit_to_width(context.metric_columns[i].counter->units)) + 1;
         }
     }
-    if (!info_printed && ctx.features) {
+    if (!info_printed && ctx->features) {
         info_printed = true;
         print_system_info();
     }
-    if (print_headers)
+    if (context.print_headers)
         print_metric_colum_names();
     return false;
 }
@@ -424,7 +434,7 @@ static bool handle_features()
 static void on_ready(gputop_connection_t *conn, void *user_data)
 {
     comment("Connected\n\n");
-    gputop_client_context_reset(&ctx, conn);
+    gputop_client_context_reset(&context.ctx, conn);
 }
 
 static void on_data(gputop_connection_t *conn,
@@ -433,29 +443,29 @@ static void on_data(gputop_connection_t *conn,
 {
     static bool features_handled = false;
 
-    gputop_client_context_handle_data(&ctx, data, len);
-    if (!features_handled && ctx.features) {
+    gputop_client_context_handle_data(&context.ctx, data, len);
+    if (!features_handled && context.ctx.features) {
         features_handled = true;
         if (handle_features()) {
             quit();
             return;
         }
-        if (current_pid != 0)
-            gputop_client_context_add_tracepoint(&ctx, "i915/i915_gem_request_add");
+        if (context.child_process_pid != 0)
+            gputop_client_context_add_tracepoint(&context.ctx, "i915/i915_gem_request_add");
         else
-            gputop_client_context_start_sampling(&ctx);
+            gputop_client_context_start_sampling(&context.ctx);
     } else {
-        if (!ctx.is_sampling) {
+        if (!context.ctx.is_sampling) {
             bool all_tracepoints = true;
             list_for_each_entry(struct gputop_perf_tracepoint, tp,
-                                &ctx.perf_tracepoints, link) {
+                                &context.ctx.perf_tracepoints, link) {
                 if (tp->event_id == 0)
                     all_tracepoints = false;
             }
             if (all_tracepoints)
-                gputop_client_context_start_sampling(&ctx);
+                gputop_client_context_start_sampling(&context.ctx);
         } else {
-            if (child_process_args && current_pid == -1)
+            if (context.child_process_args && context.child_process_pid == -1)
                 start_child_process();
         }
     }
@@ -467,7 +477,7 @@ static void on_close(gputop_connection_t *conn, const char *error,
     if (error)
         comment("Connection error : %s\n", error);
 
-    ctx.connection = NULL;
+    context.ctx.connection = NULL;
     uv_stop(uv_default_loop());
 }
 
@@ -491,31 +501,48 @@ static void usage(void)
            "\t -H, --host <hostname>             Host to connect to\n"
            "\t -p, --port <port>                 Port on which the server is running\n"
            "\t -P, --period <period>             Accumulation period (in seconds, floating point)\n"
-           "\t -m, --metric <name>               Metric set to use (printed out if this option is missing)\n"
-           "\t -c, --columns <col0,col1,..>      Columns to print out (printed out if this option is missing)\n"
+           "\t -m, --metric <name>               Metric set to use\n"
+           "                                     (prints out a list of metric sets if missing)\n"
+           "\t -c, --columns <col0,col1,..>      Columns to print out\n"
+           "                                     (prints out a lists of counters if missing)\n"
            "\t -n, --no-human-units              Disable human readable units (for machine readable output)\n"
            "\t -N, --no-headers                  Disable headers (for machine readable output)\n"
            "\t -O, --child-output <filename>     Outputs the child's standard output to filename\n"
-           "\t -o, --output <filename>           Outputs gputop-wrapper's data to filename (disables human readable units)\n"
+           "\t -o, --output <filename>           Outputs gputop-wrapper's data to filename\n"
+           "                                     (disables human readable units)\n"
+           "\t -w, --max-inactive-time <time>    Maximum time of inactivity before killing\n"
+           "                                     the child process (in seconds, floating point)\n"
            "\n"
         );
 }
 
-int
-main (int argc, char **argv)
+static void init_context(void)
+{
+    memset(&context, 0, sizeof(context));
+
+    context.human_units = true;
+    context.print_headers = true;
+    context.wrapper_output = stdout;
+
+    context.child_process_pid = -1;
+    context.child_process_output_file = "wrapper_child_output.txt";
+}
+
+int main (int argc, char **argv)
 {
     const struct option long_options[] = {
-        { "help",            no_argument,        0, 'h' },
-        { "host",            required_argument,  0, 'H' },
-        { "port",            required_argument,  0, 'p' },
-        { "period",          required_argument,  0, 'P' },
-        { "metric",          required_argument,  0, 'm' },
-        { "columns",         required_argument,  0, 'c' },
-        { "no-human-units",  no_argument,        0, 'n' },
-        { "no-headers",      no_argument,        0, 'N' },
-        { "child-output",    required_argument,  0, 'O' },
-        { "output",          required_argument,  0, 'o' },
-        { NULL,              required_argument,  0, '-' },
+        { "help",              no_argument,        0, 'h' },
+        { "host",              required_argument,  0, 'H' },
+        { "port",              required_argument,  0, 'p' },
+        { "period",            required_argument,  0, 'P' },
+        { "metric",            required_argument,  0, 'm' },
+        { "columns",           required_argument,  0, 'c' },
+        { "no-human-units",    no_argument,        0, 'n' },
+        { "no-headers",        no_argument,        0, 'N' },
+        { "child-output",      required_argument,  0, 'O' },
+        { "output",            required_argument,  0, 'o' },
+        { "max-inactive-time", required_argument,  0, 'w' },
+        { NULL,                required_argument,  0, '-' },
         { 0, 0, 0, 0 }
     };
     int opt, port = 7890;
@@ -526,11 +553,11 @@ main (int argc, char **argv)
     uv_signal_t ctrl_c_handle;
     uv_signal_t child_process_handle;
 
-    gputop_client_context_init(&ctx);
-    ctx.accumulate_cb = print_columns;
-    ctx.oa_aggregation_period_ms = 1000;
+    init_context();
 
-    wrapper_output = stdout;
+    gputop_client_context_init(&context.ctx);
+    context.ctx.accumulate_cb = print_columns;
+    context.ctx.oa_aggregation_period_ms = 1000;
 
     while (!opt_done &&
            (opt = getopt_long(argc, argv, "c:hH:m:p:P:-nNO:o:", long_options, NULL)) != -1)
@@ -543,20 +570,21 @@ main (int argc, char **argv)
             host = optarg;
             break;
         case 'm':
-            metric_name = optarg;
+            context.metric_name = optarg;
             break;
         case 'c': {
             const char *s = optarg;
             int n;
-            n_metric_columns = 1;
+            context.n_metric_columns = 1;
             while ((s = next_column(s)) != NULL)
-                n_metric_columns++;
+                context.n_metric_columns++;
 
-            metric_columns = calloc(n_metric_columns, sizeof(metric_columns[0]));
+            context.metric_columns =
+                calloc(context.n_metric_columns, sizeof(context.metric_columns[0]));
 
             for (s = optarg, n = 0; s != NULL; s = next_column(s)) {
-                metric_columns[n++].symbol_name = strndup(s, next_column(s) ?
-                                                          (next_column(s) - s - 1) : strlen(s));
+                context.metric_columns[n++].symbol_name =
+                    strndup(s, next_column(s) ? (next_column(s) - s - 1) : strlen(s));
             }
             break;
         }
@@ -564,25 +592,28 @@ main (int argc, char **argv)
             port = atoi(optarg);
             break;
         case 'P':
-            ctx.oa_aggregation_period_ms = atof(optarg) * 1000.0f;
+            context.ctx.oa_aggregation_period_ms = atof(optarg) * 1000.0f;
             break;
         case 'n':
-            human_units = false;
+            context.human_units = false;
             break;
         case 'N':
-            print_headers = false;
+            context.print_headers = false;
             break;
         case 'O':
-            child_process_output_file = optarg;
+            context.child_process_output_file = optarg;
             break;
         case 'o':
-            wrapper_output = fopen(optarg, "w+");
-            human_units = false;
-            if (wrapper_output == NULL) {
+            context.wrapper_output = fopen(optarg, "w+");
+            context.human_units = false;
+            if (context.wrapper_output == NULL) {
                 comment("Unable to open output file '%s': %s\n",
                         optarg, strerror(errno));
                 return EXIT_FAILURE;
             }
+            break;
+        case 'w':
+            context.max_idle_child_time = atof(optarg) * 1000.0f;
             break;
         case '-':
             opt_done = true;
@@ -603,29 +634,29 @@ main (int argc, char **argv)
     gputop_connect(host, port, on_ready, on_data, on_close, NULL);
 
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_US,
-                                     ctx.oa_aggregation_period_ms * 1000.0f,
+                                     context.ctx.oa_aggregation_period_ms * 1000.0f,
                                      temp, sizeof(temp));
     comment("Server: %s:%i\n", host, port);
     comment("Sampling period: %s\n", temp);
 
     if (optind == argc) {
         comment("Monitoring: system wide\n");
-        current_pid = 0;
+        context.child_process_pid = 0;
     } else {
         if (strcmp(host, "localhost") != 0) {
             comment("Cannot monitor process on a different host.\n");
             return EXIT_FAILURE;
         }
 
-        child_process_args = &argv[optind];
-        n_child_process_args = argc - optind;
+        context.child_process_args = &argv[optind];
+        context.n_child_process_args = argc - optind;
     }
 
     uv_run(loop, UV_RUN_DEFAULT);
     uv_signal_stop(&ctrl_c_handle);
     uv_signal_stop(&child_process_handle);
 
-    gputop_client_context_reset(&ctx, NULL);
+    gputop_client_context_reset(&context.ctx, NULL);
 
     comment("Finished.\n");
 
