@@ -77,9 +77,6 @@ gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
                                        const struct gputop_metric_set_counter *counter,
                                        char *buffer, size_t length)
 {
-    if (counter->units == GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
-        return gputop_client_pretty_print_value(counter->units, 100.0f, buffer, length);
-
     if (!counter->max_uint64 && !counter->max_float)
         return snprintf(buffer, length, "unknown");
 
@@ -111,7 +108,9 @@ gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
     }
 
     int l = gputop_client_pretty_print_value(counter->units, value, buffer, length);
-    l += snprintf(&buffer[l], length - l, " / second");
+    if (counter->units != GPUTOP_PERFQUERY_COUNTER_UNITS_HZ &&
+        counter->units != GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
+        l += snprintf(&buffer[l], length - l, " / second");
 
     return l;
 }
