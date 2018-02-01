@@ -376,13 +376,21 @@ display_i915_perf_counters(struct gputop_client_context *ctx,
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Add counter to timeline windows");
         }
 
-        double value = gputop_client_context_read_counter_value(ctx, samples, counter);
-        ImGui::ProgressBar(value / read_counter_max(ctx, samples, counter, MAX2(1.0f, value)),
-                           ImVec2(100, 0)); ImGui::SameLine();
+        double value = samples ? gputop_client_context_read_counter_value(ctx, samples, counter) : 0.0f;
+        double max = samples ? read_counter_max(ctx, samples, counter, MAX2(1.0f, value)) : 1.0f;
+        ImGui::ProgressBar(value / max, ImVec2(100, 0)); ImGui::SameLine();
 
         char text[100];
+        if (ImGui::IsItemHovered()) {
+            gputop_client_context_pretty_print_max(ctx, counter, text, sizeof(text));
+            ImGui::SetTooltip("Maximum : %s", text);
+        }
+
         pretty_print_counter_value(counter, value, text, sizeof(text));
         ImGui::Text("%s : %s", counter->name, text);
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", counter->desc);
+        }
     }
 }
 
@@ -400,6 +408,7 @@ display_live_i915_perf_window(struct window *win)
         return;
 
     struct gputop_accumulated_samples *last_sample =
+        list_empty(&ctx->graphs) ? NULL :
         list_last_entry(&ctx->graphs, struct gputop_accumulated_samples, link);
 
     ImGui::BeginChild("##counters");

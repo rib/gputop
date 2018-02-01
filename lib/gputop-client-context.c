@@ -74,7 +74,7 @@ gputop_client_pretty_print_value(gputop_counter_units_t unit,
 
 int
 gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
-                                       struct gputop_metric_set_counter *counter,
+                                       const struct gputop_metric_set_counter *counter,
                                        char *buffer, size_t length)
 {
     if (counter->units == GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
