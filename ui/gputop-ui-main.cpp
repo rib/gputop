@@ -554,6 +554,7 @@ display_global_i915_perf_window(struct window *win)
         if (c->counter->metric_set != ctx->metric_set)
             continue;
 
+        ImGui::Text("%s", c->counter->desc);
         ImGui::PushID(c);
         if (ImGui::Button("X")) { remove_counter_i915_perf_window(c); }
         ImGui::PopID();
