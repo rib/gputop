@@ -1,5 +1,5 @@
 TracepointFormat =
-    'name' ':' Space PropertyName EndLine
+    'name' ':' Space n:PropertyName EndLine { free(n.string); }
     'ID' ':' Space Number EndLine
     'format' ':' EndLine
     Field+
