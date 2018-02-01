@@ -24,7 +24,7 @@ static void i915_perf_empty_samples(struct gputop_client_context *ctx);
 static void clear_perf_tracepoints_data(struct gputop_client_context *ctx);
 static void delete_process_entry(struct hash_entry *entry);
 
-void
+int
 gputop_client_pretty_print_value(gputop_counter_units_t unit,
                                  double value, char *buffer, size_t length)
 {
@@ -49,6 +49,7 @@ gputop_client_pretty_print_value(gputop_counter_units_t unit,
     default: break;
     }
 
+    int l;
     if (scales) {
         const double base = unit == GPUTOP_PERFQUERY_COUNTER_UNITS_BYTES ? 1024 : 1000;
 
@@ -60,13 +61,59 @@ gputop_client_pretty_print_value(gputop_counter_units_t unit,
             value /= base;
             i++;
         }
-        snprintf(buffer, length, "%.4g %s", value, scales ? scales[i] : "");
+        l = snprintf(buffer, length, "%.4g %s", value, scales ? scales[i] : "");
     } else {
         if (unit == GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
-            snprintf(buffer, length, "%.3g %%", value);
+            l = snprintf(buffer, length, "%.3g %%", value);
         else
-            snprintf(buffer, length, "%.2f", value);
+            l = snprintf(buffer, length, "%.2f", value);
     }
+
+    return l;
+}
+
+int
+gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
+                                       struct gputop_metric_set_counter *counter,
+                                       char *buffer, size_t length)
+{
+    if (counter->units == GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
+        return gputop_client_pretty_print_value(counter->units, 100.0f, buffer, length);
+
+    if (!counter->max_uint64 && !counter->max_float)
+        return snprintf(buffer, length, "unknown");
+
+    uint32_t counters0[64] = { 0, 1} ;
+    uint32_t counters1[64] = { 0, 1 + ctx->devinfo.timestamp_frequency,
+                               0, ctx->devinfo.timestamp_frequency, };
+    struct gputop_cc_oa_accumulator dummy_accumulator;
+    gputop_cc_oa_accumulator_init(&dummy_accumulator, &ctx->devinfo, counter->metric_set,
+                                  false, 0, NULL);
+    gputop_cc_oa_accumulate_reports(&dummy_accumulator,
+                                    (uint8_t *) counters0, (uint8_t *) counters1);
+
+    double value;
+
+    switch (counter->data_type) {
+    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
+    case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
+    case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
+        value = counter->max_uint64(&ctx->devinfo,
+                                    counter->metric_set,
+                                    dummy_accumulator.deltas);
+        break;
+    case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
+    case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
+        value = counter->max_float(&ctx->devinfo,
+                                   counter->metric_set,
+                                   dummy_accumulator.deltas);
+        break;
+    }
+
+    int l = gputop_client_pretty_print_value(counter->units, value, buffer, length);
+    l += snprintf(&buffer[l], length - l, " / second");
+
+    return l;
 }
 
 /**/

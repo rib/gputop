@@ -280,7 +280,9 @@ static void print_metrics(void)
     }
 }
 
-static void print_metric_counter(const struct gputop_metric_set *metric_set)
+
+static void print_metric_counter(struct gputop_client_context *ctx,
+                                 const struct gputop_metric_set *metric_set)
 {
     int i, max_symbol_length = 0;
     comment("ALL: Timestamp");
@@ -289,13 +291,20 @@ static void print_metric_counter(const struct gputop_metric_set *metric_set)
         max_symbol_length = MAX2(strlen(metric_set->counters[i].symbol_name),
                                  max_symbol_length);
     }
+
     comment("\n\n");
     comment("Detailed:\n");
     for (i = 0; i < metric_set->n_counters; i++) {
-        comment("%s:%*s %s\n",
+        char pretty_max_value[80];
+        gputop_client_context_pretty_print_max(ctx,
+                                               &metric_set->counters[i],
+                                               pretty_max_value, sizeof(pretty_max_value));
+
+        comment("%s:%*s %s (max=%s)\n",
                 metric_set->counters[i].symbol_name,
                 max_symbol_length - strlen(metric_set->counters[i].symbol_name), "",
-                metric_set->counters[i].desc);
+                metric_set->counters[i].desc,
+                pretty_max_value);
     }
 }
 
@@ -392,7 +401,7 @@ static bool handle_features()
         return true;
     }
     if (!context.metric_columns) {
-        print_metric_counter(ctx->metric_set);
+        print_metric_counter(ctx, ctx->metric_set);
         return true;
     }
     if (!context.metric_columns[0].counter) {

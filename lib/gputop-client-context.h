@@ -286,10 +286,12 @@ struct gputop_client_context {
     uint32_t stream_id;
 };
 
-void
-gputop_client_pretty_print_value(gputop_counter_units_t unit,
-                                 double value, char *buffer, size_t length);
+int gputop_client_pretty_print_value(gputop_counter_units_t unit,
+                                     double value, char *buffer, size_t length);
 
+int gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
+                                           struct gputop_metric_set_counter *counter,
+                                           char *buffer, size_t length);
 
 void gputop_client_context_init(struct gputop_client_context *ctx);
 void gputop_client_context_reset(struct gputop_client_context *ctx,
