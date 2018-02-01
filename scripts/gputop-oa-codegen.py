@@ -700,6 +700,7 @@ def main():
 
         generate_register_configs(set)
 
+        counters = sorted(counters, key=lambda k: k.get('symbol_name'))
         for counter in counters:
             output_counter_report(set, counter)
 
