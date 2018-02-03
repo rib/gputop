@@ -6,7 +6,7 @@ project('GPUTop', 'c', 'cpp',
           'default_library=static',
         ],
         license : 'MIT',
-        meson_version : '>= 0.43.0')
+        meson_version : '>= 0.44.0')
 
 add_project_arguments(['-Wno-unused-parameter',
                        '-Wno-sign-compare'],
