@@ -467,7 +467,7 @@ static void on_data(gputop_connection_t *conn,
             return;
         }
         if (context.child_process_pid != 0)
-            gputop_client_context_add_tracepoint(&context.ctx, "i915/i915_gem_request_add");
+            gputop_client_context_add_tracepoint(&context.ctx, "i915/i915_context_create");
         else
             gputop_client_context_start_sampling(&context.ctx);
     } else {
