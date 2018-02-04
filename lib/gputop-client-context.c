@@ -1005,7 +1005,7 @@ build_equations_variables(struct gputop_devinfo *devinfo)
 
     devinfo->n_subslices = 0;
     for (int i = 0; i < DIV_ROUND_UP(topology->max_slices * topology->max_subslices, 8); i++)
-        devinfo->n_subslices = __builtin_popcount(topology->subslices_mask[i]);
+        devinfo->n_subslices += __builtin_popcount(topology->subslices_mask[i]);
 
     /* Unfortunately the equations expect at $SubsliceMask variable were the
      * meaning of the bits varies from one platform to another. One could hope
