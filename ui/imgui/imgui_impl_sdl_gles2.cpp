@@ -216,7 +216,7 @@ bool ImGui_ImplSdlGLES2_ProcessEvent(SDL_Event* event)
         g_NumRedraws = 2;
     }
 
-    return false;
+    return handled;
 }
 
 void ImGui_ImplSdlGLES2_CreateFontsTexture()
