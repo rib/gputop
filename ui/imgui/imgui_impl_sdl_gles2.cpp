@@ -34,6 +34,7 @@ static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_Attr
 static unsigned int g_VboHandle = 0, g_ElementsHandle = 0;
 static void       (*g_Callback)(void *data);
 static void*        g_CallbackData;
+static int          g_NumRedraws = 0;
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
@@ -160,6 +161,8 @@ static void ImGui_ImplSdlGLES2_SetClipboardText(void*, const char* text)
 bool ImGui_ImplSdlGLES2_ProcessEvent(SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
+    bool handled = true;
+
     switch (event->type)
     {
     case SDL_MOUSEWHEEL:
@@ -168,19 +171,24 @@ bool ImGui_ImplSdlGLES2_ProcessEvent(SDL_Event* event)
                 g_MouseWheel = 1;
             if (event->wheel.y < 0)
                 g_MouseWheel = -1;
-            return true;
+            break;
         }
     case SDL_MOUSEBUTTONDOWN:
         {
             if (event->button.button == SDL_BUTTON_LEFT) g_MousePressed[0] = true;
             if (event->button.button == SDL_BUTTON_RIGHT) g_MousePressed[1] = true;
             if (event->button.button == SDL_BUTTON_MIDDLE) g_MousePressed[2] = true;
-            return true;
+            break;
+        }
+    case SDL_MOUSEBUTTONUP:
+        {
+            /* Make sure we trigger a redraw. */
+            break;
         }
     case SDL_TEXTINPUT:
         {
             io.AddInputCharactersUTF8(event->text.text);
-            return true;
+            break;
         }
     case SDL_KEYDOWN:
     case SDL_KEYUP:
@@ -191,9 +199,23 @@ bool ImGui_ImplSdlGLES2_ProcessEvent(SDL_Event* event)
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
-            return true;
+            break;
         }
+    default:
+       {
+           handled = false;
+           break;
+       }
     }
+
+    if (handled)
+    {
+        // We trigger 2 subsequent redraws for each event because of the
+        // way some ImGui widgets work. For example a Popup menu will only
+        // appear a frame after a click happened.
+        g_NumRedraws = 2;
+    }
+
     return false;
 }
 
@@ -367,10 +389,41 @@ void ImGui_ImplSdlGLES2_Shutdown()
     ImGui::Shutdown();
 }
 
+static bool g_Scheduled = false;
+
+static void schedule_callback(void *data)
+{
+    g_Scheduled = false;
+    if (g_Callback)
+        g_Callback(g_CallbackData);
+}
+
+static void ImGui_ImplSdlGLES2_ScheduleFrame(int ms)
+{
+    if (!g_Scheduled)
+    {
+        emscripten_async_call(schedule_callback, NULL, ms);
+        g_Scheduled = true;
+    }
+}
+
+void ImGui_ImplSdlGLES2_ScheduleFrame()
+{
+    ImGui_ImplSdlGLES2_ScheduleFrame(-1);
+}
+
 void ImGui_ImplSdlGLES2_NewFrame(SDL_Window* window)
 {
     if (!g_FontTexture)
         ImGui_ImplSdlGLES2_CreateDeviceObjects();
+
+    bool next_redraw = false;
+    if (g_NumRedraws > 0)
+    {
+        ImGui_ImplSdlGLES2_ScheduleFrame();
+        g_NumRedraws--;
+        next_redraw = true;
+    }
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -410,19 +463,7 @@ void ImGui_ImplSdlGLES2_NewFrame(SDL_Window* window)
 
     // Start the frame
     ImGui::NewFrame();
-}
 
-static bool g_Scheduled = false;
-
-static void schedule_callback(void *data)
-{
-    g_Scheduled = false;
-    if (g_Callback)
-        g_Callback(g_CallbackData);
-}
-
-void ImGui_ImplSdlGLES2_ScheduleFrame()
-{
-    emscripten_async_call(schedule_callback, NULL, 0);
-    g_Scheduled = true;
+    if (!next_redraw && io.WantTextInput)
+        ImGui_ImplSdlGLES2_ScheduleFrame(200);
 }
