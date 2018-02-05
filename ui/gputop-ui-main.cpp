@@ -1399,7 +1399,7 @@ display_timeline_usage(struct window *win)
     ImGui::BeginChild("#contextlist");
     contexts_time = 0ULL;
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
-        ImGui::ProgressBar((double) context->visible_time_spent / window->zoom_length,
+        ImGui::ProgressBar((double) context->visible_time_spent / context->visible_time,
                            ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
         ImGui::SameLine();
         gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
