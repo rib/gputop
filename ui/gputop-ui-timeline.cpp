@@ -406,12 +406,19 @@ bool EndTimeline(const char **units, int n_units,
             (g.IO.MouseWheel * GetProperty(GputopProp_TimelineScrollScaleFactor) / 100.0f) :
             g.IO.MouseWheel;
         int64_t delta = timeline_length * wheel;
-        uint64_t length = timeline_length - delta;
-        int64_t start = delta * scroll_pos;
+        uint64_t length = MAX2(timeline_length - delta, 5ULL);
 
-        if (zoom_start) *zoom_start = start;
-        if (zoom_end) *zoom_end = start + length;
-        zoom_changed = true;
+        if (length != timeline_length)
+        {
+            int64_t start = delta * scroll_pos;
+
+            if (zoom_start) *zoom_start = start;
+            if (zoom_end) *zoom_end = start + length;
+            zoom_changed = true;
+        }
+
+        // Capture
+        //g.IO.MouseWheel = 0.0f;
     }
 
     ImVec2 drag_offset(0.0f, 0.0f);
