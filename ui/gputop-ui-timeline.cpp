@@ -32,6 +32,8 @@
 #include "gputop-ui-timeline.h"
 #include "gputop-ui-utils.h"
 
+#include "util/macros.h"
+
 using namespace ImGui;
 
 namespace Gputop {
@@ -235,6 +237,29 @@ static void DrawRange(const ImVec2& range, const char **units, int n_units)
                               GetColorU32(ImGuiCol_Text), range_str);
 }
 
+#ifndef ALIGN
+#define ALIGN(x, align) (((x) % (align)) == 0 ? (x) : ((x) + ((align) - (x) % (align))))
+#endif
+
+static float ToPixelSize(uint64_t value)
+{
+    return (double) timeline_inner_bb.GetWidth() * value / timeline_length;
+}
+
+static uint64_t ToLength(float value)
+{
+    return (double) value * timeline_length / timeline_inner_bb.GetWidth();
+}
+
+static uint64_t NextLength(uint64_t value)
+{
+    if (value % 2 == 0)
+        return value / 2;
+    if (value % 5 == 0)
+        return value / 5;
+    return 0;
+}
+
 bool EndTimeline(const char **units, int n_units,
                  const char **row_labels,
                  int64_t *zoom_start, uint64_t *zoom_end)
@@ -267,40 +292,63 @@ bool EndTimeline(const char **units, int n_units,
 
     /* Ruler */
     {
-        int unit_idx = 0;
-        uint64_t increment = 1;
-        uint64_t length = timeline_length;
-        while (length >= 1000 && unit_idx < (n_units - 1))
+        struct {
+            uint64_t divider;
+            bool enabled;
+            uint64_t increment;
+            uint64_t window;
+            float px_increment;
+        } ruler_levels[4] = {
+            { 1ULL, false, 0, 0, 0.0f, },
+            { 1000ULL, false, 0, 0, 0.0f, },
+            { 1000000ULL, false, 0, 0, 0.0f, },
+            { 1000000000ULL, false, 0, 0, 0.0f, }
+        };
+        const ImVec2 label_size = CalcTextSize("9999999");
+        const uint64_t label_length = ToLength(label_size.x);
+        uint64_t current_length = timeline_length;
+        for (int u = n_units - 1; u >= 0; u--)
         {
-            length /= 1000;
-            increment *= 1000;
-            unit_idx++;
+            if (ruler_levels[u].divider > current_length ||
+                (ruler_levels[u].divider * 500) < label_length)
+                continue;
+
+            ruler_levels[u].window = ALIGN(current_length, ruler_levels[u].divider);
+            current_length = 1000ULL;
+            while (current_length >= 2 &&
+                   (NextLength(current_length) * ruler_levels[u].divider) > label_length)
+                current_length = NextLength(current_length);
+            current_length *= ruler_levels[u].divider;
+
+            ruler_levels[u].enabled = true;
+            ruler_levels[u].increment = current_length;
+            ruler_levels[u].px_increment = ToPixelSize(ruler_levels[u].increment);
         }
 
-        const ImVec2 label_size = CalcTextSize("99999");
-
-        uint64_t marker_increment = 1;
-        float marker_pos_increment = (double) timeline_inner_bb.GetWidth() * increment / timeline_length;
-        while (marker_pos_increment < label_size.x)
+        /* Now draw at the specified intervals */
+        bool zero_done = false;
+        for (int u = n_units - 1; u >= 0; u--)
         {
-            marker_increment *= 2;
-            marker_pos_increment = (double) timeline_inner_bb.GetWidth() *
-                (marker_increment * increment) / timeline_length;
-        }
+            if (!ruler_levels[u].enabled)
+                continue;
 
-        int i = 0;
-        for (float marker_pos = timeline_inner_bb.Min.x;
-             marker_pos < timeline_inner_bb.Max.x;
-             marker_pos += marker_pos_increment, i++)
-        {
-            ImRect line(marker_pos, timeline_frame_bb.Min.y,
-                        marker_pos, timeline_frame_bb.Min.y + 5.0f);
-            window->DrawList->AddLine(line.GetTL(), line.GetBR(), ImColor(255, 255, 255));
+            for (int i = 0; i * ruler_levels[u].px_increment < timeline_inner_bb.Max.x; i++)
+            {
+                if (i == 0 && !zero_done)
+                    zero_done = true;
+                else if ((ruler_levels[u].increment * i) % ruler_levels[u].window == 0)
+                    continue;
 
-            char ruler_value[20];
-            snprintf(ruler_value, sizeof(ruler_value), "%" PRIu64 "%s",
-                     i * marker_increment, units[unit_idx]);
-            window->DrawList->AddText(line.GetBR(), GetColorU32(ImGuiCol_Text), ruler_value);
+                float marker_pos = timeline_inner_bb.Min.x + i * ruler_levels[u].px_increment;
+                ImRect line(marker_pos, timeline_frame_bb.Min.y,
+                            marker_pos, timeline_frame_bb.Min.y + 5.0f);
+                window->DrawList->AddLine(line.GetTL(), line.GetBR(), ImColor(255, 255, 255));
+
+                uint64_t value = ((i * ruler_levels[u].increment) % ruler_levels[u].window) / ruler_levels[u].divider;
+                char ruler_value[20];
+                snprintf(ruler_value, sizeof(ruler_value), "%" PRIu64 "%s", value, units[u]);
+                window->DrawList->AddText(line.GetBR(), GetColorU32(ImGuiCol_Text), ruler_value);
+            }
         }
     }
 
