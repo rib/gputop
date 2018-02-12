@@ -110,12 +110,12 @@ struct gputop_stream {
 };
 
 struct gputop_perf_event {
-    struct list_head link;
+    struct list_head link; /* global list (gputop_client_context.perf_events) */
 
     char name[128];
     uint32_t event_id;
 
-    struct list_head streams; /* struct gputop_perf_event_stream */
+    struct list_head streams; /* list of gputop_perf_event_stream */
 };
 
 struct gputop_perf_event_data {
@@ -134,9 +134,9 @@ struct gputop_perf_event_stream {
     int cpu;
     struct gputop_perf_event *event;
 
-    struct list_head link;
-
     struct gputop_perf_event_data *data;
+
+    struct list_head link; /* list of streams (gputop_perf_tracepoint.streams) */
 };
 
 struct gputop_perf_data_tracepoint {
@@ -151,9 +151,9 @@ struct gputop_perf_data_tracepoint {
 };
 
 struct gputop_perf_tracepoint {
-    struct list_head link;
+    struct list_head link; /* global list (gputop_client_context.perf_tracepoints)*/
 
-    struct list_head data;
+    struct list_head data; /* list of gputop_perf_tracepoint_data */
 
     char name[128];
     uint32_t event_id;
@@ -173,7 +173,7 @@ struct gputop_perf_tracepoint {
     int process_field;
     int hw_id_field;
 
-    struct list_head streams; /* struct gputop_perf_tracepoint_stream */
+    struct list_head streams; /* list of gputop_perf_tracepoint_stream */
 };
 
 struct gputop_perf_tracepoint_stream {
@@ -182,12 +182,12 @@ struct gputop_perf_tracepoint_stream {
     int cpu;
     struct gputop_perf_tracepoint *tp;
 
-    struct list_head link;
+    struct list_head link; /* list of streams (gputop_perf_tracepoint.streams) */
 };
 
 struct gputop_perf_tracepoint_data {
-    struct list_head link; /* global list of tracepoints */
-    struct list_head tp_link; /* per tracepoint list */
+    struct list_head link; /* global list (gputop_client_context.perf_tracepoints_data) */
+    struct list_head tp_link; /* per tracepoint list (gputop_perf_tracepoint.data) */
 
     struct gputop_perf_tracepoint *tp;
 
