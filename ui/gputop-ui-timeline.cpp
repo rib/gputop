@@ -147,7 +147,8 @@ bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
                 timeline_inner_bb.GetTL().y + timeline_row_height * row,
                 timeline_inner_bb.GetTL().x + (double) end * width / timeline_length,
                 timeline_inner_bb.GetTL().y + timeline_row_height * (row + 1));
-    const bool should_draw = fabs(timeline_last_item_pos - item.GetTL().x) >= 0.75;
+    const bool should_draw =
+      item.GetWidth() >= 1.0f || fabs(timeline_last_item_pos - item.GetTL().x) >= 0.75;
 
     if (should_draw)
     {
