@@ -11,12 +11,11 @@ gputop_client_src += custom_target(
              '-I' + join_paths(meson.current_source_dir(), '../data'),
              join_paths(meson.current_source_dir(), '../data/gputop.proto')])
 
-oa_sources = []
 foreach hw : ['hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt',
               'kblgt2', 'kblgt3', 'glk', 'cflgt2', 'cflgt3', 'cnl']
   _xml = '../data/oa-@0@.xml'.format(hw)
   _name = 'oa-@0@'.format(hw)
-  oa_sources += custom_target(
+  gputop_client_src += custom_target(
     _name,
     input : ['../scripts/gputop-oa-codegen.py', _xml],
     output : ['@0@.c'.format(_name), '@0@.h'.format(_name)],
@@ -33,16 +32,11 @@ gputop_client_src += custom_target(
   input: 'tracepoint_format.leg',
   command: [leg, '-P', '-o', '@OUTPUT@', '@INPUT@'])
 
-gputop_client_oa = static_library('gputop_client_oa', oa_sources,
-                                  c_args : ['-Wno-unused-parameter', '-Wno-unused-function'],
-                                  dependencies : mesa_dep)
-
-gputop_client_inc = [include_directories('.'), gputop_client_oa.private_dir_include()]
+gputop_client_inc = include_directories('.')
 
 gputop_client = static_library('gputop_client',
                                gputop_client_src,
                                dependencies : [mesa_dep, protobuf_c_dep],
-                               link_with : gputop_client_oa,
 	                       include_directories : gputop_client_inc)
 
 gputop_client_dep = declare_dependency(link_with : gputop_client,
