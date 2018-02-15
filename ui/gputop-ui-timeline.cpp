@@ -388,12 +388,6 @@ bool EndTimeline(const char **units, int n_units,
 
         last_in_range = in_range;
 
-        if (hovered && !timeline_item_hovered && !last_in_zoom && !last_in_range)
-        {
-            SetTooltip("Ctrl-click to zoom\n"
-                       "Shift-click to measure");
-        }
-
         if (!last_in_zoom && !last_in_range)
             need_clear = true;
     }
@@ -431,6 +425,12 @@ bool EndTimeline(const char **units, int n_units,
         if (zoom_end) *zoom_end = -drag_timeline_offset + timeline_length;
         zoom_changed = true;
         need_clear = false;
+    }
+
+    if (hovered && !timeline_item_hovered && !in_zoom && !in_range)
+    {
+        SetTooltip("Ctrl-click to zoom\n"
+                   "Shift-click to measure");
     }
 
     if (need_clear)
