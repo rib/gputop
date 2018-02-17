@@ -2069,6 +2069,9 @@ init_ui(const char *host, int port)
 
     list_inithead(&context.windows);
 
+    ImGuiIO& io = ImGui::GetIO();
+    io.NavFlags |= ImGuiNavFlags_EnableKeyboard;
+
     context.clear_color = ImColor(114, 144, 154);
 
     Gputop::InitColorsProperties();
