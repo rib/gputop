@@ -21,6 +21,7 @@ IMGUI_API CoglContext*  ImGui_ImplGtk3Cogl_GetContext();
 
 IMGUI_API void          ImGui_ImplGtk3Cogl_Shutdown();
 IMGUI_API void          ImGui_ImplGtk3Cogl_NewFrame();
+IMGUI_API void          ImGui_ImplGtk3Cogl_RenderDrawData(ImDrawData* draw_data);
 
 // Use if you want to reset your rendering device without losing ImGui state.
 IMGUI_API void          ImGui_ImplGtk3Cogl_InvalidateDeviceObjects();

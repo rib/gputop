@@ -15,6 +15,7 @@ IMGUI_API bool        ImGui_ImplSdlGLES2_Init(SDL_Window* window,
 IMGUI_API void        ImGui_ImplSdlGLES2_Shutdown();
 IMGUI_API void        ImGui_ImplSdlGLES2_NewFrame(SDL_Window* window);
 IMGUI_API bool        ImGui_ImplSdlGLES2_ProcessEvent(SDL_Event* event);
+IMGUI_API void        ImGui_ImplSdlGLES2_RenderDrawData(ImDrawData* draw_data);
 
 // Use if you want to reset your rendering device without losing ImGui state.
 IMGUI_API void        ImGui_ImplSdlGLES2_InvalidateDeviceObjects();

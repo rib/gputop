@@ -271,7 +271,7 @@ get_backend_callbacks(GdkWindow *window)
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // If text or lines are blurry when integrating ImGui in your engine:
 // - in your Render function, try translating your projection matrix by (0.5f,0.5f) or (0.375f,0.375f)
-void ImGui_ImplGtk3Cogl_RenderDrawLists(ImDrawData* draw_data)
+void ImGui_ImplGtk3Cogl_RenderDrawData(ImDrawData* draw_data)
 {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
     ImGuiIO& io = ImGui::GetIO();
@@ -514,6 +514,7 @@ void   ImGui_ImplGtk3Cogl_HandleEvent(GdkEvent *event)
                   { ImGuiKey_End, GDK_KEY_End },
                   { ImGuiKey_Delete, GDK_KEY_Delete },
                   { ImGuiKey_Backspace, GDK_KEY_BackSpace },
+                  { ImGuiKey_Space, GDK_KEY_space },
                   { ImGuiKey_Enter, GDK_KEY_Return },
                   { ImGuiKey_Escape, GDK_KEY_Escape },
                   { ImGuiKey_A, GDK_KEY_a },
@@ -676,7 +677,6 @@ CoglOnscreen* ImGui_ImplGtk3Cogl_Init(GtkWidget* widget,
         io.KeyMap[i] = i;
     }
 
-    io.RenderDrawListsFn = ImGui_ImplGtk3Cogl_RenderDrawLists;
     io.SetClipboardTextFn = ImGui_ImplGtk3Cogl_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplGtk3Cogl_GetClipboardText;
     io.ClipboardUserData = gtk_widget_get_clipboard(g_GtkWidget,
@@ -702,7 +702,6 @@ CoglContext*  ImGui_ImplGtk3Cogl_GetContext()
 void ImGui_ImplGtk3Cogl_Shutdown()
 {
     ImGui_ImplGtk3Cogl_InvalidateDeviceObjects();
-    ImGui::Shutdown();
     g_clear_pointer(&g_Framebuffer, cogl_object_unref);
     g_clear_pointer(&g_Context, cogl_object_unref);
 }

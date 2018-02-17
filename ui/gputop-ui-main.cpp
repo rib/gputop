@@ -44,16 +44,19 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/trace.h>
 #define ImGui_ScheduleFrame() ImGui_ImplSdlGLES2_ScheduleFrame()
+#define ImGui_RenderDrawData(data) ImGui_ImplSdlGLES2_RenderDrawData()
 #elif defined(GPUTOP_UI_GTK)
 #include "imgui_impl_gtk3_cogl.h"
 #include <libsoup/soup.h>
 #define ImGui_ScheduleFrame() ImGui_ImplGtk3Cogl_ScheduleFrame()
+#define ImGui_RenderDrawData(data) ImGui_ImplGtk3Cogl_RenderDrawData(data)
 #elif defined(GPUTOP_UI_GLFW)
 #include "imgui_impl_glfw_gl3.h"
 #include <epoxy/gl.h>
 #include <GLFW/glfw3.h>
 #include <uv.h>
 #define ImGui_ScheduleFrame() ImGui_ImplGlfwGL3_ScheduleFrame()
+#define ImGui_RenderDrawData(data) ImGui_ImplGlfwGL3_RenderDrawData(data)
 #endif
 
 /**/
@@ -2102,6 +2105,7 @@ repaint_window(void *user_data)
     glClearColor(context.clear_color.x, context.clear_color.y, context.clear_color.z, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui::Render();
+    ImGui_ImplSdlGLES2_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(context.window);
 }
 
@@ -2133,6 +2137,7 @@ repaint_window(CoglOnscreen *onscreen, void *user_data)
                                  context.clear_color.y,
                                  context.clear_color.z, 1.0);
         ImGui::Render();
+        ImGui_ImplGtk3Cogl_RenderDrawData(ImGui::GetDrawData());
         cogl_onscreen_swap_buffers(onscreen);
     }
 }
@@ -2161,6 +2166,7 @@ repaint_window(void *user_data)
                  context.clear_color.z, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui::Render();
+    ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(context.window);
 }
 #endif
@@ -2192,7 +2198,7 @@ main(int argc, char *argv[])
                                       SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     SDL_GL_CreateContext(context.window);
 
-    /* Setup ImGui binding */
+    ImGui::CreateContext();
     ImGui_ImplSdlGLES2_Init(context.window, repaint_window, NULL);
 
     char host[128];
@@ -2246,6 +2252,7 @@ main(int argc, char *argv[])
     gtk_container_add(GTK_CONTAINER(window), box);
     gtk_widget_show_all(window);
 
+    ImGui::CreateContext();
     ImGui_ImplGtk3Cogl_Init(box, repaint_window, NULL);
 
     if (host) {
@@ -2256,6 +2263,8 @@ main(int argc, char *argv[])
         init_ui(NULL, 0);
 
     gtk_main();
+
+    ImGui::DestroyContext();
 #elif defined(GPUTOP_UI_GLFW)
     if (!glfwInit())
         return -1;
@@ -2268,12 +2277,15 @@ main(int argc, char *argv[])
     glfwMakeContextCurrent(context.window);
     glfwSwapInterval(1); // Enable vsync
 
+    ImGui::CreateContext();
     if (!ImGui_ImplGlfwGL3_Init(context.window, repaint_window, NULL))
         return -1;
 
     init_ui(NULL, 0);
 
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+
+    ImGui::DestroyContext();
 #endif
 
     return EXIT_SUCCESS;
