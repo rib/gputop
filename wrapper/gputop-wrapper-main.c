@@ -72,6 +72,8 @@ static struct {
     uv_timer_t child_process_timer_handle;
     bool child_exited;
     uint32_t max_idle_child_time;
+
+    struct hash_table *process_ids;
 } context;
 
 static void comment(const char *format, ...)
@@ -176,6 +178,9 @@ static void start_child_process(void)
         return;
     }
 
+    context.process_ids = _mesa_hash_table_create(NULL,
+                                                  _mesa_hash_pointer,
+                                                  _mesa_key_pointer_equal);
     context.child_process_pid = fork();
     switch (context.child_process_pid) {
     case 0:
@@ -332,6 +337,38 @@ static void print_metric_colum_names(void)
     output("\n");
 }
 
+static bool pid_is_child_of(uint32_t parent, uint32_t child)
+{
+    static char path[80];
+    snprintf(path, sizeof(path), "/proc/%u/status", child);
+
+
+    FILE *f = fopen(path, "r");
+    char *line = NULL;
+    size_t n = 0;
+    bool is_child = false;
+
+    while (getline(&line, &n, f) > 0) {
+        size_t len = strlen("PPid:");
+
+        if (!strncmp(line, "PPid:", len)) {
+            uint32_t ppid = atoi(&line[len]);
+
+            if (ppid == 0)
+                is_child = false;
+            else if (ppid == parent)
+                is_child = true;
+            else
+                is_child = pid_is_child_of(parent, ppid);
+            break;
+        }
+    }
+
+    free(line);
+
+    return is_child;
+}
+
 static bool match_process(struct gputop_hw_context *hw_context)
 {
     if (hw_context == NULL) {
@@ -343,7 +380,24 @@ static bool match_process(struct gputop_hw_context *hw_context)
     if (!hw_context->process)
         return false;
 
-    return hw_context->process->pid == context.child_process_pid;
+    if (hw_context->process->pid == context.child_process_pid)
+        return true;
+
+    struct hash_entry *entry =
+        _mesa_hash_table_search(context.process_ids,
+                                (void *) (uintptr_t) hw_context->process->pid);
+    if (!entry) {
+        bool is_child = pid_is_child_of(context.child_process_pid,
+                                        hw_context->process->pid);
+
+        _mesa_hash_table_insert(context.process_ids,
+                                (void *) (uintptr_t) hw_context->process->pid,
+                                (void *) (uintptr_t) is_child);
+
+        return is_child;
+    }
+
+    return (bool) entry->data;
 }
 
 static void print_accumulated_columns(struct gputop_client_context *ctx,
