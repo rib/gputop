@@ -324,17 +324,29 @@ static void print_metric_colum_names(void)
 {
     int i;
     for (i = 0; i < context.n_metric_columns; i++) {
-        output("%*s%s ",
+        output("%*s%s%s",
                context.metric_columns[i].width -
                strlen(context.metric_columns[i].counter->symbol_name), "",
-               context.metric_columns[i].counter->symbol_name);
+               context.metric_columns[i].counter->symbol_name,
+               (i == (context.n_metric_columns - 1)) ? "" : ",");
     }
     output("\n");
     for (i = 0; i < context.n_metric_columns; i++) {
         const char *units = unit_to_string(context.metric_columns[i].counter->units);
-        output("%*s(%s) ", context.metric_columns[i].width - strlen(units) - 2, "", units);
+        output("%*s(%s)%s", context.metric_columns[i].width - strlen(units) - 2, "", units,
+               (i == (context.n_metric_columns - 1)) ? "" : ",");
     }
     output("\n");
+#if 0
+    /* Debugging column sizes */
+    for (i = 0; i < context.n_metric_columns; i++) {
+        char num[10];
+        snprintf(num, sizeof(num), "%i", context.metric_columns[i].width);
+        output("%*s%s%s", context.metric_columns[i].width - strlen(num), "", num,
+               (i == (context.n_metric_columns - 1)) ? "" : ",");
+    }
+    output("\n");
+#endif
 }
 
 static bool pid_is_child_of(uint32_t parent, uint32_t child)
@@ -487,10 +499,10 @@ static bool handle_features()
             }
 
             context.metric_columns[i].width =
-                MAX3(strlen(context.metric_columns[i].counter->symbol_name),
-                     strlen(unit_to_string(context.metric_columns[i].counter->units)) + 2,
-                     unit_to_width(context.metric_columns[i].counter->units)) + 1;
-        }
+                MAX2(strlen(context.metric_columns[i].counter->symbol_name),
+                     strlen(unit_to_string(context.metric_columns[i].counter->units)) +
+                     unit_to_width(context.metric_columns[i].counter->units) + 1) + 1;
+    }
     }
     if (!info_printed && ctx->features) {
         info_printed = true;
