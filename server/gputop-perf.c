@@ -850,29 +850,21 @@ devinfo_build_topology(const struct gen_device_info *devinfo,
 }
 
 static bool
-i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
+fill_topology_from_masks(struct gputop_devtopology *topology,
+                         uint32_t s_mask, uint32_t ss_mask,
+                         uint32_t n_eus)
 {
-    drm_i915_getparam_t gp;
-    int s_mask = 0, ss_mask = 0, n_eus = 0, n_slices = 0, n_subslices = 0;
+    int n_slices = 0, n_subslices = 0;
     int s, ss, eug;
 
-    gp.param = I915_PARAM_SLICE_MASK;
-    gp.value = &s_mask;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-	return false;
-
+    memset(topology->slices_mask, 0, sizeof(topology->slices_mask));
     topology->slices_mask[0] = s_mask;
     topology->max_slices = util_last_bit(s_mask);
     n_slices = __builtin_popcount(s_mask);
 
-    gp.param = I915_PARAM_SUBSLICE_MASK;
-    gp.value = &ss_mask;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-	return false;
-
     memset(topology->subslices_mask, 0, sizeof(topology->subslices_mask));
     for (s = 0; s < util_last_bit(s_mask); s++) {
-	int subslice_stride = DIV_ROUND_UP(util_last_bit(ss_mask) - 1, 8);
+	int subslice_stride = DIV_ROUND_UP(ss_mask, 8);
 
 	for (ss = 0; ss < subslice_stride; ss++) {
 	    topology->subslices_mask[s * subslice_stride + ss] =
@@ -881,11 +873,6 @@ i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
     }
     topology->max_subslices = util_last_bit(ss_mask);
     n_subslices = __builtin_popcount(ss_mask);
-
-    gp.param = I915_PARAM_EU_TOTAL;
-    gp.value = &n_eus;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-	return false;
 
     int subslice_stride =
 	DIV_ROUND_UP(n_eus / (topology->max_slices * topology->max_subslices), 8);
@@ -907,6 +894,69 @@ i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
 	    }
 	}
     }
+
+    return true;
+}
+
+static bool
+gputop_override_topology(struct gputop_devtopology *topology)
+{
+    long s_mask = 0, ss_mask = 0, n_eus = 0;
+
+    const char *s_s_mask = getenv("GPUTOP_TOPOLOGY_OVERRIDE");
+    if (!s_s_mask)
+        return false;
+    s_mask = strtol(s_s_mask, NULL, 0);
+
+    const char *s_ss_mask = strstr(s_s_mask, ",");
+    if (!s_ss_mask)
+        goto invalid;
+    s_ss_mask++;
+    ss_mask = strtol(s_ss_mask, NULL, 0);
+
+    const char *s_n_eus = strstr(s_ss_mask, ",");
+    if (!s_n_eus)
+        goto invalid;
+    s_n_eus++;
+    n_eus = strtol(s_n_eus + 1, NULL, 0);
+
+    if (s_mask == 0 || ss_mask == 0 || n_eus == 0)
+        goto invalid;
+
+    fprintf(stderr, "Using topology override: slice_mask=%li subslice=%li n_eus=%li\n",
+            s_mask, ss_mask, n_eus);
+    fill_topology_from_masks(topology, s_mask, ss_mask, n_eus);
+
+    return true;
+
+ invalid:
+    fprintf(stderr, "Invalid topology override: slice_mask=%li subslice=%li n_eus=%li\n",
+            s_mask, ss_mask, n_eus);
+    return false;
+}
+
+static bool
+i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
+{
+    drm_i915_getparam_t gp;
+    int s_mask = 0, ss_mask = 0, n_eus = 0;
+
+    gp.param = I915_PARAM_SLICE_MASK;
+    gp.value = &s_mask;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
+
+    gp.param = I915_PARAM_SUBSLICE_MASK;
+    gp.value = &ss_mask;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
+
+    gp.param = I915_PARAM_EU_TOTAL;
+    gp.value = &n_eus;
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
+
+    fill_topology_from_masks(topology, s_mask, ss_mask, n_eus);
 
     return true;
 }
@@ -1026,11 +1076,9 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
     topology->n_threads_per_eu = devinfo->num_thread_per_eu;
 
     if (gputop_fake_mode) {
-	topology->slices_mask[0] = 0x1;
-	topology->subslices_mask[0] = 0x1;
-	topology->eus_mask[0] = 0xff;
-	gputop_devinfo.gt_min_freq = 500;
-	gputop_devinfo.gt_max_freq = 1100;
+        fill_topology_from_masks(topology, 0x1, 0x1, 8);
+        gputop_devinfo.gt_min_freq = 500;
+        gputop_devinfo.gt_max_freq = 1100;
     } else {
         drm_i915_getparam_t gp;
 	int revision, timestamp_frequency;
@@ -1048,13 +1096,13 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
 	    gputop_devinfo.timestamp_frequency = timestamp_frequency;
 
-	if (i915_has_query_info(fd)) {
-	    i915_query_topology(fd, topology);
-	    i915_query_engines(fd, topology);
-	} else {
-	    if (!i915_query_old_slice_masks(fd, topology))
-		devinfo_build_topology(devinfo, topology);
-	}
+        if (!gputop_override_topology(topology)) {
+            if (i915_has_query_info(fd)) {
+                i915_query_topology(fd, topology);
+                i915_query_engines(fd, topology);
+            } else if (!i915_query_old_slice_masks(fd, topology))
+                devinfo_build_topology(devinfo, topology);
+        }
 
 	assert(drm_card >= 0);
 	if (!sysfs_card_read("gt_min_freq_mhz", &gputop_devinfo.gt_min_freq))

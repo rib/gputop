@@ -89,6 +89,12 @@ usage(void)
            "     GPUTOP_MODE=remote            Currently only one mode\n"
            "     GPUTOP_PORT=port              Port gputop should listen to\n"
            "\n"
+           "     GPUTOP_TOPOLOGY_OVERRIDE=slice_mask,subslice_mask,n_eus_total\n"
+           "                                   Overrides slice mask, subslice mask and\n"
+           "                                   total number of EUs. This useful for testing\n"
+           "                                   on systems where part of the GT has been\n"
+           "                                   programmatically disabled.\n"
+           "\n"
 #ifdef SUPPORT_GL
            "     LD_PRELOAD=<prefix>/lib/wrappers/libfakeGL.so:<prefix>/lib/libgputop.so\n"
            "                                   The gputop libGL.so and syscall\n"
