@@ -974,6 +974,7 @@ build_equations_variables(struct gputop_devinfo *devinfo)
     struct gputop_devtopology *topology = &devinfo->topology;
     int subslice_stride = DIV_ROUND_UP(topology->max_eus_per_subslice, 8);
     int slice_stride = subslice_stride * topology->max_subslices;
+    int subslice_slice_stride = DIV_ROUND_UP(topology->max_subslices, 8);
 
     devinfo->n_eus = 0;
     for (int s = 0; s < topology->max_slices; s++) {
@@ -988,24 +989,18 @@ build_equations_variables(struct gputop_devinfo *devinfo)
     }
 
     devinfo->n_eu_slices = 0;
-    for (int ss = 0; ss < topology->max_subslices; ss++) {
-        for (int eug = 0; eug < subslice_stride; eug++) {
-            devinfo->n_eu_slices +=
-                __builtin_popcount(topology->eus_mask[subslice_stride * ss +  eug]);
-        }
+    for (int s = 0; s < DIV_ROUND_UP(topology->max_slices, 8); s++) {
+        devinfo->n_eu_slices +=
+            __builtin_popcount(topology->slices_mask[s]);
     }
 
     devinfo->n_eu_sub_slices = 0;
-    for (int eug = 0; eug < subslice_stride; eug++) {
-        devinfo->n_eu_sub_slices += __builtin_popcount(topology->eus_mask[eug]);
+    for (int s = 0; s < topology->max_slices * subslice_slice_stride; s++) {
+        devinfo->n_eu_sub_slices +=
+            __builtin_popcount(topology->subslices_mask[s]);
     }
 
     devinfo->slice_mask = topology->slices_mask[0];
-    devinfo->n_slices = __builtin_popcount(topology->slices_mask[0]);
-
-    devinfo->n_subslices = 0;
-    for (int i = 0; i < DIV_ROUND_UP(topology->max_slices * topology->max_subslices, 8); i++)
-        devinfo->n_subslices += __builtin_popcount(topology->subslices_mask[i]);
 
     /* Unfortunately the equations expect at $SubsliceMask variable were the
      * meaning of the bits varies from one platform to another. One could hope
