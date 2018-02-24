@@ -814,12 +814,12 @@ static void
 register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 {
     gputop_hash_table_insert(metrics, metric_set->hw_config_guid,
-                             (void *) metric_set);
+			     (void *) metric_set);
 }
 
 static void
 devinfo_build_topology(const struct gen_device_info *devinfo,
-                       struct gputop_devtopology *topology)
+		       struct gputop_devtopology *topology)
 {
     int s, ss, eug;
     int slice_stride, subslice_stride;
@@ -827,29 +827,29 @@ devinfo_build_topology(const struct gen_device_info *devinfo,
     topology->max_slices = devinfo->num_slices;
     topology->max_subslices = devinfo->num_subslices[0];
     if (devinfo->is_haswell)
-        topology->max_eus_per_subslice = 10;
+	topology->max_eus_per_subslice = 10;
     else
-        topology->max_eus_per_subslice = 8; // TODO.
+	topology->max_eus_per_subslice = 8; // TODO.
 
     subslice_stride = DIV_ROUND_UP(topology->max_eus_per_subslice, 8);
     slice_stride = subslice_stride * topology->max_subslices;
 
     for (s = 0; s < devinfo->num_slices; s++) {
-        topology->slices_mask[0] |= 1U << s;
+	topology->slices_mask[0] |= 1U << s;
 
-        for (ss = 0; ss < devinfo->num_subslices[s]; ss++) {
-            /* Assuming we have never more than 8 subslices. */
-            topology->subslices_mask[s] |= 1U << ss;
+	for (ss = 0; ss < devinfo->num_subslices[s]; ss++) {
+	    /* Assuming we have never more than 8 subslices. */
+	    topology->subslices_mask[s] |= 1U << ss;
 
-            for (eug = 0; eug < subslice_stride; eug++) {
-                topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
-                    (((1UL << topology->max_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
-            }
-        }
+	    for (eug = 0; eug < subslice_stride; eug++) {
+		topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
+		    (((1UL << topology->max_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
+	    }
+	}
     }
 }
 
-static void
+static bool
 i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
 {
     drm_i915_getparam_t gp;
@@ -858,47 +858,57 @@ i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
 
     gp.param = I915_PARAM_SLICE_MASK;
     gp.value = &s_mask;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
-        topology->slices_mask[0] = s_mask;
-        topology->max_slices = util_last_bit(s_mask);
-        n_slices = __builtin_popcount(s_mask);
-    }
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
+
+    topology->slices_mask[0] = s_mask;
+    topology->max_slices = util_last_bit(s_mask);
+    n_slices = __builtin_popcount(s_mask);
 
     gp.param = I915_PARAM_SUBSLICE_MASK;
     gp.value = &ss_mask;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
-        memset(topology->subslices_mask, 0, sizeof(topology->subslices_mask));
-        for (ss = 0; ss < DIV_ROUND_UP(util_last_bit(ss_mask), 8); ss++) {
-            topology->subslices_mask[ss] = ss_mask & (0xff << (ss * 8));
-        }
-        topology->max_subslices = util_last_bit(ss_mask);
-        n_subslices = __builtin_popcount(ss_mask);
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
+
+    memset(topology->subslices_mask, 0, sizeof(topology->subslices_mask));
+    for (s = 0; s < util_last_bit(s_mask); s++) {
+	int subslice_stride = DIV_ROUND_UP(util_last_bit(ss_mask) - 1, 8);
+
+	for (ss = 0; ss < subslice_stride; ss++) {
+	    topology->subslices_mask[s * subslice_stride + ss] =
+		(ss_mask >> (ss * 8)) & 0xff;
+	}
     }
+    topology->max_subslices = util_last_bit(ss_mask);
+    n_subslices = __builtin_popcount(ss_mask);
 
     gp.param = I915_PARAM_EU_TOTAL;
     gp.value = &n_eus;
-    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0) {
-        int subslice_stride =
-            DIV_ROUND_UP(n_eus / (topology->max_slices * topology->max_subslices), 8);
-        int slice_stride = subslice_stride * topology->max_subslices;
-        int n_eus_per_subslice = n_eus / (n_slices * n_subslices);
+    if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	return false;
 
-        int subslice_slice_stride = DIV_ROUND_UP(topology->max_subslices, 8);
+    int subslice_stride =
+	DIV_ROUND_UP(n_eus / (topology->max_slices * topology->max_subslices), 8);
+    int slice_stride = subslice_stride * topology->max_subslices;
+    int n_eus_per_subslice = n_eus / (n_slices * n_subslices);
 
-        topology->max_eus_per_subslice = 8 * DIV_ROUND_UP(n_eus_per_subslice, 8);
+    int subslice_slice_stride = DIV_ROUND_UP(topology->max_subslices, 8);
 
-        memset(topology->eus_mask, 0, sizeof(topology->eus_mask));
-        for (s = 0; s < topology->max_slices; s++) {
-            for (ss = 0; ss < topology->max_subslices; ss++) {
-                if (topology->subslices_mask[s * subslice_slice_stride + ss / 8] & (1UL << (ss % 8))) {
-                    for (eug = 0; eug < subslice_stride; eug++) {
-                        topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
-                            (((1UL << n_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
-                    }
-                }
-            }
-        }
+    topology->max_eus_per_subslice = 8 * DIV_ROUND_UP(n_eus_per_subslice, 8);
+
+    memset(topology->eus_mask, 0, sizeof(topology->eus_mask));
+    for (s = 0; s < topology->max_slices; s++) {
+	for (ss = 0; ss < topology->max_subslices; ss++) {
+	    if (topology->subslices_mask[s * subslice_slice_stride + ss / 8] & (1UL << (ss % 8))) {
+		for (eug = 0; eug < subslice_stride; eug++) {
+		    topology->eus_mask[s * slice_stride + ss * subslice_stride + eug] =
+			(((1UL << n_eus_per_subslice) - 1) >> (eug * 8)) & 0xff;
+		}
+	    }
+	}
     }
+
+    return true;
 }
 
 struct gputop_query_slice_info {
@@ -924,9 +934,9 @@ i915_query_topology(int fd, struct gputop_devtopology *topology)
     struct gputop_query_subslice_info subslice_info = {};
     struct gputop_query_eu_info eu_info = {};
     struct drm_i915_query_item items[] = {
-        { .query_id = DRM_I915_QUERY_SLICE_INFO, .length = sizeof(slice_info), .data_ptr = (uintptr_t) &slice_info, },
-        { .query_id = DRM_I915_QUERY_SUBSLICE_INFO, .length = sizeof(subslice_info), .data_ptr = (uintptr_t) &subslice_info, },
-        { .query_id = DRM_I915_QUERY_EU_INFO, .length = sizeof(eu_info), .data_ptr = (uintptr_t) &eu_info, },
+	{ .query_id = DRM_I915_QUERY_SLICE_INFO, .length = sizeof(slice_info), .data_ptr = (uintptr_t) &slice_info, },
+	{ .query_id = DRM_I915_QUERY_SUBSLICE_INFO, .length = sizeof(subslice_info), .data_ptr = (uintptr_t) &subslice_info, },
+	{ .query_id = DRM_I915_QUERY_EU_INFO, .length = sizeof(eu_info), .data_ptr = (uintptr_t) &eu_info, },
     };
     int i, ret;
 
@@ -937,24 +947,24 @@ i915_query_topology(int fd, struct gputop_devtopology *topology)
     assert(ret == 0);
 
     for (i = 0; i < ARRAY_SIZE(items); i++)
-        assert(items[i].length > 0);
+	assert(items[i].length > 0);
 
     assert(sizeof(topology->slices_mask) >= DIV_ROUND_UP(slice_info.base.max_slices, 8));
     topology->max_slices = slice_info.base.max_slices;
     memcpy(topology->slices_mask, slice_info.data, DIV_ROUND_UP(slice_info.base.max_slices, 8));
 
     assert(sizeof(topology->subslices_mask) >=
-           (subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8)));
+	   (subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8)));
     topology->max_subslices = subslice_info.base.max_subslices;
     memcpy(topology->subslices_mask, subslice_info.data,
-           subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8));
+	   subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8));
 
     topology->max_eus_per_subslice = eu_info.base.max_eus_per_subslice;
     assert(sizeof(topology->eus_mask) >= (eu_info.base.max_slices * eu_info.base.max_subslices *
-                                          DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
+					  DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
     memcpy(topology->eus_mask, eu_info.data,
-           (eu_info.base.max_slices * eu_info.base.max_subslices *
-            DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
+	   (eu_info.base.max_slices * eu_info.base.max_subslices *
+	    DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
 }
 
 static bool
@@ -1030,22 +1040,21 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	gputop_devinfo.revision = revision;
 
-        /* This might not be available on all kernels, save the value
-         * only if the ioctl succeeds.
-         */
-        gp.param = I915_PARAM_CS_TIMESTAMP_FREQUENCY;
+	/* This might not be available on all kernels, save the value
+	 * only if the ioctl succeeds.
+	 */
+	gp.param = I915_PARAM_CS_TIMESTAMP_FREQUENCY;
 	gp.value = &timestamp_frequency;
-        if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
-            gputop_devinfo.timestamp_frequency = timestamp_frequency;
+	if (perf_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
+	    gputop_devinfo.timestamp_frequency = timestamp_frequency;
 
-        if (i915_has_query_info(fd)) {
-            i915_query_topology(fd, topology);
-            i915_query_engines(fd, topology);
-        } else {
-            devinfo_build_topology(devinfo, topology);
-            if (!devinfo->is_haswell)
-                i915_query_old_slice_masks(fd, topology);
-        }
+	if (i915_has_query_info(fd)) {
+	    i915_query_topology(fd, topology);
+	    i915_query_engines(fd, topology);
+	} else {
+	    if (!i915_query_old_slice_masks(fd, topology))
+		devinfo_build_topology(devinfo, topology);
+	}
 
 	assert(drm_card >= 0);
 	if (!sysfs_card_read("gt_min_freq_mhz", &gputop_devinfo.gt_min_freq))
