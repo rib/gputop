@@ -72,10 +72,6 @@ struct gputop_devinfo {
     uint64_t subslice_mask;
     uint64_t slice_mask;
     uint64_t eu_threads_count;
-
-    /* Summary numbers (mostly for the UIs) */
-    uint32_t n_slices;
-    uint32_t n_subslices;
 };
 
 typedef enum {
