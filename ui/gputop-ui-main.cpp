@@ -1942,7 +1942,7 @@ display_main_window(struct window *win)
                     devinfo->prettyname, devinfo->gen, devinfo->devid);
         ImGui::Text("%" PRIu64 " threads, %" PRIu64 " EUs, %" PRIu32 " slices, %" PRIu32 " subslices",
                     devinfo->eu_threads_count, devinfo->n_eus,
-                    devinfo->n_slices, devinfo->n_subslices);
+                    devinfo->n_eu_slices, devinfo->n_eu_sub_slices);
         ImGui::Text("GT frequency range %.1fMHz / %.1fMHz",
                     (double) devinfo->gt_min_freq / 1000000.0f,
                     (double) devinfo->gt_max_freq / 1000000.0f);

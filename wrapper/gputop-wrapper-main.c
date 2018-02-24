@@ -251,7 +251,7 @@ static void print_system_info(void)
             devinfo->prettyname, devinfo->gen, devinfo->devid);
     comment("\tTopology: %llu threads, %llu EUs, %llu slices, %llu subslices\n",
             devinfo->eu_threads_count, devinfo->n_eus,
-            devinfo->n_slices, devinfo->n_subslices);
+            devinfo->n_eu_slices, devinfo->n_eu_sub_slices);
     comment("\tGT frequency range: %.1fMHz / %.1fMHz\n",
             (double) devinfo->gt_min_freq / 1000000.0f,
             (double) devinfo->gt_max_freq / 1000000.0f);
