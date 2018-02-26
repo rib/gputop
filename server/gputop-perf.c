@@ -1780,7 +1780,7 @@ gputop_reload_userspace_metrics(int fd)
 
 	if (sysfs_card_read(config_path, &config_id)) {
 	    if (config_id > 1)
-		ioctl(fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
+		perf_ioctl(fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &config_id);
 	    else if (config_id == 1)
 		continue; /* Leave the test config untouched */
 	}
@@ -1798,7 +1798,7 @@ gputop_reload_userspace_metrics(int fd)
 	config.n_flex_regs = metric_set->n_flex_regs;
 	config.flex_regs_ptr = (uintptr_t) metric_set->flex_regs;
 
-	ret = ioctl(fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
+	ret = perf_ioctl(fd, DRM_IOCTL_I915_PERF_ADD_CONFIG, &config);
 	if (ret < 0)
 	    fprintf(stderr, "Failed to load %s (%s) metrics set in kernel: %s\n",
 		    metric_set->symbol_name, metric_set->hw_config_guid, strerror(errno));
