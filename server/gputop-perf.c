@@ -918,7 +918,7 @@ gputop_override_topology(struct gputop_devtopology *topology)
     if (!s_n_eus)
         goto invalid;
     s_n_eus++;
-    n_eus = strtol(s_n_eus + 1, NULL, 0);
+    n_eus = strtol(s_n_eus, NULL, 0);
 
     if (s_mask == 0 || ss_mask == 0 || n_eus == 0)
         goto invalid;
