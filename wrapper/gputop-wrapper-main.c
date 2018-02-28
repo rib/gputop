@@ -60,6 +60,7 @@ static struct {
     int n_metric_columns;
     bool human_units;
     bool print_headers;
+    bool print_maximums;
     FILE *wrapper_output;
 
     int n_accumulations;
@@ -338,11 +339,34 @@ static void print_metric_colum_names(void)
                (i == (context.n_metric_columns - 1)) ? "" : ",");
     }
     output("\n");
+    if (context.print_maximums) {
+        for (i = 0; i < context.n_metric_columns; i++) {
+            char pretty_max_value[80];
+
+            if (context.human_units) {
+                gputop_client_context_pretty_print_max(&context.ctx,
+                                                       context.metric_columns[i].counter,
+                                                       context.ctx.oa_aggregation_period_ms * 1000000ULL,
+                                                       pretty_max_value, sizeof(pretty_max_value));
+            } else {
+                snprintf(pretty_max_value, sizeof(pretty_max_value), "%f",
+                         gputop_client_context_max_value(&context.ctx,
+                                                         context.metric_columns[i].counter,
+                                                         1000000000ULL));
+            }
+
+            output("%*s%s%s",
+                   context.metric_columns[i].width - strlen(pretty_max_value), "",
+                   pretty_max_value,
+                   (i == (context.n_metric_columns - 1)) ? "" : ",");
+        }
+        output("\n\n");
+    }
 #if 0
     /* Debugging column sizes */
     for (i = 0; i < context.n_metric_columns; i++) {
         char num[10];
-        snprintf(num, sizeof(num), "%i", context.metric_columns[i].width);
+        snprintf(num, sizeof(num), "(max=%u)", context.metric_columns[i].width);
         output("%*s%s%s", context.metric_columns[i].width - strlen(num), "", num,
                (i == (context.n_metric_columns - 1)) ? "" : ",");
     }
@@ -503,7 +527,7 @@ static bool handle_features()
                 MAX2(strlen(context.metric_columns[i].counter->symbol_name),
                      strlen(unit_to_string(context.metric_columns[i].counter->units)) +
                      unit_to_width(context.metric_columns[i].counter->units) + 1) + 1;
-    }
+        }
     }
     if (!info_printed && ctx->features) {
         info_printed = true;
@@ -586,6 +610,8 @@ static void usage(void)
            "\t -P, --period <period>             Accumulation period (in seconds, floating point)\n"
            "\t -m, --metric <name>               Metric set to use\n"
            "                                     (prints out a list of metric sets if missing)\n"
+           "\t -M, --max                         Outputs maximum counter values\n"
+           "                                     (first line after units)\n"
            "\t -c, --columns <col0,col1,..>      Columns to print out\n"
            "                                     (prints out a lists of counters if missing)\n"
            "\t -n, --no-human-units              Disable human readable units (for machine readable output)\n"
@@ -619,6 +645,7 @@ int main (int argc, char **argv)
         { "port",              required_argument,  0, 'p' },
         { "period",            required_argument,  0, 'P' },
         { "metric",            required_argument,  0, 'm' },
+        { "max",               no_argument,        0, 'M' },
         { "columns",           required_argument,  0, 'c' },
         { "no-human-units",    no_argument,        0, 'n' },
         { "no-headers",        no_argument,        0, 'N' },
@@ -643,7 +670,7 @@ int main (int argc, char **argv)
     context.ctx.oa_aggregation_period_ms = 1000;
 
     while (!opt_done &&
-           (opt = getopt_long(argc, argv, "c:hH:m:p:P:-nNO:o:", long_options, NULL)) != -1)
+           (opt = getopt_long(argc, argv, "c:hH:m:Mp:P:-nNO:o:", long_options, NULL)) != -1)
     {
         switch (opt) {
         case 'h':
@@ -654,6 +681,9 @@ int main (int argc, char **argv)
             break;
         case 'm':
             context.metric_name = optarg;
+            break;
+        case 'M':
+            context.print_maximums = true;
             break;
         case 'c': {
             const char *s = optarg;
