@@ -385,7 +385,9 @@ display_i915_perf_counters(struct gputop_client_context *ctx,
 
         char text[100];
         if (ImGui::IsItemHovered()) {
-            gputop_client_context_pretty_print_max(ctx, counter, text, sizeof(text));
+            gputop_client_context_pretty_print_max(ctx, counter,
+                                                   ctx->oa_aggregation_period_ms * 1000000ULL,
+                                                   text, sizeof(text));
             ImGui::SetTooltip("Maximum : %s", text);
         }
 

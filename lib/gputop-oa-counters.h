@@ -94,6 +94,12 @@ bool gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulato
                                      const uint8_t *report1);
 
 static inline uint64_t
+gputop_time_scale_timebase(const struct gputop_devinfo *devinfo, uint64_t ns_time)
+{
+    return (ns_time * devinfo->timestamp_frequency) / 1000000000ULL;
+}
+
+static inline uint64_t
 gputop_timebase_scale_ns(const struct gputop_devinfo *devinfo, uint64_t u32_time)
 {
     return (u32_time * 1000000000ULL) / devinfo->timestamp_frequency;

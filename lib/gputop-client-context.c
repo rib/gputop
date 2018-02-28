@@ -72,17 +72,16 @@ gputop_client_pretty_print_value(gputop_counter_units_t unit,
     return l;
 }
 
-int
-gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
+double gputop_client_context_max_value(struct gputop_client_context *ctx,
                                        const struct gputop_metric_set_counter *counter,
-                                       char *buffer, size_t length)
+                                       uint64_t ns_time)
 {
     if (!counter->max_uint64 && !counter->max_float)
-        return snprintf(buffer, length, "unknown");
+        return 0.0f;
 
     uint32_t counters0[64] = { 0, 1} ;
-    uint32_t counters1[64] = { 0, 1 + ctx->devinfo.timestamp_frequency,
-                               0, ctx->devinfo.timestamp_frequency, };
+    uint32_t counters1[64] = { 0, 1 + gputop_time_scale_timebase(&ctx->devinfo, ns_time),
+                               0, gputop_time_scale_timebase(&ctx->devinfo, ns_time), };
     struct gputop_cc_oa_accumulator dummy_accumulator;
     gputop_cc_oa_accumulator_init(&dummy_accumulator, &ctx->devinfo, counter->metric_set,
                                   false, 0, NULL);
@@ -107,12 +106,19 @@ gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
         break;
     }
 
-    int l = gputop_client_pretty_print_value(counter->units, value, buffer, length);
-    if (counter->units != GPUTOP_PERFQUERY_COUNTER_UNITS_HZ &&
-        counter->units != GPUTOP_PERFQUERY_COUNTER_UNITS_PERCENT)
-        l += snprintf(&buffer[l], length - l, " / second");
+    return value;
+}
 
-    return l;
+int
+gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
+                                       const struct gputop_metric_set_counter *counter,
+                                       uint64_t ns_time, char *buffer, size_t length)
+{
+    double value = gputop_client_context_max_value(ctx, counter, ns_time);
+    if (value == 0.0f)
+        return snprintf(buffer, length, "unknown");
+
+    return gputop_client_pretty_print_value(counter->units, value, buffer, length);
 }
 
 /**/

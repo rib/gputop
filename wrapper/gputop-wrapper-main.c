@@ -310,6 +310,7 @@ static void print_metric_counter(struct gputop_client_context *ctx,
         char pretty_max_value[80];
         gputop_client_context_pretty_print_max(ctx,
                                                &metric_set->counters[i],
+                                               1000000000ULL,
                                                pretty_max_value, sizeof(pretty_max_value));
 
         comment("%s:%*s %s (max=%s)\n",

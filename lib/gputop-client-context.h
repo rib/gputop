@@ -289,9 +289,12 @@ struct gputop_client_context {
 int gputop_client_pretty_print_value(gputop_counter_units_t unit,
                                      double value, char *buffer, size_t length);
 
+double gputop_client_context_max_value(struct gputop_client_context *ctx,
+                                       const struct gputop_metric_set_counter *counter,
+                                       uint64_t ns_time);
 int gputop_client_context_pretty_print_max(struct gputop_client_context *ctx,
                                            const struct gputop_metric_set_counter *counter,
-                                           char *buffer, size_t length);
+                                           uint64_t ns_time, char *buffer, size_t length);
 
 void gputop_client_context_init(struct gputop_client_context *ctx);
 void gputop_client_context_reset(struct gputop_client_context *ctx,
