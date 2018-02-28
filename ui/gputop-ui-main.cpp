@@ -1942,7 +1942,7 @@ display_main_window(struct window *win)
         const struct gputop_devinfo *devinfo = &ctx->devinfo;
         ImGui::Text("GT name: %s (Gen %u, PCI 0x%x)",
                     devinfo->prettyname, devinfo->gen, devinfo->devid);
-        ImGui::Text("%" PRIu64 " threads, %" PRIu64 " EUs, %" PRIu32 " slices, %" PRIu32 " subslices",
+        ImGui::Text("%" PRIu64 " threads, %" PRIu64 " EUs, %" PRIu64 " slices, %" PRIu64 " subslices",
                     devinfo->eu_threads_count, devinfo->n_eus,
                     devinfo->n_eu_slices, devinfo->n_eu_sub_slices);
         ImGui::Text("GT frequency range %.1fMHz / %.1fMHz",
