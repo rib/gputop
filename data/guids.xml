@@ -88,7 +88,7 @@
     <guid config_hash="1747ad69a36707979cd33624333829d0" mdapi_config_hash="a66f0092b99ca3a8ce29e0ce4be513ff" id="d260f03f-b34d-4b49-a44e-436819117332" chipset="bxt" name="TDL_2" />
     <guid config_hash="e6d52ba7af730de63eeaa8d727b36ed7" mdapi_config_hash="6898bc10a62600907cc6c47d1f7004a0" id="c9f5fa3a-d14f-400c-a89a-211206b00ee7" chipset="bxt" name="GpuBusyness" />
     <guid mdapi_config_hash="f97b8516df9ee8b2f3c4ad8289161079" id="8655146c-0ffd-4eea-a525-1db843c728e0" chipset="bxt" name="RenderDX1x" />
-    <guid config_hash="798620e9ce38a14b438590766c58b88b" mdapi_config_hash="368f1c24eefa8dbb17872efd9c002b52" id="f519e481-24d2-4d42-87c9-3fdd12c00202" chipset="sklgt2" name="RenderBasic" />
+    <guid config_hash="3a73d9a9c8f036d682bf122853c0ae55" mdapi_config_hash="f5d545c95f680a2d5f9fcaa9990073da" id="f519e481-24d2-4d42-87c9-3fdd12c00202" chipset="sklgt2" name="RenderBasic" />
     <guid config_hash="5e6c82383856de8c1ef1b3e5fd4de167" mdapi_config_hash="4b4c1c2d0b5ab44101227b371bcaded8" id="fe47b29d-ae51-423e-bff4-27d965a95b60" chipset="sklgt2" name="ComputeBasic" />
     <guid mdapi_config_hash="22557d63c9563faec22f233578a0c289" id="ef669f42-cb31-432a-9919-f0a571d580e7" chipset="sklgt2" name="RenderDX1x" />
     <guid config_hash="776a8b405917592c350129d5439b1b19" mdapi_config_hash="bd7ed7902be253547cdfad39a633b6c3" id="e0ad5ae0-84ba-4f29-a723-1906c12cb774" chipset="sklgt2" name="RenderPipeProfile" />
