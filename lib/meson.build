@@ -12,7 +12,7 @@ gputop_client_src += custom_target(
              join_paths(meson.current_source_dir(), '../data/gputop.proto')])
 
 foreach hw : ['hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt',
-              'kblgt2', 'kblgt3', 'glk', 'cflgt2', 'cflgt3', 'cnl']
+              'kblgt2', 'kblgt3', 'glk', 'cflgt2', 'cflgt3', 'cnl', 'icl']
   _xml = '../data/oa-@0@.xml'.format(hw)
   _name = 'oa-@0@'.format(hw)
   gputop_client_src += custom_target(

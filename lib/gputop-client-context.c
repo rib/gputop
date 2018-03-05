@@ -17,6 +17,7 @@
 #include "oa-cflgt2.h"
 #include "oa-cflgt3.h"
 #include "oa-cnl.h"
+#include "oa-icl.h"
 
 #include "gputop-log.h"
 
@@ -1062,6 +1063,7 @@ register_platform_metrics(struct gputop_client_context *ctx,
         { "cflgt2", gputop_oa_add_metrics_cflgt2 },
         { "cflgt3", gputop_oa_add_metrics_cflgt3 },
         { "cnl", gputop_oa_add_metrics_cnl },
+        { "icl", gputop_oa_add_metrics_icl },
     };
 
     struct gputop_devinfo *devinfo = &ctx->devinfo;
