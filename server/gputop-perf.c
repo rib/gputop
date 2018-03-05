@@ -73,6 +73,7 @@
 #include "oa-glk.h"
 #include "oa-cflgt2.h"
 #include "oa-cflgt3.h"
+#include "oa-cnl.h"
 
 #include "util/bitscan.h"
 #include "util/macros.h"
@@ -1175,6 +1176,9 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	    fprintf(stderr, "Unsupported GT%u Coffeelake System\n", devinfo->gt);
 	    return false;
 	}
+    } else if (devinfo->is_cannonlake) {
+        SET_NAMES(gputop_devinfo, "cnl", "Cannonlake");
+	gputop_oa_add_metrics_cnl(&gputop_devinfo, register_metric_set, NULL);
     } else {
 	fprintf(stderr, "Unknown System\n");
 	return false;
