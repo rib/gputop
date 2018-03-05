@@ -24,7 +24,7 @@
     <guid mdapi_config_hash="cf80117b63d376e87735b73e8f5ebc5b" id="69b42918-c915-439a-9e4b-a82fe3c9e1a3" chipset="hsw" name="MediaMemoryWrites" />
     <guid mdapi_config_hash="3566f20e9e3707cb9aefccff3ead7572" id="18024740-aa68-4d25-877e-082c9fdcb895" chipset="hsw" name="MediaVmePipe" />
     <guid config_hash="240f9cd7a6699b44ff0bf22b24449ac0" mdapi_config_hash="961180e14745136637cfd0253c6c0a63" id="d6de6f55-e526-4f79-a6a6-d7315c09044e" chipset="bdw" name="TestOa" />
-    <guid config_hash="9c4955c220cbcc5f9ff3ce6e7af64cf5" mdapi_config_hash="b36cfb81b16abf7d07253d378c9bf942" id="b541bd57-0e0f-4154-b4c0-5858010a2bf7" chipset="bdw" name="RenderBasic" />
+    <guid config_hash="9c4955c220cbcc5f9ff3ce6e7af64cf5" mdapi_config_hash="7f7918e87f574f62cc4e8d37f660abc5" id="b541bd57-0e0f-4154-b4c0-5858010a2bf7" chipset="bdw" name="RenderBasic" />
     <guid config_hash="35d980685774e3631a7e5eb4d23a0013" mdapi_config_hash="d077cbe576b0658766c6c3f62506675a" id="35fbc9b2-a891-40a6-a38d-022bb7057552" chipset="bdw" name="ComputeBasic" />
     <guid config_hash="d17b0801f998c4b119c63b0467e8f9b5" mdapi_config_hash="fbde7829568089b44b53a1eefbad9b0e" id="8fb61ba2-2fbb-454c-a136-2dec5a8a595e" chipset="bdw" name="ComputeExtra" />
     <guid config_hash="1bb1be4885c0568bf0d3bd5df9fe4a7a" mdapi_config_hash="f0c3b043834e63d21ba6be573df02e32" id="233d0544-fff7-4281-8291-e02f222aff72" chipset="bdw" name="RenderPipeProfile" />
