@@ -72,6 +72,7 @@
 #include "oa-kblgt3.h"
 #include "oa-glk.h"
 #include "oa-cflgt2.h"
+#include "oa-cflgt3.h"
 
 #include "util/bitscan.h"
 #include "util/macros.h"
@@ -1165,6 +1166,10 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	case 2:
 	    SET_NAMES(gputop_devinfo, "cflgt2", "Coffeelake GT2");
 	    gputop_oa_add_metrics_cflgt2(&gputop_devinfo, register_metric_set, NULL);
+	    break;
+	case 3:
+	    SET_NAMES(gputop_devinfo, "cflgt3", "Coffeelake GT3");
+	    gputop_oa_add_metrics_cflgt3(&gputop_devinfo, register_metric_set, NULL);
 	    break;
 	default:
 	    fprintf(stderr, "Unsupported GT%u Coffeelake System\n", devinfo->gt);
