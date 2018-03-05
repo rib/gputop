@@ -94,7 +94,7 @@
     <guid config_hash="776a8b405917592c350129d5439b1b19" mdapi_config_hash="7ba928f7a615dc95fe9892392af1f8ce" id="e0ad5ae0-84ba-4f29-a723-1906c12cb774" chipset="sklgt2" name="RenderPipeProfile" />
     <guid config_hash="81fdc0d33b0715dfcf39a0cedfb28f88" mdapi_config_hash="0c79e803151d17c01e3bcfe10db937aa" id="9bc436dd-6130-4add-affc-283eb6eaa864" chipset="sklgt2" name="MemoryReads" />
     <guid config_hash="85264172baf4d47241a36fdb6fcb6e31" mdapi_config_hash="b49f45a76675dcd1f25eef80b38b6d89" id="a4119b33-b633-44e8-b0e5-07c811d58adc" chipset="sklgt2" name="MemoryWrites" />
-    <guid config_hash="a5ce56366c45b3243647f7449ad7a3f1" mdapi_config_hash="e950d6693c60637f5456fad6c27dc1fe" id="d97d16af-028b-4cd1-a672-6210cb5513dd" chipset="sklgt2" name="ComputeExtended" />
+    <guid config_hash="a5ce56366c45b3243647f7449ad7a3f1" mdapi_config_hash="d574be28aa605c132a1b57868092c2e7" id="d97d16af-028b-4cd1-a672-6210cb5513dd" chipset="sklgt2" name="ComputeExtended" />
     <guid config_hash="a142f4714f9189816e129d2bf7ddd060" mdapi_config_hash="cdf98d85d93792dc203d2bfd7ae7559c" id="9fb22842-e708-43f7-9752-e0e41670c39e" chipset="sklgt2" name="ComputeL3Cache" />
     <guid config_hash="3a7a43a681bf42d502f3315e2bc6f0d5" mdapi_config_hash="a70cc632725191096cec1d685119aeb6" id="5378e2a1-4248-4188-a4ae-da25a794c603" chipset="sklgt2" name="HDCAndSF" />
     <guid config_hash="5e5436de0305e00f093c1eccc24b05e7" mdapi_config_hash="6b111ab20f6929a385eee8d283768ac1" id="f42cdd6a-b000-42cb-870f-5eb423a7f514" chipset="sklgt2" name="L3_1" />
