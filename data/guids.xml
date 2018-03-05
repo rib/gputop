@@ -30,7 +30,7 @@
     <guid config_hash="1bb1be4885c0568bf0d3bd5df9fe4a7a" mdapi_config_hash="f0c3b043834e63d21ba6be573df02e32" id="233d0544-fff7-4281-8291-e02f222aff72" chipset="bdw" name="RenderPipeProfile" />
     <guid config_hash="9147786065e1562d254a1dc82c14b4f9" mdapi_config_hash="fa121c59e98aa4f860c797bfab097cd7" id="2b255d48-2117-4fef-a8f7-f151e1d25a2c" chipset="bdw" name="MemoryReads" />
     <guid config_hash="13cadf5e130b16bf6cf777e34ff54fcf" mdapi_config_hash="7e324f6f7cb980832735ada1e12f7905" id="f7fd3220-b466-4a4d-9f98-b0caf3f2394c" chipset="bdw" name="MemoryWrites" />
-    <guid config_hash="552b53f8d91428cec6eab6bff62ae8af" mdapi_config_hash="9225e0e043e9ee5d8ff56783022ebb66" id="e99ccaca-821c-4df9-97a7-96bdb7204e43" chipset="bdw" name="ComputeExtended" />
+    <guid config_hash="552b53f8d91428cec6eab6bff62ae8af" mdapi_config_hash="6ba093cf3feb68f521e579169ad689cf" id="e99ccaca-821c-4df9-97a7-96bdb7204e43" chipset="bdw" name="ComputeExtended" />
     <guid config_hash="2cf68f22eadf4cb430a7e2a76fab3632" mdapi_config_hash="e9913c0dd30d6ccab98c5dec58dc7162" id="27a364dc-8225-4ecb-b607-d6f1925598d9" chipset="bdw" name="ComputeL3Cache" />
     <guid config_hash="15d5387219cda641a8964b9edeb86b6d" mdapi_config_hash="875df3ca90886c816466082fe9483699" id="857fc630-2f09-4804-85f1-084adfadd5ab" chipset="bdw" name="DataPortReadsCoalescing" />
     <guid config_hash="95a2d953682c60ee0213c41892067b94" mdapi_config_hash="c4a46f51a3176be03a1116eac0904840" id="343ebc99-4a55-414c-8c17-d8e259cf5e20" chipset="bdw" name="DataPortWritesCoalescing" />
