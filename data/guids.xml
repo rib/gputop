@@ -12,7 +12,7 @@
 -->
 <guids>
     <guid config_hash="b4ec215886bd476fc81d54e4b03b52d5" mdapi_config_hash="c675607e7d1b0083729e4b1621fd25f8" id="403d8832-1a27-4aa6-a64e-f5389ce7b212" chipset="hsw" name="RenderBasic" />
-    <guid config_hash="367987b78e202999ca9332deb2e543f7" mdapi_config_hash="9cb14681b5bfabf5ed9032a8e04ba44c" id="39ad14bc-2380-45c4-91eb-fbcb3aa7ae7b" chipset="hsw" name="ComputeBasic" />
+    <guid config_hash="76e0dbd1cdb3958cf5707c69d29cdb08" mdapi_config_hash="09199618ca154304fd42ca5ee19187f4" id="39ad14bc-2380-45c4-91eb-fbcb3aa7ae7b" chipset="hsw" name="ComputeBasic" />
     <guid config_hash="ebf0f8f002be247ea0342061478b0e98" mdapi_config_hash="77524b565825e61259436f526848c1e1" id="3865be28-6982-49fe-9494-e4d1b4795413" chipset="hsw" name="ComputeExtended" />
     <guid config_hash="d6dbe12cb1e2f8ac7548d3bdc1e245d6" mdapi_config_hash="28d4ec8839e660bac90c3fbfa815ce45" id="bb5ed49b-2497-4095-94f6-26ba294db88a" chipset="hsw" name="MemoryReads" />
     <guid config_hash="cb56c7adf3ba86555a8541f730b0ca75" mdapi_config_hash="6a8cbc42da4822a17d3de385d6811c1a" id="3358d639-9b5f-45ab-976d-9b08cbfc6240" chipset="hsw" name="MemoryWrites" />

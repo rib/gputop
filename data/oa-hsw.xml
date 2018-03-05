@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1490233727" merge_md5="">
+<metrics version="1520266058" merge_md5="">
   <set name="Render Metrics Basic Gen7.5"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -1733,7 +1733,6 @@
         <register type="OA" address="0x00002754" value="0x00000000" /> <!--OAREPORTTRIG6 -->
         <register type="OA" address="0x00002758" value="0x00000000" /> <!--OAREPORTTRIG7 -->
         <register type="OA" address="0x0000275C" value="0x00000000" /> <!--OAREPORTTRIG8 -->
-        <register type="OA" address="0x0000236C" value="0x00000000" />
     </register_config>
   </set>
 
