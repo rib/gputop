@@ -55,10 +55,12 @@ struct gen_device_info
 
    bool has_hiz_and_separate_stencil;
    bool must_use_separate_stencil;
-
+   bool has_sample_with_hiz;
    bool has_llc;
 
    bool has_pln;
+   bool has_64bit_types;
+   bool has_integer_dword_mul;
    bool has_compr4;
    bool has_surface_tile_offset;
    bool supports_simd16_3src;
@@ -199,6 +201,8 @@ struct gen_device_info
 #define gen_device_info_is_9lp(devinfo) \
    ((devinfo)->is_broxton || (devinfo)->is_geminilake)
 
+int gen_get_pci_device_id_override(void);
+int gen_device_name_to_pci_device_id(const char *name);
 bool gen_get_device_info(int devid, struct gen_device_info *devinfo);
 const char *gen_get_device_name(int devid);
 

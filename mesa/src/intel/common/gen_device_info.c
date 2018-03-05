@@ -24,9 +24,68 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "gen_device_info.h"
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
+
+/**
+ * Get the PCI ID for the device name.
+ *
+ * Returns -1 if the device is not known.
+ */
+int
+gen_device_name_to_pci_device_id(const char *name)
+{
+   static const struct {
+      const char *name;
+      int pci_id;
+   } name_map[] = {
+      { "brw", 0x2a02 },
+      { "g4x", 0x2a42 },
+      { "ilk", 0x0042 },
+      { "snb", 0x0126 },
+      { "ivb", 0x016a },
+      { "hsw", 0x0d2e },
+      { "byt", 0x0f33 },
+      { "bdw", 0x162e },
+      { "chv", 0x22B3 },
+      { "skl", 0x1912 },
+      { "bxt", 0x5A85 },
+      { "kbl", 0x5912 },
+      { "glk", 0x3185 },
+      { "cnl", 0x5a52 },
+      { "icl", 0x8a52 },
+   };
+
+   for (unsigned i = 0; i < ARRAY_SIZE(name_map); i++) {
+      if (!strcmp(name_map[i].name, name))
+         return name_map[i].pci_id;
+   }
+
+   return -1;
+}
+
+/**
+ * Get the overridden PCI ID for the device. This is set with the
+ * INTEL_DEVID_OVERRIDE environment variable.
+ *
+ * Returns -1 if the override is not set.
+ */
+int
+gen_get_pci_device_id_override(void)
+{
+   if (geteuid() == getuid()) {
+      const char *devid_override = getenv("INTEL_DEVID_OVERRIDE");
+      if (devid_override) {
+         const int id = gen_device_name_to_pci_device_id(devid_override);
+         return id >= 0 ? id : strtol(devid_override, NULL, 0);
+      }
+   }
+
+   return -1;
+}
 
 static const struct gen_device_info gen_device_info_i965 = {
    .gen = 4,
@@ -138,6 +197,7 @@ static const struct gen_device_info gen_device_info_snb_gt2 = {
    .must_use_separate_stencil = true,               \
    .has_llc = true,                                 \
    .has_pln = true,                                 \
+   .has_64bit_types = true,                         \
    .has_surface_tile_offset = true,                 \
    .timestamp_frequency = 12500000
 
@@ -311,13 +371,19 @@ static const struct gen_device_info gen_device_info_hsw_gt3 = {
    },
 };
 
+/* It's unclear how well supported sampling from the hiz buffer is on GEN8,
+ * so keep things conservative for now and set has_sample_with_hiz = false.
+ */
 #define GEN8_FEATURES                               \
    .gen = 8,                                        \
    .has_hiz_and_separate_stencil = true,            \
    .has_resource_streamer = true,                   \
    .must_use_separate_stencil = true,               \
    .has_llc = true,                                 \
+   .has_sample_with_hiz = false,                    \
    .has_pln = true,                                 \
+   .has_integer_dword_mul = true,                   \
+   .has_64bit_types = true,                         \
    .supports_simd16_3src = true,                    \
    .has_surface_tile_offset = true,                 \
    .max_vs_threads = 504,                           \
@@ -399,6 +465,7 @@ static const struct gen_device_info gen_device_info_bdw_gt3 = {
 static const struct gen_device_info gen_device_info_chv = {
    GEN8_FEATURES, .is_cherryview = 1, .gt = 1,
    .has_llc = false,
+   .has_integer_dword_mul = false,
    .num_slices = 1,
    .num_subslices = { 2, },
    .num_thread_per_eu = 7,
@@ -449,8 +516,10 @@ static const struct gen_device_info gen_device_info_chv = {
 #define GEN9_LP_FEATURES                           \
    GEN8_FEATURES,                                  \
    GEN9_HW_INFO,                                   \
+   .has_integer_dword_mul = false,                 \
    .gt = 1,                                        \
    .has_llc = false,                               \
+   .has_sample_with_hiz = true,                    \
    .num_slices = 1,                                \
    .num_thread_per_eu = 6,                         \
    .max_vs_threads = 112,                          \
@@ -502,6 +571,7 @@ static const struct gen_device_info gen_device_info_chv = {
 #define GEN9_FEATURES                               \
    GEN8_FEATURES,                                   \
    GEN9_HW_INFO,                                    \
+   .has_sample_with_hiz = true,                     \
    .num_thread_per_eu = 7
 
 static const struct gen_device_info gen_device_info_skl_gt1 = {
@@ -695,6 +765,7 @@ static const struct gen_device_info gen_device_info_cfl_gt3 = {
 #define GEN10_FEATURES(_gt, _slices, _subslices, _l3) \
    GEN8_FEATURES,                                   \
    GEN10_HW_INFO,                                   \
+   .has_sample_with_hiz = true,                     \
    .gt = _gt,                                       \
    .num_slices = _slices,                           \
    .num_subslices = _subslices,                     \
@@ -724,6 +795,52 @@ static const struct gen_device_info gen_device_info_cnl_5x8 = {
    .is_cannonlake = true,
 };
 
+#define GEN11_HW_INFO                               \
+   .gen = 11,                                       \
+   .has_pln = false,                                \
+   .max_vs_threads = 364,                           \
+   .max_gs_threads = 224,                           \
+   .max_tcs_threads = 224,                          \
+   .max_tes_threads = 364,                          \
+   .max_cs_threads = 56,                            \
+   .urb = {                                         \
+      .size = 1024,                                 \
+      .min_entries = {                              \
+         [MESA_SHADER_VERTEX]    = 64,              \
+         [MESA_SHADER_TESS_EVAL] = 34,              \
+      },                                            \
+      .max_entries = {                              \
+         [MESA_SHADER_VERTEX]    = 2384,            \
+         [MESA_SHADER_TESS_CTRL] = 1032,            \
+         [MESA_SHADER_TESS_EVAL] = 2384,            \
+         [MESA_SHADER_GEOMETRY]  = 1032,            \
+      },                                            \
+   }
+
+#define GEN11_FEATURES(_gt, _slices, _subslices, _l3) \
+   GEN8_FEATURES,                                     \
+   GEN11_HW_INFO,                                     \
+   .has_64bit_types = false,                          \
+   .has_integer_dword_mul = false,                    \
+   .gt = _gt, .num_slices = _slices, .l3_banks = _l3, \
+   .num_subslices = _subslices
+
+static const struct gen_device_info gen_device_info_icl_8x8 = {
+   GEN11_FEATURES(2, 1, subslices(8), 8),
+};
+
+static const struct gen_device_info gen_device_info_icl_6x8 = {
+   GEN11_FEATURES(1, 1, subslices(6), 6),
+};
+
+static const struct gen_device_info gen_device_info_icl_4x8 = {
+   GEN11_FEATURES(1, 1, subslices(4), 6),
+};
+
+static const struct gen_device_info gen_device_info_icl_1x8 = {
+   GEN11_FEATURES(1, 1, subslices(1), 6),
+};
+
 bool
 gen_get_device_info(int devid, struct gen_device_info *devinfo)
 {
@@ -750,10 +867,21 @@ gen_get_device_info(int devid, struct gen_device_info *devinfo)
     * Extra padding can be necessary depending how the thread IDs are
     * calculated for a particular shader stage.
     */
-   if (devinfo->gen >= 9) {
+
+   switch(devinfo->gen) {
+   case 9:
+   case 10:
       devinfo->max_wm_threads = 64 /* threads-per-PSD */
                               * devinfo->num_slices
                               * 4; /* effective subslices per slice */
+      break;
+   case 11:
+      devinfo->max_wm_threads = 128 /* threads-per-PSD */
+                              * devinfo->num_slices
+                              * 8; /* subslices per slice */
+      break;
+   default:
+      break;
    }
 
    assert(devinfo->num_slices <= ARRAY_SIZE(devinfo->num_subslices));
