@@ -91,7 +91,7 @@
     <guid config_hash="3a73d9a9c8f036d682bf122853c0ae55" mdapi_config_hash="f5d545c95f680a2d5f9fcaa9990073da" id="f519e481-24d2-4d42-87c9-3fdd12c00202" chipset="sklgt2" name="RenderBasic" />
     <guid config_hash="c138c5d7ba8a8178f2600d948b96e7de" mdapi_config_hash="8be7d4eef7083fc521964e6ec62c6d31" id="9ae1360b-8036-4af0-943a-27460801d981" chipset="sklgt2" name="ComputeBasic" />
     <guid mdapi_config_hash="22557d63c9563faec22f233578a0c289" id="ef669f42-cb31-432a-9919-f0a571d580e7" chipset="sklgt2" name="RenderDX1x" />
-    <guid config_hash="776a8b405917592c350129d5439b1b19" mdapi_config_hash="bd7ed7902be253547cdfad39a633b6c3" id="e0ad5ae0-84ba-4f29-a723-1906c12cb774" chipset="sklgt2" name="RenderPipeProfile" />
+    <guid config_hash="776a8b405917592c350129d5439b1b19" mdapi_config_hash="7ba928f7a615dc95fe9892392af1f8ce" id="e0ad5ae0-84ba-4f29-a723-1906c12cb774" chipset="sklgt2" name="RenderPipeProfile" />
     <guid config_hash="81fdc0d33b0715dfcf39a0cedfb28f88" mdapi_config_hash="f5899353bbde094beba9ba721e38a12e" id="9bc436dd-6130-4add-affc-283eb6eaa864" chipset="sklgt2" name="MemoryReads" />
     <guid config_hash="ac1986dd017d52c276cec20ce1564454" mdapi_config_hash="10c19e5b5c80941d6bb10e26e471c8b7" id="2ea0da8f-3527-4669-9d9d-13099a7435bf" chipset="sklgt2" name="MemoryWrites" />
     <guid config_hash="a5ce56366c45b3243647f7449ad7a3f1" mdapi_config_hash="e950d6693c60637f5456fad6c27dc1fe" id="d97d16af-028b-4cd1-a672-6210cb5513dd" chipset="sklgt2" name="ComputeExtended" />
