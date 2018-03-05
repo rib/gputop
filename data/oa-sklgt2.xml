@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1520268607" merge_md5="">
+<metrics version="1520268929" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -818,7 +818,7 @@
   <set name="Compute Metrics Basic Gen9"
        mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_basic"
-       hw_config_guid="fe47b29d-ae51-423e-bff4-27d965a95b60"
+       hw_config_guid="9ae1360b-8036-4af0-943a-27460801d981"
        chipset="SKLGT2"
        symbol_name="ComputeBasic"
        >
@@ -1513,12 +1513,6 @@
         <register type="NOA" address="0x00009888" value="0x43900842" />
         <register type="NOA" address="0x00009888" value="0x53901111" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
-    </register_config>
-    <register_config type="NOA"
-                     availability="$SliceMask 0x02 AND $SkuRevisionId 0x02 ULT &amp;&amp;"
-                     priority="2"
-                     >
-        <register type="NOA" address="0x00009840" value="0x00000000" />
     </register_config>
     <register_config type="OA">
         <register type="OA" address="0x00002710" value="0x00000000" />
