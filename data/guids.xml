@@ -108,6 +108,7 @@
     <guid config_hash="784698b7fb41dad7bc4bf13fac46657b" mdapi_config_hash="2fe32bdaf82fc66774ee95c33a23ea88" id="95910492-943f-44bd-9461-390240f243fd" chipset="sklgt2" name="VMEPipe" />
     <guid config_hash="d2e36c07c43f128370fe1112d4de1181" mdapi_config_hash="d569893983ce055b9021b64420894431" id="1651949f-0ac0-4cb1-a06f-dafd74a407d1" chipset="sklgt2" name="TestOa" />
     <guid config_hash="ee7996e47cdaf7722422397285763cdc" mdapi_config_hash="ada812fc71ebbabd1e746dbab67881b1" id="c44a5cf7-886d-477b-bebd-2d738923e4c3" chipset="sklgt2" name="GpuBusyness" />
+    <guid config_hash="cec6202194db96d6a09fed71808bb7de" mdapi_config_hash="df4b9b85ed61f457a0b71b03299b282d" id="e0b2aae4-9b8f-4211-8df0-f8e8cb203209" chipset="sklgt2" name="FfBottlenecks" />
     <guid config_hash="e29c38f09173d32947515081c2cc6421" mdapi_config_hash="59a53a0ed9ec1079e5a4160189aa2c78" id="4616d450-2393-4836-8146-53c5ed84d359" chipset="sklgt3" name="RenderBasic" />
     <guid config_hash="ede53df6549f788495f7fca90475b6dd" mdapi_config_hash="87390c127ce809c3cfab64388ddebd14" id="4320492b-fd03-42ac-922f-dbe1ef3b7b58" chipset="sklgt3" name="ComputeBasic" />
     <guid config_hash="0f8eee02ed3e457362ffdc38ed10036c" mdapi_config_hash="2d95f03caa28b40e2a25f3bc8ac38b55" id="bd2d9cae-b9ec-4f5b-9d2f-934bed398a2d" chipset="sklgt3" name="RenderPipeProfile" />
