@@ -193,6 +193,14 @@ chipsets = {
                 0x2364, # OACTXID
                 },
             },
+         'ICL': {
+            'a_offset': 16,
+            'b_offset': 192,
+            'c_offset': 224,
+            'config_reg_blacklist': {
+                0x2364, # OACTXID
+                },
+            },
         }
 
 register_types = { 'OA', 'NOA', 'FLEX', 'PM' }
