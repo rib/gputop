@@ -33,7 +33,7 @@
     <guid config_hash="552b53f8d91428cec6eab6bff62ae8af" mdapi_config_hash="6ba093cf3feb68f521e579169ad689cf" id="e99ccaca-821c-4df9-97a7-96bdb7204e43" chipset="bdw" name="ComputeExtended" />
     <guid config_hash="2cf68f22eadf4cb430a7e2a76fab3632" mdapi_config_hash="e9913c0dd30d6ccab98c5dec58dc7162" id="27a364dc-8225-4ecb-b607-d6f1925598d9" chipset="bdw" name="ComputeL3Cache" />
     <guid config_hash="15d5387219cda641a8964b9edeb86b6d" mdapi_config_hash="fc357f19e2a77465c3232693f3bb1444" id="857fc630-2f09-4804-85f1-084adfadd5ab" chipset="bdw" name="DataPortReadsCoalescing" />
-    <guid config_hash="95a2d953682c60ee0213c41892067b94" mdapi_config_hash="c4a46f51a3176be03a1116eac0904840" id="343ebc99-4a55-414c-8c17-d8e259cf5e20" chipset="bdw" name="DataPortWritesCoalescing" />
+    <guid config_hash="95a2d953682c60ee0213c41892067b94" mdapi_config_hash="be3980a5f0e6057e641b884fc56b07ff" id="343ebc99-4a55-414c-8c17-d8e259cf5e20" chipset="bdw" name="DataPortWritesCoalescing" />
     <guid config_hash="9004a46b9728e0f12232ce8b151d3224" mdapi_config_hash="715fe2c431914b6b369970c0b897f7e2" id="e1743ca0-7fc8-410b-a066-de7bbb9280b7" chipset="bdw" name="VMEPipe" />
     <guid config_hash="433e1f183b034dd7a71b34a41369ffdc" mdapi_config_hash="f94fd6ba5bfa83bb965705f1c69f1d37" id="7bdafd88-a4fa-4ed5-bc09-1a977aa5be3e" chipset="bdw" name="HDCAndSF" />
     <guid config_hash="ad8796621d31ab4c4509a2f4051dec13" mdapi_config_hash="a5589479b360f6d4f5c8f70fe78b0e1d" id="9385ebb2-f34f-4aa5-aec5-7e9cbbea0f0b" chipset="bdw" name="L3_1" />
