@@ -40,7 +40,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends --no-install
     psmisc \
     unzip && \
     apt-get clean
-RUN pip3 install meson
+RUN pip3 install meson==0.44.0
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G sudo -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
 
