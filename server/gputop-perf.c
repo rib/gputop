@@ -1693,7 +1693,7 @@ get_card_for_fd(int fd)
 
     if (fstat(fd, &sb)) {
 	gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to stat DRM fd\n", -1);
-	return false;
+	return -1;
     }
 
     mjr = major(sb.st_rdev);
