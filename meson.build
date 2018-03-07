@@ -43,5 +43,6 @@ if not build_webui
 
   subdir('server')
   subdir('wrapper')
+  subdir('utils')
 endif
 subdir('ui')
