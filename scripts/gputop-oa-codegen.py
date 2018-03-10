@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 #
-# Copyright (c) 2015 Intel Corporation
+# Copyright (c) 2015-2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -33,16 +33,15 @@ import pylibs.codegen as codegen
 h = None
 c = None
 
-max_funcs = {}
-read_funcs = {}
+hashed_funcs = {}
 xml_equations = None
 
-def check_operand_type(arg):
+def check_operand_type(set, arg):
     if arg.isdigit():
         return "\n<mn>" + arg + "</mn>"
     elif arg[0] == "$":
-        if arg in counter_vars:
-            description = counter_vars[arg].get('description')
+        if arg in set.counter_vars:
+            description = set.counter_vars[arg].get('description')
         elif arg in hw_vars and 'desc' in hw_vars[arg]:
             description = hw_vars[arg]['desc'];
         else:
@@ -65,72 +64,72 @@ default_precedence = 16 #a high value which denotes no brackets needed
 def put_brackets(arg):
     return "\n<mtext>(</mtext>" + arg + "\n<mtext>)</mtext>"
 
-def mathml_splice_add(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_add(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < add_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < add_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>+</mo>" + operand_0, add_precedence]
 
-def mathml_splice_div(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_div(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mfrac>\n<mrow>" + operand_1 + "\n</mrow>\n<mrow>" + operand_0 + "</mrow>\n</mfrac>", default_precedence]
 
-def mathml_splice_max(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_max(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mtext>max ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
 
-def mathml_splice_mul(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_mul(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < mul_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < mul_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>*</mo>" + operand_0, mul_precedence]
 
-def mathml_splice_sub(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_sub(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < sub_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < sub_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>-</mo>" + operand_0, sub_precedence]
 
-def mathml_splice_read(args):
+def mathml_splice_read(set, args):
     return ["\n<maction actiontype='tooltip'>\n<mi>" + args[1][0] + args[0][0] + "</mi>\n<mtext>placeholder</mtext>\n</maction>", default_precedence]
 
-def mathml_splice_min(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_min(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mtext>min ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
 
-def mathml_splice_lshft(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_lshft(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < shft_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < shft_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>&lt;&lt;</mo>" + operand_0, shft_precedence]
 
-def mathml_splice_rshft(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_rshft(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < mul_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < mul_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>&gt;&gt;</mo>" + operand_0, mul_precedence]
 
-def mathml_splice_and(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_and(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < and_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < and_precedence:
@@ -258,15 +257,13 @@ hw_vars = {
         "$SkuRevisionId": { 'c': "devinfo->revision" },
 }
 
-counter_vars = {}
-
-def splice_mathml_expression(equation, tag):
+def splice_mathml_expression(set, equation, tag):
     tokens = equation.split()
     mathml_stack = []
     tmp_xml_operand = ""
     for token in tokens:
         if not mathml_stack:
-            token = check_operand_type(token)
+            token = check_operand_type(set, token)
         mathml_stack.append([token, default_precedence])
         while mathml_stack and mathml_stack[-1][0] in ops:
             op = mathml_stack.pop()[0]
@@ -275,13 +272,13 @@ def splice_mathml_expression(equation, tag):
             for i in range(0, argc):
                 xml_operand = mathml_stack.pop()
                 xml_args.append(xml_operand)
-            tmp_xml_operand = mathml_callback(xml_args)
+            tmp_xml_operand = mathml_callback(set, xml_args)
             mathml_stack.append(tmp_xml_operand)
     xml_string = mathml_stack.pop()[0]
     equation_descr = "<mi>" + tag + "</mi><mo> = </mo>"
     return "<mathml_" + tag + ">" + equation_descr + xml_string + "</mathml_" + tag + ">"
 
-def output_rpn_equation_code(set, counter, equation, counter_vars):
+def output_rpn_equation_code(set, counter, equation):
     c("/* RPN equation: " + equation + " */")
     tokens = equation.split()
     stack = []
@@ -299,11 +296,11 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
                 if operand[0] == "$":
                     if operand in hw_vars:
                         operand = hw_vars[operand]['c']
-                    elif operand in counter_vars:
-                        reference = counter_vars[operand]
-                        operand = read_funcs[operand[1:]] + "(devinfo, metric_set, accumulator)"
+                    elif operand in set.counter_vars:
+                        reference = set.counter_vars[operand]
+                        operand = set.read_funcs[operand[1:]] + "(devinfo, metric_set, accumulator)"
                     else:
-                        raise Exception("Failed to resolve variable " + operand + " in equation " + equation + " for " + set.get('name') + " :: " + counter.get('name'));
+                        raise Exception("Failed to resolve variable " + operand + " in equation " + equation + " for " + set.name + " :: " + counter.get('name'));
                 args.append(operand)
 
             tmp_id = callback(tmp_id, args)
@@ -312,7 +309,7 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
             stack.append(tmp)
 
     if len(stack) != 1:
-        raise Exception("Spurious empty rpn code for " + set.get('name') + " :: " +
+        raise Exception("Spurious empty rpn code for " + set.name + " :: " +
                 counter.get('name') + ".\nThis is probably due to some unhandled RPN function, in the equation \"" +
                 equation + "\"")
 
@@ -320,8 +317,8 @@ def output_rpn_equation_code(set, counter, equation, counter_vars):
 
     if value in hw_vars:
         value = hw_vars[value]['c']
-    if value in counter_vars:
-        value = read_funcs[value[1:]] + "(devinfo, metric_set, accumulator)"
+    if value in set.counter_vars:
+        value = set.read_funcs[value[1:]] + "(devinfo, metric_set, accumulator)"
 
     c("\nreturn " + value + ";")
 
@@ -341,7 +338,7 @@ def splice_rpn_expression(set, counter_name, expression):
                     if operand in hw_vars:
                         operand = hw_vars[operand]['c']
                     else:
-                        raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.get('name') + " :: " + counter_name)
+                        raise Exception("Failed to resolve variable " + operand + " in expression " + expression + " for " + set.name + " :: " + counter_name)
                 args.append(operand)
 
             subexp = callback(args)
@@ -349,7 +346,7 @@ def splice_rpn_expression(set, counter_name, expression):
             stack.append(subexp)
 
     if len(stack) != 1:
-        raise Exception("Spurious empty rpn expression for " + set.get('name') + " :: " +
+        raise Exception("Spurious empty rpn expression for " + set.name + " :: " +
                 counter_name + ".\nThis is probably due to some unhandled RPN operation, in the expression \"" +
                 expression + "\"")
 
@@ -365,62 +362,73 @@ def data_type_to_ctype(ret_type):
         raise Exception("Unhandled case for mapping \"" + ret_type + "\" to a C type")
 
 
-def output_counter_read(set, counter, counter_vars):
+def output_counter_read(gen, set, counter):
     c("\n")
-    c("/* {0} :: {1} */".format(set.get('name'), counter.get('name')))
-    ret_type = counter.get('data_type')
-    ret_ctype = data_type_to_ctype(ret_type)
+    c("/* {0} :: {1} */".format(set.name, counter.get('name')))
 
-    c("static " + ret_ctype)
-    read_sym = "{0}__{1}__{2}__read".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
-    c(read_sym + "(const struct gputop_devinfo *devinfo,\n")
-    c.indent(len(read_sym) + 1)
-    c("const struct gputop_metric_set *metric_set,\n")
-    c("uint64_t *accumulator)\n")
-    c.outdent(len(read_sym) + 1)
+    if counter.read_hash in hashed_funcs:
+        c("#define %s \\" % counter.read_sym)
+        c.indent(4)
+        c("%s" % hashed_funcs[counter.read_hash])
+        c.outdent(4)
+    else:
+        ret_type = counter.get('data_type')
+        ret_ctype = data_type_to_ctype(ret_type)
+        read_eq = counter.get('equation')
 
-    c("{")
-    c.indent(3)
+        c("static " + ret_ctype)
+        c(counter.read_sym + "(const struct gputop_devinfo *devinfo,\n")
+        c.indent(len(counter.read_sym) + 1)
+        c("const struct gputop_metric_set *metric_set,\n")
+        c("uint64_t *accumulator)\n")
+        c.outdent(len(counter.read_sym) + 1)
 
-    output_rpn_equation_code(set, counter, counter.get('equation'), counter_vars)
+        c("{")
+        c.indent(4)
 
-    c.outdent(3)
-    c("}")
+        output_rpn_equation_code(set, counter, read_eq)
 
-    return read_sym
+        c.outdent(4)
+        c("}")
+
+        hashed_funcs[counter.read_hash] = counter.read_sym
 
 
-def output_counter_max(set, counter, counter_vars):
+def output_counter_max(gen, set, counter):
     max_eq = counter.get('max_equation')
 
-    if not max_eq:
-        return "NULL; /* undefined */"
-
-    ret_type = counter.get('data_type')
-    ret_ctype = data_type_to_ctype(ret_type)
-
-    if max_eq == "100":
-        return "percentage_max_callback_" + ret_type + ";"
+    if not max_eq or max_eq == "100":
+        return
 
     c("\n")
-    c("/* {0} :: {1} */".format(set.get('name'), counter.get('name')))
-    c("static " + ret_ctype)
-    max_sym = "{0}__{1}__{2}__max".format(set.get('chipset').lower(), set.get('underscore_name'), counter.get('underscore_name'))
-    c(max_sym + "(const struct gputop_devinfo *devinfo,\n")
-    c.indent(len(max_sym) + 1)
-    c("const struct gputop_metric_set *metric_set,\n")
-    c("uint64_t *accumulator)\n")
-    c.outdent(len(max_sym) + 1)
+    c("/* {0} :: {1} */".format(set.name, counter.get('name')))
 
-    c("{")
-    c.indent(3)
+    if counter.max_hash in hashed_funcs:
+        c("#define %s \\" % counter.max_sym)
+        c.indent(4)
+        c("%s" % hashed_funcs[counter.max_hash])
+        c.outdent(4)
+    else:
+        ret_type = counter.get('data_type')
+        ret_ctype = data_type_to_ctype(ret_type)
 
-    output_rpn_equation_code(set, counter, max_eq, counter_vars)
+        c("static " + ret_ctype)
 
-    c.outdent(3)
-    c("}")
+        c(counter.max_sym + "(const struct gputop_devinfo *devinfo,\n")
+        c.indent(len(counter.max_sym) + 1)
+        c("const struct gputop_metric_set *metric_set,\n")
+        c("uint64_t *accumulator)\n")
+        c.outdent(len(counter.max_sym) + 1)
 
-    return max_sym + ";"
+        c("{")
+        c.indent(4)
+
+        output_rpn_equation_code(set, counter, max_eq)
+
+        c.outdent(4)
+        c("}")
+
+        hashed_funcs[counter.max_hash] = counter.max_sym
 
 
 semantic_type_map = {
@@ -442,8 +450,10 @@ def output_availability(set, availability, counter_name):
         c(lines[(n_lines - 1)] + ") {")
         c.outdent(4)
 
+
 def output_units(unit):
     return unit.replace(' ', '_').upper()
+
 
 def output_counter_report(set, counter):
     data_type = counter.get('data_type')
@@ -468,18 +478,19 @@ def output_counter_report(set, counter):
 
     c("counter = &metric_set->counters[metric_set->n_counters++];\n")
     c("counter->metric_set = metric_set;\n")
-    c("counter->oa_counter_read_" + data_type + " = " + read_funcs[counter.get('symbol_name')] + ";\n")
+    c("counter->oa_counter_read_" + data_type + " = " + set.read_funcs[counter.get('symbol_name')] + ";\n")
     c("counter->name = \"" + counter.get('name') + "\";\n")
     c("counter->symbol_name = \"" + counter.get('symbol_name') + "\";\n")
     c("counter->desc = \"" + counter.get('description') + "\";\n")
     c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
     c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
     c("counter->units = GPUTOP_PERFQUERY_COUNTER_UNITS_" + output_units(counter.get('units')) + ";\n")
-    c("counter->max_" + data_type + " = " + max_funcs[counter.get('symbol_name')] + "\n")
+    c("counter->max_" + data_type + " = " + set.max_funcs[counter.get('symbol_name')] + ";\n")
 
     if availability:
         c.outdent(4)
         c("}\n")
+
 
 def generate_register_configs(set):
     register_types = {
@@ -511,49 +522,154 @@ def generate_register_configs(set):
         availability = register_config.get('availability')
         if availability:
             output_availability(set, availability, register_config.get('type') + ' register config')
-            c.indent(3)
+            c.indent(4)
 
         for register in register_config.findall('register'):
             c("metric_set->%s[metric_set->n_%s++] = (struct gputop_register_prog) { .reg = %s, .val = %s };" %
               (t, t, register.get('address'), register.get('value')))
 
         if availability:
-            c.outdent(3)
+            c.outdent(4)
             c("}")
         c("\n")
+
+#
+
+class Counter:
+    def __init__(self, set, xml):
+        self.xml = xml
+        self.set = set
+        self.read_hash = None
+        self.max_hash = None
+
+        self.read_sym = "{0}__{1}__{2}__read".format(self.set.gen.chipset,
+                                                     self.set.underscore_name,
+                                                     self.xml.get('underscore_name'))
+
+        max_eq = self.xml.get('max_equation')
+        if not max_eq:
+            self.max_sym = "NULL /* undefined */"
+        elif max_eq == "100":
+            self.max_sym = "percentage_max_callback_" + self.xml.get('data_type')
+        else:
+            self.max_sym = "{0}__{1}__{2}__max".format(self.set.gen.chipset,
+                                                       self.set.underscore_name,
+                                                       self.xml.get('underscore_name'))
+
+    def get(self, prop):
+        return self.xml.get(prop)
+
+    def compute_hashes(self):
+        if self.read_hash is not None:
+            return
+
+        def replace_func(token):
+            if token[0] != "$":
+                return token
+            if token not in self.set.counter_vars:
+                return token
+            self.set.counter_vars[token].compute_hashes()
+            return self.set.counter_vars[token].read_hash
+
+        read_eq = self.xml.get('equation')
+        self.read_hash = ' '.join(map(replace_func, read_eq.split()))
+
+        max_eq = self.xml.get('max_equation')
+        if max_eq:
+            self.max_hash = ' '.join(map(replace_func, max_eq.split()))
+
+
+class Set:
+    def __init__(self, gen, xml):
+        self.gen = gen
+        self.xml = xml
+
+        self.counter_vars = {}
+        self.max_funcs = {}
+        self.read_funcs = {}
+        self.counter_hashes = {}
+
+        self.counters = []
+        xml_counters = self.xml.findall("counter")
+        for xml_counter in xml_counters:
+            counter = Counter(self, xml_counter)
+            self.counters.append(counter)
+            self.counter_vars["$" + counter.get('symbol_name')] = counter
+            self.max_funcs[counter.get('symbol_name')] = counter.max_sym
+            self.read_funcs[counter.get('symbol_name')] = counter.read_sym
+
+        for counter in self.counters:
+            counter.compute_hashes()
+
+
+    @property
+    def hw_config_guid(self):
+        return self.xml.get('hw_config_guid')
+
+    @property
+    def name(self):
+        return self.xml.get('name')
+
+    @property
+    def symbol_name(self):
+        return self.xml.get('symbol_name')
+
+    @property
+    def underscore_name(self):
+        return self.xml.get('underscore_name')
+
+    def findall(self, path):
+        return self.xml.findall(path)
+
+    def find(self, path):
+        return self.xml.find(path)
+
+
+class Gen:
+    def __init__(self, filename):
+        self.filename = filename
+        self.xml = et.parse(self.filename)
+        self.chipset = self.xml.find('.//set').get('chipset').lower()
+        self.sets = []
+
+        for xml_set in self.xml.findall(".//set"):
+            self.sets.append(Set(self, xml_set))
 
 
 def main():
     global c
     global h
-    global max_funcs
-    global read_funcs
     global xml_equations
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("xml", help="XML description of metrics")
     parser.add_argument("--header", help="Header file to write")
     parser.add_argument("--code", help="C file to write")
-    parser.add_argument("--chipset", help="Chipset to generate code for", required=True)
-    parser.add_argument("--xml-out", help="Output XML filename")
+    parser.add_argument("--xml-out", help="Output XML files (adding mathml equations)")
+    parser.add_argument("xml_files", nargs='+', help="List of xml metrics files to process")
 
     args = parser.parse_args()
-
-    chipset = args.chipset.lower()
 
     # Note: either arg may == None
     h = codegen.Codegen(args.header)
     c = codegen.Codegen(args.code)
 
-    tree = et.parse(args.xml)
+    gens = []
+    for xml_file in args.xml_files:
+        gens.append(Gen(xml_file))
+
     if args.xml_out:
-        open(args.xml_out, 'w')
+        for gen in gens:
+            for set in gen.sets:
+                for counter in set.counters:
+                    xml_equation = splice_mathml_expression(set, counter.get('equation'), "EQ")
+                    counter.append(et.fromstring(xml_equation))
+            gen.xml.write(gen.filename)
 
 
     copyright = textwrap.dedent("""\
         /* Autogenerated file, DO NOT EDIT manually! generated by {}
          *
-         * Copyright (c) 2015 Intel Corporation
+         * Copyright (c) 2018 Intel Corporation
          *
          * Permission is hereby granted, free of charge, to any person obtaining a
          * copy of this software and associated documentation files (the "Software"),
@@ -578,17 +694,6 @@ def main():
         """).format(os.path.basename(__file__))
 
     h(copyright)
-    h(textwrap.dedent("""\
-        #pragma once
-
-        #include "gputop-oa-metrics.h"
-
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
-
-        """))
-
     c(copyright)
     c(textwrap.dedent("""\
         #include <stddef.h>
@@ -598,7 +703,7 @@ def main():
 
         """))
 
-    c("#include \"oa-" + chipset + ".h\"")
+    c("#include \"" + os.path.basename(args.header) + "\"")
 
     c(textwrap.dedent("""\
         #include <stdlib.h>
@@ -637,83 +742,99 @@ def main():
 
         """))
 
-    for set in tree.findall(".//set"):
-        max_funcs = {}
-        read_funcs = {}
-        counter_vars = {}
-        counters = set.findall("counter")
-        register_configs = set.findall("register_config")
+    # Print out all equation functions.
+    for gen in gens:
+        for set in gen.sets:
+            for counter in set.counters:
+                output_counter_read(gen, set, counter)
+                output_counter_max(gen, set, counter)
 
-        assert set.get('chipset').lower() == chipset
+    # Print out all set registration functions for each set in each
+    # generation.
+    for gen in gens:
+        for set in gen.sets:
+            c("\nstatic void\n")
+            c(gen.chipset + "_add_" + set.underscore_name + "_metric_set(const struct gputop_devinfo *devinfo,\n" +
+              "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)\n")
+            c("{\n")
+            c.indent(4)
 
-        for counter in counters:
-            empty_vars = {}
-            read_funcs[counter.get('symbol_name')] = output_counter_read(set, counter, counter_vars)
-            max_funcs[counter.get('symbol_name')] = output_counter_max(set, counter, counter_vars)
-            counter_vars["$" + counter.get('symbol_name')] = counter
-            xml_equation = splice_mathml_expression(counter.get('equation'), "EQ")
-            counter.append(et.fromstring(xml_equation))
-            if counter.get('max_equation'):
-                xml_max_equation = splice_mathml_expression(counter.get('max_equation'), "MAX_EQ")
-                counter.append(et.fromstring(xml_max_equation))
+            c("struct gputop_metric_set *metric_set;\n")
+            c("struct gputop_metric_set_counter *counter;\n\n")
 
-        c("\nstatic void\n")
-        c("add_" + set.get('underscore_name') + "_metric_set(const struct gputop_devinfo *devinfo,\n" +
-          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)\n")
-        c("{\n")
-        c.indent(3)
+            counters = sorted(set.counters, key=lambda k: k.get('symbol_name'))
 
-        c("struct gputop_metric_set *metric_set;\n")
-        c("struct gputop_metric_set_counter *counter;\n\n")
+            c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
+            c("metric_set->name = \"" + set.name + "\";\n")
+            c("metric_set->symbol_name = \"" + set.symbol_name + "\";\n")
+            c("metric_set->hw_config_guid = \"" + set.hw_config_guid + "\";\n")
+            c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * {0});\n".format(str(len(counters))))
+            c("metric_set->n_counters = 0;\n")
+            c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
 
-        c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
-        c("metric_set->name = \"" + set.get('name') + "\";\n")
-        c("metric_set->symbol_name = \"" + set.get('symbol_name') + "\";\n")
-        c("metric_set->hw_config_guid = \"" + set.get('hw_config_guid') + "\";\n")
-        c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * " + str(len(counters)) + ");\n")
-        c("metric_set->n_counters = 0;\n")
-        c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
+            if gen.chipset == "hsw":
+                c(textwrap.dedent("""\
+                    metric_set->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
 
-        if chipset == "hsw":
-            c(textwrap.dedent("""\
-                metric_set->perf_oa_format = I915_OA_FORMAT_A45_B8_C8;
+                    metric_set->perf_raw_size = 256;
+                    metric_set->gpu_time_offset = 0;
+                    metric_set->a_offset = 1;
+                    metric_set->b_offset = metric_set->a_offset + 45;
+                    metric_set->c_offset = metric_set->b_offset + 8;
 
-                metric_set->perf_raw_size = 256;
-                metric_set->gpu_time_offset = 0;
-                metric_set->a_offset = 1;
-                metric_set->b_offset = metric_set->a_offset + 45;
-                metric_set->c_offset = metric_set->b_offset + 8;
+                    """))
+            else:
+                c(textwrap.dedent("""\
+                    metric_set->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
 
-                """))
-        else:
-            c(textwrap.dedent("""\
-                metric_set->perf_oa_format = I915_OA_FORMAT_A32u40_A4u32_B8_C8;
+                    metric_set->perf_raw_size = 256;
+                    metric_set->gpu_time_offset = 0;
+                    metric_set->gpu_clock_offset = 1;
+                    metric_set->a_offset = 2;
+                    metric_set->b_offset = metric_set->a_offset + 36;
+                    metric_set->c_offset = metric_set->b_offset + 8;
 
-                metric_set->perf_raw_size = 256;
-                metric_set->gpu_time_offset = 0;
-                metric_set->gpu_clock_offset = 1;
-                metric_set->a_offset = 2;
-                metric_set->b_offset = metric_set->a_offset + 36;
-                metric_set->c_offset = metric_set->b_offset + 8;
+                    """))
 
-                """))
+            generate_register_configs(set)
 
-        generate_register_configs(set)
+            for counter in counters:
+                output_counter_report(set, counter)
 
-        counters = sorted(counters, key=lambda k: k.get('symbol_name'))
-        for counter in counters:
-            output_counter_report(set, counter)
+            c("\nassert(metric_set->n_counters <= {0});\n".format(len(counters)));
 
-        c("\nregister_metric_set(metric_set, data);\n")
+            c("\nregister_metric_set(metric_set, data);\n")
 
-        c.outdent(3)
-        c("}\n")
+            c.outdent(4)
+            c("}\n")
 
-    if args.xml_out:
-        tree.write(args.xml_out)
+    h(textwrap.dedent("""\
+        #pragma once
 
-    h("void gputop_oa_add_metrics_" + chipset + "(const struct gputop_devinfo *devinfo,\n"
-      "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data);\n\n")
+        #include "gputop-oa-metrics.h"
+
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+
+        """))
+
+    # Print out all set registration functions for each generation.
+    for gen in gens:
+        h("void gputop_oa_add_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo,\n"
+          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data);\n\n")
+
+        c("\nvoid")
+        c("gputop_oa_add_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo,\n"
+          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)")
+        c("{")
+        c.indent(4)
+
+        for set in gen.sets:
+            c("{0}_add_{1}_metric_set(devinfo, register_metric_set, data);".format(gen.chipset, set.underscore_name))
+
+        c.outdent(4)
+        c("}")
 
     h(textwrap.dedent("""\
         #ifdef __cplusplus
@@ -721,19 +842,6 @@ def main():
         #endif
 
         """))
-
-
-    c("\nvoid")
-    c("gputop_oa_add_metrics_" + chipset + "(const struct gputop_devinfo *devinfo,\n"
-      "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)")
-    c("{")
-    c.indent(4)
-
-    for set in tree.findall(".//set"):
-        c("add_" + set.get('underscore_name') + "_metric_set(devinfo, register_metric_set, data);")
-
-    c.outdent(4)
-    c("}")
 
 
 if __name__ == '__main__':
