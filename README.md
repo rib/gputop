@@ -69,3 +69,64 @@ And then compactly prints the data collected. In this case the output was to a t
  293954678166,538.5 M cycles,   1.72 %,   2034698.00,       124.2 MiB,         0.543 %
  295323480416,751.6 M cycles,   1.28 %,   2034477.00,       124.2 MiB,         0.356 %
 ```
+
+# Building GPU Top
+
+## Dependencies
+
+GPUTop uses the meson build system. On a recent distribution you can install meson with :
+
+```
+sudo apt-get install meson
+```
+
+Alternatively you can use the pip distribution mechanism :
+
+```
+sudo pip3 install meson
+```
+
+GPU Top without UI tools has minimal dependencies :
+
+```
+sudo apt-get install libssl-dev
+```
+
+If you want to build the GLFW UI, also install the following dependencies :
+
+```
+sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev libglfw3-dev libepoxy-dev
+```
+
+A Gtk+ backend is also available for the UI (users with retina displays will want to use this), you'll need the following dependencies :
+
+```
+sudo apt-get install libsoup2.4-dev libcogl-dev libgtk-3-dev
+```
+
+## Configuring the GPU Top build
+
+Without UI :
+
+```
+meson . build
+```
+
+With GLFW UI :
+
+```
+meson . build -Dnative_ui=true
+```
+
+With Gtk+ UI :
+
+```
+meson . build -Dnative_ui_gtk=true
+```
+
+## Building GPU Top
+
+```
+ninja -C build
+ninja -C build install
+```
