@@ -28,7 +28,7 @@
 
 #include <i915_drm.h>
 
-#include "common/gen_device_info.h"
+#include "dev/gen_device_info.h"
 
 #ifdef __cplusplus
 extern "C" {

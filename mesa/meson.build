@@ -1,5 +1,5 @@
 mesa_src = [
-  'src/intel/common/gen_device_info.c',
+  'src/intel/dev/gen_device_info.c',
   'src/util/bitscan.c',
   'src/util/hash_table.c',
   'src/util/ralloc.c',

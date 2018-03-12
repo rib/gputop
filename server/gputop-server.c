@@ -53,7 +53,7 @@
 #include "gputop.pb-c.h"
 #include "gputop-debugfs.h"
 
-#include "common/gen_device_info.h"
+#include "dev/gen_device_info.h"
 
 #include "util/list.h"
 #include "util/macros.h"

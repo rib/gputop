@@ -51,7 +51,7 @@
 #include <uv.h>
 #include <dirent.h>
 
-#include "common/gen_device_info.h"
+#include "dev/gen_device_info.h"
 
 #include "gputop-util.h"
 #include "gputop-sysutil.h"
