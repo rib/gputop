@@ -64,9 +64,10 @@ elif build_native_ui
              dependencies : [gputop_client_dep, glfw_ui_deps],
 	     install : true)
 
-  gtk_dep = dependency('gtk+-3.0', version : '>= 3.18.0', required : false)
-  cogl_dep = dependency('cogl-2.0-experimental', required : false)
-  libsoup_dep = dependency('libsoup-2.4', version : '>= 2.60.3', required : false)
+  want_ui_gtk = get_option('native_ui_gtk') == 'true'
+  gtk_dep = dependency('gtk+-3.0', version : '>= 3.18.0', required : want_ui_gtk)
+  cogl_dep = dependency('cogl-2.0-experimental', required : want_ui_gtk)
+  libsoup_dep = dependency('libsoup-2.4', version : '>= 2.60.3', required : want_ui_gtk)
 
   if gtk_dep.found() and cogl_dep.found() and libsoup_dep.found()
     gtk_ui_src = ui_src + [ 'imgui/imgui_impl_gtk3_cogl.cpp',
