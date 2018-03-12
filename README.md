@@ -13,8 +13,16 @@ It's not necessary to build the web UI from source to use it since the latest te
 If you want to try out GPU Top on real hardware please follow these [build Instructions](https://github.com/rib/gputop/wiki/Build-Instructions) and give feedback [here](https://github.com/rib/gputop/issues).
 
 # Web UI Screenshot
+
 ![](https://raw.githubusercontent.com/wiki/rib/gputop/images/webui-imgui-screenshot.png)
 
+# Starting the GPU Top server
+
+Before you can use one of the clients, you need to start the GPU Top server. Since GPU Top is primarily a system wide analysis tool, you need to launch the server as root so that you can access information about any of the running processes using the GPU. You can done so by running :
+
+```
+sudo gputop
+```
 
 # CSV output example
 
