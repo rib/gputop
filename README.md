@@ -28,7 +28,9 @@ sudo gputop
 
 Here's an example from running `gputop-wrapper` like:
 
-```gputop-wrapper -m RenderBasic -c GpuCoreClocks,EuActive,L3Misses,GtiL3Throughput,EuFpuBothActive```
+```
+gputop-wrapper -m RenderBasic -c GpuCoreClocks,EuActive,L3Misses,GtiL3Throughput,EuFpuBothActive
+```
 
 Firstly the tool prints out a header that you might want to share with others to help ensure your comparing apples to apples when looking at metrics from different systems:
 
