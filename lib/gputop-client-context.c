@@ -1534,7 +1534,7 @@ void
 gputop_client_context_init(struct gputop_client_context *ctx)
 {
     list_inithead(&ctx->cpu_stats);
-    ctx->cpu_stats_visible_timeline_s = 3.0f;
+    ctx->cpu_stats_visible_timeline_s = 7.0f;
     ctx->cpu_stats_sampling_period_ms = 100;
 
     ctx->oa_visible_timeline_s = 7.0f;
