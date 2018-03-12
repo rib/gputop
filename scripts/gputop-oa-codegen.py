@@ -537,6 +537,9 @@ def generate_register_configs(set):
             c("}")
         c("\n")
 
+    for t in total_n_registers:
+        c("assert(metric_set->n_{0} <= {1});".format(t, total_n_registers[t]))
+
 #
 class Set:
     def __init__(self, gen, xml):
