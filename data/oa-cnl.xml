@@ -864,7 +864,7 @@
              />
     <counter name="Untyped Bytes Read"
              description="The total number of typed memory bytes read via Data Port."
-             data_type="float"
+             data_type="uint64"
              max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
              equation="$EuSubslicesTotalCount $SubsliceMask 1 AND C 2 READ FMUL $SubsliceMask 3 &gt;&gt; 1 AND C 3 READ FMUL FADD FMUL $SubsliceMask 1 AND $SubsliceMask 3 &gt;&gt; 1 AND FADD FDIV 64 UMUL"
              underscore_name="untyped_bytes_read"
@@ -1121,7 +1121,7 @@
              />
     <counter name="Untyped Writes"
              description="The total number of untyped memory bytes written via Data Port."
-             data_type="float"
+             data_type="uint64"
              max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
              equation="$EuSubslicesTotalCount $SubsliceMask 1 AND C 4 READ FMUL $SubsliceMask 3 &gt;&gt; 1 AND C 5 READ FMUL FADD FMUL $SubsliceMask 1 AND $SubsliceMask 3 &gt;&gt; 1 AND FADD FDIV 64 UMUL"
              underscore_name="untyped_bytes_written"
