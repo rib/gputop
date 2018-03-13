@@ -1360,7 +1360,9 @@ struct drm_intel_overlay_attrs {
  * active on a given plane.
  */
 
-#define I915_SET_COLORKEY_NONE		(1<<0) /* disable color key matching */
+#define I915_SET_COLORKEY_NONE		(1<<0) /* Deprecated. Instead set
+						* flags==0 to disable colorkeying.
+						*/
 #define I915_SET_COLORKEY_DESTINATION	(1<<1)
 #define I915_SET_COLORKEY_SOURCE	(1<<2)
 struct drm_intel_sprite_colorkey {
@@ -1626,32 +1628,29 @@ struct drm_i915_perf_oa_config {
 	__u32 n_flex_regs;
 
 	/*
-	 * These fields are pointers to tuples of u32 values (register
-	 * address, value). For example the expected length of the buffer
-	 * pointed by mux_regs_ptr is (2 * sizeof(u32) * n_mux_regs).
+	 * These fields are pointers to tuples of u32 values (register address,
+	 * value). For example the expected length of the buffer pointed by
+	 * mux_regs_ptr is (2 * sizeof(u32) * n_mux_regs).
 	 */
 	__u64 mux_regs_ptr;
 	__u64 boolean_regs_ptr;
 	__u64 flex_regs_ptr;
 };
 
-
 struct drm_i915_query_item {
 	__u64 query_id;
-#define DRM_I915_QUERY_SLICE_INFO	0x01
-#define DRM_I915_QUERY_SUBSLICE_INFO	0x02
-#define DRM_I915_QUERY_EU_INFO		0x03
+#define DRM_I915_QUERY_TOPOLOGY_INFO    1
 
 	/*
 	 * When set to zero by userspace, this is filled with the size of the
-	 * data to be written at the data_ptr pointer. The kernel set this
+	 * data to be written at the data_ptr pointer. The kernel sets this
 	 * value to a negative value to signal an error on a particular query
 	 * item.
 	 */
 	__s32 length;
 
 	/*
-	 * Unused for now.
+	 * Unused for now. Must be cleared to zero.
 	 */
 	__u32 flags;
 
@@ -1667,81 +1666,74 @@ struct drm_i915_query {
 	__u32 num_items;
 
 	/*
-	 * Unused for now.
+	 * Unused for now. Must be cleared to zero.
 	 */
 	__u32 flags;
 
 	/*
-	 * This point to an array of num_items drm_i915_query_item structures.
+	 * This points to an array of num_items drm_i915_query_item structures.
 	 */
 	__u64 items_ptr;
 };
 
-#define DRM_I915_BIT(bit) ((__u32)1 << (bit))
-#define DRM_I915_DIV_ROUND_UP(val, div) (((val) + (div) - 1) / (div))
-
 /*
- * Data written by the kernel with query DRM_I915_QUERY_SLICE_INFO :
+ * Data written by the kernel with query DRM_I915_QUERY_TOPOLOGY_INFO :
  *
- * data: each bit indicates whether a slice is available (1) or fused off (0).
- *       Formula to tell if slice X is available :
+ * data: contains the 3 pieces of information :
  *
- *            (data[X / 8] >> (X % 8)) & 1
+ * - the slice mask with one bit per slice telling whether a slice is
+ *   available. The availability of slice X can be queried with the following
+ *   formula :
  *
- *       Alternatively, use DRM_I915_QUERY_SLICE_AVAILABLE() to query a
- *       given subslice's availability.
- */
-struct drm_i915_query_slice_info {
-	__u32 max_slices;
-
-#define DRM_I915_QUERY_SLICE_AVAILABLE(info, slice) \
-	!!((info)->data[(slice) / 8] & DRM_I915_BIT((slice) % 8))
-	__u8 data[];
-};
-
-/*
- * Data written by the kernel with query DRM_I915_QUERY_SUBSLICE_INFO :
+ *           (data[X / 8] >> (X % 8)) & 1
  *
- * data: each bit indicates whether a subslice is available (1) or fused off
- *       (0). Formula to tell if slice X subslice Y is available :
+ * - the subslice mask for each slice with one bit per subslice telling
+ *   whether a subslice is available. The availability of subslice Y in slice
+ *   X can be queried with the following formula :
  *
- *            (data[(X * ALIGN(max_subslices, 8) / 8) + Y / 8] >> (Y % 8)) & 1
+ *           (data[subslice_offset +
+ *                 X * subslice_stride +
+ *                 Y / 8] >> (Y % 8)) & 1
  *
- *       Alternatively, use DRM_I915_QUERY_SUBSLICE_AVAILABLE() to query a
- *       given subslice's availability.
- */
-struct drm_i915_query_subslice_info {
-	__u32 max_slices;
-	__u32 max_subslices;
-
-#define DRM_I915_QUERY_SUBSLICE_AVAILABLE(info, slice, subslice) \
-	!!((info)->data[(slice) * DRM_I915_DIV_ROUND_UP((info)->max_subslices, 8) + \
-			(subslice) / 8] & DRM_I915_BIT((subslice) % 8))
-	__u8 data[];
-};
-
-/*
- * Data written by the kernel with query DRM_I915_QUERY_EU_INFO :
+ * - the EU mask for each subslice in each slice with one bit per EU telling
+ *   whether an EU is available. The availability of EU Z in subslice Y in
+ *   slice X can be queried with the following formula :
  *
- * data: Each bit indicates whether an EU is available (1) or fused off (0).
- *       Formula to tell if slice X subslice Y eu Z is available :
- *
- *           (data[X * max_subslices * ALIGN(max_eus_per_subslice, 8) / 8 +
- *                 Y * ALIGN(max_eus_per_subslice, 8) / 8 +
+ *           (data[eu_offset +
+ *                 (X * max_subslices + Y) * eu_stride +
  *                 Z / 8] >> (Z % 8)) & 1
- *
- *       Alternatively, use DRM_I915_QUERY_EU_AVAILABLE() to query a given
- *       EU's availability.
  */
-struct drm_i915_query_eu_info {
-	__u32 max_slices;
-	__u32 max_subslices;
-	__u32 max_eus_per_subslice;
+struct drm_i915_query_topology_info {
+	/*
+	 * Unused for now. Must be cleared to zero.
+	 */
+	__u16 flags;
 
-#define DRM_I915_QUERY_EU_AVAILABLE(info, slice, subslice, eu) \
-	!!((info)->data[(slice) * DRM_I915_DIV_ROUND_UP((info)->max_eus_per_subslice, 8) * (info)->max_subslices + \
-			(subslice) * DRM_I915_DIV_ROUND_UP((info)->max_eus_per_subslice, 8) + \
-			(eu) / 8] & DRM_I915_BIT((eu) % 8))
+	__u16 max_slices;
+	__u16 max_subslices;
+	__u16 max_eus_per_subslice;
+
+	/*
+	 * Offset in data[] at which the subslice masks are stored.
+	 */
+	__u16 subslice_offset;
+
+	/*
+	 * Stride at which each of the subslice masks for each slice are
+	 * stored.
+	 */
+	__u16 subslice_stride;
+
+	/*
+	 * Offset in data[] at which the EU masks are stored.
+	 */
+	__u16 eu_offset;
+
+	/*
+	 * Stride at which each of the EU masks for each subslice are stored.
+	 */
+	__u16 eu_stride;
+
 	__u8 data[];
 };
 

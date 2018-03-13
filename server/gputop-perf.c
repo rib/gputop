@@ -951,66 +951,51 @@ i915_query_old_slice_masks(int fd, struct gputop_devtopology *topology)
     return true;
 }
 
-struct gputop_query_slice_info {
-    struct drm_i915_query_slice_info base;
-    char data[100];
-};
-
-struct gputop_query_subslice_info {
-    struct drm_i915_query_subslice_info base;
-    char data[100];
-};
-
-struct gputop_query_eu_info {
-    struct drm_i915_query_eu_info base;
-    char data[1024];
+struct gputop_query_topology_info {
+    struct drm_i915_query_topology_info base;
+    char data[512];
 };
 
 static void
 i915_query_topology(int fd, struct gputop_devtopology *topology)
 {
     struct drm_i915_query query = {};
-    struct gputop_query_slice_info slice_info = {};
-    struct gputop_query_subslice_info subslice_info = {};
-    struct gputop_query_eu_info eu_info = {};
-    struct drm_i915_query_item items[] = {
-	{ .query_id = DRM_I915_QUERY_SLICE_INFO, .length = sizeof(slice_info), .data_ptr = (uintptr_t) &slice_info, },
-	{ .query_id = DRM_I915_QUERY_SUBSLICE_INFO, .length = sizeof(subslice_info), .data_ptr = (uintptr_t) &subslice_info, },
-	{ .query_id = DRM_I915_QUERY_EU_INFO, .length = sizeof(eu_info), .data_ptr = (uintptr_t) &eu_info, },
+    struct gputop_query_topology_info topo_info = {};
+    struct drm_i915_query_item item = {
+	.query_id = DRM_I915_QUERY_TOPOLOGY_INFO,
+        .length = sizeof(topo_info),
+        .data_ptr = (uintptr_t) &topo_info,
     };
-    int i, ret;
+    int ret;
 
-    query.num_items = ARRAY_SIZE(items);
-    query.items_ptr = (uintptr_t) items;
+    query.num_items = 1;
+    query.items_ptr = (uintptr_t) &item;
 
     ret = perf_ioctl(fd, DRM_IOCTL_I915_QUERY, &query);
     assert(ret == 0);
+    assert(item.length > 0);
 
-    for (i = 0; i < ARRAY_SIZE(items); i++)
-	assert(items[i].length > 0);
+    topology->max_slices = topo_info.base.max_slices;
+    topology->max_subslices = topo_info.base.max_subslices;
+    topology->max_eus_per_subslice = topo_info.base.max_eus_per_subslice;
 
-    assert(sizeof(topology->slices_mask) >= DIV_ROUND_UP(slice_info.base.max_slices, 8));
-    topology->max_slices = slice_info.base.max_slices;
-    memcpy(topology->slices_mask, slice_info.data, DIV_ROUND_UP(slice_info.base.max_slices, 8));
+    assert(sizeof(topology->slices_mask) >= topo_info.base.subslice_offset);
+    memcpy(topology->slices_mask, topo_info.data, topo_info.base.subslice_offset);
 
-    assert(sizeof(topology->subslices_mask) >=
-	   (subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8)));
-    topology->max_subslices = subslice_info.base.max_subslices;
-    memcpy(topology->subslices_mask, subslice_info.data,
-	   subslice_info.base.max_slices * DIV_ROUND_UP(subslice_info.base.max_subslices, 8));
+    assert(sizeof(topology->subslices_mask) >= (topo_info.base.eu_offset -
+                                                topo_info.base.subslice_offset));
+    memcpy(topology->subslices_mask, &topo_info.data[topo_info.base.subslice_offset],
+           topo_info.base.eu_offset - topo_info.base.subslice_offset);
 
-    topology->max_eus_per_subslice = eu_info.base.max_eus_per_subslice;
-    assert(sizeof(topology->eus_mask) >= (eu_info.base.max_slices * eu_info.base.max_subslices *
-					  DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
-    memcpy(topology->eus_mask, eu_info.data,
-	   (eu_info.base.max_slices * eu_info.base.max_subslices *
-	    DIV_ROUND_UP(eu_info.base.max_eus_per_subslice, 8)));
+    assert(sizeof(topology->eus_mask) >= (item.length - topo_info.base.eu_offset));
+    memcpy(topology->eus_mask, &topo_info.data[topo_info.base.eu_offset],
+           item.length - topo_info.base.eu_offset);
 }
 
 static bool
 i915_has_query_info(int fd)
 {
-    struct drm_i915_query_item item = { .query_id = DRM_I915_QUERY_EU_INFO, };
+    struct drm_i915_query_item item = { .query_id = DRM_I915_QUERY_TOPOLOGY_INFO, };
     struct drm_i915_query query = { .num_items = 1, .items_ptr = (uintptr_t) &item };
 
     return perf_ioctl(fd, DRM_IOCTL_I915_QUERY, &query) == 0 && item.length > 0;
