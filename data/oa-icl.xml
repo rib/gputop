@@ -1072,9 +1072,9 @@
              />
     <counter name="Typed Atomics Accesses"
              description="The total number of typed atomic accesses via Data Port."
-             data_type="float"
+             data_type="uint64"
              max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
-             equation="B 4 READ B 5 READ FADD 2 FDIV $EuSubslicesTotalCount FMUL"
+             equation="B 4 READ B 5 READ UADD 2 UDIV $EuSubslicesTotalCount UMUL"
              underscore_name="typed_atomics"
              units="events"
              symbol_name="TypedAtomics"
