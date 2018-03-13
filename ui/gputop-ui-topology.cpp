@@ -58,7 +58,7 @@ static bool DrawEu(ImGuiWindow* window,
                               name, name + strlen(name));
 
     if (IsHovered(eu_box)) {
-        SetTooltip("Eu%i %s", eu, active ? "enabled" : "fused off");
+        SetTooltip("Eu%i %s", eu, active ? "available" : "fused off");
         return true;
     }
 
@@ -70,12 +70,16 @@ static bool DrawSubslice(ImGuiWindow* window,
                          const uint8_t *ss_mask, const uint8_t *eus_mask,
                          const ImRect& ss_box, int s, int ss)
 {
-    if (!(ss_mask[ss / 8] >> (ss % 8) & 1)) {
-        window->DrawList->AddRectFilled(ss_box.GetTL(), ss_box.GetBR(),
-                                        GetColor(GputopCol_TopologySubsliceDis), 5);
+    bool enabled = (ss_mask[ss / 8] >> (ss % 8) & 1) != 0;
 
+    window->DrawList->AddRectFilled(ss_box.GetTL(), ss_box.GetBR(),
+                                    GetColor(enabled ?
+                                             GputopCol_TopologySubslice :
+                                             GputopCol_TopologySubsliceDis), 5);
+
+    if (!enabled) {
         if (IsHovered(ss_box)) {
-            SetTooltip("Subslice%i", ss);
+            SetTooltip("Subslice%i fused off", ss);
             return true;
         }
         return false;
@@ -112,7 +116,7 @@ static bool DrawSubslice(ImGuiWindow* window,
     }
 
     if (!eu_hovered && IsHovered(ss_box)) {
-        SetTooltip("Subslice%i", ss);
+        SetTooltip("Subslice%i available", ss);
         return true;
     }
 
