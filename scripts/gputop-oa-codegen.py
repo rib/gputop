@@ -36,12 +36,12 @@ c = None
 hashed_funcs = {}
 xml_equations = None
 
-def check_operand_type(arg):
+def check_operand_type(set, arg):
     if arg.isdigit():
         return "\n<mn>" + arg + "</mn>"
     elif arg[0] == "$":
-        if arg in counter_vars:
-            description = counter_vars[arg].get('description')
+        if arg in set.counter_vars:
+            description = set.counter_vars[arg].get('description')
         elif arg in hw_vars and 'desc' in hw_vars[arg]:
             description = hw_vars[arg]['desc'];
         else:
@@ -64,72 +64,72 @@ default_precedence = 16 #a high value which denotes no brackets needed
 def put_brackets(arg):
     return "\n<mtext>(</mtext>" + arg + "\n<mtext>)</mtext>"
 
-def mathml_splice_add(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_add(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < add_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < add_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>+</mo>" + operand_0, add_precedence]
 
-def mathml_splice_div(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_div(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mfrac>\n<mrow>" + operand_1 + "\n</mrow>\n<mrow>" + operand_0 + "</mrow>\n</mfrac>", default_precedence]
 
-def mathml_splice_max(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_max(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mtext>max ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
 
-def mathml_splice_mul(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_mul(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < mul_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < mul_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>*</mo>" + operand_0, mul_precedence]
 
-def mathml_splice_sub(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_sub(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < sub_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < sub_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>-</mo>" + operand_0, sub_precedence]
 
-def mathml_splice_read(args):
+def mathml_splice_read(set, args):
     return ["\n<maction actiontype='tooltip'>\n<mi>" + args[1][0] + args[0][0] + "</mi>\n<mtext>placeholder</mtext>\n</maction>", default_precedence]
 
-def mathml_splice_min(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_min(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     return ["\n<mtext>min ( </mtext>" + operand_1 + "\n<mtext> , </mtext>" + operand_0 + "\n<mtext> ) </mtext>", default_precedence]
 
-def mathml_splice_lshft(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_lshft(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < shft_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < shft_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>&lt;&lt;</mo>" + operand_0, shft_precedence]
 
-def mathml_splice_rshft(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_rshft(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < mul_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < mul_precedence:
         operand_1 = put_brackets(args[1][0])
     return [operand_1 + "\n<mo>&gt;&gt;</mo>" + operand_0, mul_precedence]
 
-def mathml_splice_and(args):
-    operand_0 = check_operand_type(args[0][0])
-    operand_1 = check_operand_type(args[1][0])
+def mathml_splice_and(set, args):
+    operand_0 = check_operand_type(set, args[0][0])
+    operand_1 = check_operand_type(set, args[1][0])
     if args[0][1] < and_precedence:
         operand_0 = put_brackets(args[0][0])
     if args[1][1] < and_precedence:
@@ -257,15 +257,13 @@ hw_vars = {
         "$SkuRevisionId": { 'c': "devinfo->revision" },
 }
 
-counter_vars = {}
-
-def splice_mathml_expression(equation, tag):
+def splice_mathml_expression(set, equation, tag):
     tokens = equation.split()
     mathml_stack = []
     tmp_xml_operand = ""
     for token in tokens:
         if not mathml_stack:
-            token = check_operand_type(token)
+            token = check_operand_type(set, token)
         mathml_stack.append([token, default_precedence])
         while mathml_stack and mathml_stack[-1][0] in ops:
             op = mathml_stack.pop()[0]
@@ -274,7 +272,7 @@ def splice_mathml_expression(equation, tag):
             for i in range(0, argc):
                 xml_operand = mathml_stack.pop()
                 xml_args.append(xml_operand)
-            tmp_xml_operand = mathml_callback(xml_args)
+            tmp_xml_operand = mathml_callback(set, xml_args)
             mathml_stack.append(tmp_xml_operand)
     xml_string = mathml_stack.pop()[0]
     equation_descr = "<mi>" + tag + "</mi><mo> = </mo>"
@@ -627,7 +625,7 @@ def main():
             for set in gen.sets:
                 counters = set.findall('counter')
                 for counter in counters:
-                    xml_equation = splice_mathml_expression(counter.get('equation'), "EQ")
+                    xml_equation = splice_mathml_expression(set, counter.get('equation'), "EQ")
                     counter.append(et.fromstring(xml_equation))
             gen.xml.write(gen.filename)
 
