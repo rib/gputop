@@ -1001,27 +1001,28 @@ build_equations_variables(struct gputop_devinfo *devinfo)
      * that we get special operations to query slice/subslice availability
      * abstracting the storage of this information...
      */
-    switch (devinfo->gen) {
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-        devinfo->subslice_mask = 0;
+    int subslice_bits_per_slice = 0;
+    if (devinfo->gen <= 10) {
         /* Subslices are grouped by 3. */
-        for (int s = 0; s < topology->max_slices; s++) {
-            for (int ss = 0; ss < MIN2(topology->max_subslices, 3); ss++) {
-                bool enabled =
-                    (topology->subslices_mask[slice_stride * s + ss / 8] &
-                     (1UL << (ss % 8))) != 0;
-                if (enabled)
-                    devinfo->subslice_mask |= 1ULL << (3 * s + ss);
-            }
-        }
-        break;
-
-    default:
+        subslice_bits_per_slice = 3;
+    } else if (devinfo->gen == 11) {
+        /* Subslices are grouped by 8 */
+        subslice_bits_per_slice = 8;
+    } else {
         unreachable("Cannot build subslice mask for equations");
     }
+
+    devinfo->subslice_mask = 0;
+    for (int s = 0; s < topology->max_slices; s++) {
+        for (int ss = 0; ss < MIN2(topology->max_subslices, 3); ss++) {
+            bool enabled =
+                (topology->subslices_mask[slice_stride * s + ss / 8] &
+                 (1UL << (ss % 8))) != 0;
+            if (enabled)
+                devinfo->subslice_mask |= 1ULL << (subslice_bits_per_slice * s + ss);
+        }
+    }
+
 
     devinfo->eu_threads_count = devinfo->n_eus * topology->n_threads_per_eu;
 }
