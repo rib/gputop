@@ -11,32 +11,20 @@ gputop_client_src += custom_target(
              '-I' + join_paths(meson.current_source_dir(), '../data'),
              join_paths(meson.current_source_dir(), '../data/gputop.proto')])
 
-hardware = [
-  'hsw',
-  'bdw', 'chv',
-  'sklgt2', 'sklgt3', 'sklgt4',
-  'kblgt2', 'kblgt3',
-  'cflgt2', 'cflgt3',
-  'bxt', 'glk',
-  'cnl',
-  'icl'
-]
-
-gen_xml_files = []
-foreach hw : hardware
-  gen_xml_files += '../data/oa-@0@.xml'.format(hw)
+foreach hw : ['hsw', 'bdw', 'chv', 'sklgt2', 'sklgt3', 'sklgt4', 'bxt',
+              'kblgt2', 'kblgt3', 'glk', 'cflgt2', 'cflgt3', 'cnl', 'icl']
+  _xml = '../data/oa-@0@.xml'.format(hw)
+  _name = 'oa-@0@'.format(hw)
+  gputop_client_src += custom_target(
+    _name,
+    input : ['../scripts/gputop-oa-codegen.py', _xml],
+    output : ['@0@.c'.format(_name), '@0@.h'.format(_name)],
+    command : [
+      prog_python2, '@INPUT0@',
+      '--chipset', hw,
+      '--code', '@OUTPUT0@', '--header', '@OUTPUT1@', '@INPUT1@',
+    ])
 endforeach
-
-gputop_client_src += custom_target(
-  'gputop-gens-metrics',
-  input : gen_xml_files,
-  output : [ 'gputop-gens-metrics.c', 'gputop-gens-metrics.h' ],
-  command : [
-    find_program('../scripts/gputop-oa-codegen.py'),
-    '--code', '@OUTPUT0@',
-    '--header', '@OUTPUT1@',
-    '@INPUT@',
-  ])
 
 gputop_client_src += custom_target(
   'tracepoint-parser',

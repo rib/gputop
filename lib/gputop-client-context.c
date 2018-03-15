@@ -4,7 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gputop-gens-metrics.h"
+#include "oa-hsw.h"
+#include "oa-bdw.h"
+#include "oa-chv.h"
+#include "oa-sklgt2.h"
+#include "oa-sklgt3.h"
+#include "oa-sklgt4.h"
+#include "oa-bxt.h"
+#include "oa-kblgt2.h"
+#include "oa-kblgt3.h"
+#include "oa-glk.h"
+#include "oa-cflgt2.h"
+#include "oa-cflgt3.h"
+#include "oa-cnl.h"
+#include "oa-icl.h"
 
 #include "gputop-log.h"
 
