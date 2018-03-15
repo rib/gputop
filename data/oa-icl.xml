@@ -199,7 +199,7 @@
              />
     <counter name="Samplers Busy"
              description="The percentage of time in which samplers have been processing EU requests."
-             data_type="uint64"
+             data_type="float"
              max_equation="100"
              equation="$Sampler00Busy"
              underscore_name="samplers_busy"
@@ -596,7 +596,7 @@
     <counter name="Samplers Bottleneck"
              low_watermark="5"
              description="The percentage of time in which samplers have been slowing down the pipe when processing EU requests."
-             data_type="uint64"
+             data_type="float"
              high_watermark="15"
              equation="$Sampler00Bottleneck"
              max_equation="100"
