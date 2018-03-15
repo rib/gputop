@@ -29,6 +29,8 @@
 #include <i915_drm.h>
 
 #include "dev/gen_device_info.h"
+#include "util/hash_table.h"
+#include "util/list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -155,6 +157,8 @@ struct gputop_metric_set_counter {
                                         const struct gputop_metric_set *metric_set,
                                         uint64_t *deltas);
     };
+
+    struct list_head group_link;
 };
 
 struct gputop_register_prog {
@@ -188,8 +192,36 @@ struct gputop_metric_set {
 
     struct gputop_register_prog *flex_regs;
     uint32_t n_flex_regs;
+
+    struct list_head link;
 };
 
+struct gputop_counter_group {
+    const char *name;
+
+    struct list_head counters;
+    struct list_head groups;
+
+    struct list_head link;
+};
+
+struct gputop_gen {
+    const char *name;
+
+    struct gputop_counter_group *root_group;
+
+    struct list_head metric_sets;
+    struct hash_table *metric_sets_map;
+};
+
+struct gputop_gen *gputop_gen_new(void);
+
+void gputop_gen_add_counter(struct gputop_gen *gen,
+                            struct gputop_metric_set_counter *counter,
+                            const char *group);
+
+void gputop_gen_add_metric_set(struct gputop_gen *gen,
+                               struct gputop_metric_set *metric_set);
 
 #ifdef __cplusplus
 }

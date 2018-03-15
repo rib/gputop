@@ -277,15 +277,14 @@ static void print_system_info(void)
 
 static void print_metrics(void)
 {
-    struct hash_entry *entry;
     int max_name_length = 0;
-    hash_table_foreach(context.ctx.metrics_map, entry) {
-        const struct gputop_metric_set *metric_set = entry->data;
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &context.ctx.gen_metrics->metric_sets, link)
         max_name_length = MAX2(max_name_length, strlen(metric_set->symbol_name));
-    }
+
     comment("List of metric sets selectable with -m/--metrics=...\n");
-    hash_table_foreach(context.ctx.metrics_map, entry) {
-        const struct gputop_metric_set *metric_set = entry->data;
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &context.ctx.gen_metrics->metric_sets, link) {
         comment("\t%s:%*s %s hw-config-guid=%s\n",
                 metric_set->symbol_name,
                 max_name_length - strlen(metric_set->symbol_name), "",

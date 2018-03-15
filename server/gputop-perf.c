@@ -65,6 +65,7 @@
 
 #include "util/bitscan.h"
 #include "util/macros.h"
+#include "util/ralloc.h"
 
 /* Samples read() from i915 perf */
 struct oa_sample {
@@ -115,7 +116,7 @@ static struct intel_device intel_dev;
 
 static unsigned int page_size;
 
-struct gputop_hash_table *metrics;
+struct gputop_gen *gen_metrics;
 struct array *gputop_perf_oa_supported_metric_set_uuids;
 static struct perf_oa_user *gputop_perf_current_user;
 static struct gputop_devinfo gputop_devinfo;
@@ -152,14 +153,11 @@ sysfs_card_read(const char *file, uint64_t *value)
 static bool
 kernel_has_dynamic_config_support(int fd)
 {
-    struct gputop_hash_entry *metrics_entry;
-
     if (gputop_disable_oaconfig)
 	return false;
 
-    gputop_hash_table_foreach(metrics, metrics_entry) {
-	struct gputop_metric_set *metric_set =
-	    (struct gputop_metric_set*)metrics_entry->data;
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &gen_metrics->metric_sets, link) {
 	struct drm_i915_perf_oa_config config;
 	char config_path[256];
 	uint32_t mux_regs[] = { 0x9888 /* NOA_WRITE */, 0x0 };
@@ -189,12 +187,8 @@ kernel_has_dynamic_config_support(int fd)
 static const struct gputop_metric_set *
 get_test_metric_set(void)
 {
-    struct gputop_hash_entry *metrics_entry;
-
-    gputop_hash_table_foreach(metrics, metrics_entry) {
-	struct gputop_metric_set *metric_set =
-            (struct gputop_metric_set*)metrics_entry->data;
-
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &gen_metrics->metric_sets, link) {
         if (!strcmp(metric_set->symbol_name, "TestOa"))
             return metric_set;
     }
@@ -801,13 +795,6 @@ gputop_perf_open_cpu_stats(bool overwrite, uint64_t sample_period_ms)
 }
 
 static void
-register_metric_set(const struct gputop_metric_set *metric_set, void *data)
-{
-    gputop_hash_table_insert(metrics, metric_set->hw_config_guid,
-			     (void *) metric_set);
-}
-
-static void
 devinfo_build_topology(const struct gen_device_info *devinfo,
 		       struct gputop_devtopology *topology)
 {
@@ -1090,26 +1077,26 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 
     if (devinfo->is_haswell) {
 	SET_NAMES(gputop_devinfo, "hsw", "Haswell");
-	gputop_oa_add_metrics_hsw(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_hsw(&gputop_devinfo);
     } else if (devinfo->is_broadwell) {
 	SET_NAMES(gputop_devinfo, "bdw", "Broadwell");
-	gputop_oa_add_metrics_bdw(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_bdw(&gputop_devinfo);
     } else if (devinfo->is_cherryview) {
 	SET_NAMES(gputop_devinfo, "chv", "Cherryview");
-	gputop_oa_add_metrics_chv(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_chv(&gputop_devinfo);
     } else if (devinfo->is_skylake) {
 	switch (devinfo->gt) {
 	case 2:
 	    SET_NAMES(gputop_devinfo, "sklgt2", "Skylake GT2");
-	    gputop_oa_add_metrics_sklgt2(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_sklgt2(&gputop_devinfo);
 	    break;
 	case 3:
 	    SET_NAMES(gputop_devinfo, "sklgt3", "Skylake GT3");
-	    gputop_oa_add_metrics_sklgt3(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_sklgt3(&gputop_devinfo);
 	    break;
 	case 4:
 	    SET_NAMES(gputop_devinfo, "sklgt4", "Skylake GT4");
-	    gputop_oa_add_metrics_sklgt4(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_sklgt4(&gputop_devinfo);
 	    break;
 	default:
 	    fprintf(stderr, "Unsupported GT%u Skylake System\n", devinfo->gt);
@@ -1117,16 +1104,16 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	}
     } else if (devinfo->is_broxton) {
 	SET_NAMES(gputop_devinfo, "bxt", "Broxton");
-	gputop_oa_add_metrics_bxt(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_bxt(&gputop_devinfo);
     } else if (devinfo->is_kabylake) {
 	switch (devinfo->gt) {
 	case 2:
 	    SET_NAMES(gputop_devinfo, "kblgt2", "Kabylake GT2");
-	    gputop_oa_add_metrics_kblgt2(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_kblgt2(&gputop_devinfo);
 	    break;
 	case 3:
 	    SET_NAMES(gputop_devinfo, "kblgt3", "Kabylake GT3");
-	    gputop_oa_add_metrics_kblgt3(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_kblgt3(&gputop_devinfo);
 	    break;
 	default:
 	    fprintf(stderr, "Unsupported GT%u Kabylake System\n", devinfo->gt);
@@ -1134,16 +1121,16 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	}
     } else if (devinfo->is_geminilake) {
 	SET_NAMES(gputop_devinfo, "glk", "Geminilake");
-	gputop_oa_add_metrics_glk(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_glk(&gputop_devinfo);
     } else if (devinfo->is_coffeelake) {
 	switch (devinfo->gt) {
 	case 2:
 	    SET_NAMES(gputop_devinfo, "cflgt2", "Coffeelake GT2");
-	    gputop_oa_add_metrics_cflgt2(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_cflgt2(&gputop_devinfo);
 	    break;
 	case 3:
 	    SET_NAMES(gputop_devinfo, "cflgt3", "Coffeelake GT3");
-	    gputop_oa_add_metrics_cflgt3(&gputop_devinfo, register_metric_set, NULL);
+	    gen_metrics = gputop_oa_get_metrics_cflgt3(&gputop_devinfo);
 	    break;
 	default:
 	    fprintf(stderr, "Unsupported GT%u Coffeelake System\n", devinfo->gt);
@@ -1151,10 +1138,10 @@ init_dev_info(int fd, uint32_t devid, const struct gen_device_info *devinfo)
 	}
     } else if (devinfo->is_cannonlake) {
         SET_NAMES(gputop_devinfo, "cnl", "Cannonlake");
-	gputop_oa_add_metrics_cnl(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_cnl(&gputop_devinfo);
     } else if (devinfo->gen == 11) {
         SET_NAMES(gputop_devinfo, "icl", "Icelake");
-	gputop_oa_add_metrics_icl(&gputop_devinfo, register_metric_set, NULL);
+	gen_metrics = gputop_oa_get_metrics_icl(&gputop_devinfo);
     } else {
 	fprintf(stderr, "Unknown System\n");
 	return false;
@@ -1747,14 +1734,11 @@ open_render_node(struct intel_device *dev)
 static void
 gputop_reload_userspace_metrics(int fd)
 {
-    struct gputop_hash_entry *metrics_entry;
-
     if (!gputop_devinfo.has_dynamic_configs)
 	return;
 
-    gputop_hash_table_foreach(metrics, metrics_entry) {
-	struct gputop_metric_set *metric_set =
-	    (struct gputop_metric_set*)metrics_entry->data;
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &gen_metrics->metric_sets, link) {
 	struct drm_i915_perf_oa_config config;
 	char config_path[256];
 	uint64_t config_id;
@@ -1818,13 +1802,13 @@ gputop_enumerate_metrics_via_sysfs(void)
 
     while ((entry = readdir(metrics_dir))) {
 	struct gputop_metric_set *metric_set;
-	struct gputop_hash_entry *metrics_entry;
+	struct hash_entry *metrics_entry;
 
 	if (entry->d_type != DT_DIR || entry->d_name[0] == '.')
 	    continue;
 
 	metrics_entry =
-	    gputop_hash_table_search(metrics, entry->d_name);
+	    _mesa_hash_table_search(gen_metrics->metric_sets_map, entry->d_name);
 
 	if (metrics_entry == NULL)
 	    continue;
@@ -1874,12 +1858,13 @@ gputop_enumerate_metrics_fake(void)
     };
 
     struct gputop_metric_set *metric_set;
-    struct gputop_hash_entry *metrics_entry;
+    struct hash_entry *metrics_entry;
 
     int i;
 
     for (i = 0; i < ARRAY_SIZE(fake_bdw_guids); i++){
-	metrics_entry = gputop_hash_table_search(metrics, fake_bdw_guids[i]);
+	metrics_entry = _mesa_hash_table_search(gen_metrics->metric_sets_map,
+                                                fake_bdw_guids[i]);
 	metric_set = (struct gputop_metric_set*)metrics_entry->data;
 	metric_set->perf_oa_metrics_set = i;
 	array_append(gputop_perf_oa_supported_metric_set_uuids, &metric_set->hw_config_guid);
@@ -1916,8 +1901,7 @@ gputop_perf_initialize(void)
     /* NB: eu_count needs to be initialized before declaring counters */
     page_size = sysconf(_SC_PAGE_SIZE);
 
-    metrics = gputop_hash_table_create(gputop_key_hash_string,
-				       gputop_key_string_equal);
+    gen_metrics = NULL;
     gputop_perf_oa_supported_metric_set_uuids = array_new(sizeof(char*), 1);
 
     if (!gen_get_device_info(intel_dev.device, &devinfo)) {
@@ -1936,16 +1920,11 @@ gputop_perf_initialize(void)
 	return false;
 }
 
-static void
-free_perf_oa_metrics(struct gputop_hash_entry *entry)
-{
-    free(entry->data);
-}
-
 void
 gputop_perf_free(void)
 {
-    gputop_hash_table_destroy(metrics, free_perf_oa_metrics);
+    ralloc_free(gen_metrics);
+    gen_metrics = NULL;
     array_free(gputop_perf_oa_supported_metric_set_uuids);
 }
 

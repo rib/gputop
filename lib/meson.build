@@ -1,6 +1,7 @@
 gputop_client_src = [
   'gputop-client-context.c',
   'gputop-oa-counters.c',
+  'gputop-oa-metrics.c',
 ]
 
 gputop_client_src += custom_target(

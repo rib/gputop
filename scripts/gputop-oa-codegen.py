@@ -478,14 +478,15 @@ def output_counter_report(set, counter):
 
     c("counter = &metric_set->counters[metric_set->n_counters++];\n")
     c("counter->metric_set = metric_set;\n")
-    c("counter->oa_counter_read_" + data_type + " = " + set.read_funcs[counter.get('symbol_name')] + ";\n")
-    c("counter->name = \"" + counter.get('name') + "\";\n")
-    c("counter->symbol_name = \"" + counter.get('symbol_name') + "\";\n")
-    c("counter->desc = \"" + counter.get('description') + "\";\n")
-    c("counter->type = GPUTOP_PERFQUERY_COUNTER_" + semantic_type_uc + ";\n")
-    c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_" + data_type_uc + ";\n")
-    c("counter->units = GPUTOP_PERFQUERY_COUNTER_UNITS_" + output_units(counter.get('units')) + ";\n")
-    c("counter->max_" + data_type + " = " + set.max_funcs[counter.get('symbol_name')] + ";\n")
+    c("counter->oa_counter_read_{0} = {1};\n".format(data_type, set.read_funcs[counter.get('symbol_name')]))
+    c("counter->name = \"{0}\";\n".format(counter.get('name')))
+    c("counter->symbol_name = \"{0}\";\n".format(counter.get('symbol_name')));
+    c("counter->desc = \"{0}\";\n".format(counter.get('description')))
+    c("counter->type = GPUTOP_PERFQUERY_COUNTER_{0};\n".format(semantic_type_uc))
+    c("counter->data_type = GPUTOP_PERFQUERY_COUNTER_DATA_{0};\n".format(data_type_uc))
+    c("counter->units = GPUTOP_PERFQUERY_COUNTER_UNITS_{0};\n".format(output_units(counter.get('units'))))
+    c("counter->max_{0} = {1};\n".format(data_type, set.max_funcs[counter.get('symbol_name')]))
+    c("gputop_gen_add_counter(gen, counter, \"{0}\");\n".format(counter.get('mdapi_group')))
 
     if availability:
         c.outdent(4)
@@ -510,8 +511,8 @@ def generate_register_configs(set):
             total_n_registers[t] += len(register_config.findall('register'))
 
     for reg in total_n_registers:
-        c("metric_set->%s = xmalloc0(sizeof(*metric_set->%s) * %i);" %
-          (reg, reg, total_n_registers[reg]))
+        c("metric_set->%s = rzalloc_array(metric_set, struct gputop_register_prog, %i);" %
+          (reg, total_n_registers[reg]))
     c("\n")
 
     # fill in register/values
@@ -711,18 +712,10 @@ def main():
 
         #include "gputop-oa-metrics.h"
 
+        #include "util/ralloc.h"
+
         #define MIN(x, y) (((x) < (y)) ? (x) : (y))
         #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-        static inline void *
-        xmalloc0(size_t size)
-        {
-            void *ret = malloc(size);
-            if (!ret)
-                exit(1);
-            memset(ret, 0, size);
-            return ret;
-        }
 
         static double
         percentage_max_callback_float(const struct gputop_devinfo *devinfo,
@@ -754,8 +747,10 @@ def main():
     for gen in gens:
         for set in gen.sets:
             c("\nstatic void\n")
-            c(gen.chipset + "_add_" + set.underscore_name + "_metric_set(const struct gputop_devinfo *devinfo,\n" +
-              "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)\n")
+            c(gen.chipset + "_add_" + set.underscore_name + "_metric_set(struct gputop_gen *gen,")
+            c.indent(4)
+            c("const struct gputop_devinfo *devinfo)")
+            c.outdent(4)
             c("{\n")
             c.indent(4)
 
@@ -764,11 +759,11 @@ def main():
 
             counters = sorted(set.counters, key=lambda k: k.get('symbol_name'))
 
-            c("metric_set = xmalloc0(sizeof(struct gputop_metric_set));\n")
+            c("metric_set = rzalloc(gen, struct gputop_metric_set);\n")
             c("metric_set->name = \"" + set.name + "\";\n")
             c("metric_set->symbol_name = \"" + set.symbol_name + "\";\n")
             c("metric_set->hw_config_guid = \"" + set.hw_config_guid + "\";\n")
-            c("metric_set->counters = xmalloc0(sizeof(struct gputop_metric_set_counter) * {0});\n".format(str(len(counters))))
+            c("metric_set->counters = rzalloc_array(metric_set, struct gputop_metric_set_counter,  {0});\n".format(str(len(counters))))
             c("metric_set->n_counters = 0;\n")
             c("metric_set->perf_oa_metrics_set = 0; // determined at runtime\n")
 
@@ -796,14 +791,15 @@ def main():
 
                     """))
 
+            c("gputop_gen_add_metric_set(gen, metric_set);");
+            c("\n")
+
             generate_register_configs(set)
 
             for counter in counters:
                 output_counter_report(set, counter)
 
             c("\nassert(metric_set->n_counters <= {0});\n".format(len(counters)));
-
-            c("\nregister_metric_set(metric_set, data);\n")
 
             c.outdent(4)
             c("}\n")
@@ -821,17 +817,21 @@ def main():
 
     # Print out all set registration functions for each generation.
     for gen in gens:
-        h("void gputop_oa_add_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo,\n"
-          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data);\n\n")
+        h("struct gputop_gen *gputop_oa_get_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo);\n\n")
 
-        c("\nvoid")
-        c("gputop_oa_add_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo,\n"
-          "    void (*register_metric_set)(const struct gputop_metric_set *, void *), void *data)")
+        c("\nstruct gputop_gen *")
+        c("gputop_oa_get_metrics_" + gen.chipset + "(const struct gputop_devinfo *devinfo)")
         c("{")
         c.indent(4)
 
+        c("struct gputop_gen *gen = gputop_gen_new();\n")
+        c("\n")
+
         for set in gen.sets:
-            c("{0}_add_{1}_metric_set(devinfo, register_metric_set, data);".format(gen.chipset, set.underscore_name))
+            c("{0}_add_{1}_metric_set(gen, devinfo);".format(gen.chipset, set.underscore_name))
+
+        c("\n")
+        c("return gen;")
 
         c.outdent(4)
         c("}")

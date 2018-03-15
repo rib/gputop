@@ -227,7 +227,7 @@ struct ctx_handle *get_first_available_ctx(char **error);
 bool gputop_perf_initialize(void);
 void gputop_perf_free(void);
 
-extern struct gputop_hash_table *metrics;
+extern struct gputop_gen *gen_metrics;
 extern struct array *gputop_perf_oa_supported_metric_set_uuids;
 extern int gputop_perf_trace_buffer_size;
 extern uint8_t *gputop_perf_trace_buffer;

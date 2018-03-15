@@ -575,7 +575,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     uint32_t id = open_stream->id;
     Gputop__OAStreamInfo *oa_stream_info = open_stream->oa_stream;
     struct gputop_metric_set *metric_set = NULL;
-    struct gputop_hash_entry *entry = NULL;
+    struct hash_entry *entry = NULL;
     struct gputop_perf_stream *stream;
     char *error = NULL;
     struct ctx_handle *ctx = NULL;
@@ -590,7 +590,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     }
     dbg("handle_open_i915_perf_oa_stream: id = %d\n", id);
 
-    entry = gputop_hash_table_search(metrics, oa_stream_info->uuid);
+    entry = _mesa_hash_table_search(gen_metrics->metric_sets_map, oa_stream_info->uuid);
     if (entry != NULL) {
         metric_set = entry->data;
     } else {

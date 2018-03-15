@@ -217,7 +217,7 @@ struct gputop_client_context {
     Gputop__Message *features;
     Gputop__Message *tracepoint_info;
 
-    struct hash_table *metrics_map;
+    struct gputop_gen *gen_metrics;
     struct gputop_devinfo devinfo;
 
     int selected_uuid;

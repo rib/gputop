@@ -8,6 +8,8 @@
 
 #include "gputop-log.h"
 
+#include "util/ralloc.h"
+
 static void i915_perf_empty_samples(struct gputop_client_context *ctx);
 static void clear_perf_tracepoints_data(struct gputop_client_context *ctx);
 static void delete_process_entry(struct hash_entry *entry);
@@ -936,7 +938,7 @@ const struct gputop_metric_set *
 gputop_client_context_uuid_to_metric_set(struct gputop_client_context *ctx, const char *uuid)
 {
     struct hash_entry *entry =
-        _mesa_hash_table_search(ctx->metrics_map, uuid);
+        _mesa_hash_table_search(ctx->gen_metrics->metric_sets_map, uuid);
     return entry ? ((struct gputop_metric_set *) entry->data) : NULL;
 }
 
@@ -944,22 +946,12 @@ const struct gputop_metric_set *
 gputop_client_context_symbol_to_metric_set(struct gputop_client_context *ctx,
                                            const char *symbol_name)
 {
-    struct hash_entry *entry;
-    hash_table_foreach(ctx->metrics_map, entry) {
-        const struct gputop_metric_set *metric_set = entry->data;
+    list_for_each_entry(struct gputop_metric_set, metric_set,
+                        &ctx->gen_metrics->metric_sets, link) {
         if (!strcmp(metric_set->symbol_name, symbol_name))
             return metric_set;
     }
     return NULL;
-}
-
-static void
-register_metric_set(const struct gputop_metric_set *metric_set, void *data)
-{
-    struct gputop_client_context *ctx = data;
-
-    _mesa_hash_table_insert(ctx->metrics_map,
-                            metric_set->hw_config_guid, (void *) metric_set);
 }
 
 static void
@@ -1033,25 +1025,22 @@ register_platform_metrics(struct gputop_client_context *ctx,
 {
     static const struct {
         const char *devname;
-        void (*add_metrics_cb)(const struct gputop_devinfo *devinfo,
-                               void (*register_metric_set)(const struct gputop_metric_set *,
-                                                           void *),
-                               void *data);
+        struct gputop_gen * (*get_metrics_cb)(const struct gputop_devinfo *devinfo);
     } devname_to_metric_func[] = {
-        { "hsw", gputop_oa_add_metrics_hsw },
-        { "bdw", gputop_oa_add_metrics_bdw },
-        { "chv", gputop_oa_add_metrics_chv },
-        { "sklgt2", gputop_oa_add_metrics_sklgt2 },
-        { "sklgt3", gputop_oa_add_metrics_sklgt3 },
-        { "sklgt4", gputop_oa_add_metrics_sklgt4 },
-        { "kblgt2", gputop_oa_add_metrics_kblgt2 },
-        { "kblgt3", gputop_oa_add_metrics_kblgt3 },
-        { "bxt", gputop_oa_add_metrics_bxt },
-        { "glk", gputop_oa_add_metrics_glk },
-        { "cflgt2", gputop_oa_add_metrics_cflgt2 },
-        { "cflgt3", gputop_oa_add_metrics_cflgt3 },
-        { "cnl", gputop_oa_add_metrics_cnl },
-        { "icl", gputop_oa_add_metrics_icl },
+        { "hsw", gputop_oa_get_metrics_hsw },
+        { "bdw", gputop_oa_get_metrics_bdw },
+        { "chv", gputop_oa_get_metrics_chv },
+        { "sklgt2", gputop_oa_get_metrics_sklgt2 },
+        { "sklgt3", gputop_oa_get_metrics_sklgt3 },
+        { "sklgt4", gputop_oa_get_metrics_sklgt4 },
+        { "kblgt2", gputop_oa_get_metrics_kblgt2 },
+        { "kblgt3", gputop_oa_get_metrics_kblgt3 },
+        { "bxt", gputop_oa_get_metrics_bxt },
+        { "glk", gputop_oa_get_metrics_glk },
+        { "cflgt2", gputop_oa_get_metrics_cflgt2 },
+        { "cflgt3", gputop_oa_get_metrics_cflgt3 },
+        { "cnl", gputop_oa_get_metrics_cnl },
+        { "icl", gputop_oa_get_metrics_icl },
     };
 
     struct gputop_devinfo *devinfo = &ctx->devinfo;
@@ -1084,11 +1073,9 @@ register_platform_metrics(struct gputop_client_context *ctx,
 
     build_equations_variables(devinfo);
 
-    _mesa_hash_table_clear(ctx->metrics_map, NULL);
     for (uint32_t i = 0; i < ARRAY_SIZE(devname_to_metric_func); i++) {
         if (!strcmp(devinfo->devname, devname_to_metric_func[i].devname)) {
-            devname_to_metric_func[i].add_metrics_cb(devinfo,
-                                                     register_metric_set, ctx);
+            ctx->gen_metrics = devname_to_metric_func[i].get_metrics_cb(devinfo);
             return;
         }
     }
@@ -1543,8 +1530,6 @@ gputop_client_context_init(struct gputop_client_context *ctx)
 
     list_inithead(&ctx->streams);
 
-    ctx->metrics_map =
-        _mesa_hash_table_create(NULL, _mesa_hash_string, _mesa_key_string_equal);
     ctx->hw_contexts_table =
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
@@ -1594,7 +1579,8 @@ gputop_client_context_reset(struct gputop_client_context *ctx,
         ctx->tracepoint_info = NULL;
     }
 
-    _mesa_hash_table_clear(ctx->metrics_map, NULL);
+    ralloc_free(ctx->gen_metrics);
+    ctx->gen_metrics = NULL;
 
     assert(list_length(&ctx->hw_contexts) == 0);
     assert(list_length(&ctx->streams) == 0);
