@@ -367,6 +367,8 @@ def output_counter_read(gen, set, counter):
 
     c("\n")
     c("/* {0} :: {1} */".format(set.name, counter.get('name')))
+    ret_type = counter.get('data_type')
+    ret_ctype = data_type_to_ctype(ret_type)
     read_sym = gen.counter_read_sym(set, counter)
 
     if read_eq in hashed_funcs:
@@ -375,9 +377,6 @@ def output_counter_read(gen, set, counter):
         c("%s" % hashed_funcs[read_eq])
         c.outdent(4)
     else:
-        ret_type = counter.get('data_type')
-        ret_ctype = data_type_to_ctype(ret_type)
-
         c("static " + ret_ctype)
         c(read_sym + "(const struct gputop_devinfo *devinfo,\n")
         c.indent(len(read_sym) + 1)
@@ -402,10 +401,12 @@ def output_counter_max(gen, set, counter):
     if not max_eq or max_eq == "100":
         return
 
+    ret_type = counter.get('data_type')
+    ret_ctype = data_type_to_ctype(ret_type)
+    max_sym = gen.counter_max_sym(set, counter)
+
     c("\n")
     c("/* {0} :: {1} */".format(set.name, counter.get('name')))
-
-    max_sym = gen.counter_max_sym(set, counter)
 
     if max_eq in hashed_funcs:
         c("#define %s \\" % max_sym)
@@ -413,9 +414,6 @@ def output_counter_max(gen, set, counter):
         c("%s" % hashed_funcs[max_eq])
         c.outdent(4)
     else:
-        ret_type = counter.get('data_type')
-        ret_ctype = data_type_to_ctype(ret_type)
-
         c("static " + ret_ctype)
 
         c(max_sym + "(const struct gputop_devinfo *devinfo,\n")
