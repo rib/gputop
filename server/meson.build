@@ -1,5 +1,4 @@
 libgputop_src = [
-  'gputop-hash-table.c',
   'gputop-perf.c',
   'gputop-sysutil.c',
   'gputop-log.c',

@@ -31,7 +31,6 @@
 
 #include "util/list.h"
 
-#include "gputop-hash-table.h"
 #include "gputop-oa-metrics.h"
 
 uint64_t get_time(void);
