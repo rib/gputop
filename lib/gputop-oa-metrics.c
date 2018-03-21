@@ -23,11 +23,67 @@
  */
 
 #include "gputop-oa-metrics.h"
+#include "gputop-gens-metrics.h"
+
 
 #include <string.h>
 
 #include "util/hash_table.h"
 #include "util/ralloc.h"
+
+struct gputop_gen *
+gputop_gen_for_devinfo(const struct gen_device_info *devinfo)
+{
+    struct gputop_devinfo gputop_devinfo = {};
+
+    if (devinfo->is_haswell)
+        return gputop_oa_get_metrics_hsw(&gputop_devinfo);
+    if (devinfo->is_broadwell)
+	return gputop_oa_get_metrics_bdw(&gputop_devinfo);
+    if (devinfo->is_cherryview)
+	return gputop_oa_get_metrics_chv(&gputop_devinfo);
+    if (devinfo->is_skylake) {
+	switch (devinfo->gt) {
+	case 2:
+            return gputop_oa_get_metrics_sklgt2(&gputop_devinfo);
+	case 3:
+	    return gputop_oa_get_metrics_sklgt3(&gputop_devinfo);
+	case 4:
+	    return gputop_oa_get_metrics_sklgt4(&gputop_devinfo);
+	default:
+	    return NULL;
+	}
+    }
+    if (devinfo->is_broxton)
+	return gputop_oa_get_metrics_bxt(&gputop_devinfo);
+    if (devinfo->is_kabylake) {
+	switch (devinfo->gt) {
+	case 2:
+            return gputop_oa_get_metrics_kblgt2(&gputop_devinfo);
+	case 3:
+	    return gputop_oa_get_metrics_kblgt3(&gputop_devinfo);
+	default:
+            return NULL;
+	}
+    }
+    if (devinfo->is_geminilake)
+        return gputop_oa_get_metrics_glk(&gputop_devinfo);
+    if (devinfo->is_coffeelake) {
+	switch (devinfo->gt) {
+	case 2:
+	    return gputop_oa_get_metrics_cflgt2(&gputop_devinfo);
+	case 3:
+	    return gputop_oa_get_metrics_cflgt3(&gputop_devinfo);
+	default:
+	    return NULL;
+	}
+    }
+    if (devinfo->is_cannonlake)
+        return gputop_oa_get_metrics_cnl(&gputop_devinfo);
+    if (devinfo->gen == 11)
+        return gputop_oa_get_metrics_icl(&gputop_devinfo);
+    return NULL;
+}
 
 static struct gputop_counter_group *
 gputop_counter_group_new(struct gputop_gen *gen,

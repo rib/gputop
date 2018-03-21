@@ -214,6 +214,9 @@ struct gputop_gen {
     struct hash_table *metric_sets_map;
 };
 
+/* Free with ralloc_free() */
+struct gputop_gen *gputop_gen_for_devinfo(const struct gen_device_info *devinfo);
+
 struct gputop_gen *gputop_gen_new(void);
 
 void gputop_gen_add_counter(struct gputop_gen *gen,
