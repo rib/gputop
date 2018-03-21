@@ -431,7 +431,7 @@ update_tracepoint(struct gputop_perf_tracepoint *tp,
     if (yyparse(&ctx)) {
         /* Only use i915_gem_request_add or i915_context_create for process
          * correlation. */
-        if (!strcmp(tp->name, "i915/i915_gem_request_add") ||
+        if (!strcmp(tp->name, "i915/i915_request_add") ||
             !strcmp(tp->name, "i915/i915_context_create")) {
             for (int f = 0; f < tp->n_fields; f++) {
                 if (!strcmp(tp->fields[f].name, "common_pid")) {

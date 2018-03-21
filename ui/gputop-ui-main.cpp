@@ -1930,8 +1930,8 @@ display_main_window(struct window *win)
     if (ImGui::Button(buf)) { show_tracepoints_window(); } ImGui::SameLine();
     if (ImGui::Button("Default tracepoints") && ctx->connection) {
         gputop_client_context_add_tracepoint(ctx, "drm/drm_vblank_event");
-        gputop_client_context_add_tracepoint(ctx, "i915/i915_gem_request_add");
-        gputop_client_context_add_tracepoint(ctx, "i915/i915_gem_request_retire");
+        gputop_client_context_add_tracepoint(ctx, "i915/i915_request_add");
+        gputop_client_context_add_tracepoint(ctx, "i915/i915_request_retire");
     }
     display_cpu_stats();
 
