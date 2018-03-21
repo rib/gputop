@@ -41,6 +41,8 @@
 
 #include <i915_drm.h>
 
+#include "gputop-oa-metrics.h"
+
 static bool
 gputop_read_file_uint64(const char *file, uint64_t *value)
 {
@@ -82,14 +84,14 @@ find_intel_render_node(void)
 {
     for (int i = 128; i < (128 + 16); i++) {
 	if (read_device_param("renderD", i, "vendor") == 0x8086)
-	    return i;
+            return i;
     }
 
     return -1;
 }
 
 static int
-open_render_node(void)
+open_render_node(uint32_t *devid)
 {
     char *name;
     int ret;
@@ -101,6 +103,8 @@ open_render_node(void)
 
     ret = asprintf(&name, "/dev/dri/renderD%u", render);
     assert(ret != -1);
+
+    *devid = read_device_param("renderD", render, "device");
 
     fd = open(name, O_RDWR);
     free(name);
@@ -155,6 +159,20 @@ perf_ioctl(int fd, unsigned long request, void *arg)
     return ret;
 }
 
+static const char *
+metric_name(struct gputop_gen *gen, const char *hw_config_guid)
+{
+    struct hash_entry *entry = _mesa_hash_table_search(gen->metric_sets_map,
+                                                       hw_config_guid);
+
+    if (!entry)
+        return "Unknown";
+
+    struct gputop_metric_set *metric_set = entry->data;
+
+    return metric_set->symbol_name;
+}
+
 static void
 usage(void)
 {
@@ -179,6 +197,9 @@ main(int argc, char *argv[])
         {"purge",  no_argument, 0, 'p'},
         {0, 0, 0, 0}
     };
+    struct gputop_gen *gen;
+    struct gen_device_info devinfo;
+    uint32_t devid = 0;
 
     while ((opt = getopt_long(argc, argv, "hlp", long_options, NULL)) != -1) {
         switch (opt) {
@@ -198,8 +219,23 @@ main(int argc, char *argv[])
         }
     }
 
-    drm_fd = open_render_node();
+    drm_fd = open_render_node(&devid);
     drm_card = get_card_for_fd(drm_fd);
+
+    fprintf(stdout, "Found device id=0x%x\n", devid);
+
+    if (!gen_get_device_info(devid, &devinfo)) {
+        fprintf(stderr, "No device info found.\n");
+        return EXIT_FAILURE;
+    }
+
+    fprintf(stdout, "Device gen=%i gt=%i\n", devinfo.gen, devinfo.gt);
+
+    gen = gputop_gen_for_devinfo(&devinfo);
+    if (!gen) {
+        fprintf(stderr, "No metric sets found for device.\n");
+        return EXIT_FAILURE;
+    }
 
     snprintf(metrics_path, sizeof(metrics_path),
              "/sys/class/drm/card%d/metrics", drm_card);
@@ -224,14 +260,14 @@ main(int argc, char *argv[])
 
         if (purge) {
             if (perf_ioctl(drm_fd, DRM_IOCTL_I915_PERF_REMOVE_CONFIG, &metric_id) == 0)
-                fprintf(stdout, "\tRemoved config %s id=%" PRIu64 "\n",
-                        entry->d_name, metric_id);
+                fprintf(stdout, "\tRemoved config %s id=%03" PRIu64 " name=%s\n",
+                        entry->d_name, metric_id, metric_name(gen, entry->d_name));
             else
-                fprintf(stdout, "\tFailed to remove config %s id=%" PRIu64 "\n",
-                        entry->d_name, metric_id);
+                fprintf(stdout, "\tFailed to remove config %s id=%03" PRIu64 " name=%s\n",
+                        entry->d_name, metric_id, metric_name(gen, entry->d_name));
         } else {
-            fprintf(stdout, "\tConfig %s id=%" PRIu64 "\n",
-                    entry->d_name, metric_id);
+            fprintf(stdout, "\tConfig %s id=%03" PRIu64 " name=%s\n",
+                    entry->d_name, metric_id, metric_name(gen, entry->d_name));
         }
     }
 
