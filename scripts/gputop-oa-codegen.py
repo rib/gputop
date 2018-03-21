@@ -602,7 +602,6 @@ class Set:
         for counter in self.counters:
             counter.compute_hashes()
 
-
     @property
     def hw_config_guid(self):
         return self.xml.get('hw_config_guid')
