@@ -614,7 +614,7 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
         get_accumulated_sample(ctx,
                                ctx->current_graph_samples->start_report.chunk,
                                ctx->current_graph_samples->start_report.header,
-                               0);
+                               GPUTOP_OA_INVALID_CTX_ID);
 
     _mesa_hash_table_insert(ctx->hw_contexts_table,
                             (void *)(uintptr_t)hw_id,
@@ -720,7 +720,7 @@ get_accumulated_sample(struct gputop_client_context *ctx,
                                   report);
 
     list_inithead(&samples->link);
-    samples->context = hw_id != 0 ? get_hw_context(ctx, hw_id) : NULL;
+    samples->context = hw_id != GPUTOP_OA_INVALID_CTX_ID ? get_hw_context(ctx, hw_id) : NULL;
     samples->start_report.chunk = ref_i915_perf_chunk(chunk);
     samples->start_report.header = header;
 
@@ -857,11 +857,13 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
 
             if (!ctx->current_graph_samples) {
                 /* Global accumulator */
-                ctx->current_graph_samples = get_accumulated_sample(ctx, chunk, header, 0);
+                ctx->current_graph_samples =
+		  get_accumulated_sample(ctx, chunk, header, GPUTOP_OA_INVALID_CTX_ID);
                 /* Also store an accumulator per context, only accumulated on */
                 list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
                     assert(context->current_graph_samples == NULL);
-                    context->current_graph_samples = get_accumulated_sample(ctx, chunk, header, 0);
+                    context->current_graph_samples =
+		      get_accumulated_sample(ctx, chunk, header, GPUTOP_OA_INVALID_CTX_ID);
                 }
             }
             if (last && ctx->last_hw_id != GPUTOP_OA_INVALID_CTX_ID &&
@@ -1553,6 +1555,11 @@ gputop_client_context_init(struct gputop_client_context *ctx)
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
     ctx->hw_id_to_process_table =
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+
+    _mesa_hash_table_set_deleted_key(ctx->pid_to_process_table, (void *) UINT64_MAX);
+    _mesa_hash_table_set_freed_key(ctx->pid_to_process_table, (void *) UINT64_MAX);
+    _mesa_hash_table_set_deleted_key(ctx->hw_id_to_process_table, (void *) UINT64_MAX);
+    _mesa_hash_table_set_freed_key(ctx->hw_id_to_process_table, (void *) UINT64_MAX);
 
     ctx->i915_perf_config.oa_reports = true;
 }
