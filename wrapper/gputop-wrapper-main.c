@@ -72,7 +72,7 @@ static struct {
     uint32_t n_child_process_args;
     uv_timer_t child_process_timer_handle;
     bool child_exited;
-    uint32_t max_idle_child_time;
+    uint32_t max_idle_child_time_ms;
 
     struct hash_table *process_ids;
 } context;
@@ -230,7 +230,8 @@ static void on_child_process_exit(uv_signal_t* handle, int signum)
     context.child_exited = true;
     uv_timer_init(uv_default_loop(), &context.child_process_timer_handle);
     uv_timer_start(&context.child_process_timer_handle, on_child_timer,
-                   MAX2(context.max_idle_child_time, context.ctx.oa_aggregation_period_ms),
+                   MAX2(context.max_idle_child_time_ms,
+                        context.ctx.oa_aggregation_period_ns / 1000000ULL),
                    0);
 }
 
@@ -262,16 +263,16 @@ static void print_system_info(void)
 
     comment("OA info:\n");
     comment("\tOA Hardware Sampling Exponent: %u\n",
-            gputop_period_to_oa_exponent(&context.ctx, context.ctx.oa_aggregation_period_ms));
+            gputop_period_to_oa_exponent(&context.ctx, context.ctx.oa_aggregation_period_ns));
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                      gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
                                                                      gputop_period_to_oa_exponent(&context.ctx,
-                                                                                                  context.ctx.oa_aggregation_period_ms)),
+                                                                                                  context.ctx.oa_aggregation_period_ns)),
                                      temp, sizeof(temp));
     comment("\tOA Hardware Period: %u ns / %s\n",
             gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
                                             gputop_period_to_oa_exponent(&context.ctx,
-                                                                         context.ctx.oa_aggregation_period_ms)),
+                                                                         context.ctx.oa_aggregation_period_ns)),
             temp);
 }
 
@@ -345,7 +346,7 @@ static void print_metric_colum_names(void)
             if (context.human_units) {
                 gputop_client_context_pretty_print_max(&context.ctx,
                                                        context.metric_columns[i].counter,
-                                                       context.ctx.oa_aggregation_period_ms * 1000000ULL,
+                                                       context.ctx.oa_aggregation_period_ns,
                                                        pretty_max_value, sizeof(pretty_max_value));
             } else {
                 snprintf(pretty_max_value, sizeof(pretty_max_value), "%f",
@@ -666,7 +667,7 @@ int main (int argc, char **argv)
 
     gputop_client_context_init(&context.ctx);
     context.ctx.accumulate_cb = print_columns;
-    context.ctx.oa_aggregation_period_ms = 1000;
+    context.ctx.oa_aggregation_period_ns = 1000000000ULL;
 
     while (!opt_done &&
            (opt = getopt_long(argc, argv, "c:hH:m:Mp:P:-nNO:o:", long_options, NULL)) != -1)
@@ -704,7 +705,7 @@ int main (int argc, char **argv)
             port = atoi(optarg);
             break;
         case 'P':
-            context.ctx.oa_aggregation_period_ms = atof(optarg) * 1000.0f;
+            context.ctx.oa_aggregation_period_ns = atof(optarg) * 1000000000.0f;
             break;
         case 'n':
             context.human_units = false;
@@ -725,7 +726,7 @@ int main (int argc, char **argv)
             }
             break;
         case 'w':
-            context.max_idle_child_time = atof(optarg) * 1000.0f;
+            context.max_idle_child_time_ms = atof(optarg) * 1000.0f;
             break;
         case '-':
             opt_done = true;
@@ -745,8 +746,8 @@ int main (int argc, char **argv)
 
     gputop_connect(host, port, on_ready, on_data, on_close, NULL);
 
-    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_US,
-                                     context.ctx.oa_aggregation_period_ms * 1000.0f,
+    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                     context.ctx.oa_aggregation_period_ns,
                                      temp, sizeof(temp));
     comment("Server: %s:%i\n", host, port);
     comment("Sampling period: %s\n", temp);

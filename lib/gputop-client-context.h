@@ -246,7 +246,7 @@ struct gputop_client_context {
     struct list_head graphs;
     int n_graphs;
     float oa_visible_timeline_s; /* RW */
-    uint32_t oa_aggregation_period_ms; /* RW (when not sampling) */
+    uint64_t oa_aggregation_period_ns; /* RW (when not sampling) */
 
     gputop_accumulate_cb accumulate_cb; /* RW */
 
@@ -319,7 +319,7 @@ gputop_client_context_symbol_to_metric_set(struct gputop_client_context *ctx,
                                            const char *symbol_name);
 
 uint32_t
-gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint32_t period_ms);
+gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint64_t period_ns);
 
 struct gputop_perf_tracepoint *
 gputop_client_context_add_tracepoint(struct gputop_client_context *ctx,

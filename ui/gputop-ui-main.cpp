@@ -386,7 +386,7 @@ display_i915_perf_counters(struct gputop_client_context *ctx,
         char text[100];
         if (ImGui::IsItemHovered()) {
             gputop_client_context_pretty_print_max(ctx, counter,
-                                                   ctx->oa_aggregation_period_ms * 1000000ULL,
+                                                   ctx->oa_aggregation_period_ns,
                                                    text, sizeof(text));
             ImGui::SetTooltip("Maximum : %s", text);
         }
@@ -530,7 +530,7 @@ display_global_i915_perf_window(struct window *win)
     struct i915_perf_window *window = (struct i915_perf_window *) win;
     struct gputop_client_context *ctx = &context.ctx;
     uint32_t max_graphs =
-        (ctx->oa_visible_timeline_s * 1000.0f) / ctx->oa_aggregation_period_ms;
+        (ctx->oa_visible_timeline_s * 1000000000.0f) / ctx->oa_aggregation_period_ns;
 
     bool open_popup = ImGui::Button("Select counters");
     if (open_popup)
@@ -635,7 +635,7 @@ display_contexts_i915_perf_window(struct window *win)
     struct i915_perf_window *window = (struct i915_perf_window *) win;
     struct gputop_client_context *ctx = &context.ctx;
     uint32_t max_graphs =
-        (ctx->oa_visible_timeline_s * 1000.0f) / ctx->oa_aggregation_period_ms;
+        (ctx->oa_visible_timeline_s * 1000000000.0f) / ctx->oa_aggregation_period_ns;
 
     bool open_popup = ImGui::Button("Select contexts");
     if (open_popup)
@@ -1978,9 +1978,9 @@ display_main_window(struct window *win)
         ImGui::TextColored(color, "%s",
                            ctx->metric_set ? ctx->metric_set->name : "No metric set selected");
     }
-    int oa_sampling_period_ms = ctx->oa_aggregation_period_ms;
+    int oa_sampling_period_ms = ctx->oa_aggregation_period_ns / 1000000ULL;
     if (ImGui::InputInt("OA sampling period (ms)", &oa_sampling_period_ms))
-        ctx->oa_aggregation_period_ms = CLAMP(oa_sampling_period_ms, 1, 1000);
+        ctx->oa_aggregation_period_ns = CLAMP(oa_sampling_period_ms, 1, 1000) * 1000000ULL;
     ImGui::SliderFloat("OA visible sampling (s)",
                        &ctx->oa_visible_timeline_s, 0.1f, 15.0f);
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); } ImGui::SameLine();

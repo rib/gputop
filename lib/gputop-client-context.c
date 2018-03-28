@@ -681,7 +681,7 @@ hw_context_record_for_time(struct gputop_client_context *ctx,
 
     /* Remove excess of samples */
     uint32_t max_graphs =
-        (ctx->oa_visible_timeline_s * 1000.0f) / ctx->oa_aggregation_period_ms;
+        (ctx->oa_visible_timeline_s * 1000000000.0f) / ctx->oa_aggregation_period_ns;
     while (context->n_graphs > max_graphs) {
         struct gputop_accumulated_samples *ex_samples =
             list_first_entry(&context->graphs, struct gputop_accumulated_samples, link);
@@ -716,7 +716,7 @@ get_accumulated_sample(struct gputop_client_context *ctx,
                                   &ctx->devinfo,
                                   ctx->metric_set,
                                   false,
-                                  ctx->oa_aggregation_period_ms * 1000000,
+                                  ctx->oa_aggregation_period_ns,
                                   report);
 
     list_inithead(&samples->link);
@@ -781,7 +781,7 @@ i915_perf_record_for_time(struct gputop_client_context *ctx,
 
     /* Remove excess of samples */
     uint32_t max_graphs =
-        (ctx->oa_visible_timeline_s * 1000.0f) / ctx->oa_aggregation_period_ms;
+        (ctx->oa_visible_timeline_s * 1000000000.0f) / ctx->oa_aggregation_period_ns;
     while (ctx->n_graphs > max_graphs) {
         struct gputop_accumulated_samples *ex_samples =
             list_first_entry(&ctx->graphs, struct gputop_accumulated_samples, link);
@@ -886,7 +886,7 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
                             accumulator->last_timestamp - accumulator->first_timestamp;
 
                         if (ctx->last_hw_id != hw_id ||
-                            elapsed > (ctx->oa_aggregation_period_ms * 1000000ULL)) {
+                            elapsed > (ctx->oa_aggregation_period_ns)) {
                             i915_perf_record_for_hw_id(ctx, chunk, header);
                         }
                     }
@@ -904,7 +904,7 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
                     uint64_t elapsed =
                         accumulator->last_timestamp - accumulator->first_timestamp;
 
-                    if (elapsed > (ctx->oa_aggregation_period_ms * 1000000ULL)) {
+                    if (elapsed > (ctx->oa_aggregation_period_ns)) {
                         i915_perf_record_for_time(ctx, chunk, header);
                         if (ctx->accumulate_cb)
                             ctx->accumulate_cb(ctx, NULL);
@@ -1086,12 +1086,12 @@ register_platform_metrics(struct gputop_client_context *ctx,
 /**/
 
 uint32_t
-gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint32_t period_ms)
+gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint64_t period_ns)
 {
     for (int i = 0; i < 30; i++) {
         uint64_t oa_period = gputop_oa_exponent_to_period_ns(&ctx->devinfo, i);
 
-        if ((oa_period / 1000000) > period_ms)
+        if (oa_period > period_ns)
             return MAX2(0, i - 1);
     }
 
@@ -1118,7 +1118,7 @@ open_i915_perf_stream(struct gputop_client_context *ctx)
     Gputop__OAStreamInfo oa_stream = GPUTOP__OASTREAM_INFO__INIT;
     oa_stream.uuid = (char *) ctx->metric_set->hw_config_guid;
     oa_stream.period_exponent =
-        gputop_period_to_oa_exponent(ctx, ctx->oa_aggregation_period_ms);
+        gputop_period_to_oa_exponent(ctx, ctx->oa_aggregation_period_ns);
     oa_stream.per_ctx_mode = false;
     oa_stream.cpu_timestamps = ctx->i915_perf_config.cpu_timestamps;
     oa_stream.gpu_timestamps = ctx->i915_perf_config.gpu_timestamps;
@@ -1528,7 +1528,7 @@ gputop_client_context_init(struct gputop_client_context *ctx)
     ctx->cpu_stats_sampling_period_ms = 100;
 
     ctx->oa_visible_timeline_s = 7.0f;
-    ctx->oa_aggregation_period_ms = 50;
+    ctx->oa_aggregation_period_ns = 50000000ULL;
 
     list_inithead(&ctx->streams);
 
