@@ -1588,6 +1588,7 @@ gputop_client_context_reset(struct gputop_client_context *ctx,
 
     ralloc_free(ctx->gen_metrics);
     ctx->gen_metrics = NULL;
+    ctx->metric_set = NULL;
 
     assert(list_length(&ctx->hw_contexts) == 0);
     assert(list_length(&ctx->streams) == 0);
