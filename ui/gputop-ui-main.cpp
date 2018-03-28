@@ -1874,6 +1874,36 @@ maybe_restart_sampling(struct gputop_client_context *ctx)
     }
 }
 
+static bool
+select_oa_exponent(const struct gputop_devinfo *devinfo, uint64_t *ns)
+{
+    bool open_popup = ImGui::Button("OA exponents");
+    if (open_popup)
+        ImGui::OpenPopup("oa exponent picker");
+    ImGui::SetNextWindowSize(ImVec2(200, 400));
+
+    bool selected = false;
+    if (ImGui::BeginPopup("oa exponent picker")) {
+        for (uint32_t e = 1; e < 32; e++) {
+            uint64_t duration_ns = gputop_oa_exponent_to_period_ns(devinfo, e);
+            char pretty_duration[200];
+            gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                             duration_ns,
+                                             pretty_duration, sizeof(pretty_duration));
+
+            if (ImGui::Selectable(pretty_duration)) {
+                ImGui::CloseCurrentPopup();
+                *ns = duration_ns;
+                selected = true;
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return selected;
+}
+
 static void
 display_main_window(struct window *win)
 {
@@ -1981,6 +2011,9 @@ display_main_window(struct window *win)
     int oa_sampling_period_ms = ctx->oa_aggregation_period_ns / 1000000ULL;
     if (ImGui::InputInt("OA sampling period (ms)", &oa_sampling_period_ms))
         ctx->oa_aggregation_period_ns = CLAMP(oa_sampling_period_ms, 1, 1000) * 1000000ULL;
+    uint64_t oa_sampling_period_ns = 0ULL;
+    if (select_oa_exponent(&ctx->devinfo, &oa_sampling_period_ns))
+        ctx->oa_aggregation_period_ns = oa_sampling_period_ns;
     ImGui::SliderFloat("OA visible sampling (s)",
                        &ctx->oa_visible_timeline_s, 0.1f, 15.0f);
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); } ImGui::SameLine();
