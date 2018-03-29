@@ -1490,7 +1490,10 @@ i915_perf_empty_samples(struct gputop_client_context *ctx)
     }
     ctx->last_header = NULL;
 
-    ctx->last_oa_timestamp = 0;
+    /* Make sure to leave some room for the UI to present timelines sliding
+     * from the right hand side of the timeline view.
+     */
+    ctx->last_oa_timestamp = ctx->oa_visible_timeline_s * 1000000000ULL;
 
     assert(list_empty(&ctx->i915_perf_chunks));
 }
