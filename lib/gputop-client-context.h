@@ -84,7 +84,9 @@ struct gputop_accumulated_samples {
     struct list_head link;
     struct gputop_hw_context *context;
 
-    /* Correlated in CPU clock */
+    /* Correlated in CPU clock if available or OA timestamp scaled into
+     * nanoseconds.
+     */
     uint64_t timestamp_start;
     uint64_t timestamp_end;
 
