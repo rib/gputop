@@ -183,6 +183,21 @@ enum gputop_i915_perf_field {
     GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP,
 };
 
+static inline uint64_t
+gputop_i915_perf_report_size(const struct gputop_i915_perf_configuration *config)
+{
+    uint64_t size = sizeof(struct drm_i915_perf_record_header);
+
+    if (config->oa_reports)
+        size += 256ULL; /* Default OA report size */
+    if (config->gpu_timestamps)
+        size += sizeof(uint64_t);
+    if (config->cpu_timestamps)
+        size += sizeof(uint64_t);
+
+    return size;
+}
+
 static inline const void *
 gputop_i915_perf_report_field(const struct gputop_i915_perf_configuration *config,
                               const struct drm_i915_perf_record_header *header,

@@ -1526,7 +1526,8 @@ gputop_client_context_init(struct gputop_client_context *ctx)
     ctx->cpu_stats_sampling_period_ms = 100;
 
     ctx->oa_visible_timeline_s = 7.0f;
-    ctx->oa_aggregation_period_ns = 50000000ULL;
+    ctx->oa_aggregation_period_ns = 50000000ULL; /* 50ms */
+    ctx->oa_sampling_period_ns = 1000000ULL; /* 1ms */
 
     list_inithead(&ctx->streams);
 

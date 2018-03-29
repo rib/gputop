@@ -249,6 +249,7 @@ struct gputop_client_context {
     int n_graphs;
     float oa_visible_timeline_s; /* RW */
     uint64_t oa_aggregation_period_ns; /* RW (when not sampling) */
+    uint64_t oa_sampling_period_ns; /* RW (when not sampling), always <= oa_aggregation_period_ns */
 
     gputop_accumulate_cb accumulate_cb; /* RW */
 

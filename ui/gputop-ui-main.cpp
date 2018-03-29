@@ -2013,7 +2013,19 @@ display_main_window(struct window *win)
         ctx->oa_aggregation_period_ns = CLAMP(oa_sampling_period_ms, 1, 1000) * 1000000ULL;
     uint64_t oa_sampling_period_ns = 0ULL;
     if (select_oa_exponent(&ctx->devinfo, &oa_sampling_period_ns))
-        ctx->oa_aggregation_period_ns = oa_sampling_period_ns;
+        ctx->oa_sampling_period_ns = oa_sampling_period_ns;
+    ImGui::SameLine();
+    char pretty_bandwidth[20];
+    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_BYTES,
+                                     gputop_i915_perf_report_size(&ctx->i915_perf_config) *
+                                     (1000000000ULL / ctx->oa_sampling_period_ns),
+                                     pretty_bandwidth, sizeof(pretty_bandwidth));
+    char pretty_sampling[20];
+    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                     ctx->oa_sampling_period_ns,
+                                     pretty_sampling, sizeof(pretty_sampling));
+    ImGui::Text("OA sampling at %s, bandwidth from server: %s/s",
+                pretty_sampling, pretty_bandwidth);
     ImGui::SliderFloat("OA visible sampling (s)",
                        &ctx->oa_visible_timeline_s, 0.1f, 15.0f);
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); } ImGui::SameLine();
