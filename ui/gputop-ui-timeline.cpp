@@ -127,6 +127,9 @@ void BeginTimeline(const char *label, int rows, int events, uint64_t length, ImV
     if (!ItemAdd(total_bb, timeline_id))
         return;
 
+    window->DrawList->AddRect(frame_bb.GetTL(), frame_bb.GetBR(),
+                              GetColorU32(ImGuiCol_FrameBgActive));
+
     timeline_inner_bb = inner_bb;
     timeline_frame_bb = frame_bb;
     timeline_row_height = inner_bb.GetHeight() / rows;
