@@ -320,9 +320,6 @@ const struct gputop_metric_set *
 gputop_client_context_symbol_to_metric_set(struct gputop_client_context *ctx,
                                            const char *symbol_name);
 
-uint32_t
-gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint64_t period_ns);
-
 struct gputop_perf_tracepoint *
 gputop_client_context_add_tracepoint(struct gputop_client_context *ctx,
                                      const char *name);

@@ -41,6 +41,20 @@
 #include "gputop-log.h"
 #endif
 
+uint32_t
+gputop_time_to_oa_exponent(struct gputop_devinfo *devinfo, uint64_t period_ns)
+{
+    for (int i = 0; i < 30; i++) {
+        uint64_t oa_period = gputop_oa_exponent_to_period_ns(devinfo, i);
+
+        if (oa_period > period_ns)
+            return MAX2(0, i - 1);
+    }
+
+    unreachable("Period out of range");
+    return 0;
+}
+
 void
 gputop_u32_clock_init(struct gputop_u32_clock *clock,
                       const struct gputop_devinfo *devinfo,

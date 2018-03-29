@@ -1085,20 +1085,6 @@ register_platform_metrics(struct gputop_client_context *ctx,
 
 /**/
 
-uint32_t
-gputop_period_to_oa_exponent(struct gputop_client_context *ctx, uint64_t period_ns)
-{
-    for (int i = 0; i < 30; i++) {
-        uint64_t oa_period = gputop_oa_exponent_to_period_ns(&ctx->devinfo, i);
-
-        if (oa_period > period_ns)
-            return MAX2(0, i - 1);
-    }
-
-    unreachable("Period out of range");
-    return 0;
-}
-
 static void
 close_i915_perf_stream(struct gputop_client_context *ctx)
 {
@@ -1115,10 +1101,19 @@ open_i915_perf_stream(struct gputop_client_context *ctx)
 
     i915_perf_empty_samples(ctx);
 
+    if (ctx->oa_sampling_period_ns > ctx->oa_aggregation_period_ns) {
+        ctx->oa_sampling_period_ns =
+            gputop_oa_exponent_to_period_ns(
+                &ctx->devinfo,
+                gputop_time_to_oa_exponent(
+                    &ctx->devinfo,
+                    ctx->oa_aggregation_period_ns));
+    }
+
     Gputop__OAStreamInfo oa_stream = GPUTOP__OASTREAM_INFO__INIT;
     oa_stream.uuid = (char *) ctx->metric_set->hw_config_guid;
     oa_stream.period_exponent =
-        gputop_period_to_oa_exponent(ctx, ctx->oa_aggregation_period_ns);
+        gputop_time_to_oa_exponent(&ctx->devinfo, ctx->oa_sampling_period_ns);
     oa_stream.per_ctx_mode = false;
     oa_stream.cpu_timestamps = ctx->i915_perf_config.cpu_timestamps;
     oa_stream.gpu_timestamps = ctx->i915_perf_config.gpu_timestamps;

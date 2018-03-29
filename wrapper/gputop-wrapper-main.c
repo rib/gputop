@@ -263,16 +263,16 @@ static void print_system_info(void)
 
     comment("OA info:\n");
     comment("\tOA Hardware Sampling Exponent: %u\n",
-            gputop_period_to_oa_exponent(&context.ctx, context.ctx.oa_aggregation_period_ns));
+            gputop_time_to_oa_exponent(&context.ctx.devinfo, context.ctx.oa_aggregation_period_ns));
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                      gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
-                                                                     gputop_period_to_oa_exponent(&context.ctx,
-                                                                                                  context.ctx.oa_aggregation_period_ns)),
+                                                                     gputop_time_to_oa_exponent(&context.ctx.devinfo,
+                                                                                                context.ctx.oa_aggregation_period_ns)),
                                      temp, sizeof(temp));
     comment("\tOA Hardware Period: %u ns / %s\n",
             gputop_oa_exponent_to_period_ns(&context.ctx.devinfo,
-                                            gputop_period_to_oa_exponent(&context.ctx,
-                                                                         context.ctx.oa_aggregation_period_ns)),
+                                            gputop_time_to_oa_exponent(&context.ctx.devinfo,
+                                                                       context.ctx.oa_aggregation_period_ns)),
             temp);
 }
 

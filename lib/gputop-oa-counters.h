@@ -111,6 +111,8 @@ gputop_oa_exponent_to_period_ns(const struct gputop_devinfo *devinfo, uint32_t e
     return ((2ULL << exponent) * 1000000000ULL) / devinfo->timestamp_frequency;
 }
 
+uint32_t gputop_time_to_oa_exponent(struct gputop_devinfo *devinfo, uint64_t period_ns);
+
 static inline bool
 gputop_cc_oa_report_ctx_is_valid(const struct gputop_devinfo *devinfo,
                                  const uint8_t *_report)
