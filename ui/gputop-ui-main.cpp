@@ -742,66 +742,51 @@ display_accumulated_reports(struct gputop_client_context *ctx,
                             struct gputop_accumulated_samples *samples,
                             bool default_opened)
 {
-    struct gputop_i915_perf_chunk *chunk = samples->start_report.chunk;
-    const struct drm_i915_perf_record_header *header =
-        (const struct drm_i915_perf_record_header *) samples->start_report.header;
-    const ImGuiTreeNodeFlags flags = default_opened ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+    struct gputop_report_iterator iter;
 
+    ImGui::BeginChild("##reports");
+
+    gputop_report_iterator_init(&iter, samples);
     do {
-        while ((const uint8_t *) header < (chunk->data + chunk->length)) {
-            switch (header->type) {
-            case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
-                ImGui::Text("OA buffer lost");
-                break;
-            case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-                ImGui::Text("OA report lost");
-                break;
+        switch (iter.header->type) {
+        case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+            ImGui::Text("OA buffer lost");
+            break;
+        case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+            ImGui::Text("OA report lost");
+            break;
 
-            case DRM_I915_PERF_RECORD_SAMPLE: {
-                const uint64_t *cpu_timestamp = (const uint64_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
-                                                  GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
-                const uint64_t *gpu_timestamp = (const uint64_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
-                                                  GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
-                const uint8_t *report = (const uint8_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
-                                                  GPUTOP_I915_PERF_FIELD_OA_REPORT);
+        case DRM_I915_PERF_RECORD_SAMPLE: {
+            const uint64_t *cpu_timestamp = (const uint64_t *)
+                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                                              GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
+            const uint64_t *gpu_timestamp = (const uint64_t *)
+                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                                              GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
+            const uint8_t *report = (const uint8_t *)
+                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                                              GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
-                if (ImGui::TreeNodeEx(report, flags,
-                                      "rcs=%08" PRIx64 "(%" PRIx64 " scaled) rcs64=%016" PRIx64 " cpu=%" PRIx64,
-                                      gputop_cc_oa_report_get_timestamp(report),
-                                      gputop_timebase_scale_ns(&ctx->devinfo,
-                                                               gputop_cc_oa_report_get_timestamp(report)),
-                                      gpu_timestamp ? *gpu_timestamp : 0UL,
-                                      cpu_timestamp ? *cpu_timestamp : 0UL)) {
-                    /* Display report fields */
-                    ImGui::Text("id=0x%x reason=%s",
-                                gputop_cc_oa_report_get_ctx_id(&ctx->devinfo, report),
-                                gputop_cc_oa_report_get_reason(&ctx->devinfo, report));
-                    ImGui::TreePop();
-                }
-                break;
-            }
-
-            default:
-                gputop_cr_console_log("i915 perf: Spurious header type = %d", header->type);
-                break;
-            }
-
-            if (header == samples->end_report.header)
-                break;
-
-            header = (const struct drm_i915_perf_record_header *) (((const uint8_t *)header) + header->size);
+            ImGui::Text("rcs=%08" PRIx64 "(%" PRIx64 " scaled) rcs64=%016" PRIx64
+                        " cpu=%" PRIx64 " id=0x%x reason=%s",
+                        gputop_cc_oa_report_get_timestamp(report),
+                        gputop_timebase_scale_ns(&ctx->devinfo,
+                                                 gputop_cc_oa_report_get_timestamp(report)),
+                        gpu_timestamp ? *gpu_timestamp : 0UL,
+                        cpu_timestamp ? *cpu_timestamp : 0UL,
+                        gputop_cc_oa_report_get_ctx_id(&ctx->devinfo, report),
+                        gputop_cc_oa_report_get_reason(&ctx->devinfo, report));
+            break;
         }
 
-        if (samples->end_report.chunk &&
-            samples->start_report.chunk != samples->end_report.chunk) {
-            chunk = list_first_entry(&chunk->link, struct gputop_i915_perf_chunk, link);
-            header = (const struct drm_i915_perf_record_header *) chunk->data;
-        } else
-            chunk = samples->end_report.chunk;
-    } while (chunk != samples->end_report.chunk);
+        default:
+            ImGui::Text("i915 perf: Spurious header type = %d", iter.header->type);
+            iter.done = true;
+            break;
+        }
+    } while (gputop_report_iterator_next(&iter));
+
+    ImGui::EndChild();
 }
 
 static void
