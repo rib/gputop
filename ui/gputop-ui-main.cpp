@@ -92,7 +92,10 @@ struct timeline_window {
     struct window base;
 
     uint64_t zoom_start, zoom_length;
-    struct gputop_accumulated_samples selected_samples;
+
+    struct gputop_accumulated_samples selected_sample;
+    uint32_t n_accumulated_reports;
+    float *accumulated_values;
     struct gputop_hw_context selected_context;
 
     struct gputop_perf_tracepoint tracepoint;
@@ -1084,6 +1087,81 @@ timeline_focus_on_first_sample(struct timeline_window *window,
 }
 
 static void
+update_timeline_selected_reports(struct timeline_window *window,
+                                 struct gputop_client_context *ctx,
+                                 struct gputop_accumulated_samples *sample)
+{
+    if (window->selected_sample.start_report.header == sample->start_report.header)
+        return;
+
+    memcpy(&window->selected_sample, sample, sizeof(window->selected_sample));
+    memcpy(&window->selected_context, sample->context, sizeof(window->selected_context));
+
+    struct gputop_report_iterator iter;
+    int n_reports = 0;
+    gputop_report_iterator_init(&iter, sample);
+    while (gputop_report_iterator_next(&iter)) {
+        if (iter.header->type == DRM_I915_PERF_RECORD_SAMPLE)
+            n_reports++;
+    }
+
+    int n_counters = ctx->metric_set->n_counters;
+
+    free(window->accumulated_values);
+    window->accumulated_values = (float *)
+        calloc(n_reports * n_counters, sizeof(float));
+    window->n_accumulated_reports = n_reports;
+
+    const uint8_t *last_report = NULL;
+    int i = 0;
+    gputop_report_iterator_init(&iter, sample);
+    do {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        const uint8_t *report = (const uint8_t *)
+            gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                                          GPUTOP_I915_PERF_FIELD_OA_REPORT);
+        if (!last_report) {
+            last_report = report;
+            continue;
+        }
+
+        struct gputop_cc_oa_accumulator accumulator;
+        gputop_cc_oa_accumulator_init(&accumulator,
+                                      &ctx->devinfo, ctx->metric_set,
+                                      false, 0, NULL);
+        gputop_cc_oa_accumulate_reports(&accumulator, last_report, report);
+
+        for (int c = 0; c < n_counters; c++) {
+            struct gputop_metric_set_counter *counter =
+                &ctx->metric_set->counters[c];
+
+            float *value = &window->accumulated_values[c * n_reports + i];
+
+            switch (counter->data_type) {
+            case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
+            case GPUTOP_PERFQUERY_COUNTER_DATA_UINT32:
+            case GPUTOP_PERFQUERY_COUNTER_DATA_BOOL32:
+                *value = counter->oa_counter_read_uint64(&ctx->devinfo,
+                                                         ctx->metric_set,
+                                                         accumulator.deltas);
+                break;
+            case GPUTOP_PERFQUERY_COUNTER_DATA_DOUBLE:
+            case GPUTOP_PERFQUERY_COUNTER_DATA_FLOAT:
+                *value = counter->oa_counter_read_float(&ctx->devinfo,
+                                                        ctx->metric_set,
+                                                        accumulator.deltas);
+                break;
+            }
+        }
+
+        i++;
+        last_report = report;
+    } while (gputop_report_iterator_next(&iter));
+}
+
+static void
 display_timeline_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
@@ -1164,9 +1242,7 @@ display_timeline_window(struct window *win)
         if (Gputop::TimelineItem(samples->context->timeline_row,
                                  MAX2(samples->timestamp_start, start_ts) - start_ts,
                                  samples->timestamp_end - start_ts, false)) {
-            memcpy(&window->selected_samples, samples, sizeof(window->selected_samples));
-            memcpy(&window->selected_context, samples->context,
-                   sizeof(window->selected_context));
+            update_timeline_selected_reports(window, ctx, samples);
 
             char pretty_time[20];
             gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
@@ -1283,7 +1359,7 @@ display_timeline_counters(struct window *win)
     filter.Draw();
 
     ImGui::BeginChild("##counters");
-    display_i915_perf_counters(ctx, &filter, &window->selected_samples, false);
+    display_i915_perf_counters(ctx, &filter, &window->selected_sample, false);
     ImGui::EndChild();
 }
 
@@ -1333,11 +1409,31 @@ display_timeline_reports(struct window *win)
       (struct timeline_window *) container_of(win, window, reports_window);
     struct gputop_client_context *ctx = &context.ctx;
 
-    if (ctx->is_sampling)
+    if (ctx->is_sampling || !ctx->metric_set)
         return;
 
-    if (window->selected_samples.start_report.chunk)
-      display_accumulated_reports(ctx, &window->selected_samples, true);
+    int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
+    ImGui::ColorButton("##selected_context",
+                       Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
+                       ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip); ImGui::SameLine();
+    ImGui::Text("%s", window->selected_context.name); ImGui::SameLine();
+    static ImGuiTextFilter filter;
+    filter.Draw();
+
+    ImGui::BeginChild("##reports");
+
+    for (int c = 0; c < ctx->metric_set->n_counters; c++) {
+        struct gputop_metric_set_counter *counter =
+            &ctx->metric_set->counters[c];
+
+        if (filter.PassFilter(counter->name)) {
+            float *values = &window->accumulated_values[c * window->n_accumulated_reports];
+
+            ImGui::PlotHistogram(counter->name, values, window->n_accumulated_reports);
+        }
+    }
+
+    ImGui::EndChild();
 }
 
 static void
