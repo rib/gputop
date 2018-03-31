@@ -336,6 +336,53 @@ double gputop_client_context_read_counter_value(struct gputop_client_context *ct
                                                 struct gputop_accumulated_samples *sample,
                                                 const struct gputop_metric_set_counter *counter);
 
+/* Iterator for reports accumulated into gputop_accumulated_samples. */
+struct gputop_report_iterator {
+    const struct gputop_accumulated_samples *sample;
+    const struct gputop_i915_perf_chunk *chunk;
+    const struct drm_i915_perf_record_header *header;
+    bool done;
+};
+
+static inline void
+gputop_report_iterator_init(struct gputop_report_iterator *iter,
+                            const struct gputop_accumulated_samples *sample)
+{
+    iter->sample = sample;
+    iter->chunk = sample->start_report.chunk;
+    iter->header = sample->start_report.header;
+    iter->done = false;
+}
+
+static inline bool
+gputop_report_iterator_next(struct gputop_report_iterator *iter)
+{
+    if (iter->done)
+        return false;
+
+    const struct drm_i915_perf_record_header *new_header =
+        (const struct drm_i915_perf_record_header *)
+        ((const uint8_t *) iter->header + iter->header->size);
+
+    if ((const uint8_t *) new_header < (iter->chunk->data + iter->chunk->length)) {
+        iter->header = new_header;
+        iter->done = iter->header == iter->sample->end_report.header;
+        return true;
+    }
+
+    if (!iter->sample->end_report.chunk ||
+        iter->sample->start_report.chunk == iter->sample->end_report.chunk) {
+        iter->done = true;
+        return false;
+    }
+
+    iter->chunk = list_first_entry(&iter->chunk->link, struct gputop_i915_perf_chunk, link);
+    iter->header = (const struct drm_i915_perf_record_header *) iter->chunk->data;
+    iter->done = iter->header == iter->sample->end_report.header;
+
+    return true;
+}
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
