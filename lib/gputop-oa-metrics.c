@@ -125,7 +125,7 @@ gputop_gen_add_counter(struct gputop_gen *gen,
                        struct gputop_metric_set_counter *counter,
                        const char *group_path)
 {
-    char group_name[128];
+    char group_name[128] = { 0, };
     struct gputop_counter_group *group = gen->root_group;
     const char *name = group_path, *name_end;
 
