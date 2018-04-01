@@ -33,8 +33,7 @@
 #include "util/macros.h"
 
 using namespace ImGui;
-
-namespace Gputop {
+using namespace Gputop;
 
 static bool IsHovered(const ImRect& box)
 {
@@ -159,10 +158,10 @@ static bool DrawSlice(ImGuiWindow* window,
     return false;
 }
 
-void RcsTopology(const char *label,
-                 int s_max, int ss_max, int eu_max,
-                 const uint8_t *s_mask, const uint8_t *ss_mask, const uint8_t *eus_mask,
-                 float width)
+void Gputop::RcsTopology(const char *label,
+                         int s_max, int ss_max, int eu_max,
+                         const uint8_t *s_mask, const uint8_t *ss_mask, const uint8_t *eus_mask,
+                         float width)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -203,10 +202,10 @@ void RcsTopology(const char *label,
     }
 }
 
-void EngineTopology(const char *label,
-                    uint32_t n_engines, const uint32_t *engines,
-                    const char **names,
-                    float width)
+void Gputop::EngineTopology(const char *label,
+                            uint32_t n_engines, const uint32_t *engines,
+                            const char **names,
+                            float width)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -263,5 +262,3 @@ void EngineTopology(const char *label,
         class_box.Translate(ImVec2(class_box.GetWidth(), 0));
     }
 }
-
-} // namespace Gputop

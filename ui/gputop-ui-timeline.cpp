@@ -35,8 +35,7 @@
 #include "util/macros.h"
 
 using namespace ImGui;
-
-namespace Gputop {
+using namespace Gputop;
 
 static int timeline_n_events = 1;
 static int timeline_n_rows = 1;
@@ -100,7 +99,9 @@ DragBehavior(const ImRect& frame_bb, ImGuiID id, ImVec2* v)
     return in_drag;
 }
 
-void BeginTimeline(const char *label, int rows, int events, uint64_t length, ImVec2 timeline_size)
+void Gputop::BeginTimeline(const char *label,
+                           int rows, int events,
+                           uint64_t length, ImVec2 timeline_size)
 {
     timeline_length = length;
 
@@ -140,7 +141,7 @@ void BeginTimeline(const char *label, int rows, int events, uint64_t length, ImV
     timeline_last_item_pos = -1.0f;
 }
 
-bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
+bool Gputop::TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
 {
     ImColor color(GetHueColor(row, timeline_n_rows));
 
@@ -169,7 +170,7 @@ bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
     return hovered;
 }
 
-bool TimelineEvent(int event, uint64_t time, bool selected)
+bool Gputop::TimelineEvent(int event, uint64_t time, bool selected)
 {
     ImColor color(GetHueColor(event, timeline_n_events));
 
@@ -264,9 +265,9 @@ static uint64_t NextLength(uint64_t value)
     return 0;
 }
 
-bool EndTimeline(const char **units, int n_units,
-                 const char **row_labels,
-                 int64_t *zoom_start, uint64_t *zoom_end)
+bool Gputop::EndTimeline(const char **units, int n_units,
+                         const char **row_labels,
+                         int64_t *zoom_start, uint64_t *zoom_end)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -441,5 +442,3 @@ bool EndTimeline(const char **units, int n_units,
 
     return zoom_changed;
 }
-
-} // namespace Gputop

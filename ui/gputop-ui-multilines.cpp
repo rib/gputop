@@ -27,12 +27,11 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "gputop-ui-topology.h"
+#include "gputop-ui-multilines.h"
 #include "gputop-ui-utils.h"
 
 using namespace ImGui;
-
-namespace Gputop {
+using namespace Gputop;
 
 static void PlotMultilinesEx(const char* label,
                              float (*values_getter)(void* data, int line, int idx), void* data,
@@ -150,15 +149,13 @@ static void PlotMultilinesEx(const char* label,
         RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
 }
 
-void PlotMultilines(const char* label,
-                    float (*values_getter)(void* data, int line, int idx), void* data,
-                    int lines, int values_count, int values_offset,
-                    const ImColor *colors,
-                    const char* overlay_text,
-                    float scale_min, float scale_max, ImVec2 graph_size)
+void Gputop::PlotMultilines(const char* label,
+                            float (*values_getter)(void* data, int line, int idx), void* data,
+                            int lines, int values_count, int values_offset,
+                            const ImColor *colors,
+                            const char* overlay_text,
+                            float scale_min, float scale_max, ImVec2 graph_size)
 {
     PlotMultilinesEx(label, values_getter, data, lines, values_count, values_offset,
                      colors, overlay_text, scale_min, scale_max, graph_size);
 }
-
-} // namespace Gputop

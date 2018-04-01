@@ -27,16 +27,15 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "gputop-ui-topology.h"
+#include "gputop-ui-piechart.h"
 #include "gputop-ui-utils.h"
 
 #include <math.h>
 
 using namespace ImGui;
+using namespace Gputop;
 
-namespace Gputop {
-
-bool in_circle(const ImVec2& center, float radius, const ImVec2& mouse)
+static bool in_circle(const ImVec2& center, float radius, const ImVec2& mouse)
 {
     const double a = mouse.x - center.x, b = mouse.y - center.y;
     return sqrt(a * a + b * b) <= radius;
@@ -49,7 +48,7 @@ static float pie_accumulated_pos = 0.0f;
 static int pie_i_value = 0;
 static int pie_n_values = 1;
 
-void BeginPieChart(int n_values, ImVec2 graph_size)
+void Gputop::BeginPieChart(int n_values, ImVec2 graph_size)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -98,7 +97,7 @@ void BeginPieChart(int n_values, ImVec2 graph_size)
         pie_focus_pos = -1.0f;
 }
 
-bool PieChartItem(float value)
+bool Gputop::PieChartItem(float value)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -128,11 +127,9 @@ bool PieChartItem(float value)
 }
 
 
-void EndPieChart()
+void Gputop::EndPieChart()
 {
     pie_i_value = 0;
     pie_n_values = 0;
     pie_accumulated_pos = 0.0f;
 }
-
-} // namespace Gputop
