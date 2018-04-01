@@ -349,8 +349,8 @@ gputop_report_iterator_init(struct gputop_report_iterator *iter,
                             const struct gputop_accumulated_samples *sample)
 {
     iter->sample = sample;
-    iter->chunk = sample->start_report.chunk;
-    iter->header = sample->start_report.header;
+    iter->chunk = NULL;
+    iter->header = NULL;
     iter->done = false;
 }
 
@@ -359,6 +359,12 @@ gputop_report_iterator_next(struct gputop_report_iterator *iter)
 {
     if (iter->done)
         return false;
+
+    if (!iter->header) {
+        iter->chunk = iter->sample->start_report.chunk;
+        iter->header = iter->sample->start_report.header;
+        return true;
+    }
 
     const struct drm_i915_perf_record_header *new_header =
         (const struct drm_i915_perf_record_header *)

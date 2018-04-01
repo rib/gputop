@@ -750,7 +750,7 @@ display_accumulated_reports(struct gputop_client_context *ctx,
     ImGui::BeginChild("##reports");
 
     gputop_report_iterator_init(&iter, samples);
-    do {
+    while (gputop_report_iterator_next(&iter)) {
         switch (iter.header->type) {
         case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
             ImGui::Text("OA buffer lost");
@@ -787,7 +787,7 @@ display_accumulated_reports(struct gputop_client_context *ctx,
             iter.done = true;
             break;
         }
-    } while (gputop_report_iterator_next(&iter));
+    }
 
     ImGui::EndChild();
 }
@@ -1105,17 +1105,20 @@ update_timeline_selected_reports(struct timeline_window *window,
             n_reports++;
     }
 
+    assert(n_reports > 1);
+    int n_accumulated_reports = n_reports - 1;
+
     int n_counters = ctx->metric_set->n_counters;
 
     free(window->accumulated_values);
     window->accumulated_values = (float *)
-        calloc(n_reports * n_counters, sizeof(float));
-    window->n_accumulated_reports = n_reports;
+        calloc(n_accumulated_reports * n_counters, sizeof(float));
+    window->n_accumulated_reports = n_accumulated_reports;
 
     const uint8_t *last_report = NULL;
     int i = 0;
     gputop_report_iterator_init(&iter, sample);
-    do {
+    while (gputop_report_iterator_next(&iter)) {
         if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
             continue;
 
@@ -1137,7 +1140,7 @@ update_timeline_selected_reports(struct timeline_window *window,
             struct gputop_metric_set_counter *counter =
                 &ctx->metric_set->counters[c];
 
-            float *value = &window->accumulated_values[c * n_reports + i];
+            float *value = &window->accumulated_values[c * n_accumulated_reports + i];
 
             switch (counter->data_type) {
             case GPUTOP_PERFQUERY_COUNTER_DATA_UINT64:
@@ -1158,7 +1161,7 @@ update_timeline_selected_reports(struct timeline_window *window,
 
         i++;
         last_report = report;
-    } while (gputop_report_iterator_next(&iter));
+    }
 }
 
 static void
