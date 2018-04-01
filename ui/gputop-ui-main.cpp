@@ -1419,7 +1419,9 @@ display_timeline_reports(struct window *win)
     ImGui::ColorButton("##selected_context",
                        Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip); ImGui::SameLine();
-    ImGui::Text("%s", window->selected_context.name); ImGui::SameLine();
+    ImGui::Text("%s: %u reports",
+                window->selected_context.name,
+                window->n_accumulated_reports); ImGui::SameLine();
     static ImGuiTextFilter filter;
     filter.Draw();
 
