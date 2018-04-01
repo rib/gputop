@@ -10,6 +10,7 @@ ui_src = [
   'gputop-ui-main.cpp',
   'gputop-ui-multilines.cpp',
   'gputop-ui-piechart.cpp',
+  'gputop-ui-plots.cpp',
   'gputop-ui-timeline.cpp',
   'gputop-ui-topology.cpp',
   'gputop-ui-utils.cpp',

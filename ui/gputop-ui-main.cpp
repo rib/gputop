@@ -27,6 +27,7 @@
 #include "imgui.h"
 #include "gputop-ui-multilines.h"
 #include "gputop-ui-piechart.h"
+#include "gputop-ui-plots.h"
 #include "gputop-ui-timeline.h"
 #include "gputop-ui-topology.h"
 #include "gputop-ui-utils.h"
@@ -577,19 +578,16 @@ display_global_i915_perf_window(struct window *win)
         float max_value = 0.0f;
         const float *values =
             get_counter_samples(ctx, max_graphs, first_samples, c, &max_value);
-        ImGui::PlotLines("", values, max_graphs, 0,
-                         c->counter->name,
-                         0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
-                                                                              c->counter, max_value),
-                         ImVec2(ImGui::GetContentRegionAvailWidth() - 10, 50.0f));
-        if (ImGui::IsItemHovered()) {
-            const ImGuiStyle& style = ImGui::GetStyle();
-            float item_width = ImGui::GetItemRectSize().x - 2 * style.FramePadding.x;
-            float item_pos = ImGui::GetMousePos().x - (ImGui::GetItemRectMin().x + style.FramePadding.x);
-            int item_idx = (int)((max_graphs - 1) * item_pos / item_width);
+        int hovered =
+            Gputop::PlotLines("", values, max_graphs, 0,
+                              c->counter->name,
+                              0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
+                                                                                   c->counter, max_value),
+                              ImVec2(ImGui::GetContentRegionAvailWidth() - 10, 50.0f));
+        if (hovered >= 0) {
             char tooltip_tex[100];
             pretty_print_counter_value(c->counter,
-                                       values[item_idx],
+                                       values[hovered],
                                        tooltip_tex, sizeof(tooltip_tex));
             ImGui::SetTooltip("%s", tooltip_tex);
         }
@@ -694,19 +692,16 @@ display_contexts_i915_perf_window(struct window *win)
             float max_value = 0.0f;
             const float *values =
                 get_counter_samples(ctx, max_graphs, first_samples, c, &max_value);
-            ImGui::PlotLines("", values, max_graphs, 0,
-                             "",
-                             0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
-                                                                                  c->counter, max_value),
-                             ImVec2(ImGui::GetContentRegionAvailWidth() - 10, 50.0f));
-            if (ImGui::IsItemHovered()) {
-                const ImGuiStyle& style = ImGui::GetStyle();
-                float item_width = ImGui::GetItemRectSize().x - 2 * style.FramePadding.x;
-                float item_pos = ImGui::GetMousePos().x - (ImGui::GetItemRectMin().x + style.FramePadding.x);
-                int item_idx = (int)((max_graphs - 1) * item_pos / item_width);
+            int hovered =
+                Gputop::PlotLines("", values, max_graphs, 0,
+                                  "",
+                                  0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
+                                                                                       c->counter, max_value),
+                                  ImVec2(ImGui::GetContentRegionAvailWidth() - 10, 50.0f));
+            if (hovered >= 0 ) {
                 char tooltip_tex[100];
                 pretty_print_counter_value(c->counter,
-                                           values[item_idx],
+                                           values[hovered],
                                            tooltip_tex, sizeof(tooltip_tex));
                 ImGui::SetTooltip("%s", tooltip_tex);
             }
@@ -1434,7 +1429,14 @@ display_timeline_reports(struct window *win)
         if (filter.PassFilter(counter->name)) {
             float *values = &window->accumulated_values[c * window->n_accumulated_reports];
 
-            ImGui::PlotHistogram(counter->name, values, window->n_accumulated_reports);
+            int hovered =
+                Gputop::PlotHistogram(counter->name, values, window->n_accumulated_reports);
+            if (hovered >= 0) {
+                char tooltip_text[80];
+                pretty_print_counter_value(counter, values[hovered],
+                                           tooltip_text, sizeof(tooltip_text));
+                ImGui::SetTooltip("%s", tooltip_text);
+            }
         }
     }
 
