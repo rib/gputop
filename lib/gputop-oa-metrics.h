@@ -158,7 +158,7 @@ struct gputop_metric_set_counter {
                                         uint64_t *deltas);
     };
 
-    struct list_head group_link;
+    struct list_head link; /* list from gputop_counter_group.counters */
 };
 
 struct gputop_register_prog {
@@ -202,7 +202,7 @@ struct gputop_counter_group {
     struct list_head counters;
     struct list_head groups;
 
-    struct list_head link;
+    struct list_head link;  /* list from gputop_counter_group.groups */
 };
 
 struct gputop_gen {

@@ -125,15 +125,20 @@ gputop_gen_add_counter(struct gputop_gen *gen,
                        struct gputop_metric_set_counter *counter,
                        const char *group_path)
 {
-    char group_name[128] = { 0, };
-    struct gputop_counter_group *group = gen->root_group;
-    const char *name = group_path, *name_end;
+    const char *group_path_end = group_path + strlen(group_path);
+    struct gputop_counter_group *group = gen->root_group, *child_group = NULL;
+    const char *name = group_path;
 
-    while ((name_end = strstr(name, "/")) != NULL) {
-        memset(group_name, 0, sizeof(group_name));
+    while (name < group_path_end) {
+        const char *name_end = strstr(name, "/");
+        char group_name[128] = { 0, };
+
+        if (!name_end)
+            name_end = group_path_end;
+
         memcpy(group_name, name, name_end - name);
 
-        struct gputop_counter_group *child_group = NULL;
+        child_group = NULL;
         list_for_each_entry(struct gputop_counter_group, iter_group,
                             &group->groups, link) {
             if (!strcmp(iter_group->name, group_name)) {
@@ -149,19 +154,7 @@ gputop_gen_add_counter(struct gputop_gen *gen,
         group = child_group;
     }
 
-    struct gputop_counter_group *child_group = NULL;
-    list_for_each_entry(struct gputop_counter_group, iter_group,
-                        &group->groups, link) {
-        if (!strcmp(iter_group->name, group_name)) {
-            child_group = iter_group;
-            break;
-        }
-    }
-
-    if (!child_group)
-        child_group = gputop_counter_group_new(gen, group, group_name);
-
-    list_addtail(&counter->group_link, &child_group->counters);
+    list_addtail(&counter->link, &child_group->counters);
 }
 
 void
