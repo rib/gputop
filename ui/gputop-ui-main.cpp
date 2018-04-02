@@ -1918,36 +1918,56 @@ select_metric_set(struct gputop_client_context *ctx,
 }
 
 static bool
+select_metric_set_from_group_counter(struct gputop_counter_group *group,
+                                     ImGuiTextFilter *filter,
+                                     const struct gputop_metric_set **out_metric_set)
+{
+    bool selected = false;
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_Framed |
+        (filter->IsActive() ? ImGuiTreeNodeFlags_DefaultOpen : 0);
+
+    list_for_each_entry(struct gputop_counter_group, subgroup, &group->groups, link) {
+        if (ImGui::TreeNodeEx(subgroup, flags, "%s", subgroup->name)) {
+            if (select_metric_set_from_group_counter(subgroup, filter, out_metric_set)) {
+                selected = true;
+            }
+            ImGui::TreePop();
+        }
+    }
+
+    list_for_each_entry(struct gputop_metric_set_counter, counter,
+                        &group->counters, link) {
+        if (!filter->PassFilter(counter->name))
+            continue;
+
+        char counter_name[120];
+        snprintf(counter_name, sizeof(counter_name),
+                 "%s (%s)", counter->name, counter->metric_set->name);
+
+        if (ImGui::Selectable(counter_name)) {
+            *out_metric_set = counter->metric_set;
+            selected = true;
+        }
+    }
+
+    return selected;
+}
+
+static bool
 select_metric_set_from_counter(struct gputop_client_context *ctx,
                                const struct gputop_metric_set **out_metric_set)
 {
-    bool selected = false;
     static ImGuiTextFilter filter;
     filter.Draw();
 
     if (!ctx->features) return false;
 
     ImGui::BeginChild("##block");
-    for (unsigned u = 0; u < ctx->features->features->n_supported_oa_uuids; u++) {
-        const struct gputop_metric_set *metric_set =
-            gputop_client_context_uuid_to_metric_set(ctx,
-                                                     ctx->features->features->supported_oa_uuids[u]);
-        if (!metric_set) continue;
-
-        for (int c = 0; c < metric_set->n_counters; c++) {
-            const struct gputop_metric_set_counter *counter =
-                &metric_set->counters[c];
-            char name[200];
-            snprintf(name, sizeof(name), "%s / %s",
-                     metric_set->name, counter->name);
-
-            if (filter.PassFilter(counter->name) &&
-                ImGui::Selectable(name)) {
-                *out_metric_set = metric_set;
-                selected = true;
-            }
-        }
-    }
+    bool selected =
+        select_metric_set_from_group_counter(ctx->gen_metrics->root_group,
+                                             &filter,
+                                             out_metric_set);
     ImGui::EndChild();
 
     return selected;
