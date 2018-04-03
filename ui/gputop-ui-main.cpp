@@ -1429,13 +1429,20 @@ display_timeline_reports(struct window *win)
         if (filter.PassFilter(counter->name)) {
             float *values = &window->accumulated_values[c * window->n_accumulated_reports];
 
-            int hovered =
-                Gputop::PlotHistogram(counter->name, values, window->n_accumulated_reports);
+            ImGui::PushID(counter);
+            int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports);
+            ImGui::PopID();
+            ImGui::SameLine();
             if (hovered >= 0) {
                 char tooltip_text[80];
                 pretty_print_counter_value(counter, values[hovered],
                                            tooltip_text, sizeof(tooltip_text));
                 ImGui::SetTooltip("%s", tooltip_text);
+            }
+
+            ImGui::Text("%s", counter->name);
+            if (ImGui::IsItemHovered()) {
+              ImGui::SetTooltip("%s", counter->desc);
             }
         }
     }
