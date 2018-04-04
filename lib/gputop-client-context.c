@@ -8,6 +8,7 @@
 
 #include "gputop-log.h"
 
+#include "main/hash.h" /* For uint_key() */
 #include "util/ralloc.h"
 
 static void i915_perf_empty_samples(struct gputop_client_context *ctx);
@@ -143,14 +144,14 @@ get_process_info(struct gputop_client_context *ctx, uint32_t pid)
 {
     struct hash_entry *entry =
         pid == 0 ? NULL :
-        _mesa_hash_table_search(ctx->pid_to_process_table, (void *)(uintptr_t)pid);
+        _mesa_hash_table_search(ctx->pid_to_process_table, uint_key(pid));
     if (entry || pid == 0)
         return entry ? ((struct gputop_process_info *) entry->data) : NULL;
 
     struct gputop_process_info *info = (struct gputop_process_info *) calloc(1, sizeof(*info));
     info->pid = pid;
     snprintf(info->cmd, sizeof(info->cmd), "<unknown>");
-    _mesa_hash_table_insert(ctx->pid_to_process_table, (void *)(uintptr_t)pid, info);
+    _mesa_hash_table_insert(ctx->pid_to_process_table, uint_key(pid), info);
 
     Gputop__Request request = GPUTOP__REQUEST__INIT;
     request.req_case = GPUTOP__REQUEST__REQ_GET_PROCESS_INFO;
@@ -348,7 +349,7 @@ gputop_client_context_print_tracepoint_data(struct gputop_client_context *ctx,
         if (!strcmp("common_pid", name)) {
             uint32_t pid = *((uint32_t *) value_ptr);
             struct hash_entry *entry =
-                _mesa_hash_table_search(ctx->pid_to_process_table, (void *)(uintptr_t)pid);
+                _mesa_hash_table_search(ctx->pid_to_process_table, uint_key(pid));
             l = snprintf(buf, len, "\npid = %u(%s)", pid,
                          entry ? ((struct gputop_process_info *)entry->data)->cmd : "<unknown>");
         } else {
@@ -501,10 +502,10 @@ add_tracepoint_stream_data(struct gputop_client_context *ctx,
 
         if (tp->hw_id_field >= 0) {
             uint32_t hw_id = *((uint32_t *)&tp_data->data.data[tp->fields[tp->hw_id_field].offset]);
-            _mesa_hash_table_insert(ctx->hw_id_to_process_table, (void *)(uintptr_t)hw_id, process);
+            _mesa_hash_table_insert(ctx->hw_id_to_process_table, uint_key(hw_id), process);
 
             struct hash_entry *entry =
-                _mesa_hash_table_search(ctx->hw_contexts_table, (void *)(uintptr_t)hw_id);
+                _mesa_hash_table_search(ctx->hw_contexts_table, uint_key(hw_id));
             if (entry) {
                 struct gputop_hw_context *context = (struct gputop_hw_context *) entry->data;
                 if (context->process != process) {
@@ -524,7 +525,7 @@ close_perf_tracepoint(struct gputop_client_context *ctx, struct gputop_perf_trac
         list_del(&stream->link);
         _mesa_hash_table_remove(ctx->perf_tracepoints_stream_table,
                                 _mesa_hash_table_search(ctx->perf_tracepoints_stream_table,
-                                                        (void *)(uintptr_t)stream->base.id));
+                                                        uint_key(stream->base.id)));
         close_stream(&stream->base, ctx);
         free(stream);
     }
@@ -556,7 +557,7 @@ open_perf_tracepoint(struct gputop_client_context *ctx, struct gputop_perf_trace
 
         list_add(&stream->link, &tp->streams);
         _mesa_hash_table_insert(ctx->perf_tracepoints_stream_table,
-                                (void *)(uintptr_t)stream->base.id, stream);
+                                uint_key(stream->base.id), stream);
     }
 }
 
@@ -589,7 +590,7 @@ static struct gputop_hw_context *
 get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
 {
     struct hash_entry *hw_entry =
-        _mesa_hash_table_search(ctx->hw_contexts_table, (void *)(uintptr_t)hw_id);
+        _mesa_hash_table_search(ctx->hw_contexts_table, uint_key(hw_id));
 
     struct gputop_hw_context *new_context;
     if (hw_entry) {
@@ -606,7 +607,7 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
     list_inithead(&new_context->graphs);
 
     struct hash_entry *process_entry =
-        _mesa_hash_table_search(ctx->hw_id_to_process_table, (void *)(uintptr_t)hw_id);
+        _mesa_hash_table_search(ctx->hw_id_to_process_table, uint_key(hw_id));
     if (process_entry)
         new_context->process = (struct gputop_process_info *) process_entry->data;
 
@@ -616,9 +617,7 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
                                ctx->current_graph_samples->start_report.header,
                                GPUTOP_OA_INVALID_CTX_ID);
 
-    _mesa_hash_table_insert(ctx->hw_contexts_table,
-                            (void *)(uintptr_t)hw_id,
-                            new_context);
+    _mesa_hash_table_insert(ctx->hw_contexts_table, uint_key(hw_id), new_context);
 
     list_addtail(&new_context->link, &ctx->hw_contexts);
 
@@ -632,8 +631,7 @@ put_hw_context(struct gputop_client_context *ctx, struct gputop_hw_context *old_
         return;
 
     struct hash_entry *entry =
-        _mesa_hash_table_search(ctx->hw_contexts_table,
-                                (void *)(uintptr_t)old_context->hw_id);
+        _mesa_hash_table_search(ctx->hw_contexts_table, uint_key(old_context->hw_id));
     _mesa_hash_table_remove(ctx->hw_contexts_table, entry);
 
     list_for_each_entry_safe(struct gputop_accumulated_samples, samples,
@@ -1285,7 +1283,7 @@ handle_perf_data(struct gputop_client_context *ctx,
 {
     struct hash_entry *entry =
         _mesa_hash_table_search(ctx->perf_tracepoints_stream_table,
-                                (void *)(uintptr_t)stream_id);
+                                uint_key(stream_id));
     if (!entry) {
         gputop_cr_console_log("Unknown stream id=%u\n", stream_id);
         return;
@@ -1387,7 +1385,7 @@ handle_protobuf_message(struct gputop_client_context *ctx,
     case GPUTOP__MESSAGE__CMD_PROCESS_INFO: {
         struct hash_entry *entry =
             _mesa_hash_table_search(ctx->pid_to_process_table,
-                                    (void *)(uintptr_t)message->process_info->pid);
+                                    uint_key(message->process_info->pid));
         if (entry) {
             struct gputop_process_info *info = (struct gputop_process_info *) entry->data;
             snprintf(info->cmd, sizeof(info->cmd), "%s", message->process_info->comm);
