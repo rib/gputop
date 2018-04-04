@@ -588,6 +588,22 @@ get_accumulated_sample(struct gputop_client_context *ctx,
 static void put_accumulated_sample(struct gputop_client_context *ctx,
                                    struct gputop_accumulated_samples *samples);
 
+static void
+hw_context_update_process(struct gputop_client_context *ctx,
+                          struct gputop_hw_context *context)
+{
+    if (context->process)
+        return;
+
+    struct hash_entry *process_entry =
+        _mesa_hash_table_search(ctx->hw_id_to_process_table, uint_key(context->hw_id));
+    if (process_entry) {
+        context->process = (struct gputop_process_info *) process_entry->data;
+        snprintf(context->name, sizeof(context->name),
+                 "%s id=0x%x", context->process->cmd, context->hw_id);
+    }
+}
+
 static struct gputop_hw_context *
 get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
 {
@@ -598,6 +614,9 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
     if (hw_entry) {
         new_context = (struct gputop_hw_context *) hw_entry->data;
         new_context->n_samples++;
+
+        hw_context_update_process(ctx, new_context);
+
         return new_context;
     }
 
@@ -608,10 +627,7 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
     new_context->n_samples = 1;
     list_inithead(&new_context->graphs);
 
-    struct hash_entry *process_entry =
-        _mesa_hash_table_search(ctx->hw_id_to_process_table, uint_key(hw_id));
-    if (process_entry)
-        new_context->process = (struct gputop_process_info *) process_entry->data;
+    hw_context_update_process(ctx, new_context);
 
     new_context->current_graph_samples =
         get_accumulated_sample(ctx,
