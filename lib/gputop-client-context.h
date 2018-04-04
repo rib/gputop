@@ -198,6 +198,8 @@ struct gputop_perf_tracepoint_data {
 };
 
 struct gputop_process_info {
+    struct list_head link;
+
     char cmd[256];
     char cmd_line[1024];
     uint32_t pid;
@@ -276,6 +278,7 @@ struct gputop_client_context {
     /**/
     struct hash_table *pid_to_process_table;
     struct hash_table *hw_id_to_process_table;
+    struct list_head process_infos;
 
     /**/
     struct {

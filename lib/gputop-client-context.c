@@ -153,6 +153,8 @@ get_process_info(struct gputop_client_context *ctx, uint32_t pid)
     snprintf(info->cmd, sizeof(info->cmd), "<unknown>");
     _mesa_hash_table_insert(ctx->pid_to_process_table, uint_key(pid), info);
 
+    list_addtail(&info->link, &ctx->process_infos);
+
     Gputop__Request request = GPUTOP__REQUEST__INIT;
     request.req_case = GPUTOP__REQUEST__REQ_GET_PROCESS_INFO;
     request.get_process_info = pid;
@@ -1494,7 +1496,10 @@ i915_perf_empty_samples(struct gputop_client_context *ctx)
 static void
 delete_process_entry(struct hash_entry *entry)
 {
-    free(entry->data);
+    struct gputop_process_info *info = entry->data;
+
+    list_del(&info->link);
+    free(info);
 }
 
 static void
@@ -1557,6 +1562,7 @@ gputop_client_context_init(struct gputop_client_context *ctx)
     _mesa_hash_table_set_freed_key(ctx->pid_to_process_table, uint_key(UINT32_MAX - 1));
     _mesa_hash_table_set_deleted_key(ctx->hw_id_to_process_table, uint_key(UINT32_MAX));
     _mesa_hash_table_set_freed_key(ctx->hw_id_to_process_table, uint_key(UINT32_MAX - 1));
+    list_inithead(&ctx->process_infos);
 
     ctx->i915_perf_config.oa_reports = true;
 }
