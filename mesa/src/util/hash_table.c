@@ -210,6 +210,16 @@ _mesa_hash_table_set_deleted_key(struct hash_table *ht, const void *deleted_key)
 void
 _mesa_hash_table_set_freed_key(struct hash_table *ht, const void *freed_key)
 {
+   struct hash_entry *entry;
+
+   if (freed_key == ht->freed_key)
+      return;
+
+   for (entry = ht->table; entry != ht->table + ht->size; entry++) {
+      if (entry_is_free(ht, entry))
+         entry->key = freed_key;
+   }
+
    ht->freed_key = freed_key;
 }
 
@@ -270,20 +280,27 @@ _mesa_hash_table_rehash(struct hash_table *ht, unsigned new_size_index)
 {
    struct hash_table old_ht;
    struct hash_entry *table, *entry;
+   unsigned new_size;
 
    if (new_size_index >= ARRAY_SIZE(hash_sizes))
       return;
 
-   table = rzalloc_array(ht, struct hash_entry,
-                         hash_sizes[new_size_index].size);
+   new_size = hash_sizes[new_size_index].size;
+   table = rzalloc_array(ht, struct hash_entry, new_size);
    if (table == NULL)
       return;
+
+   if (ht->freed_key) {
+      for (entry = table; entry != table + new_size; entry++) {
+         entry->key = ht->freed_key;
+      }
+   }
 
    old_ht = *ht;
 
    ht->table = table;
    ht->size_index = new_size_index;
-   ht->size = hash_sizes[ht->size_index].size;
+   ht->size = new_size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
    ht->entries = 0;
