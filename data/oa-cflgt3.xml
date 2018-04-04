@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1508342573" merge_md5="">
+<metrics version="1522878594" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -10698,6 +10698,107 @@
         <register type="OA" address="0x000027A4" value="0x0000FFE7" />
         <register type="OA" address="0x000027A8" value="0x00100001" />
         <register type="OA" address="0x000027AC" value="0x0000FFE7" />
+    </register_config>
+  </set>
+
+  <set name="Metric set PMA Stall"
+       mdapi_supported_apis="OGL OGL4 OCL IO MEDIA"
+       underscore_name="pma__stall"
+       hw_config_guid="c11af8d1-858b-4f8b-98fb-8d683ba8bda0"
+       chipset="CFLGT3"
+       symbol_name="PMA_Stall"
+       >
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="STC PMA stall"
+             description="Percentage of time when stencil cache line and an overlapping pixel are causing stalls"
+             data_type="float"
+             max_equation="100"
+             equation="B 0 READ B 1 READ FADD 2 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="stc_pma_stall"
+             units="percent"
+             symbol_name="StcPMAStall"
+             availability="$SliceMask 1 AND"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Frame Batch Draw"
+             mdapi_group="GPU/Stencil Cache"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config type="NOA">
+        <register type="NOA" address="0x00009840" value="0x00000080" />
+        <register type="NOA" address="0x00009888" value="0x122D3080" />
+        <register type="NOA" address="0x00009888" value="0x000D2000" />
+        <register type="NOA" address="0x00009888" value="0x060D8000" />
+        <register type="NOA" address="0x00009888" value="0x080DA000" />
+        <register type="NOA" address="0x00009888" value="0x0A0DA000" />
+        <register type="NOA" address="0x00009888" value="0x0C0F0800" />
+        <register type="NOA" address="0x00009888" value="0x0E0FAA00" />
+        <register type="NOA" address="0x00009888" value="0x100F0002" />
+        <register type="NOA" address="0x00009888" value="0x002D0025" />
+        <register type="NOA" address="0x00009888" value="0x062D1300" />
+        <register type="NOA" address="0x00009888" value="0x082D16A4" />
+        <register type="NOA" address="0x00009888" value="0x0A2D162E" />
+        <register type="NOA" address="0x00009888" value="0x102D0000" />
+        <register type="NOA" address="0x00009888" value="0x1190003F" />
+        <register type="NOA" address="0x00009888" value="0x51900000" />
+        <register type="NOA" address="0x00009888" value="0x41900000" />
+        <register type="NOA" address="0x00009888" value="0x55900000" />
+        <register type="NOA" address="0x00009888" value="0x45900000" />
+        <register type="NOA" address="0x00009888" value="0x47900000" />
+        <register type="NOA" address="0x00009888" value="0x57900000" />
+        <register type="NOA" address="0x00009888" value="0x49900000" />
+        <register type="NOA" address="0x00009888" value="0x37900000" />
+        <register type="NOA" address="0x00009888" value="0x33900000" />
+    </register_config>
+    <register_config type="OA">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0x30800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002770" value="0x00E00021" />
+        <register type="OA" address="0x00002774" value="0x0007FFF8" />
+        <register type="OA" address="0x00002778" value="0x07000101" />
+        <register type="OA" address="0x0000277C" value="0x0038FFC7" />
     </register_config>
   </set>
 
