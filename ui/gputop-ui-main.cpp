@@ -793,7 +793,7 @@ display_report_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
 
-    ImGui::Columns(5);
+    ImGui::Columns(4);
     if (ctx->features) {
         ImGui::Text("OA available: %s",
                     ctx->features->features->has_i915_oa ? "true" : "false");
@@ -831,6 +831,7 @@ display_report_window(struct window *win)
     // }
 
     ImGui::NextColumn();
+    ImGui::Text("HW Contexts");
     struct gputop_hw_context *hovered_context = NULL;
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
         if (ImGui::TreeNode(context, "hw_id=%u/0x%x name=%s row=%i",
@@ -841,12 +842,18 @@ display_report_window(struct window *win)
         if (ImGui::IsItemHovered()) hovered_context = context;
     }
 
+    ImGui::NextColumn();
+    ImGui::Text("Process infos");
+    list_for_each_entry(struct gputop_process_info, process_info, &ctx->process_infos, link) {
+        ImGui::Text("pid=%u comm=%s", process_info->pid, process_info->cmd);
+    }
+
+#if 0
+    ImGui::NextColumn();
     struct {
         uint64_t start;
         uint64_t end;
     } hovered_window = { 0ULL, 0ULL };
-
-    ImGui::NextColumn();
     list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
         const uint64_t *cpu_ts0 = (const uint64_t *)
             gputop_i915_perf_report_field(&ctx->i915_perf_config,
@@ -939,6 +946,7 @@ display_report_window(struct window *win)
             }
         }
     }
+#endif
 }
 
 static void
