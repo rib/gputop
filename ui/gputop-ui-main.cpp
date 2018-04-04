@@ -56,6 +56,7 @@
 #include <epoxy/gl.h>
 #include <GLFW/glfw3.h>
 #include <uv.h>
+#include <getopt.h>
 #define ImGui_ScheduleFrame() ImGui_ImplGlfwGL3_ScheduleFrame()
 #define ImGui_RenderDrawData(data) ImGui_ImplGlfwGL3_RenderDrawData(data)
 #endif
@@ -2431,6 +2432,21 @@ main(int argc, char *argv[])
 
     ImGui::DestroyContext();
 #elif defined(GPUTOP_UI_GLFW)
+    const struct option long_options[] = {
+        { "host",              required_argument,  0, 'h' },
+        { 0, 0, 0, 0 }
+    };
+    char *host = NULL;
+    int opt;
+
+    while ((opt = getopt_long(argc, argv, "h:", long_options, NULL)) != -1) {
+        switch (opt) {
+        case 'h':
+          host = optarg;
+          break;
+        }
+    }
+
     if (!glfwInit())
         return -1;
 
@@ -2446,7 +2462,7 @@ main(int argc, char *argv[])
     if (!ImGui_ImplGlfwGL3_Init(context.window, repaint_window, NULL))
         return -1;
 
-    init_ui(NULL, 0);
+    init_ui(host, 0);
 
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 
