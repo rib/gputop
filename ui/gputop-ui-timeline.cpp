@@ -99,6 +99,14 @@ DragBehavior(const ImRect& frame_bb, ImGuiID id, ImVec2* v)
     return in_drag;
 }
 
+static bool
+IsTimelineItemHovered(const ImRect& rect)
+{
+    ImGuiContext& g = *GImGui;
+
+    return IsWindowHovered() && rect.Contains(g.IO.MousePos);
+}
+
 void Gputop::BeginTimeline(const char *label,
                            int rows, int events,
                            uint64_t length, ImVec2 timeline_size)
@@ -106,33 +114,30 @@ void Gputop::BeginTimeline(const char *label,
     timeline_length = length;
 
     ImGuiWindow* window = GetCurrentWindow();
-    if (window->SkipItems)
-        return;
 
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
-    timeline_id = window->GetID(label);
-
     const float ruler_height = 5.0f; /* TODO: Ruler */
     const ImVec2 label_size = CalcTextSize("99999"); /* Top & bottom labels */
     const float default_row_height = label_size.y; /* TODO: make this configurable */
     if (timeline_size.x == 0.0f)
         timeline_size.x = CalcItemWidth();
     if (timeline_size.y == 0.0f)
-        timeline_size.y = ruler_height + (label_size.y * 2) + rows * default_row_height + (style.FramePadding.y * 2);
+        timeline_size.y = ruler_height + (label_size.y * 2) + rows * default_row_height;
 
-    const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + timeline_size);
-    const ImRect inner_bb(frame_bb.Min + style.FramePadding + ImVec2(0, ruler_height + label_size.y), frame_bb.Max - style.FramePadding - ImVec2(0, label_size.y));
-    const ImRect total_bb(frame_bb.Min, frame_bb.Max);
-    ItemSize(total_bb, style.FramePadding.y);
-    if (!ItemAdd(total_bb, timeline_id))
-        return;
+    timeline_id = window->GetID(label);
 
-    window->DrawList->AddRect(frame_bb.GetTL(), frame_bb.GetBR(),
-                              GetColorU32(ImGuiCol_FrameBgActive));
+    BeginChildFrame(timeline_id, timeline_size);
 
-    timeline_inner_bb = inner_bb;
+    window = GetCurrentWindow();
+
+    const ImRect frame_bb(window->DC.CursorPos,
+                          window->DC.CursorPos + timeline_size - ImVec2(2.0f, 2.0f) * style.FramePadding);
+    const ImRect inner_bb(frame_bb.Min + ImVec2(0, ruler_height + label_size.y),
+                          frame_bb.Max - ImVec2(0, label_size.y));
+
     timeline_frame_bb = frame_bb;
+    timeline_inner_bb = inner_bb;
     timeline_row_height = inner_bb.GetHeight() / rows;
     timeline_n_rows = rows;
     timeline_n_events = events;
@@ -162,7 +167,7 @@ bool Gputop::TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
         timeline_last_item_pos = item.GetTL().x;
     }
 
-    const bool hovered = ItemHoverable(item, timeline_id);
+    const bool hovered = IsTimelineItemHovered(item);
 
     if (hovered)
       timeline_item_hovered = true;
@@ -189,7 +194,7 @@ bool Gputop::TimelineEvent(int event, uint64_t time, bool selected)
     item.Expand(ImVec2(3.0f, 0.0f));
 
     ImGuiContext& g = *GImGui;
-    const bool hovered = ItemHoverable(item, timeline_id);
+    const bool hovered = IsTimelineItemHovered(item);
 
     if ((should_draw && hovered && !timeline_item_hovered) || selected)
     {
@@ -270,11 +275,8 @@ bool Gputop::EndTimeline(const char **units, int n_units,
                          int64_t *zoom_start, uint64_t *zoom_end)
 {
     ImGuiWindow* window = GetCurrentWindow();
-    if (window->SkipItems)
-        return false;
-
     ImGuiContext& g = *GImGui;
-    bool hovered = ItemHoverable(timeline_frame_bb, timeline_id);
+    const bool hovered = IsWindowHovered();
     const bool clicked = hovered && IsMouseClicked(0);
     if (clicked)
     {
@@ -361,10 +363,12 @@ bool Gputop::EndTimeline(const char **units, int n_units,
     bool in_zoom = false;
     bool in_range = false;
     bool need_clear = false;
+
+    static bool last_in_range = false;
+    static bool last_in_zoom = false;
     if (g.ActiveId == timeline_id)
     {
         /* Zoom */
-        static bool last_in_zoom = false;
         in_zoom = RangeDragBehavior(timeline_inner_bb, timeline_id,
                                     &timeline_zoom_pos, last_in_zoom, g.IO.KeyCtrl);
         if (in_zoom)
@@ -384,7 +388,6 @@ bool Gputop::EndTimeline(const char **units, int n_units,
         }
 
         /* Range */
-        static bool last_in_range = false;
         in_range = RangeDragBehavior(timeline_inner_bb, timeline_id,
                                      &timeline_range_pos, last_in_range, g.IO.KeyShift);
         if (in_range)
@@ -395,8 +398,13 @@ bool Gputop::EndTimeline(const char **units, int n_units,
         if (!last_in_zoom && !last_in_range)
             need_clear = true;
     }
+    else
+    {
+        last_in_range = false;
+        last_in_zoom = false;
+    }
 
-    if (!in_zoom && !in_range && IsItemHovered() &&
+    if (!in_zoom && !in_range && hovered &&
         timeline_inner_bb.Contains(g.IO.MousePos) && g.IO.MouseWheel != 0.0f)
     {
         const float scroll_pos((g.IO.MousePos.x - timeline_inner_bb.GetTL().x) /
@@ -415,9 +423,6 @@ bool Gputop::EndTimeline(const char **units, int n_units,
             if (zoom_end) *zoom_end = start + length;
             zoom_changed = true;
         }
-
-        // Capture
-        //g.IO.MouseWheel = 0.0f;
     }
 
     ImVec2 drag_offset(0.0f, 0.0f);
@@ -439,6 +444,8 @@ bool Gputop::EndTimeline(const char **units, int n_units,
 
     if (need_clear)
         ClearActiveID();
+
+    EndChildFrame();
 
     return zoom_changed;
 }
