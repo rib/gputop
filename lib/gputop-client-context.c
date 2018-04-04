@@ -1552,7 +1552,6 @@ gputop_client_context_init(struct gputop_client_context *ctx)
 
     ctx->hw_contexts_table =
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-
     list_inithead(&ctx->hw_contexts);
 
     list_inithead(&ctx->graphs);
@@ -1573,7 +1572,6 @@ gputop_client_context_init(struct gputop_client_context *ctx)
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
     ctx->hw_id_to_process_table =
         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-
     _mesa_hash_table_set_deleted_key(ctx->pid_to_process_table, uint_key(UINT32_MAX));
     _mesa_hash_table_set_freed_key(ctx->pid_to_process_table, uint_key(UINT32_MAX - 1));
     _mesa_hash_table_set_deleted_key(ctx->hw_id_to_process_table, uint_key(UINT32_MAX));
