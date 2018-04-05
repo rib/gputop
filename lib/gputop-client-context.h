@@ -340,7 +340,7 @@ double gputop_client_context_read_counter_value(struct gputop_client_context *ct
                                                 const struct gputop_metric_set_counter *counter);
 
 /* Iterator for reports accumulated into gputop_accumulated_samples. */
-struct gputop_report_iterator {
+struct gputop_record_iterator {
     const struct gputop_accumulated_samples *sample;
     const struct gputop_i915_perf_chunk *chunk;
     const struct drm_i915_perf_record_header *header;
@@ -348,7 +348,7 @@ struct gputop_report_iterator {
 };
 
 static inline void
-gputop_report_iterator_init(struct gputop_report_iterator *iter,
+gputop_record_iterator_init(struct gputop_record_iterator *iter,
                             const struct gputop_accumulated_samples *sample)
 {
     iter->sample = sample;
@@ -358,7 +358,7 @@ gputop_report_iterator_init(struct gputop_report_iterator *iter,
 }
 
 static inline bool
-gputop_report_iterator_next(struct gputop_report_iterator *iter)
+gputop_record_iterator_next(struct gputop_record_iterator *iter)
 {
     if (iter->done)
         return false;

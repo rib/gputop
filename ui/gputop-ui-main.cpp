@@ -742,12 +742,12 @@ display_accumulated_reports(struct gputop_client_context *ctx,
                             struct gputop_accumulated_samples *samples,
                             bool default_opened)
 {
-    struct gputop_report_iterator iter;
+    struct gputop_record_iterator iter;
 
     ImGui::BeginChild("##reports");
 
-    gputop_report_iterator_init(&iter, samples);
-    while (gputop_report_iterator_next(&iter)) {
+    gputop_record_iterator_init(&iter, samples);
+    while (gputop_record_iterator_next(&iter)) {
         switch (iter.header->type) {
         case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
             ImGui::Text("OA buffer lost");
@@ -1102,10 +1102,10 @@ update_timeline_selected_reports(struct timeline_window *window,
     memcpy(&window->selected_sample, sample, sizeof(window->selected_sample));
     memcpy(&window->selected_context, sample->context, sizeof(window->selected_context));
 
-    struct gputop_report_iterator iter;
+    struct gputop_record_iterator iter;
     int n_reports = 0;
-    gputop_report_iterator_init(&iter, sample);
-    while (gputop_report_iterator_next(&iter)) {
+    gputop_record_iterator_init(&iter, sample);
+    while (gputop_record_iterator_next(&iter)) {
         if (iter.header->type == DRM_I915_PERF_RECORD_SAMPLE)
             n_reports++;
     }
@@ -1122,8 +1122,8 @@ update_timeline_selected_reports(struct timeline_window *window,
 
     const uint8_t *last_report = NULL;
     int i = 0;
-    gputop_report_iterator_init(&iter, sample);
-    while (gputop_report_iterator_next(&iter)) {
+    gputop_record_iterator_init(&iter, sample);
+    while (gputop_record_iterator_next(&iter)) {
         if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
             continue;
 
