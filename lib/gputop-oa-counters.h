@@ -238,6 +238,25 @@ gputop_i915_perf_record_timestamp(const struct gputop_i915_perf_configuration *c
                                       GPUTOP_I915_PERF_FIELD_OA_REPORT));
 }
 
+static inline const char *
+gputop_i915_perf_record_reason(const struct gputop_i915_perf_configuration *config,
+                               const struct gputop_devinfo *devinfo,
+                               const struct drm_i915_perf_record_header *header)
+{
+    switch (header->type) {
+    case DRM_I915_PERF_RECORD_SAMPLE:
+        return gputop_cc_oa_report_get_reason(devinfo, (const uint8_t *)
+                                              gputop_i915_perf_record_field(config, header,
+                                                                            GPUTOP_I915_PERF_FIELD_OA_REPORT));
+    case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+        return "report lost";
+    case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+        return "buffer lost";
+    default:
+        return "unknown/error";
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

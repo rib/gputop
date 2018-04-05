@@ -1452,7 +1452,10 @@ display_timeline_reports(struct window *win)
     if (hovered_column >= 0) {
         struct gputop_record_iterator iter;
         int column = 0;
-        uint32_t ts[2] = { 0, 0 };
+        struct {
+            uint32_t ts;
+            const char *reason;
+        } ts[2] = { { 0, "" }, { 0, "" }, };
 
         gputop_record_iterator_init(&iter, &window->selected_sample);
         while (column < hovered_column && gputop_record_iterator_next(&iter)) {
@@ -1461,12 +1464,17 @@ display_timeline_reports(struct window *win)
         }
 
         gputop_record_iterator_next(&iter);
-        ts[0] = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
-                                                  iter.header);
+        ts[0].ts = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                                     iter.header);
+        ts[0].reason = gputop_i915_perf_record_reason(&ctx->i915_perf_config,
+                                                      &ctx->devinfo, iter.header);
         gputop_record_iterator_next(&iter);
-        ts[1] = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+        ts[1].ts = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
                                                   iter.header);
-        ImGui::SameLine(); ImGui::Text(", GT ts range: 0x%x - 0x%x", ts[0], ts[1]);
+        ts[1].reason = gputop_i915_perf_record_reason(&ctx->i915_perf_config,
+                                                      &ctx->devinfo, iter.header);
+        ImGui::SameLine(); ImGui::Text(", GT ts range: 0x%x(%s) - 0x%x(%s)",
+                                       ts[0].ts, ts[0].reason, ts[1].ts, ts[1].reason);
     }
 
     static ImGuiTextFilter filter;
