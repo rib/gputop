@@ -1445,7 +1445,7 @@ display_timeline_reports(struct window *win)
         float *values = &window->accumulated_values[c * window->n_accumulated_reports];
 
         ImGui::PushID(counter);
-        int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports);
+        int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports, 0, hovered_column);
         ImGui::PopID();
         ImGui::SameLine();
         if (hovered >= 0) {
