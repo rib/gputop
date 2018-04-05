@@ -794,7 +794,7 @@ display_report_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
 
-    ImGui::Columns(4);
+    ImGui::Columns(5);
     if (ctx->features) {
         ImGui::Text("OA available: %s",
                     ctx->features->features->has_i915_oa ? "true" : "false");
@@ -805,6 +805,20 @@ display_report_window(struct window *win)
         ImGui::Text("Server PID: %u", ctx->features->features->server_pid);
         ImGui::Text("Fake mode: %s", ctx->features->features->fake_mode ? "true" : "false");
     }
+
+    ImGui::NextColumn();
+    ImGui::Text("Available metrics: ");
+    if (ctx->features) {
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
+        for (int u = 0; u < ctx->features->features->n_supported_oa_uuids; u++) {
+            char input[100];
+            snprintf(input, sizeof(input), "%s", ctx->features->features->supported_oa_uuids[u]);
+            ImGui::PushID(ctx->features->features->supported_oa_uuids[u]);
+            ImGui::InputText("", input, sizeof(input), ImGuiInputTextFlags_ReadOnly);
+            ImGui::PopID();
+        }
+    }
+    ImGui::PopItemWidth();
 
     ImGui::NextColumn();
     if (ctx->last_header) {
