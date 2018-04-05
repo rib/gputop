@@ -97,6 +97,7 @@ struct timeline_window {
 
     struct gputop_accumulated_samples selected_sample;
     uint32_t n_accumulated_reports;
+    int32_t hovered_report;
     float *accumulated_values;
     struct gputop_hw_context selected_context;
 
@@ -1431,30 +1432,48 @@ display_timeline_reports(struct window *win)
 
     ImGui::BeginChild("##reports");
 
+    bool hovered_changed = false;
+    int32_t hovered_column =
+        window->hovered_report < window->n_accumulated_reports ? window->hovered_report : -1;
     for (int c = 0; c < ctx->metric_set->n_counters; c++) {
         struct gputop_metric_set_counter *counter =
             &ctx->metric_set->counters[c];
 
-        if (filter.PassFilter(counter->name)) {
-            float *values = &window->accumulated_values[c * window->n_accumulated_reports];
+        if (!filter.PassFilter(counter->name))
+            continue;
 
-            ImGui::PushID(counter);
-            int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports);
-            ImGui::PopID();
-            ImGui::SameLine();
-            if (hovered >= 0) {
-                char tooltip_text[80];
-                pretty_print_counter_value(counter, values[hovered],
-                                           tooltip_text, sizeof(tooltip_text));
-                ImGui::SetTooltip("%s", tooltip_text);
-            }
+        float *values = &window->accumulated_values[c * window->n_accumulated_reports];
 
+        ImGui::PushID(counter);
+        int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports);
+        ImGui::PopID();
+        ImGui::SameLine();
+        if (hovered >= 0) {
+            char tooltip_text[80];
+            pretty_print_counter_value(counter, values[hovered],
+                                       tooltip_text, sizeof(tooltip_text));
+            ImGui::SetTooltip("%s", tooltip_text);
+            hovered_column = hovered;
+            hovered_changed = true;
+        }
+
+        if (hovered_column >= 0) {
+            char hovered_text[80];
+            pretty_print_counter_value(counter, values[hovered_column],
+                                       hovered_text, sizeof(hovered_text));
+            ImGui::Text("%s - %s", counter->name, hovered_text);
+        } else {
             ImGui::Text("%s", counter->name);
-            if (ImGui::IsItemHovered()) {
-              ImGui::SetTooltip("%s", counter->desc);
-            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", counter->desc);
         }
     }
+
+    if (!hovered_changed)
+        window->hovered_report = -1;
+    else
+        window->hovered_report = hovered_column;
 
     ImGui::EndChild();
 }
