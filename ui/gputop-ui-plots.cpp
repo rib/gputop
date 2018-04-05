@@ -34,7 +34,10 @@
 
 using namespace ImGui;
 
-static int PlotExV(ImGuiPlotType plot_type, const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
+static int PlotExV(ImGuiPlotType plot_type, const char* label,
+                   float (*values_getter)(void* data, int idx), void* data,
+                   int values_count, int values_offset, int value_highlight,
+                   const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -79,6 +82,8 @@ static int PlotExV(ImGuiPlotType plot_type, const char* label, float (*values_ge
     int v_hovered = -1;
     if (values_count > 0)
     {
+        assert(value_highlight < values_count);
+
         int res_w = ImMin((int)graph_size.x, values_count) + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
         int item_count = values_count + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
 
@@ -117,18 +122,20 @@ static int PlotExV(ImGuiPlotType plot_type, const char* label, float (*values_ge
             const float v1 = values_getter(data, (v1_idx + values_offset + 1) % values_count);
             const ImVec2 tp1 = ImVec2( t1, 1.0f - ImSaturate((v1 - scale_min) * inv_scale) );
 
+            const ImU32 color = (v_hovered == v1_idx || value_highlight == v1_idx) ? col_hovered : col_base;
+
             // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to save a bit of CPU.
             ImVec2 pos0 = ImLerp(inner_bb.Min, inner_bb.Max, tp0);
             ImVec2 pos1 = ImLerp(inner_bb.Min, inner_bb.Max, (plot_type == ImGuiPlotType_Lines) ? tp1 : ImVec2(tp1.x, histogram_zero_line_t));
             if (plot_type == ImGuiPlotType_Lines)
             {
-                window->DrawList->AddLine(pos0, pos1, v_hovered == v1_idx ? col_hovered : col_base);
+                window->DrawList->AddLine(pos0, pos1, color);
             }
             else if (plot_type == ImGuiPlotType_Histogram)
             {
                 if (pos1.x >= pos0.x + 2.0f)
                     pos1.x -= 1.0f;
-                window->DrawList->AddRectFilled(pos0, pos1, v_hovered == v1_idx ? col_hovered : col_base);
+                window->DrawList->AddRectFilled(pos0, pos1, color);
             }
 
             t0 = t1;
@@ -161,24 +168,36 @@ static float Plot_ArrayGetter(void* data, int idx)
     return v;
 }
 
-int Gputop::PlotLines(const char* label, const float* values, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
+int Gputop::PlotLines(const char* label, const float* values, int values_count, int values_offset, int value_highlight,
+                      const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
 {
     ImGuiPlotArrayGetterData data(values, stride);
-    return PlotExV(ImGuiPlotType_Lines, label, &Plot_ArrayGetter, (void*)&data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+    return PlotExV(ImGuiPlotType_Lines, label,
+                   &Plot_ArrayGetter, (void*)&data, values_count, values_offset, value_highlight,
+                   overlay_text, scale_min, scale_max, graph_size);
 }
 
-int Gputop::PlotLines(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
+int Gputop::PlotLines(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, int value_highlight,
+                      const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
 {
-    return PlotExV(ImGuiPlotType_Lines, label, values_getter, data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+    return PlotExV(ImGuiPlotType_Lines, label,
+                   values_getter, data, values_count, values_offset, value_highlight,
+                   overlay_text, scale_min, scale_max, graph_size);
 }
 
-int Gputop::PlotHistogram(const char* label, const float* values, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
+int Gputop::PlotHistogram(const char* label, const float* values, int values_count, int values_offset, int value_highlight,
+                          const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
 {
     ImGuiPlotArrayGetterData data(values, stride);
-    return PlotExV(ImGuiPlotType_Histogram, label, &Plot_ArrayGetter, (void*)&data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+    return PlotExV(ImGuiPlotType_Histogram, label,
+                   &Plot_ArrayGetter, (void*)&data, values_count, values_offset, value_highlight,
+                   overlay_text, scale_min, scale_max, graph_size);
 }
 
-int Gputop::PlotHistogram(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
+int Gputop::PlotHistogram(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, int value_highlight,
+                          const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
 {
-    return PlotExV(ImGuiPlotType_Histogram, label, values_getter, data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+    return PlotExV(ImGuiPlotType_Histogram, label,
+                   values_getter, data, values_count, values_offset, value_highlight,
+                   overlay_text, scale_min, scale_max, graph_size);
 }

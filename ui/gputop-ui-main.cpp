@@ -581,7 +581,7 @@ display_global_i915_perf_window(struct window *win)
         const float *values =
             get_counter_samples(ctx, max_graphs, first_samples, c, &max_value);
         int hovered =
-            Gputop::PlotLines("", values, max_graphs, 0,
+            Gputop::PlotLines("", values, max_graphs, 0, -1,
                               c->counter->name,
                               0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
                                                                                    c->counter, max_value),
@@ -695,7 +695,7 @@ display_contexts_i915_perf_window(struct window *win)
             const float *values =
                 get_counter_samples(ctx, max_graphs, first_samples, c, &max_value);
             int hovered =
-                Gputop::PlotLines("", values, max_graphs, 0,
+                Gputop::PlotLines("", values, max_graphs, 0, -1,
                                   "",
                                   0, c->use_samples_max ? max_value : read_counter_max(ctx, first_samples,
                                                                                        c->counter, max_value),
