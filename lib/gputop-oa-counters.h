@@ -184,7 +184,7 @@ enum gputop_i915_perf_field {
 };
 
 static inline uint64_t
-gputop_i915_perf_report_size(const struct gputop_i915_perf_configuration *config)
+gputop_i915_perf_record_max_size(const struct gputop_i915_perf_configuration *config)
 {
     uint64_t size = sizeof(struct drm_i915_perf_record_header);
 
@@ -199,7 +199,7 @@ gputop_i915_perf_report_size(const struct gputop_i915_perf_configuration *config
 }
 
 static inline const void *
-gputop_i915_perf_report_field(const struct gputop_i915_perf_configuration *config,
+gputop_i915_perf_record_field(const struct gputop_i915_perf_configuration *config,
                               const struct drm_i915_perf_record_header *header,
                               enum gputop_i915_perf_field field)
 {

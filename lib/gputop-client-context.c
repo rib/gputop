@@ -216,18 +216,18 @@ i915_perf_timestamp(struct gputop_client_context *ctx,
                     const struct drm_i915_perf_record_header *header)
 {
     if (ctx->i915_perf_config.cpu_timestamps) {
-        return *((uint64_t *) gputop_i915_perf_report_field(
+        return *((uint64_t *) gputop_i915_perf_record_field(
                      &ctx->i915_perf_config, header,
                      GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP));
     }
 
     uint64_t ts =
         gputop_cc_oa_report_get_timestamp(
-            gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT));
     uint64_t prev_ts = ctx->last_header ?
         gputop_cc_oa_report_get_timestamp(
-            gputop_i915_perf_report_field(&ctx->i915_perf_config, ctx->last_header,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config, ctx->last_header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT)) : ts;
 
     ts = ctx->last_oa_timestamp + gputop_timebase_scale_ns(&ctx->devinfo, ts - prev_ts);
@@ -690,7 +690,7 @@ hw_context_record_for_time(struct gputop_client_context *ctx,
 
     /* Put end timestamp */
     const uint64_t *cpu_timestamp = (const uint64_t *)
-        gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+        gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                       GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
     samples->timestamp_end =
         cpu_timestamp ? (*cpu_timestamp) : samples->accumulator.last_timestamp;
@@ -726,7 +726,7 @@ get_accumulated_sample(struct gputop_client_context *ctx,
     }
 
     const uint8_t *report = (const uint8_t *)
-        gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+        gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                       GPUTOP_I915_PERF_FIELD_OA_REPORT);
     gputop_cc_oa_accumulator_init(&samples->accumulator,
                                   &ctx->devinfo,
@@ -848,7 +848,7 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
 {
     const struct drm_i915_perf_record_header *header;
     const uint8_t *last = ctx->last_header ?
-        ((const uint8_t *) gputop_i915_perf_report_field(&ctx->i915_perf_config,
+        ((const uint8_t *) gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                                          ctx->last_header,
                                                          GPUTOP_I915_PERF_FIELD_OA_REPORT)) :
         NULL;
@@ -867,7 +867,7 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
             const uint8_t *samples = (const uint8_t *)
-                gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+                gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                               GPUTOP_I915_PERF_FIELD_OA_REPORT);
             uint32_t hw_id = gputop_cc_oa_report_get_ctx_id(&ctx->devinfo, samples);
 

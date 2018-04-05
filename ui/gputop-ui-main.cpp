@@ -758,13 +758,13 @@ display_accumulated_reports(struct gputop_client_context *ctx,
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
             const uint64_t *cpu_timestamp = (const uint64_t *)
-                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
                                               GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
             const uint64_t *gpu_timestamp = (const uint64_t *)
-                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
                                               GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
             const uint8_t *report = (const uint8_t *)
-                gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
                                               GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
             ImGui::Text("rcs=%08" PRIx64 "(%" PRIx64 " scaled) rcs64=%016" PRIx64
@@ -809,7 +809,7 @@ display_report_window(struct window *win)
     ImGui::NextColumn();
     if (ctx->last_header) {
         const uint32_t *last_report = (const uint32_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config, ctx->last_header,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config, ctx->last_header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT);
         for (uint32_t i = 0; i < 64; i++)
             ImGui::Text("%u\t: 0x%08x", i, last_report[i]);
@@ -857,11 +857,11 @@ display_report_window(struct window *win)
     } hovered_window = { 0ULL, 0ULL };
     list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
         const uint64_t *cpu_ts0 = (const uint64_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                           samples->start_report.header,
                                           GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
         const uint64_t *cpu_ts1 = (const uint64_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                           samples->end_report.header,
                                           GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
         char cpu_time_length[20];
@@ -874,11 +874,11 @@ display_report_window(struct window *win)
                                          samples->accumulator.first_timestamp,
                                          gpu_time_length, sizeof(gpu_time_length));
         const uint8_t *report0 = (const uint8_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                           samples->start_report.header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT);
         const uint8_t *report1 = (const uint8_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                           samples->end_report.header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
@@ -913,13 +913,13 @@ display_report_window(struct window *win)
 
             case DRM_I915_PERF_RECORD_SAMPLE: {
                 const uint64_t *cpu_timestamp = (const uint64_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+                    gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                                   GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
                 const uint64_t *gpu_timestamp = (const uint64_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+                    gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                                   GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
                 const uint8_t *report = (const uint8_t *)
-                    gputop_i915_perf_report_field(&ctx->i915_perf_config, header,
+                    gputop_i915_perf_record_field(&ctx->i915_perf_config, header,
                                                   GPUTOP_I915_PERF_FIELD_OA_REPORT);
                 const bool visible = !has_filter ||
                     (cpu_timestamp && *cpu_timestamp >= hovered_window.start && *cpu_timestamp <= hovered_window.end) ||
@@ -1128,7 +1128,7 @@ update_timeline_selected_reports(struct timeline_window *window,
             continue;
 
         const uint8_t *report = (const uint8_t *)
-            gputop_i915_perf_report_field(&ctx->i915_perf_config, iter.header,
+            gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
                                           GPUTOP_I915_PERF_FIELD_OA_REPORT);
         if (!last_report) {
             last_report = report;
@@ -2160,7 +2160,7 @@ display_main_window(struct window *win)
     ImGui::SameLine();
     char pretty_bandwidth[20];
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_BYTES,
-                                     gputop_i915_perf_report_size(&ctx->i915_perf_config) *
+                                     gputop_i915_perf_record_max_size(&ctx->i915_perf_config) *
                                      (1000000000ULL / ctx->oa_sampling_period_ns),
                                      pretty_bandwidth, sizeof(pretty_bandwidth));
     char pretty_sampling[20];
