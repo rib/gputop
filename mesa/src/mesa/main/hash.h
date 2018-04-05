@@ -33,10 +33,8 @@
 
 typedef unsigned int GLuint;
 typedef unsigned int GLboolean;
-typedef unsigned int mtx_t;
 
-static inline void mtx_lock(mtx_t *mtx) {}
-static inline void mtx_unlock(mtx_t *mtx) {}
+#include "c11/threads.h"
 
 /**
  * Magic GLuint object name that gets stored outside of the struct hash_table.
