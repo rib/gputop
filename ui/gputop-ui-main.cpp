@@ -1420,21 +1420,47 @@ display_timeline_reports(struct window *win)
     if (ctx->is_sampling || !ctx->metric_set)
         return;
 
+    int32_t hovered_column =
+        window->hovered_report < window->n_accumulated_reports ? window->hovered_report : -1;
+
     int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     ImGui::ColorButton("##selected_context",
                        Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoTooltip); ImGui::SameLine();
-    ImGui::Text("%s: %u reports",
+    char pretty_time[20];
+    gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                     window->selected_sample.timestamp_end - window->selected_sample.timestamp_start,
+                                     pretty_time, sizeof(pretty_time));
+    ImGui::Text("%s: %u reports, %s",
                 window->selected_context.name,
-                window->n_accumulated_reports); ImGui::SameLine();
+                window->n_accumulated_reports, pretty_time);
+
+    if (hovered_column >= 0) {
+        struct gputop_record_iterator iter;
+        int column = 0;
+        uint32_t ts[2] = { 0, 0 };
+
+        gputop_record_iterator_init(&iter, &window->selected_sample);
+        while (column < hovered_column && gputop_record_iterator_next(&iter)) {
+            if (iter.header->type == DRM_I915_PERF_RECORD_SAMPLE)
+                column++;
+        }
+
+        gputop_record_iterator_next(&iter);
+        ts[0] = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                                  iter.header);
+        gputop_record_iterator_next(&iter);
+        ts[1] = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                                  iter.header);
+        ImGui::SameLine(); ImGui::Text(", GT ts range: 0x%x - 0x%x", ts[0], ts[1]);
+    }
+
     static ImGuiTextFilter filter;
-    filter.Draw();
+    ImGui::Text("Filter counters:"); ImGui::SameLine(); filter.Draw();
 
     ImGui::BeginChild("##reports");
 
     bool hovered_changed = false;
-    int32_t hovered_column =
-        window->hovered_report < window->n_accumulated_reports ? window->hovered_report : -1;
     for (int c = 0; c < ctx->metric_set->n_counters; c++) {
         struct gputop_metric_set_counter *counter =
             &ctx->metric_set->counters[c];

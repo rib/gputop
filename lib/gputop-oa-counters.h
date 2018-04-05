@@ -225,6 +225,19 @@ gputop_i915_perf_record_field(const struct gputop_i915_perf_configuration *confi
     return NULL;
 }
 
+static inline uint32_t
+gputop_i915_perf_record_timestamp(const struct gputop_i915_perf_configuration *config,
+                                  const struct drm_i915_perf_record_header *header)
+{
+    if (header->type != DRM_I915_PERF_RECORD_SAMPLE)
+        return 0;
+
+    return gputop_cc_oa_report_get_timestamp(
+        (const uint8_t *)
+        gputop_i915_perf_record_field(config, header,
+                                      GPUTOP_I915_PERF_FIELD_OA_REPORT));
+}
+
 #ifdef __cplusplus
 }
 #endif
