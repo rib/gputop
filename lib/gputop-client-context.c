@@ -756,6 +756,73 @@ put_accumulated_sample(struct gputop_client_context *ctx,
     list_add(&samples->link, &ctx->free_samples);
 }
 
+void
+gputop_accumulated_samples_print(struct gputop_client_context *ctx,
+                                 struct gputop_accumulated_samples *samples)
+{
+    struct gputop_record_iterator iter;
+    gputop_record_iterator_init(&iter, samples);
+
+    const struct drm_i915_perf_record_header *last = NULL;
+    while (gputop_record_iterator_next(&iter)) {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        if (last) {
+            const uint32_t *report =
+                (const uint32_t *) gputop_i915_perf_record_field(&ctx->i915_perf_config,
+                                                                 iter.header,
+                                                                 GPUTOP_I915_PERF_FIELD_OA_REPORT);
+
+            struct gputop_cc_oa_accumulator acc;
+            gputop_cc_oa_accumulator_init(&acc, &ctx->devinfo, ctx->metric_set,
+                                          false, 0, NULL);
+            gputop_cc_oa_accumulate_reports(&acc,
+                                            gputop_i915_perf_record_field(&ctx->i915_perf_config,
+                                                                          last,
+                                                                          GPUTOP_I915_PERF_FIELD_OA_REPORT),
+                                            (const uint8_t *) report);
+
+            switch (ctx->metric_set->perf_oa_format) {
+            case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
+                fprintf(stderr, "TS=%lx %s\n", acc.deltas[0],
+                        gputop_i915_perf_record_reason(&ctx->i915_perf_config,
+                                                       &ctx->devinfo,
+                                                       iter.header));
+                fprintf(stderr, "CLK=%lx\n", acc.deltas[1]);
+
+                /* /\* 32x 40bit A counters... *\/ */
+                /* for (i = 0; i < 32; i++) */
+                /*     fprintf(stderr, "A%i=%lx\n", i, acc.deltas[i + 2]); */
+
+                /* /\* 4x 32bit A counters... *\/ */
+                /* for (i = 0; i < 4; i++) */
+                /*     fprintf(stderr, "A%i=%lx\n", i, acc.deltas[i + 2 + 32]); */
+
+                /* /\* 8x 32bit B counters + 8x 32bit C counters... *\/ */
+                /* for (i = 0; i < 16; i++) */
+                /*     fprintf(stderr, "B/C%i=%lx\n", i, acc.deltas[i + 2 + 32 + 4]); */
+                fprintf(stderr, "B/C%i=%x B/C%i=%x\n",
+                        8, report[48],
+                        9, report[49]);
+                break;
+
+            case I915_OA_FORMAT_A45_B8_C8:
+                fprintf(stderr, "TS=%lx\n", acc.deltas[0]);
+
+                /* for (i = 0; i < 61; i++) */
+                /*     fprintf(stderr, "A%i=%lx\n", i, acc.deltas[i + 1]); */
+                break;
+            default:
+                assert(0);
+            }
+        }
+
+        last = iter.header;
+    }
+}
+
+
 double
 gputop_client_context_read_counter_value(struct gputop_client_context *ctx,
                                          struct gputop_accumulated_samples *sample,

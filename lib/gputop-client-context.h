@@ -339,6 +339,9 @@ double gputop_client_context_read_counter_value(struct gputop_client_context *ct
                                                 struct gputop_accumulated_samples *sample,
                                                 const struct gputop_metric_set_counter *counter);
 
+void gputop_accumulated_samples_print(struct gputop_client_context *ctx,
+                                      struct gputop_accumulated_samples *sample);
+
 /* Iterator for reports accumulated into gputop_accumulated_samples. */
 struct gputop_record_iterator {
     const struct gputop_accumulated_samples *sample;
