@@ -110,6 +110,7 @@ struct timeline_window {
     struct window counters_window;
     struct window events_window;
     struct window reports_window;
+    struct window report_window;
     struct window usage_window;
 
     /* Used when timestamp correlation is not possible */
@@ -740,57 +741,57 @@ show_contexts_i915_perf_window(void)
 
 /**/
 
-static void
-display_accumulated_reports(struct gputop_client_context *ctx,
-                            struct gputop_accumulated_samples *samples,
-                            bool default_opened)
-{
-    struct gputop_record_iterator iter;
+// static void
+// display_accumulated_reports(struct gputop_client_context *ctx,
+//                             struct gputop_accumulated_samples *samples,
+//                             bool default_opened)
+// {
+//     struct gputop_record_iterator iter;
 
-    ImGui::BeginChild("##reports");
+//     ImGui::BeginChild("##reports");
 
-    gputop_record_iterator_init(&iter, samples);
-    while (gputop_record_iterator_next(&iter)) {
-        switch (iter.header->type) {
-        case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
-            ImGui::Text("OA buffer lost");
-            break;
-        case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-            ImGui::Text("OA report lost");
-            break;
+//     gputop_record_iterator_init(&iter, samples);
+//     while (gputop_record_iterator_next(&iter)) {
+//         switch (iter.header->type) {
+//         case DRM_I915_PERF_RECORD_OA_BUFFER_LOST:
+//             ImGui::Text("OA buffer lost");
+//             break;
+//         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
+//             ImGui::Text("OA report lost");
+//             break;
 
-        case DRM_I915_PERF_RECORD_SAMPLE: {
-            const uint64_t *cpu_timestamp = (const uint64_t *)
-                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
-                                              GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
-            const uint64_t *gpu_timestamp = (const uint64_t *)
-                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
-                                              GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
-            const uint8_t *report = (const uint8_t *)
-                gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
-                                              GPUTOP_I915_PERF_FIELD_OA_REPORT);
+//         case DRM_I915_PERF_RECORD_SAMPLE: {
+//             const uint64_t *cpu_timestamp = (const uint64_t *)
+//                 gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
+//                                               GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
+//             const uint64_t *gpu_timestamp = (const uint64_t *)
+//                 gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
+//                                               GPUTOP_I915_PERF_FIELD_GPU_TIMESTAMP);
+//             const uint8_t *report = (const uint8_t *)
+//                 gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
+//                                               GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
-            ImGui::Text("rcs=%08" PRIx64 "(%" PRIx64 " scaled) rcs64=%016" PRIx64
-                        " cpu=%" PRIx64 " id=0x%x reason=%s",
-                        gputop_cc_oa_report_get_timestamp(report),
-                        gputop_timebase_scale_ns(&ctx->devinfo,
-                                                 gputop_cc_oa_report_get_timestamp(report)),
-                        gpu_timestamp ? *gpu_timestamp : 0UL,
-                        cpu_timestamp ? *cpu_timestamp : 0UL,
-                        gputop_cc_oa_report_get_ctx_id(&ctx->devinfo, report),
-                        gputop_cc_oa_report_get_reason(&ctx->devinfo, report));
-            break;
-        }
+//             ImGui::Text("rcs=%08" PRIx64 "(%" PRIx64 " scaled) rcs64=%016" PRIx64
+//                         " cpu=%" PRIx64 " id=0x%x reason=%s",
+//                         gputop_cc_oa_report_get_timestamp(report),
+//                         gputop_timebase_scale_ns(&ctx->devinfo,
+//                                                  gputop_cc_oa_report_get_timestamp(report)),
+//                         gpu_timestamp ? *gpu_timestamp : 0UL,
+//                         cpu_timestamp ? *cpu_timestamp : 0UL,
+//                         gputop_cc_oa_report_get_ctx_id(&ctx->devinfo, report),
+//                         gputop_cc_oa_report_get_reason(&ctx->devinfo, report));
+//             break;
+//         }
 
-        default:
-            ImGui::Text("i915 perf: Spurious header type = %d", iter.header->type);
-            iter.done = true;
-            break;
-        }
-    }
+//         default:
+//             ImGui::Text("i915 perf: Spurious header type = %d", iter.header->type);
+//             iter.done = true;
+//             break;
+//         }
+//     }
 
-    ImGui::EndChild();
-}
+//     ImGui::EndChild();
+// }
 
 static void
 display_report_window(struct window *win)
@@ -850,14 +851,14 @@ display_report_window(struct window *win)
 
     ImGui::NextColumn();
     ImGui::Text("HW Contexts");
-    struct gputop_hw_context *hovered_context = NULL;
+    // struct gputop_hw_context *hovered_context = NULL;
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
         if (ImGui::TreeNode(context, "hw_id=%u/0x%x name=%s row=%i",
                             context->hw_id, context->hw_id, context->name,
                             context->timeline_row)) {
             ImGui::TreePop();
         }
-        if (ImGui::IsItemHovered()) hovered_context = context;
+        // if (ImGui::IsItemHovered()) hovered_context = context;
     }
 
     ImGui::NextColumn();
@@ -1434,7 +1435,8 @@ update_timeline_report_range(struct timeline_window *window,
                              const struct drm_i915_perf_record_header *end)
 {
     if (!start) {
-        snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range), "");
+        snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
+                 "no selection");
         return;
     }
 
@@ -1518,7 +1520,6 @@ display_timeline_reports(struct window *win)
     if (ctx->is_sampling || !ctx->metric_set)
         return;
 
-
     int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     ImGui::ColorButton("##selected_context",
                        Gputop::GetHueColor(window->selected_context.timeline_row, n_contexts),
@@ -1532,9 +1533,12 @@ display_timeline_reports(struct window *win)
                 window->n_accumulated_reports, pretty_time,
                 window->gt_timestamp_range);
 
-    if (ImGui::InputText("Timestamp search (hex)",
+    ImGui::Text("Timestamp search:");
+    if (ImGui::InputText("(hexadecimal)",
                          window->timestamp_search, sizeof(window->timestamp_search)))
         search_timeline_reports_for_timestamp(window, ctx);
+    ImGui::SameLine();
+    if (ImGui::Button("Show OA report")) { toggle_show_window(&window->report_window); }
 
     static ImGuiTextFilter filter;
     ImGui::Text("Filter counters:"); ImGui::SameLine(); filter.Draw();
@@ -1581,6 +1585,34 @@ display_timeline_reports(struct window *win)
         search_timeline_reports_for_column(window, ctx, new_hovered_column);
 
     ImGui::EndChild();
+}
+
+static void
+display_timeline_report(struct window *win)
+{
+    struct timeline_window *window =
+      (struct timeline_window *) container_of(win, window, report_window);
+    struct gputop_client_context *ctx = &context.ctx;
+
+    if (window->hovered_report < 0)
+        return;
+
+    struct gputop_record_iterator iter;
+    int c = 0;
+    gputop_record_iterator_init(&iter, &window->selected_sample);
+    while (c <= window->hovered_report && gputop_record_iterator_next(&iter)) {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        c++;
+    }
+
+    const uint32_t *report = (const uint32_t *)
+        gputop_i915_perf_record_field(&ctx->i915_perf_config, iter.header,
+                                      GPUTOP_I915_PERF_FIELD_OA_REPORT);
+
+    for (int i = 0; i < 64; i++)
+        ImGui::Text("0x%x", report[i]);
 }
 
 static void
@@ -1696,6 +1728,13 @@ show_timeline_window(void)
     window->reports_window.display = display_timeline_reports;
     window->reports_window.destroy = hide_window;
     window->reports_window.opened = false;
+
+    snprintf(window->report_window.name, sizeof(window->report_window.name),
+             "i915 perf report view##%p", &window->report_window);
+    window->report_window.size = ImVec2(400, 400);
+    window->report_window.display = display_timeline_report;
+    window->report_window.destroy = hide_window;
+    window->report_window.opened = false;
 
     snprintf(window->usage_window.name, sizeof(window->usage_window.name),
              "i915 perf timeline usage##%p", &window->usage_window);
