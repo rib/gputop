@@ -96,10 +96,13 @@ struct timeline_window {
     uint64_t zoom_start, zoom_length;
 
     struct gputop_accumulated_samples selected_sample;
+    struct gputop_hw_context selected_context;
+    char timestamp_search[40];
+    int64_t searched_timestamp;
+    char gt_timestamp_range[100];
     uint32_t n_accumulated_reports;
     int32_t hovered_report;
     float *accumulated_values;
-    struct gputop_hw_context selected_context;
 
     struct gputop_perf_tracepoint tracepoint;
     uint64_t tracepoint_selected_ts;
@@ -1425,6 +1428,87 @@ display_timeline_events(struct window *win)
 }
 
 static void
+update_timeline_report_range(struct timeline_window *window,
+                             struct gputop_client_context *ctx,
+                             const struct drm_i915_perf_record_header *start,
+                             const struct drm_i915_perf_record_header *end)
+{
+    if (!start) {
+        snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range), "");
+        return;
+    }
+
+    snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
+             "GT ts range: 0x%x(%s) - 0x%x(%s)",
+             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, start),
+             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, start),
+             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, end),
+             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, end));
+}
+
+static void
+search_timeline_reports_for_timestamp(struct timeline_window *window,
+                                      struct gputop_client_context *ctx)
+{
+    if (strlen(window->timestamp_search) < 1) {
+        window->searched_timestamp = -1;
+        window->hovered_report = -1;
+        return;
+    }
+
+    const struct drm_i915_perf_record_header *last = NULL;
+    struct gputop_record_iterator iter;
+    uint32_t ts = strtol(window->timestamp_search, NULL, 16);
+    int report = 0;
+    gputop_record_iterator_init(&iter, &window->selected_sample);
+    while (gputop_record_iterator_next(&iter)) {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        uint32_t report_ts =
+            gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              iter.header);
+
+        if (ts < report_ts) {
+            window->searched_timestamp = report_ts;
+            window->hovered_report = report;
+            update_timeline_report_range(window, ctx, last, iter.header);
+            return;
+        }
+        last = iter.header;
+        report++;
+    }
+
+    window->searched_timestamp = -1;
+    window->hovered_report = -1;
+}
+
+static void
+search_timeline_reports_for_column(struct timeline_window *window,
+                                   struct gputop_client_context *ctx,
+                                   int column)
+{
+    if (window->searched_timestamp != -1)
+        return;
+
+    const struct drm_i915_perf_record_header *last = NULL;
+    struct gputop_record_iterator iter;
+    int c = 0;
+    gputop_record_iterator_init(&iter, &window->selected_sample);
+    while (c <= column && gputop_record_iterator_next(&iter)) {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        last = iter.header;
+        c++;
+    }
+    gputop_record_iterator_next(&iter);
+
+    window->hovered_report = column;
+    update_timeline_report_range(window, ctx, last, iter.header);
+}
+
+static void
 display_timeline_reports(struct window *win)
 {
     struct timeline_window *window =
@@ -1434,8 +1518,6 @@ display_timeline_reports(struct window *win)
     if (ctx->is_sampling || !ctx->metric_set)
         return;
 
-    int32_t hovered_column =
-        window->hovered_report < window->n_accumulated_reports ? window->hovered_report : -1;
 
     int n_contexts = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     ImGui::ColorButton("##selected_context",
@@ -1445,44 +1527,21 @@ display_timeline_reports(struct window *win)
     gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
                                      window->selected_sample.timestamp_end - window->selected_sample.timestamp_start,
                                      pretty_time, sizeof(pretty_time));
-    ImGui::Text("%s: %u reports, %s",
+    ImGui::Text("%s: %u reports, %s, %s",
                 window->selected_context.name,
-                window->n_accumulated_reports, pretty_time);
+                window->n_accumulated_reports, pretty_time,
+                window->gt_timestamp_range);
 
-    if (hovered_column >= 0) {
-        struct gputop_record_iterator iter;
-        int column = 0;
-        struct {
-            uint32_t ts;
-            const char *reason;
-        } ts[2] = { { 0, "" }, { 0, "" }, };
-
-        gputop_record_iterator_init(&iter, &window->selected_sample);
-        while (column < hovered_column && gputop_record_iterator_next(&iter)) {
-            if (iter.header->type == DRM_I915_PERF_RECORD_SAMPLE)
-                column++;
-        }
-
-        gputop_record_iterator_next(&iter);
-        ts[0].ts = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
-                                                     iter.header);
-        ts[0].reason = gputop_i915_perf_record_reason(&ctx->i915_perf_config,
-                                                      &ctx->devinfo, iter.header);
-        gputop_record_iterator_next(&iter);
-        ts[1].ts = gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
-                                                  iter.header);
-        ts[1].reason = gputop_i915_perf_record_reason(&ctx->i915_perf_config,
-                                                      &ctx->devinfo, iter.header);
-        ImGui::SameLine(); ImGui::Text(", GT ts range: 0x%x(%s) - 0x%x(%s)",
-                                       ts[0].ts, ts[0].reason, ts[1].ts, ts[1].reason);
-    }
+    if (ImGui::InputText("Timestamp search (hex)",
+                         window->timestamp_search, sizeof(window->timestamp_search)))
+        search_timeline_reports_for_timestamp(window, ctx);
 
     static ImGuiTextFilter filter;
     ImGui::Text("Filter counters:"); ImGui::SameLine(); filter.Draw();
 
     ImGui::BeginChild("##reports");
 
-    bool hovered_changed = false;
+    int32_t new_hovered_column = -1;
     for (int c = 0; c < ctx->metric_set->n_counters; c++) {
         struct gputop_metric_set_counter *counter =
             &ctx->metric_set->counters[c];
@@ -1493,7 +1552,8 @@ display_timeline_reports(struct window *win)
         float *values = &window->accumulated_values[c * window->n_accumulated_reports];
 
         ImGui::PushID(counter);
-        int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports, 0, hovered_column);
+        int hovered = Gputop::PlotHistogram("", values, window->n_accumulated_reports,
+                                            0, window->hovered_report);
         ImGui::PopID();
         ImGui::SameLine();
         if (hovered >= 0) {
@@ -1501,13 +1561,12 @@ display_timeline_reports(struct window *win)
             pretty_print_counter_value(counter, values[hovered],
                                        tooltip_text, sizeof(tooltip_text));
             ImGui::SetTooltip("%s", tooltip_text);
-            hovered_column = hovered;
-            hovered_changed = true;
+            new_hovered_column = hovered;
         }
 
-        if (hovered_column >= 0) {
+        if (window->hovered_report >= 0) {
             char hovered_text[80];
-            pretty_print_counter_value(counter, values[hovered_column],
+            pretty_print_counter_value(counter, values[window->hovered_report],
                                        hovered_text, sizeof(hovered_text));
             ImGui::Text("%s - %s", counter->name, hovered_text);
         } else {
@@ -1518,10 +1577,8 @@ display_timeline_reports(struct window *win)
         }
     }
 
-    if (!hovered_changed)
-        window->hovered_report = -1;
-    else
-        window->hovered_report = hovered_column;
+    if (window->hovered_report != new_hovered_column)
+        search_timeline_reports_for_column(window, ctx, new_hovered_column);
 
     ImGui::EndChild();
 }
@@ -1646,6 +1703,8 @@ show_timeline_window(void)
     window->usage_window.display = display_timeline_usage;
     window->usage_window.destroy = hide_window;
     window->usage_window.opened = false;
+
+    window->searched_timestamp = -1;
 
     window->zoom_start = window->zoom_tp_start = 0;
     struct gputop_client_context *ctx = &context.ctx;
