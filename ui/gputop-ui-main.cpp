@@ -1441,7 +1441,7 @@ update_timeline_report_range(struct timeline_window *window,
     }
 
     snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
-             "GT ts range: 0x%x(%s) - 0x%x(%s)",
+             "ts: 0x%x(%s) - 0x%x(%s)",
              gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, start),
              gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, start),
              gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, end),
