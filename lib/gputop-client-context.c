@@ -665,6 +665,7 @@ put_hw_context(struct gputop_client_context *ctx, struct gputop_hw_context *old_
     uint32_t i = 0;
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link)
         context->timeline_row = i++;
+    assert(i == _mesa_hash_table_num_entries(ctx->hw_contexts_table));
 }
 
 static void
