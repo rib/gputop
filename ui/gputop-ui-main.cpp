@@ -1110,6 +1110,10 @@ timeline_focus_on_first_sample(struct timeline_window *window,
 }
 
 static void
+search_timeline_reports_for_timestamp(struct timeline_window *window,
+                                      struct gputop_client_context *ctx);
+
+static void
 update_timeline_selected_reports(struct timeline_window *window,
                                  struct gputop_client_context *ctx,
                                  struct gputop_accumulated_samples *sample)
@@ -1137,6 +1141,7 @@ update_timeline_selected_reports(struct timeline_window *window,
     window->accumulated_values = (float *)
         calloc(n_accumulated_reports * n_counters, sizeof(float));
     window->n_accumulated_reports = n_accumulated_reports;
+    window->hovered_report = -1;
 
     const uint8_t *last_report = NULL;
     int i = 0;
@@ -1185,6 +1190,8 @@ update_timeline_selected_reports(struct timeline_window *window,
         i++;
         last_report = report;
     }
+
+    search_timeline_reports_for_timestamp(window, ctx);
 }
 
 static void
@@ -1542,6 +1549,9 @@ display_timeline_reports(struct window *win)
 
     static ImGuiTextFilter filter;
     ImGui::Text("Filter counters:"); ImGui::SameLine(); filter.Draw();
+
+    if (window->n_accumulated_reports < 1)
+        return;
 
     ImGui::BeginChild("##reports");
 
