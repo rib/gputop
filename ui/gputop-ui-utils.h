@@ -42,6 +42,10 @@ enum Colors {
     GputopCol_TimelineZoomRight,
     GputopCol_TimelineEventSelect,
     GputopCol_CounterSelectedText,
+    GputopCol_PlotLines,
+    GputopCol_PlotLinesHovered,
+    GputopCol_PlotHistogram,
+    GputopCol_PlotHistogramHovered,
 
     GputopCol_COUNT
 };

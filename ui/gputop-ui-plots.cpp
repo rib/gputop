@@ -31,8 +31,10 @@
 #include "imgui_internal.h"
 
 #include "gputop-ui-plots.h"
+#include "gputop-ui-utils.h"
 
 using namespace ImGui;
+using namespace Gputop;
 
 static int PlotExV(ImGuiPlotType plot_type, const char* label,
                    float (*values_getter)(void* data, int idx), void* data,
@@ -82,8 +84,6 @@ static int PlotExV(ImGuiPlotType plot_type, const char* label,
     int v_hovered = -1;
     if (values_count > 0)
     {
-        assert(value_highlight < values_count);
-
         int res_w = ImMin((int)graph_size.x, values_count) + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
         int item_count = values_count + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
 
@@ -111,8 +111,8 @@ static int PlotExV(ImGuiPlotType plot_type, const char* label,
         ImVec2 tp0 = ImVec2( t0, 1.0f - ImSaturate((v0 - scale_min) * inv_scale) );                       // Point in the normalized space of our target rectangle
         float histogram_zero_line_t = (scale_min * scale_max < 0.0f) ? (-scale_min * inv_scale) : (scale_min < 0.0f ? 0.0f : 1.0f);   // Where does the zero line stands
 
-        const ImU32 col_base = GetColorU32((plot_type == ImGuiPlotType_Lines) ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);
-        const ImU32 col_hovered = GetColorU32((plot_type == ImGuiPlotType_Lines) ? ImGuiCol_PlotLinesHovered : ImGuiCol_PlotHistogramHovered);
+        const ImU32 col_base = GetColor((plot_type == ImGuiPlotType_Lines) ? GputopCol_PlotLines : GputopCol_PlotHistogram);
+        const ImU32 col_hovered = GetColor((plot_type == ImGuiPlotType_Lines) ? GputopCol_PlotLinesHovered : GputopCol_PlotHistogramHovered);
 
         for (int n = 0; n < res_w; n++)
         {

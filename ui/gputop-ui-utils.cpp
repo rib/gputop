@@ -57,6 +57,10 @@ void InitColorsProperties()
     colors[GputopCol_TimelineZoomRight]      = (struct ColorItem){ "TimelineZoomRight",      ImVec4(0.31f, 0.53f, 0.96f, 0.50f) };
     colors[GputopCol_TimelineEventSelect]    = (struct ColorItem){ "TimelineEventSelect",    ImVec4(0.31f, 0.53f, 0.96f, 1.00f) };
     colors[GputopCol_CounterSelectedText]    = (struct ColorItem){ "CounterSelectedText",    ImVec4(0.31f, 0.53f, 0.96f, 1.00f) };
+    colors[GputopCol_PlotLines]              = (struct ColorItem){ "PlotLines",              ImVec4(0.61f, 0.61f, 0.61f, 1.00f) };
+    colors[GputopCol_PlotLinesHovered]       = (struct ColorItem){ "PlotLinesHovered",       ImVec4(1.00f, 0.43f, 0.35f, 1.00f) };
+    colors[GputopCol_PlotHistogram]          = (struct ColorItem){ "PlotHistogram",          ImVec4(0.90f, 0.70f, 0.00f, 1.00f) };
+    colors[GputopCol_PlotHistogramHovered]   = (struct ColorItem){ "PlotHistogramHovered",   ImVec4(0.03f, 0.51f, 0.82f, 1.00f) };
 
     properties[GputopProp_TimelineScrollScaleFactor] = (struct PropertyItem){ "TimelineScrollScaleFactor", 20 };
     properties[GputopProp_TopologySliceHeight]       = (struct PropertyItem){ "TopologySliceHeight",       70 };
