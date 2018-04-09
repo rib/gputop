@@ -255,6 +255,8 @@ struct gputop_client_context {
 
     gputop_accumulate_cb accumulate_cb; /* RW */
 
+    bool warn_report_loss; /* RW */
+
     /**/
     struct gputop_accumulated_samples *current_timeline_samples;
     struct list_head timelines;

@@ -930,7 +930,8 @@ i915_perf_accumulate(struct gputop_client_context *ctx,
             gputop_cr_console_log("i915_oa: OA buffer error - all records lost");
             break;
         case DRM_I915_PERF_RECORD_OA_REPORT_LOST:
-            gputop_cr_console_log("i915_oa: OA report lost");
+            if (ctx->warn_report_loss)
+                gputop_cr_console_log("i915_oa: OA report lost");
             break;
 
         case DRM_I915_PERF_RECORD_SAMPLE: {
