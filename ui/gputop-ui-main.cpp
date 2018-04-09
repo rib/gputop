@@ -562,7 +562,6 @@ display_global_i915_perf_window(struct window *win)
 
 
     ImGui::BeginChild("##block");
-    ImGui::PushStyleColor(ImGuiCol_PlotLines, Gputop::GetColor(GputopCol_OaGraph));
     list_for_each_entry_safe(struct i915_perf_window_counter, c, &window->counters, link) {
         /* Hide previous selected counters on metric set that isn't
          * currently used. */
@@ -598,7 +597,6 @@ display_global_i915_perf_window(struct window *win)
             ImGui::SetTooltip("%s", tooltip_tex);
         }
     }
-    ImGui::PopStyleColor();
     ImGui::EndChild();
 }
 
@@ -670,7 +668,6 @@ display_contexts_i915_perf_window(struct window *win)
     }
 
     ImGui::BeginChild("##block");
-    ImGui::PushStyleColor(ImGuiCol_PlotLines, Gputop::GetColor(GputopCol_OaGraph));
     list_for_each_entry_safe(struct i915_perf_window_counter, c, &window->counters, link) {
         /* Hide previous selected counters on metric set that isn't
          * currently used. */
@@ -713,7 +710,6 @@ display_contexts_i915_perf_window(struct window *win)
             }
         }
     }
-    ImGui::PopStyleColor();
     ImGui::EndChild();
 }
 

@@ -30,7 +30,6 @@
 #include "imgui.h"
 
 enum Colors {
-    GputopCol_OaGraph,
     GputopCol_TopologySlice,
     GputopCol_TopologySubslice,
     GputopCol_TopologySubsliceDis,

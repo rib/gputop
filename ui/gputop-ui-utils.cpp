@@ -45,7 +45,6 @@ static struct PropertyItem {
 
 void InitColorsProperties()
 {
-    colors[GputopCol_OaGraph]                = (struct ColorItem){ "OaGraph",                ImVec4(0.15f, 0.85f, 0.20f, 1.00f) };
     colors[GputopCol_TopologySlice]          = (struct ColorItem){ "TopologySlice",          ImVec4(0.57f, 0.84f, 0.62f, 1.00f) };
     colors[GputopCol_TopologySubslice]       = (struct ColorItem){ "TopologySubslice",       ImVec4(1.00f, 0.89f, 0.62f, 1.00f) };
     colors[GputopCol_TopologySubsliceDis]    = (struct ColorItem){ "TopologySubsliceDis",    ImVec4(0.65f, 0.62f, 0.62f, 1.00f) };
@@ -57,7 +56,7 @@ void InitColorsProperties()
     colors[GputopCol_TimelineZoomRight]      = (struct ColorItem){ "TimelineZoomRight",      ImVec4(0.31f, 0.53f, 0.96f, 0.50f) };
     colors[GputopCol_TimelineEventSelect]    = (struct ColorItem){ "TimelineEventSelect",    ImVec4(0.31f, 0.53f, 0.96f, 1.00f) };
     colors[GputopCol_CounterSelectedText]    = (struct ColorItem){ "CounterSelectedText",    ImVec4(0.31f, 0.53f, 0.96f, 1.00f) };
-    colors[GputopCol_PlotLines]              = (struct ColorItem){ "PlotLines",              ImVec4(0.61f, 0.61f, 0.61f, 1.00f) };
+    colors[GputopCol_PlotLines]              = (struct ColorItem){ "PlotLines",              ImVec4(0.15f, 0.85f, 0.20f, 1.00f) };
     colors[GputopCol_PlotLinesHovered]       = (struct ColorItem){ "PlotLinesHovered",       ImVec4(1.00f, 0.43f, 0.35f, 1.00f) };
     colors[GputopCol_PlotHistogram]          = (struct ColorItem){ "PlotHistogram",          ImVec4(0.90f, 0.70f, 0.00f, 1.00f) };
     colors[GputopCol_PlotHistogramHovered]   = (struct ColorItem){ "PlotHistogramHovered",   ImVec4(0.03f, 0.51f, 0.82f, 1.00f) };
