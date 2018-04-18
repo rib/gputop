@@ -172,7 +172,7 @@ update_hw_contexts_process_info(struct gputop_client_context *ctx,
             continue;
 
         snprintf(context->name, sizeof(context->name),
-                 "%s id=0x%x", process->cmd, context->hw_id);
+                 "%s id=%u", process->cmd, context->hw_id);
     }
 }
 
@@ -600,7 +600,7 @@ hw_context_update_process(struct gputop_client_context *ctx,
     if (process_entry) {
         context->process = (struct gputop_process_info *) process_entry->data;
         snprintf(context->name, sizeof(context->name),
-                 "%s id=0x%x", context->process->cmd, context->hw_id);
+                 "%s id=%u", context->process->cmd, context->hw_id);
     }
 }
 
@@ -621,7 +621,7 @@ get_hw_context(struct gputop_client_context *ctx, uint32_t hw_id)
     }
 
     new_context = (struct gputop_hw_context *) calloc(1, sizeof(*new_context));
-    snprintf(new_context->name, sizeof(new_context->name), "id: 0x%x", hw_id);
+    snprintf(new_context->name, sizeof(new_context->name), "<unknown> id=%u", hw_id);
     new_context->hw_id = hw_id;
     new_context->timeline_row = _mesa_hash_table_num_entries(ctx->hw_contexts_table);
     new_context->n_samples = 1;
