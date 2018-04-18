@@ -502,7 +502,7 @@ add_tracepoint_stream_data(struct gputop_client_context *ctx,
         uint32_t pid = *((uint32_t *)&tp_data->data.data[tp->fields[tp->process_field].offset]);
         struct gputop_process_info *process = get_process_info(ctx, pid);
 
-        if (tp->hw_id_field >= 0) {
+        if (process && tp->hw_id_field >= 0) {
             uint32_t hw_id = *((uint32_t *)&tp_data->data.data[tp->fields[tp->hw_id_field].offset]);
             _mesa_hash_table_insert(ctx->hw_id_to_process_table, uint_key(hw_id), process);
 
