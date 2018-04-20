@@ -113,6 +113,15 @@ struct timeline_window {
     struct window report_window;
     struct window usage_window;
 
+    /**/
+    char gt_timestamp_highlight_str[100];
+    uint64_t gt_timestamp_highlight;
+
+    /* List of timestamps to display on the timeline */
+    char gt_timestamps_list[1024];
+    uint64_t gt_timestamps_display[100];
+    int n_gt_timestamps_display;
+
     /* Used when timestamp correlation is not possible */
     uint64_t zoom_tp_start, zoom_tp_length;
 };
@@ -1061,9 +1070,9 @@ timeline_select_context(struct timeline_window *window,
                         struct gputop_hw_context **out_context)
 {
     bool selected = false;
-    if (ImGui::Button("Move to.."))
-        ImGui::OpenPopup("Contexts");
-    if (ImGui::BeginPopup("Contexts")) {
+    if (ImGui::Button("Move to context"))
+        ImGui::OpenPopup("Move to context");
+    if (ImGui::BeginPopup("Move to context")) {
         list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
             if (ImGui::Selectable(context->name)) {
                 *out_context = context;
@@ -1105,9 +1114,146 @@ timeline_focus_on_first_sample(struct timeline_window *window,
     }
 }
 
+static bool
+timeline_select_gt_timestamp(struct timeline_window *window,
+                             struct gputop_client_context *ctx)
+{
+    bool modified = false;
+    if (ImGui::Button("Move to timestamp"))
+        ImGui::OpenPopup("Move to timestamp");
+    if (ImGui::BeginPopup("Move to timestamp")) {
+        modified = ImGui::InputText("Timestamp (hexa)",
+                                    window->gt_timestamp_highlight_str,
+                                    sizeof(window->gt_timestamp_highlight_str),
+                                    ImGuiInputTextFlags_EnterReturnsTrue);
+        if (modified) {
+            window->gt_timestamp_highlight =
+                strtol(window->gt_timestamp_highlight_str, NULL, 16);
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    return modified;
+}
+
+static void
+timeline_focus_on_gt_timestamp(struct timeline_window *window,
+                               struct gputop_client_context *ctx,
+                               uint64_t gt_timestamp)
+{
+    list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
+        if (gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              samples->end_report.header) < gt_timestamp)
+            continue;
+        if (gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              samples->start_report.header) > gt_timestamp)
+            break;
+
+        const uint64_t max_length = ctx->oa_visible_timeline_s * 1000000000ULL;
+        uint64_t total_end_ts = get_end_timeline_ts(ctx, true);
+
+        uint64_t ts_length = samples->timestamp_end - samples->timestamp_start;
+        ts_length *= 2;
+
+        window->zoom_start = (samples->timestamp_start - ts_length / 4) - (total_end_ts - max_length);
+        window->zoom_length = ts_length;
+
+        break;
+    }
+}
+
+static void
+timeline_highlight_timestamps(struct timeline_window *window,
+                              struct gputop_client_context *ctx)
+{
+    if (ImGui::Button("Highlight timestamps"))
+        ImGui::OpenPopup("Highlight timestamps");
+    if (ImGui::BeginPopup("Highlight timestamps")) {
+        if (ImGui::InputTextMultiline("Timestamps",
+                                      window->gt_timestamps_list,
+                                      sizeof(window->gt_timestamps_list))) {
+            char *str = window->gt_timestamps_list, *str_end =
+                window->gt_timestamps_list + strlen(window->gt_timestamps_list);
+            window->n_gt_timestamps_display = 0;
+            while (str < str_end &&
+                   window->n_gt_timestamps_display < ARRAY_SIZE(window->gt_timestamps_display)) {
+                char *next_str = NULL;
+                uint32_t gt_timestamp = strtol(str, &next_str, 16);
+
+                window->gt_timestamps_display[window->n_gt_timestamps_display++] =
+                    gputop_client_context_convert_gt_timestamp(ctx, gt_timestamp);
+
+                if (!next_str || next_str == str)
+                    break;
+
+                str = next_str;
+            }
+        }
+
+        for (int i = 0; i < window->n_gt_timestamps_display; i++) {
+            ImGui::Text("%i: %lu\n", i, window->gt_timestamps_display[i]);
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+static void
+update_timeline_report_range(struct timeline_window *window,
+                             struct gputop_client_context *ctx,
+                             const struct drm_i915_perf_record_header *start,
+                             const struct drm_i915_perf_record_header *end)
+{
+    if (!start) {
+        snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
+                 "no selection");
+        return;
+    }
+
+    snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
+             "ts: 0x%x(%s) - 0x%x(%s)",
+             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, start),
+             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, start),
+             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, end),
+             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, end));
+}
+
 static void
 search_timeline_reports_for_timestamp(struct timeline_window *window,
-                                      struct gputop_client_context *ctx);
+                                      struct gputop_client_context *ctx)
+{
+    if (strlen(window->timestamp_search) < 1) {
+        window->searched_timestamp = -1;
+        window->hovered_report = -1;
+        return;
+    }
+
+    const struct drm_i915_perf_record_header *last = NULL;
+    struct gputop_record_iterator iter;
+    uint32_t ts = strtol(window->timestamp_search, NULL, 16);
+    int report = 0;
+    gputop_record_iterator_init(&iter, &window->selected_sample);
+    while (gputop_record_iterator_next(&iter)) {
+        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
+            continue;
+
+        uint32_t report_ts =
+            gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              iter.header);
+
+        if (ts < report_ts) {
+            window->searched_timestamp = report_ts;
+            window->hovered_report = report;
+            update_timeline_report_range(window, ctx, last, iter.header);
+            return;
+        }
+        last = iter.header;
+        report++;
+    }
+
+    window->searched_timestamp = -1;
+    window->hovered_report = -1;
+}
 
 static void
 update_timeline_selected_reports(struct timeline_window *window,
@@ -1200,6 +1346,15 @@ display_timeline_window(struct window *win)
 
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); }
     ImGui::Text("RCS/Render timeline:"); ImGui::SameLine();
+    {
+        char time[20];
+        gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
+                                         window->zoom_length == 0 ?
+                                         max_length : window->zoom_length,
+                                         time, sizeof(time));
+        ImGui::Text("time interval : %s", time);
+    }
+
     if (ImGui::Button("Reset zoom##i915")) {
         window->zoom_start = 0;
         window->zoom_length = max_length;
@@ -1218,14 +1373,11 @@ display_timeline_window(struct window *win)
     if (timeline_select_context(window, ctx, &selected_context)) {
         timeline_focus_on_first_sample(window, ctx, selected_context);
     } ImGui::SameLine();
-    {
-        char time[20];
-        gputop_client_pretty_print_value(GPUTOP_PERFQUERY_COUNTER_UNITS_NS,
-                                         window->zoom_length == 0 ?
-                                         max_length : window->zoom_length,
-                                         time, sizeof(time));
-        ImGui::Text("time interval : %s", time);
-    }
+    if (timeline_select_gt_timestamp(window, ctx)) {
+        timeline_focus_on_gt_timestamp(window, ctx, window->gt_timestamp_highlight);
+    } ImGui::SameLine();
+    timeline_highlight_timestamps(window, ctx);
+
     if (ImGui::Button("Counters")) { toggle_show_window(&window->counters_window); } ImGui::SameLine();
     if (ImGui::Button("Events")) { toggle_show_window(&window->events_window); } ImGui::SameLine();
     if (ImGui::Button("RCS usage")) { toggle_show_window(&window->usage_window); } ImGui::SameLine();
@@ -1280,6 +1432,15 @@ display_timeline_window(struct window *win)
             ImGui::SetTooltip("%s : %s",
                               samples->context->name, pretty_time);
         }
+    }
+
+    for (int i = 0; i < window->n_gt_timestamps_display; i++) {
+        if (window->gt_timestamps_display[i] < start_ts ||
+            window->gt_timestamps_display[i] > end_ts) {
+            continue;
+        }
+        Gputop::TimelineCustomEvent(window->gt_timestamps_display[i] - start_ts,
+                                    Gputop::GetColor(GputopCol_TimelineHighlightedTs));
     }
 
     const bool separate_timeline =
@@ -1429,63 +1590,6 @@ display_timeline_events(struct window *win)
 
         n_items++;
     }
-}
-
-static void
-update_timeline_report_range(struct timeline_window *window,
-                             struct gputop_client_context *ctx,
-                             const struct drm_i915_perf_record_header *start,
-                             const struct drm_i915_perf_record_header *end)
-{
-    if (!start) {
-        snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
-                 "no selection");
-        return;
-    }
-
-    snprintf(window->gt_timestamp_range, sizeof(window->gt_timestamp_range),
-             "ts: 0x%x(%s) - 0x%x(%s)",
-             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, start),
-             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, start),
-             gputop_i915_perf_record_timestamp(&ctx->i915_perf_config, end),
-             gputop_i915_perf_record_reason(&ctx->i915_perf_config, &ctx->devinfo, end));
-}
-
-static void
-search_timeline_reports_for_timestamp(struct timeline_window *window,
-                                      struct gputop_client_context *ctx)
-{
-    if (strlen(window->timestamp_search) < 1) {
-        window->searched_timestamp = -1;
-        window->hovered_report = -1;
-        return;
-    }
-
-    const struct drm_i915_perf_record_header *last = NULL;
-    struct gputop_record_iterator iter;
-    uint32_t ts = strtol(window->timestamp_search, NULL, 16);
-    int report = 0;
-    gputop_record_iterator_init(&iter, &window->selected_sample);
-    while (gputop_record_iterator_next(&iter)) {
-        if (iter.header->type != DRM_I915_PERF_RECORD_SAMPLE)
-            continue;
-
-        uint32_t report_ts =
-            gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
-                                              iter.header);
-
-        if (ts < report_ts) {
-            window->searched_timestamp = report_ts;
-            window->hovered_report = report;
-            update_timeline_report_range(window, ctx, last, iter.header);
-            return;
-        }
-        last = iter.header;
-        report++;
-    }
-
-    window->searched_timestamp = -1;
-    window->hovered_report = -1;
 }
 
 static void
