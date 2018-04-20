@@ -850,7 +850,6 @@ gputop_accumulated_samples_print(struct gputop_client_context *ctx,
     }
 }
 
-
 double
 gputop_client_context_read_counter_value(struct gputop_client_context *ctx,
                                          struct gputop_accumulated_samples *sample,
@@ -874,7 +873,6 @@ gputop_client_context_read_counter_value(struct gputop_client_context *ctx,
 
     return 0.0f;
 }
-
 
 static void
 i915_perf_record_for_time(struct gputop_client_context *ctx,
