@@ -175,10 +175,8 @@ bool Gputop::TimelineItem(int row, uint64_t start, uint64_t end, bool selected)
     return hovered;
 }
 
-bool Gputop::TimelineEvent(int event, uint64_t time, bool selected)
+bool Gputop::TimelineCustomEvent(uint64_t time, const ImColor& color, bool selected)
 {
-    ImColor color(GetHueColor(event, timeline_n_events));
-
     ImGuiWindow* window = GetCurrentWindow();
     double width = timeline_inner_bb.GetWidth();
     double pos = timeline_inner_bb.GetTL().x + (double) time * width / timeline_length;
@@ -205,6 +203,11 @@ bool Gputop::TimelineEvent(int event, uint64_t time, bool selected)
     }
 
     return hovered;
+}
+
+bool Gputop::TimelineEvent(int event, uint64_t time, bool selected)
+{
+    return Gputop::TimelineCustomEvent(time, GetHueColor(event, timeline_n_events), selected);
 }
 
 static void DrawRange(const ImVec2& range, const char **units, int n_units)

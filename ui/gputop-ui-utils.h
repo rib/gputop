@@ -40,6 +40,7 @@ enum Colors {
     GputopCol_TimelineZoomLeft,
     GputopCol_TimelineZoomRight,
     GputopCol_TimelineEventSelect,
+    GputopCol_TimelineHighlightedTs,
     GputopCol_CounterSelectedText,
     GputopCol_PlotLines,
     GputopCol_PlotLinesHovered,

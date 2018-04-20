@@ -43,6 +43,7 @@ void BeginTimeline(const char *label, int rows, int events,
                    uint64_t length, ImVec2 timeline_size = ImVec2(0,0));
 bool TimelineItem(int row, uint64_t start, uint64_t end, bool selected = false);
 bool TimelineEvent(int event, uint64_t time, bool selected = false);
+bool TimelineCustomEvent(uint64_t time, const ImColor& color, bool selected = false);
 bool EndTimeline(const char **units = NULL, int n_units = 0,
                  const char *row_labels[] = NULL,
                  int64_t *zoom_start = NULL, uint64_t *zoom_end = NULL);
