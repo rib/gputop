@@ -580,6 +580,33 @@ gputop_client_context_remove_tracepoint(struct gputop_client_context *ctx,
 
 /**/
 
+uint64_t
+gputop_client_context_convert_gt_timestamp(struct gputop_client_context *ctx,
+                                           uint32_t gt_timestamp)
+{
+    list_for_each_entry(struct gputop_accumulated_samples, samples, &ctx->timelines, link) {
+        uint32_t start_gt_ts =
+            gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              samples->start_report.header);
+        uint32_t end_gt_ts =
+            gputop_i915_perf_record_timestamp(&ctx->i915_perf_config,
+                                              samples->end_report.header);
+
+        if (end_gt_ts < gt_timestamp)
+            continue;
+        if (start_gt_ts > gt_timestamp)
+            return 0ULL;
+
+        uint32_t gt_delta = gt_timestamp - start_gt_ts;
+        uint64_t delta = gt_delta * (samples->timestamp_end - samples->timestamp_start) /
+            (end_gt_ts - start_gt_ts);
+
+        return samples->timestamp_start + delta;
+    }
+
+    return 0ULL;
+}
+
 static struct gputop_accumulated_samples *
 get_accumulated_sample(struct gputop_client_context *ctx,
                        struct gputop_i915_perf_chunk *chunk,

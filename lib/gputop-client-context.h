@@ -341,6 +341,9 @@ double gputop_client_context_read_counter_value(struct gputop_client_context *ct
                                                 struct gputop_accumulated_samples *sample,
                                                 const struct gputop_metric_set_counter *counter);
 
+uint64_t gputop_client_context_convert_gt_timestamp(struct gputop_client_context *ctx,
+                                                    uint32_t gt_timestamp);
+
 void gputop_accumulated_samples_print(struct gputop_client_context *ctx,
                                       struct gputop_accumulated_samples *sample);
 
