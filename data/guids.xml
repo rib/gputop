@@ -47,6 +47,7 @@
     <guid config_hash="841f8e23f2b0c787d7015a29da6f20fb" mdapi_config_hash="c905876bdf561cc26c64363ced258c64" id="238bec85-df05-44f3-b905-d166712f2451" chipset="bdw" name="TDL_1" />
     <guid config_hash="1861ad1fdf8f8c78d13fcb7dee566cb5" mdapi_config_hash="0000753d7f52fb3a0b0baa6b44052cff" id="24bf02cd-8693-4583-981c-c4165b33da01" chipset="bdw" name="TDL_2" />
     <guid config_hash="c45ebb398888eabb889be632432550eb" mdapi_config_hash="a3c52d64b6d187b02de43af112abc509" id="0a9eb7be-feee-4275-a139-6d9cedf0fdb0" chipset="bdw" name="GpuBusyness" />
+    <guid config_hash="13a7f7de484592659ef4d346901bde25" mdapi_config_hash="59cd2454083f4855dca14637425d733c" id="e713f347-953e-4d8c-b02f-6be31df2db2b" chipset="bdw" name="STC_PmaStall" />
     <guid config_hash="867e736ad8c49a9f4cd17b58f1b0b0cc" mdapi_config_hash="d996104bf7531170226275d44a3602b6" id="4a534b07-cba3-414d-8d60-874830e883aa" chipset="chv" name="TestOa" />
     <guid config_hash="4fe7c53a36b24f621e11a1487d46e325" mdapi_config_hash="089852d3f5babff2175457f57214ce57" id="9d8a3af5-c02c-4a4a-b947-f1672469e0fb" chipset="chv" name="RenderBasic" />
     <guid config_hash="6472c5788ff47d2f8f88b86b7314c09e" mdapi_config_hash="60375bf6570a28320cce512ab6d024e0" id="f522a89c-ecd1-4522-8331-3383c54af5f5" chipset="chv" name="ComputeBasic" />
