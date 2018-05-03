@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1522878592" merge_md5="">
+<metrics version="1525362003" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -818,7 +818,7 @@
   <set name="Compute Metrics Basic Gen9"
        mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_basic"
-       hw_config_guid="9ae1360b-8036-4af0-943a-27460801d981"
+       hw_config_guid="00b80b4c-d215-4378-9015-da3dda3b61ea"
        chipset="SKLGT2"
        symbol_name="ComputeBasic"
        >
@@ -1414,7 +1414,6 @@
         <register type="NOA" address="0x00009888" value="0x1D900105" />
         <register type="NOA" address="0x00009888" value="0x1F900103" />
         <register type="NOA" address="0x00009888" value="0x35900000" />
-        <register type="NOA" address="0x00000D28" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x11900FFF" />
         <register type="NOA" address="0x00009888" value="0x51900000" />
         <register type="NOA" address="0x00009888" value="0x41900840" />
@@ -1535,7 +1534,7 @@
   <set name="Render Metrics for 3D Pipeline Profile Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_pipe_profile"
-       hw_config_guid="e0ad5ae0-84ba-4f29-a723-1906c12cb774"
+       hw_config_guid="2a0c0933-37e7-427c-9951-ded42a78bb27"
        chipset="SKLGT2"
        symbol_name="RenderPipeProfile"
        >
@@ -2232,7 +2231,6 @@
         <register type="NOA" address="0x00009888" value="0x11974000" />
         <register type="NOA" address="0x00009888" value="0x13978000" />
         <register type="NOA" address="0x00009888" value="0x09974000" />
-        <register type="NOA" address="0x00000D28" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x1190C080" />
         <register type="NOA" address="0x00009888" value="0x51900000" />
         <register type="NOA" address="0x00009888" value="0x419010A0" />
@@ -2405,7 +2403,7 @@
   <set name="Memory Reads Distribution Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="memory_reads"
-       hw_config_guid="9bc436dd-6130-4add-affc-283eb6eaa864"
+       hw_config_guid="246b35f1-44e0-4d03-8936-e452e291d064"
        chipset="SKLGT2"
        symbol_name="MemoryReads"
        >
@@ -3000,7 +2998,6 @@
         <register type="NOA" address="0x00009888" value="0x1B908000" />
         <register type="NOA" address="0x00009888" value="0x1D908000" />
         <register type="NOA" address="0x00009888" value="0x1F908000" />
-        <register type="NOA" address="0x00000D28" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x11900000" />
         <register type="NOA" address="0x00009888" value="0x51900000" />
         <register type="NOA" address="0x00009888" value="0x41900C00" />
@@ -3179,7 +3176,7 @@
   <set name="Memory Writes Distribution Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="memory_writes"
-       hw_config_guid="a4119b33-b633-44e8-b0e5-07c811d58adc"
+       hw_config_guid="e0d3da02-00bf-4a96-9795-b48158c73a68"
        chipset="SKLGT2"
        symbol_name="MemoryWrites"
        >
@@ -3775,7 +3772,6 @@
         <register type="NOA" address="0x00009888" value="0x1B908000" />
         <register type="NOA" address="0x00009888" value="0x1D908000" />
         <register type="NOA" address="0x00009888" value="0x1F908000" />
-        <register type="NOA" address="0x00000D28" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x11900000" />
         <register type="NOA" address="0x00009888" value="0x51900000" />
         <register type="NOA" address="0x00009888" value="0x41900C00" />
@@ -3995,7 +3991,7 @@
   <set name="Compute Metrics Extended Gen9"
        mdapi_supported_apis="OGL4 OCL IO BB"
        underscore_name="compute_extended"
-       hw_config_guid="d97d16af-028b-4cd1-a672-6210cb5513dd"
+       hw_config_guid="c26b1fda-2752-4a33-a448-4c8718366846"
        chipset="SKLGT2"
        symbol_name="ComputeExtended"
        >
@@ -4567,7 +4563,6 @@
         <register type="NOA" address="0x00009888" value="0x062C8000" />
         <register type="NOA" address="0x00009888" value="0x082C8000" />
         <register type="NOA" address="0x00009888" value="0x0A2C8000" />
-        <register type="NOA" address="0x00000D28" value="0x00000000" />
         <register type="NOA" address="0x00009888" value="0x11907FFF" />
         <register type="NOA" address="0x00009888" value="0x51900000" />
         <register type="NOA" address="0x00009888" value="0x41900040" />
