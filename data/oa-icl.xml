@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1525363348" merge_md5="">
+<metrics version="1525363618" merge_md5="">
   <set name="Render Metrics Basic Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -10019,7 +10019,7 @@
   <set name="Metric set TestOa"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="test_oa"
-       hw_config_guid="f9fef75c-c351-4fca-9362-0d96ab5025fa"
+       hw_config_guid="3c0bf614-5d67-4326-887f-a24eb8a58244"
        chipset="ICL"
        symbol_name="TestOa"
        >
@@ -10183,17 +10183,6 @@
     <register_config type="NOA">
         <register type="NOA" address="0x00000D04" value="0x00000200" />
         <register type="NOA" address="0x00009840" value="0x00000000" />
-        <register type="NOA" address="0x00009884" value="0x00000000" />
-        <register type="NOA" address="0x00009888" value="0x10060000" />
-        <register type="NOA" address="0x00009888" value="0x22060000" />
-        <register type="NOA" address="0x00009888" value="0x16060000" />
-        <register type="NOA" address="0x00009888" value="0x24060000" />
-        <register type="NOA" address="0x00009888" value="0x18060000" />
-        <register type="NOA" address="0x00009888" value="0x1A060000" />
-        <register type="NOA" address="0x00009888" value="0x12060000" />
-        <register type="NOA" address="0x00009888" value="0x14060000" />
-        <register type="NOA" address="0x00009888" value="0x10060000" />
-        <register type="NOA" address="0x00009888" value="0x22060000" />
         <register type="NOA" address="0x00009884" value="0x00000003" />
         <register type="NOA" address="0x00009888" value="0x16130000" />
         <register type="NOA" address="0x00009888" value="0x24000001" />

@@ -273,5 +273,5 @@
     <guid config_hash="b141825840f912e9d7c98a13ae34d600" mdapi_config_hash="af8ee9d86606564460ce2928023e47a5" id="c6d3af7b-037b-4656-95e1-4f838f0a2c14" chipset="icl" name="TDL_2" />
     <guid config_hash="d2188fa3c865ef430532b127a3fd87a5" mdapi_config_hash="ff33e47c767f6f81d9a779153aae6fdb" id="fd25ec19-3ed1-40c9-8648-1d2387449a92" chipset="icl" name="TDL_3" />
     <guid config_hash="b421b29d8557dbbf0fe3068c82b3d8dd" mdapi_config_hash="cc850ab4463c23e6017f069d67785c31" id="40dc79f2-88c8-47c6-8f86-f509e39fbe5d" chipset="icl" name="GpuBusyness" />
-    <guid config_hash="997526a410e289bf6351b4d66ce16045" mdapi_config_hash="d0c158f49f18a07a8268d20efa341fae" id="f9fef75c-c351-4fca-9362-0d96ab5025fa" chipset="icl" name="TestOa" />
+    <guid config_hash="7480125fc0806a347f975dc714568e92" mdapi_config_hash="c6b1c7a22e3c2f456cbfdae1bfe394ac" id="3c0bf614-5d67-4326-887f-a24eb8a58244" chipset="icl" name="TestOa" />
 </guids>
