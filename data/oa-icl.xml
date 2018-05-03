@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<metrics version="1522769738" merge_md5="">
+<metrics version="1525363348" merge_md5="">
   <set name="Render Metrics Basic Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
-       hw_config_guid="6dac146d-8f43-41a3-b669-95fde94e5faa"
+       hw_config_guid="621e248e-29c3-404d-a1b1-bb69610c4a99"
        chipset="ICL"
        symbol_name="RenderBasic"
        >
@@ -844,7 +844,7 @@
   <set name="Compute Metrics Basic Gen10"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="compute_basic"
-       hw_config_guid="5afa8f8b-5732-4500-8e75-020bc923f019"
+       hw_config_guid="233a477b-f8f0-40f4-bf57-01440c3701d9"
        chipset="ICL"
        symbol_name="ComputeBasic"
        >
@@ -1522,7 +1522,7 @@
   <set name="ComputeExtended Gen11"
        mdapi_supported_apis="OGL OGL4 OCL MEDIA IO BB"
        underscore_name="compute_extended"
-       hw_config_guid="04582cec-e0f7-4149-9719-4b09d6fdd50b"
+       hw_config_guid="43eb7fc1-dc5e-45e2-a90a-0053f5397271"
        chipset="ICL"
        symbol_name="ComputeExtended"
        >
@@ -1958,7 +1958,7 @@
   <set name="Compute Metrics L3 Cache Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="compute_l3_cache"
-       hw_config_guid="65010dc9-6618-4aa5-aa31-d07fc82cd9ad"
+       hw_config_guid="022b8913-ae9f-4559-abcd-583e586170d0"
        chipset="ICL"
        symbol_name="ComputeL3Cache"
        >
@@ -2821,7 +2821,7 @@
   <set name="Render Metrics for 3D Pipeline Profile Gen10"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_pipe_profile"
-       hw_config_guid="4babf4fa-557f-4b1a-bef2-d56e2d27d70e"
+       hw_config_guid="03c7a167-2abc-4ba6-878a-f1d80082abca"
        chipset="ICL"
        symbol_name="RenderPipeProfile"
        >
@@ -3547,7 +3547,7 @@
   <set name="Metric set HDCAndSF"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="hdc_and_sf"
-       hw_config_guid="d45e8d1b-e1ed-47ac-8a1b-f9edc5cce548"
+       hw_config_guid="c5cbc488-6569-41dd-9128-42bf6f0d317c"
        chipset="ICL"
        symbol_name="HDCAndSF"
        >
@@ -4207,7 +4207,7 @@
   <set name="Metric set RasterizerAndPixelBackend"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="rasterizer_and_pixel_backend"
-       hw_config_guid="19388efa-6c42-4554-b375-90ad496a549c"
+       hw_config_guid="0316ce4f-e03f-4738-8262-13528fce8eea"
        chipset="ICL"
        symbol_name="RasterizerAndPixelBackend"
        >
@@ -4920,7 +4920,7 @@
   <set name="Metric set L3_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_1"
-       hw_config_guid="6d74c781-2c59-4a85-b736-09ba74c14ec0"
+       hw_config_guid="21d69ec3-91e1-48a8-acd6-c0c4ec6e819a"
        chipset="ICL"
        symbol_name="L3_1"
        >
@@ -5618,7 +5618,7 @@
   <set name="Metric set Sampler 1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler_1"
-       hw_config_guid="9a088480-30c8-4f41-a8de-28490bc48c21"
+       hw_config_guid="51a2eb6d-9fad-4489-8f22-ab845fe7882a"
        chipset="ICL"
        symbol_name="Sampler_1"
        >
@@ -6417,7 +6417,7 @@
   <set name="Metric set Sampler 2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler_2"
-       hw_config_guid="b8284b3a-c4e7-42ca-93ef-572bfdfef87a"
+       hw_config_guid="afc0f021-8c33-4d60-803d-93487f96c7c1"
        chipset="ICL"
        symbol_name="Sampler_2"
        >
@@ -7183,7 +7183,7 @@
   <set name="Metric set TDL_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_1"
-       hw_config_guid="bad8f48f-fb17-4b0c-be3d-cb339dd7a6cc"
+       hw_config_guid="eddc2f32-b196-4a72-9bf8-21770e35f8bd"
        chipset="ICL"
        symbol_name="TDL_1"
        >
@@ -8110,7 +8110,7 @@
   <set name="Metric set TDL_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_2"
-       hw_config_guid="a41690cc-8b89-4a4a-8d4a-93685533ec5e"
+       hw_config_guid="c6d3af7b-037b-4656-95e1-4f838f0a2c14"
        chipset="ICL"
        symbol_name="TDL_2"
        >
@@ -8866,7 +8866,7 @@
   <set name="Metric set TDL_3"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_3"
-       hw_config_guid="37c1dd1d-4020-4765-87f6-7b7e4f34853e"
+       hw_config_guid="fd25ec19-3ed1-40c9-8648-1d2387449a92"
        chipset="ICL"
        symbol_name="TDL_3"
        >
@@ -9792,7 +9792,7 @@
   <set name="Gpu Rings Busyness"
        mdapi_supported_apis="OGL OCL MEDIA IO BB"
        underscore_name="gpu_busyness"
-       hw_config_guid="cbafb278-967e-4cf1-ae7b-6b23796b54d4"
+       hw_config_guid="40dc79f2-88c8-47c6-8f86-f509e39fbe5d"
        chipset="ICL"
        symbol_name="GpuBusyness"
        >
@@ -10019,7 +10019,7 @@
   <set name="Metric set TestOa"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="test_oa"
-       hw_config_guid="a291665e-244b-4b76-9b9a-01de9d3c8068"
+       hw_config_guid="f9fef75c-c351-4fca-9362-0d96ab5025fa"
        chipset="ICL"
        symbol_name="TestOa"
        >
