@@ -267,6 +267,10 @@
     <guid config_hash="dfb00108bfdc1c652f9550bf5ec9262f" mdapi_config_hash="9b4b61a06cf60de356d48995441e6724" id="c5cbc488-6569-41dd-9128-42bf6f0d317c" chipset="icl" name="HDCAndSF" />
     <guid config_hash="8818a97d48d99673e220075b0ba71eb3" mdapi_config_hash="d3e8cc994e923fc2f79f086273b62ece" id="0316ce4f-e03f-4738-8262-13528fce8eea" chipset="icl" name="RasterizerAndPixelBackend" />
     <guid config_hash="e1436790af3b1bbea5a0262704c213b1" mdapi_config_hash="7b7377687e294a3c2ee88e0715a65f01" id="21d69ec3-91e1-48a8-acd6-c0c4ec6e819a" chipset="icl" name="L3_1" />
+    <guid config_hash="5ef586cc746e34ab542586805cb26c8e" mdapi_config_hash="06190180046d22f3155558f2211abc30" id="e60e9155-6830-4aec-baf2-1c3c15a73869" chipset="icl" name="L3_2" />
+    <guid config_hash="abdae7b3820fd860c6fec7a98f9654bf" mdapi_config_hash="5cf54f89d0c9ebeeebc46bfde154fdf2" id="47c364d5-1799-4d17-9447-add9358c6451" chipset="icl" name="L3_3" />
+    <guid config_hash="8b3ca983367a86a4dc4c80fe2a4cfbbb" mdapi_config_hash="397319e33a2d28c3602837be8737b559" id="e5ab5c08-3130-4469-8eaf-b23d3dc817d4" chipset="icl" name="L3_4" />
+    <guid config_hash="c5b76b0b898d48bd6305b7208f338584" mdapi_config_hash="9870c08d2dbb2de9836e8effdc5074a8" id="6cdf23c1-f725-414c-959a-c90fa5571b1f" chipset="icl" name="L3_5" />
     <guid config_hash="667224b11f675b2ac565e18624fad738" mdapi_config_hash="e49091662060a5c502da58bd613abc7f" id="51a2eb6d-9fad-4489-8f22-ab845fe7882a" chipset="icl" name="Sampler_1" />
     <guid config_hash="e6910b0739c288d68194e64933845380" mdapi_config_hash="d55ee03d24efe992a4029534908c2550" id="afc0f021-8c33-4d60-803d-93487f96c7c1" chipset="icl" name="Sampler_2" />
     <guid config_hash="525a9fe5285599f695330c45ba2e8b62" mdapi_config_hash="6aa36798625267734b4d066d9090c0bd" id="eddc2f32-b196-4a72-9bf8-21770e35f8bd" chipset="icl" name="TDL_1" />

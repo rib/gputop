@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1525363618" merge_md5="">
+<metrics version="1525365023" merge_md5="">
   <set name="Render Metrics Basic Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -5612,6 +5612,1876 @@
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
         <register type="FLEX" address="0x0000E45C" value="0x00051050" />
         <register type="FLEX" address="0x0000E55C" value="0x00053052" />
+    </register_config>
+  </set>
+
+  <set name="Gen11 L2Bank0 stalled metric set"
+       mdapi_supported_apis="OGL OGL4 OCL MEDIA IO BB"
+       underscore_name="l3_2"
+       hw_config_guid="e60e9155-6830-4aec-baf2-1c3c15a73869"
+       chipset="ICL"
+       symbol_name="L3_2"
+       >
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="EU Active"
+             description="The percentage of time in which the Execution Units were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 7 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_active"
+             units="percent"
+             symbol_name="EuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Both FPU Pipes Active"
+             description="The percentage of time in which both EU FPU pipelines were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 9 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_fpu_both_active"
+             units="percent"
+             symbol_name="EuFpuBothActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Send Pipe Active"
+             description="The percentage of time in which EU send pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 13 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_send_active"
+             units="percent"
+             symbol_name="VsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 12 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu1_active"
+             units="percent"
+             symbol_name="VsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GS Threads Dispatched"
+             description="The total number of geometry shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 5 READ"
+             underscore_name="gs_threads"
+             units="threads"
+             symbol_name="GsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Geometry Shader"
+             />
+    <counter name="Early Hi-Depth Test Fails"
+             description="The total number of pixels dropped on early hierarchical depth test."
+             data_type="uint64"
+             equation="A 22 READ 4 UMUL"
+             underscore_name="hi_depth_test_fails"
+             units="pixels"
+             symbol_name="HiDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
+             />
+    <counter name="FS Both FPU Active"
+             description="The percentage of time in which fragment shaders were processed actively on the both FPUs."
+             data_type="float"
+             max_equation="100"
+             equation="A 17 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_eu_both_fpu_active"
+             units="percent"
+             symbol_name="PsEuBothFpuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Frame Batch Draw"
+             mdapi_group="3D Pipe/Fragment Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Threads Dispatched"
+             description="The total number of vertex shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 1 READ"
+             underscore_name="vs_threads"
+             units="threads"
+             symbol_name="VsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Vertex Shader"
+             />
+    <counter name="FS Threads Dispatched"
+             description="The total number of fragment shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 6 READ"
+             underscore_name="ps_threads"
+             units="threads"
+             symbol_name="PsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Fragment Shader"
+             />
+    <counter name="Pixels Failing Tests"
+             description="The total number of pixels dropped on post-FS alpha, stencil, or depth tests."
+             data_type="uint64"
+             equation="A 25 READ 4 UMUL"
+             underscore_name="pixels_failing_post_ps_tests"
+             units="pixels"
+             symbol_name="PixelsFailingPostPsTests"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="CS Threads Dispatched"
+             description="The total number of compute shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 4 READ"
+             underscore_name="cs_threads"
+             units="threads"
+             symbol_name="CsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Compute Shader"
+             />
+    <counter name="PS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 15 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu1_active"
+             units="percent"
+             symbol_name="PsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS Send Pipeline Active"
+             description="The percentage of time in which EU send pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 16 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_send_active"
+             units="percent"
+             symbol_name="PsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Rasterized Pixels"
+             description="The total number of rasterized pixels."
+             data_type="uint64"
+             equation="A 21 READ 4 UMUL"
+             underscore_name="rasterized_pixels"
+             units="pixels"
+             symbol_name="RasterizedPixels"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer"
+             />
+    <counter name="GPU Busy"
+             description="The percentage of time in which the GPU has been processing GPU commands."
+             data_type="float"
+             max_equation="100"
+             equation="A 0 READ 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gpu_busy"
+             units="percent"
+             symbol_name="GpuBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 11 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu0_active"
+             units="percent"
+             symbol_name="VsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 14 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu0_active"
+             units="percent"
+             symbol_name="PsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Slice0 L3 Bank0 Stalled"
+             description="The percentage of time in which slice0 L3 bank0 is stalled"
+             data_type="float"
+             max_equation="100"
+             equation="B 0 READ B 1 READ FADD B 2 READ FADD B 3 READ FADD 4 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="l30_bank0_stalled"
+             units="percent"
+             symbol_name="L30Bank0Stalled"
+             availability="$SliceMask 1 AND"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_group="GTI/L3"
+             mdapi_hw_unit_type="slice"
+             />
+    <counter name="DS Threads Dispatched"
+             description="The total number of domain shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 3 READ"
+             underscore_name="ds_threads"
+             units="threads"
+             symbol_name="DsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Domain Shader"
+             />
+    <counter name="Samples Written"
+             description="The total number of samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 26 READ 4 UMUL"
+             underscore_name="samples_written"
+             units="pixels"
+             symbol_name="SamplesWritten"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="EU Stall"
+             description="The percentage of time in which the Execution Units were stalled."
+             data_type="float"
+             max_equation="100"
+             equation="A 8 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_stall"
+             units="percent"
+             symbol_name="EuStall"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Samples Blended"
+             description="The total number of blended samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 27 READ 4 UMUL"
+             underscore_name="samples_blended"
+             units="pixels"
+             symbol_name="SamplesBlended"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="Early Depth Test Fails"
+             description="The total number of pixels dropped on early depth test."
+             data_type="uint64"
+             equation="A 23 READ 4 UMUL"
+             underscore_name="early_depth_test_fails"
+             units="pixels"
+             symbol_name="EarlyDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
+             />
+    <counter name="HS Threads Dispatched"
+             description="The total number of hull shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 2 READ"
+             underscore_name="hs_threads"
+             units="threads"
+             symbol_name="HsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Hull Shader"
+             />
+    <counter name="Samples Killed in FS"
+             description="The total number of samples or pixels dropped in fragment shaders."
+             data_type="uint64"
+             equation="A 24 READ 4 UMUL"
+             underscore_name="samples_killed_in_ps"
+             units="pixels"
+             symbol_name="SamplesKilledInPs"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Fragment Shader"
+             />
+    <counter name="EU Thread Occupancy"
+             description="The percentage of time in which hardware threads occupied EUs."
+             data_type="float"
+             max_equation="100"
+             equation="8 A 10 READ FMUL $EuThreadsCount FDIV $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_thread_occupancy"
+             units="percent"
+             symbol_name="EuThreadOccupancy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config type="NOA">
+        <register type="NOA" address="0x00000D04" value="0x00000200" />
+        <register type="NOA" address="0x00009840" value="0x00000000" />
+        <register type="NOA" address="0x00009884" value="0x00000000" />
+        <register type="NOA" address="0x00009888" value="0x10050C00" />
+        <register type="NOA" address="0x00009888" value="0x12050002" />
+        <register type="NOA" address="0x00009888" value="0x00050025" />
+        <register type="NOA" address="0x00009888" value="0x06050900" />
+        <register type="NOA" address="0x00009888" value="0x080508EA" />
+        <register type="NOA" address="0x00009888" value="0x0A0508AB" />
+        <register type="NOA" address="0x00009888" value="0x0C050A21" />
+        <register type="NOA" address="0x00009888" value="0x0E050A60" />
+        <register type="NOA" address="0x00009888" value="0x04050000" />
+        <register type="NOA" address="0x00009888" value="0x14050000" />
+        <register type="NOA" address="0x00009888" value="0x24068100" />
+        <register type="NOA" address="0x00009888" value="0x260600FF" />
+        <register type="NOA" address="0x00009884" value="0x00000003" />
+        <register type="NOA" address="0x00009888" value="0x301F8000" />
+        <register type="NOA" address="0x00009888" value="0x501F4800" />
+        <register type="NOA" address="0x00009888" value="0x521F4924" />
+        <register type="NOA" address="0x00009888" value="0x541F0024" />
+        <register type="NOA" address="0x00009888" value="0x3E1F0000" />
+        <register type="NOA" address="0x00009888" value="0x461F0000" />
+        <register type="NOA" address="0x00009888" value="0x481F0000" />
+        <register type="NOA" address="0x00009888" value="0x4A1F0000" />
+        <register type="NOA" address="0x00009888" value="0x4C1F0000" />
+        <register type="NOA" address="0x00009888" value="0x181F0000" />
+        <register type="NOA" address="0x00009888" value="0x4E1F0000" />
+    </register_config>
+    <register_config type="OA">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0xF0800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002770" value="0x00000022" />
+        <register type="OA" address="0x00002774" value="0x0000FFF8" />
+        <register type="OA" address="0x00002778" value="0x00000082" />
+        <register type="OA" address="0x0000277C" value="0x0000FFE7" />
+        <register type="OA" address="0x00002780" value="0x00000402" />
+        <register type="OA" address="0x00002784" value="0x0000FF1F" />
+        <register type="OA" address="0x00002788" value="0x00001002" />
+        <register type="OA" address="0x0000278C" value="0x0000FCFF" />
+    </register_config>
+    <register_config type="FLEX">
+        <register type="FLEX" address="0x0000E458" value="0x00005004" />
+        <register type="FLEX" address="0x0000E558" value="0x00008003" />
+        <register type="FLEX" address="0x0000E658" value="0x00011010" />
+        <register type="FLEX" address="0x0000E758" value="0x00050012" />
+        <register type="FLEX" address="0x0000E45C" value="0x00052051" />
+        <register type="FLEX" address="0x0000E55C" value="0x00000053" />
+    </register_config>
+  </set>
+
+  <set name="Gen11 L2Bank1 stalled metric set"
+       mdapi_supported_apis="OGL OGL4 OCL MEDIA IO BB"
+       underscore_name="l3_3"
+       hw_config_guid="47c364d5-1799-4d17-9447-add9358c6451"
+       chipset="ICL"
+       symbol_name="L3_3"
+       >
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="EU Active"
+             description="The percentage of time in which the Execution Units were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 7 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_active"
+             units="percent"
+             symbol_name="EuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Both FPU Pipes Active"
+             description="The percentage of time in which both EU FPU pipelines were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 9 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_fpu_both_active"
+             units="percent"
+             symbol_name="EuFpuBothActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Send Pipe Active"
+             description="The percentage of time in which EU send pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 13 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_send_active"
+             units="percent"
+             symbol_name="VsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 12 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu1_active"
+             units="percent"
+             symbol_name="VsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GS Threads Dispatched"
+             description="The total number of geometry shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 5 READ"
+             underscore_name="gs_threads"
+             units="threads"
+             symbol_name="GsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Geometry Shader"
+             />
+    <counter name="Early Hi-Depth Test Fails"
+             description="The total number of pixels dropped on early hierarchical depth test."
+             data_type="uint64"
+             equation="A 22 READ 4 UMUL"
+             underscore_name="hi_depth_test_fails"
+             units="pixels"
+             symbol_name="HiDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
+             />
+    <counter name="FS Both FPU Active"
+             description="The percentage of time in which fragment shaders were processed actively on the both FPUs."
+             data_type="float"
+             max_equation="100"
+             equation="A 17 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_eu_both_fpu_active"
+             units="percent"
+             symbol_name="PsEuBothFpuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Frame Batch Draw"
+             mdapi_group="3D Pipe/Fragment Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Threads Dispatched"
+             description="The total number of vertex shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 1 READ"
+             underscore_name="vs_threads"
+             units="threads"
+             symbol_name="VsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Vertex Shader"
+             />
+    <counter name="Slice0 L3 Bank1 Stalled"
+             description="The percentage of time in which slice0 L3 bank1 is stalled"
+             data_type="float"
+             max_equation="100"
+             equation="B 0 READ B 1 READ FADD B 2 READ FADD B 3 READ FADD 4 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="l30_bank1_stalled"
+             units="percent"
+             symbol_name="L30Bank1Stalled"
+             availability="$SliceMask 1 AND"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_group="GTI/L3"
+             mdapi_hw_unit_type="slice"
+             />
+    <counter name="FS Threads Dispatched"
+             description="The total number of fragment shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 6 READ"
+             underscore_name="ps_threads"
+             units="threads"
+             symbol_name="PsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Fragment Shader"
+             />
+    <counter name="Pixels Failing Tests"
+             description="The total number of pixels dropped on post-FS alpha, stencil, or depth tests."
+             data_type="uint64"
+             equation="A 25 READ 4 UMUL"
+             underscore_name="pixels_failing_post_ps_tests"
+             units="pixels"
+             symbol_name="PixelsFailingPostPsTests"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="CS Threads Dispatched"
+             description="The total number of compute shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 4 READ"
+             underscore_name="cs_threads"
+             units="threads"
+             symbol_name="CsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Compute Shader"
+             />
+    <counter name="PS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 15 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu1_active"
+             units="percent"
+             symbol_name="PsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS Send Pipeline Active"
+             description="The percentage of time in which EU send pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 16 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_send_active"
+             units="percent"
+             symbol_name="PsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Rasterized Pixels"
+             description="The total number of rasterized pixels."
+             data_type="uint64"
+             equation="A 21 READ 4 UMUL"
+             underscore_name="rasterized_pixels"
+             units="pixels"
+             symbol_name="RasterizedPixels"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer"
+             />
+    <counter name="GPU Busy"
+             description="The percentage of time in which the GPU has been processing GPU commands."
+             data_type="float"
+             max_equation="100"
+             equation="A 0 READ 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gpu_busy"
+             units="percent"
+             symbol_name="GpuBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 11 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu0_active"
+             units="percent"
+             symbol_name="VsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 14 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu0_active"
+             units="percent"
+             symbol_name="PsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="DS Threads Dispatched"
+             description="The total number of domain shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 3 READ"
+             underscore_name="ds_threads"
+             units="threads"
+             symbol_name="DsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Domain Shader"
+             />
+    <counter name="Samples Written"
+             description="The total number of samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 26 READ 4 UMUL"
+             underscore_name="samples_written"
+             units="pixels"
+             symbol_name="SamplesWritten"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="EU Stall"
+             description="The percentage of time in which the Execution Units were stalled."
+             data_type="float"
+             max_equation="100"
+             equation="A 8 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_stall"
+             units="percent"
+             symbol_name="EuStall"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Samples Blended"
+             description="The total number of blended samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 27 READ 4 UMUL"
+             underscore_name="samples_blended"
+             units="pixels"
+             symbol_name="SamplesBlended"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="Early Depth Test Fails"
+             description="The total number of pixels dropped on early depth test."
+             data_type="uint64"
+             equation="A 23 READ 4 UMUL"
+             underscore_name="early_depth_test_fails"
+             units="pixels"
+             symbol_name="EarlyDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
+             />
+    <counter name="HS Threads Dispatched"
+             description="The total number of hull shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 2 READ"
+             underscore_name="hs_threads"
+             units="threads"
+             symbol_name="HsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Hull Shader"
+             />
+    <counter name="Samples Killed in FS"
+             description="The total number of samples or pixels dropped in fragment shaders."
+             data_type="uint64"
+             equation="A 24 READ 4 UMUL"
+             underscore_name="samples_killed_in_ps"
+             units="pixels"
+             symbol_name="SamplesKilledInPs"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Fragment Shader"
+             />
+    <counter name="EU Thread Occupancy"
+             description="The percentage of time in which hardware threads occupied EUs."
+             data_type="float"
+             max_equation="100"
+             equation="8 A 10 READ FMUL $EuThreadsCount FDIV $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_thread_occupancy"
+             units="percent"
+             symbol_name="EuThreadOccupancy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config type="NOA">
+        <register type="NOA" address="0x00000D04" value="0x00000200" />
+        <register type="NOA" address="0x00009840" value="0x00000000" />
+        <register type="NOA" address="0x00009884" value="0x00000000" />
+        <register type="NOA" address="0x00009888" value="0x10050400" />
+        <register type="NOA" address="0x00009888" value="0x12050000" />
+        <register type="NOA" address="0x00009888" value="0x00050025" />
+        <register type="NOA" address="0x00009888" value="0x06050900" />
+        <register type="NOA" address="0x00009888" value="0x080508EA" />
+        <register type="NOA" address="0x00009888" value="0x0A0508AB" />
+        <register type="NOA" address="0x00009888" value="0x0C050A21" />
+        <register type="NOA" address="0x00009888" value="0x0E050A60" />
+        <register type="NOA" address="0x00009888" value="0x04050000" />
+        <register type="NOA" address="0x00009888" value="0x14050000" />
+        <register type="NOA" address="0x00009888" value="0x24068100" />
+        <register type="NOA" address="0x00009888" value="0x260600FF" />
+        <register type="NOA" address="0x00009884" value="0x00000003" />
+        <register type="NOA" address="0x00009888" value="0x301F8000" />
+        <register type="NOA" address="0x00009888" value="0x501F4800" />
+        <register type="NOA" address="0x00009888" value="0x521F4924" />
+        <register type="NOA" address="0x00009888" value="0x541F0024" />
+        <register type="NOA" address="0x00009888" value="0x3E1F0000" />
+        <register type="NOA" address="0x00009888" value="0x461F0000" />
+        <register type="NOA" address="0x00009888" value="0x481F0000" />
+        <register type="NOA" address="0x00009888" value="0x4A1F0000" />
+        <register type="NOA" address="0x00009888" value="0x4C1F0000" />
+        <register type="NOA" address="0x00009888" value="0x181F0000" />
+        <register type="NOA" address="0x00009888" value="0x4E1F0000" />
+    </register_config>
+    <register_config type="OA">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0xF0800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002770" value="0x00000022" />
+        <register type="OA" address="0x00002774" value="0x0000FFF8" />
+        <register type="OA" address="0x00002778" value="0x00000082" />
+        <register type="OA" address="0x0000277C" value="0x0000FFE7" />
+        <register type="OA" address="0x00002780" value="0x00000402" />
+        <register type="OA" address="0x00002784" value="0x0000FF1F" />
+        <register type="OA" address="0x00002788" value="0x00001002" />
+        <register type="OA" address="0x0000278C" value="0x0000FCFF" />
+    </register_config>
+    <register_config type="FLEX">
+        <register type="FLEX" address="0x0000E458" value="0x00005004" />
+        <register type="FLEX" address="0x0000E558" value="0x00008003" />
+        <register type="FLEX" address="0x0000E658" value="0x00011010" />
+        <register type="FLEX" address="0x0000E758" value="0x00050012" />
+        <register type="FLEX" address="0x0000E45C" value="0x00052051" />
+        <register type="FLEX" address="0x0000E55C" value="0x00000053" />
+    </register_config>
+  </set>
+
+  <set name="Gen11 L2Bank4 stalled metric set"
+       mdapi_supported_apis="OGL OGL4 OCL MEDIA IO BB"
+       underscore_name="l3_4"
+       hw_config_guid="e5ab5c08-3130-4469-8eaf-b23d3dc817d4"
+       chipset="ICL"
+       symbol_name="L3_4"
+       >
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="EU Active"
+             description="The percentage of time in which the Execution Units were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 7 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_active"
+             units="percent"
+             symbol_name="EuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Both FPU Pipes Active"
+             description="The percentage of time in which both EU FPU pipelines were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 9 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_fpu_both_active"
+             units="percent"
+             symbol_name="EuFpuBothActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Send Pipe Active"
+             description="The percentage of time in which EU send pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 13 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_send_active"
+             units="percent"
+             symbol_name="VsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 12 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu1_active"
+             units="percent"
+             symbol_name="VsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GS Threads Dispatched"
+             description="The total number of geometry shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 5 READ"
+             underscore_name="gs_threads"
+             units="threads"
+             symbol_name="GsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Geometry Shader"
+             />
+    <counter name="Early Hi-Depth Test Fails"
+             description="The total number of pixels dropped on early hierarchical depth test."
+             data_type="uint64"
+             equation="A 22 READ 4 UMUL"
+             underscore_name="hi_depth_test_fails"
+             units="pixels"
+             symbol_name="HiDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
+             />
+    <counter name="FS Both FPU Active"
+             description="The percentage of time in which fragment shaders were processed actively on the both FPUs."
+             data_type="float"
+             max_equation="100"
+             equation="A 17 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_eu_both_fpu_active"
+             units="percent"
+             symbol_name="PsEuBothFpuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Frame Batch Draw"
+             mdapi_group="3D Pipe/Fragment Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Threads Dispatched"
+             description="The total number of vertex shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 1 READ"
+             underscore_name="vs_threads"
+             units="threads"
+             symbol_name="VsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Vertex Shader"
+             />
+    <counter name="FS Threads Dispatched"
+             description="The total number of fragment shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 6 READ"
+             underscore_name="ps_threads"
+             units="threads"
+             symbol_name="PsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Fragment Shader"
+             />
+    <counter name="Pixels Failing Tests"
+             description="The total number of pixels dropped on post-FS alpha, stencil, or depth tests."
+             data_type="uint64"
+             equation="A 25 READ 4 UMUL"
+             underscore_name="pixels_failing_post_ps_tests"
+             units="pixels"
+             symbol_name="PixelsFailingPostPsTests"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="CS Threads Dispatched"
+             description="The total number of compute shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 4 READ"
+             underscore_name="cs_threads"
+             units="threads"
+             symbol_name="CsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Compute Shader"
+             />
+    <counter name="PS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 15 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu1_active"
+             units="percent"
+             symbol_name="PsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS Send Pipeline Active"
+             description="The percentage of time in which EU send pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 16 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_send_active"
+             units="percent"
+             symbol_name="PsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Rasterized Pixels"
+             description="The total number of rasterized pixels."
+             data_type="uint64"
+             equation="A 21 READ 4 UMUL"
+             underscore_name="rasterized_pixels"
+             units="pixels"
+             symbol_name="RasterizedPixels"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer"
+             />
+    <counter name="GPU Busy"
+             description="The percentage of time in which the GPU has been processing GPU commands."
+             data_type="float"
+             max_equation="100"
+             equation="A 0 READ 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gpu_busy"
+             units="percent"
+             symbol_name="GpuBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 11 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu0_active"
+             units="percent"
+             symbol_name="VsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 14 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu0_active"
+             units="percent"
+             symbol_name="PsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="DS Threads Dispatched"
+             description="The total number of domain shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 3 READ"
+             underscore_name="ds_threads"
+             units="threads"
+             symbol_name="DsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Domain Shader"
+             />
+    <counter name="Samples Written"
+             description="The total number of samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 26 READ 4 UMUL"
+             underscore_name="samples_written"
+             units="pixels"
+             symbol_name="SamplesWritten"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="EU Stall"
+             description="The percentage of time in which the Execution Units were stalled."
+             data_type="float"
+             max_equation="100"
+             equation="A 8 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_stall"
+             units="percent"
+             symbol_name="EuStall"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Samples Blended"
+             description="The total number of blended samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 27 READ 4 UMUL"
+             underscore_name="samples_blended"
+             units="pixels"
+             symbol_name="SamplesBlended"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="Early Depth Test Fails"
+             description="The total number of pixels dropped on early depth test."
+             data_type="uint64"
+             equation="A 23 READ 4 UMUL"
+             underscore_name="early_depth_test_fails"
+             units="pixels"
+             symbol_name="EarlyDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
+             />
+    <counter name="Slice0 L3 Bank4 Stalled"
+             description="The percentage of time in which slice0 L3 bank4 is stalled"
+             data_type="float"
+             max_equation="100"
+             equation="B 0 READ B 1 READ FADD B 2 READ FADD B 3 READ FADD 4 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="l30_bank4_stalled"
+             units="percent"
+             symbol_name="L30Bank4Stalled"
+             availability="$SliceMask 1 AND"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_group="GTI/L3"
+             mdapi_hw_unit_type="slice"
+             />
+    <counter name="HS Threads Dispatched"
+             description="The total number of hull shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 2 READ"
+             underscore_name="hs_threads"
+             units="threads"
+             symbol_name="HsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Hull Shader"
+             />
+    <counter name="Samples Killed in FS"
+             description="The total number of samples or pixels dropped in fragment shaders."
+             data_type="uint64"
+             equation="A 24 READ 4 UMUL"
+             underscore_name="samples_killed_in_ps"
+             units="pixels"
+             symbol_name="SamplesKilledInPs"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Fragment Shader"
+             />
+    <counter name="EU Thread Occupancy"
+             description="The percentage of time in which hardware threads occupied EUs."
+             data_type="float"
+             max_equation="100"
+             equation="8 A 10 READ FMUL $EuThreadsCount FDIV $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_thread_occupancy"
+             units="percent"
+             symbol_name="EuThreadOccupancy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config type="NOA">
+        <register type="NOA" address="0x00000D04" value="0x00000200" />
+        <register type="NOA" address="0x00009840" value="0x00000000" />
+        <register type="NOA" address="0x00009884" value="0x00000000" />
+        <register type="NOA" address="0x00009888" value="0x10010C00" />
+        <register type="NOA" address="0x00009888" value="0x12010002" />
+        <register type="NOA" address="0x00009888" value="0x0C000400" />
+        <register type="NOA" address="0x00009888" value="0x0E005500" />
+        <register type="NOA" address="0x00009888" value="0x10000155" />
+        <register type="NOA" address="0x00009888" value="0x00010025" />
+        <register type="NOA" address="0x00009888" value="0x06010900" />
+        <register type="NOA" address="0x00009888" value="0x080108EA" />
+        <register type="NOA" address="0x00009888" value="0x0A0108AB" />
+        <register type="NOA" address="0x00009888" value="0x0C010A21" />
+        <register type="NOA" address="0x00009888" value="0x0E010A60" />
+        <register type="NOA" address="0x00009888" value="0x04010000" />
+        <register type="NOA" address="0x00009888" value="0x14010000" />
+        <register type="NOA" address="0x00009888" value="0x0C040400" />
+        <register type="NOA" address="0x00009888" value="0x0E045500" />
+        <register type="NOA" address="0x00009888" value="0x10040155" />
+        <register type="NOA" address="0x00009888" value="0x04051000" />
+        <register type="NOA" address="0x00009888" value="0x0A054000" />
+        <register type="NOA" address="0x00009888" value="0x0C055000" />
+        <register type="NOA" address="0x00009888" value="0x0E055000" />
+        <register type="NOA" address="0x00009888" value="0x14050055" />
+        <register type="NOA" address="0x00009888" value="0x24068100" />
+        <register type="NOA" address="0x00009888" value="0x260600FF" />
+        <register type="NOA" address="0x00009888" value="0x00124000" />
+        <register type="NOA" address="0x00009888" value="0x0E124000" />
+        <register type="NOA" address="0x00009888" value="0x18125540" />
+        <register type="NOA" address="0x00009888" value="0x1A120015" />
+        <register type="NOA" address="0x00009888" value="0x04131000" />
+        <register type="NOA" address="0x00009888" value="0x06138000" />
+        <register type="NOA" address="0x00009888" value="0x0813F000" />
+        <register type="NOA" address="0x00009888" value="0x0A13F000" />
+        <register type="NOA" address="0x00009888" value="0x00144000" />
+        <register type="NOA" address="0x00009888" value="0x06148000" />
+        <register type="NOA" address="0x00009888" value="0x0814C000" />
+        <register type="NOA" address="0x00009888" value="0x0A14C000" />
+        <register type="NOA" address="0x00009888" value="0x0C14C000" />
+        <register type="NOA" address="0x00009888" value="0x0E14C000" />
+        <register type="NOA" address="0x00009888" value="0x00154000" />
+        <register type="NOA" address="0x00009888" value="0x0E154000" />
+        <register type="NOA" address="0x00009888" value="0x16152AA8" />
+        <register type="NOA" address="0x00009888" value="0x18150005" />
+        <register type="NOA" address="0x00009884" value="0x00000003" />
+        <register type="NOA" address="0x00009888" value="0x301F8000" />
+        <register type="NOA" address="0x00009888" value="0x501F4800" />
+        <register type="NOA" address="0x00009888" value="0x521F4924" />
+        <register type="NOA" address="0x00009888" value="0x541F0024" />
+        <register type="NOA" address="0x00009888" value="0x3E1F0000" />
+        <register type="NOA" address="0x00009888" value="0x461F0000" />
+        <register type="NOA" address="0x00009888" value="0x481F0000" />
+        <register type="NOA" address="0x00009888" value="0x4A1F0000" />
+        <register type="NOA" address="0x00009888" value="0x4C1F0000" />
+        <register type="NOA" address="0x00009888" value="0x181F0000" />
+        <register type="NOA" address="0x00009888" value="0x4E1F0000" />
+    </register_config>
+    <register_config type="OA">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0xF0800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002770" value="0x00000022" />
+        <register type="OA" address="0x00002774" value="0x0000FFF8" />
+        <register type="OA" address="0x00002778" value="0x00000082" />
+        <register type="OA" address="0x0000277C" value="0x0000FFE7" />
+        <register type="OA" address="0x00002780" value="0x00000402" />
+        <register type="OA" address="0x00002784" value="0x0000FF1F" />
+        <register type="OA" address="0x00002788" value="0x00001002" />
+        <register type="OA" address="0x0000278C" value="0x0000FCFF" />
+    </register_config>
+    <register_config type="FLEX">
+        <register type="FLEX" address="0x0000E458" value="0x00005004" />
+        <register type="FLEX" address="0x0000E558" value="0x00008003" />
+        <register type="FLEX" address="0x0000E658" value="0x00011010" />
+        <register type="FLEX" address="0x0000E758" value="0x00050012" />
+        <register type="FLEX" address="0x0000E45C" value="0x00052051" />
+        <register type="FLEX" address="0x0000E55C" value="0x00000053" />
+    </register_config>
+  </set>
+
+  <set name="Gen11 L2Bank5 stalled metric set"
+       mdapi_supported_apis="OGL OGL4 OCL MEDIA IO BB"
+       underscore_name="l3_5"
+       hw_config_guid="6cdf23c1-f725-414c-959a-c90fa5571b1f"
+       chipset="ICL"
+       symbol_name="L3_5"
+       >
+    <counter name="GPU Core Clocks"
+             description="The total number of GPU core clocks elapsed during the measurement."
+             data_type="uint64"
+             equation="GPU_CLOCK 0 READ"
+             underscore_name="gpu_core_clocks"
+             units="cycles"
+             symbol_name="GpuCoreClocks"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="EU Active"
+             description="The percentage of time in which the Execution Units were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 7 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_active"
+             units="percent"
+             symbol_name="EuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="EU Both FPU Pipes Active"
+             description="The percentage of time in which both EU FPU pipelines were actively processing."
+             data_type="float"
+             max_equation="100"
+             equation="A 9 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_fpu_both_active"
+             units="percent"
+             symbol_name="EuFpuBothActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Send Pipe Active"
+             description="The percentage of time in which EU send pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 13 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_send_active"
+             units="percent"
+             symbol_name="VsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 12 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu1_active"
+             units="percent"
+             symbol_name="VsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="GS Threads Dispatched"
+             description="The total number of geometry shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 5 READ"
+             underscore_name="gs_threads"
+             units="threads"
+             symbol_name="GsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Geometry Shader"
+             />
+    <counter name="Early Hi-Depth Test Fails"
+             description="The total number of pixels dropped on early hierarchical depth test."
+             data_type="uint64"
+             equation="A 22 READ 4 UMUL"
+             underscore_name="hi_depth_test_fails"
+             units="pixels"
+             symbol_name="HiDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Hi-Depth Test"
+             />
+    <counter name="FS Both FPU Active"
+             description="The percentage of time in which fragment shaders were processed actively on the both FPUs."
+             data_type="float"
+             max_equation="100"
+             equation="A 17 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_eu_both_fpu_active"
+             units="percent"
+             symbol_name="PsEuBothFpuActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Frame Batch Draw"
+             mdapi_group="3D Pipe/Fragment Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS Threads Dispatched"
+             description="The total number of vertex shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 1 READ"
+             underscore_name="vs_threads"
+             units="threads"
+             symbol_name="VsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Vertex Shader"
+             />
+    <counter name="FS Threads Dispatched"
+             description="The total number of fragment shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 6 READ"
+             underscore_name="ps_threads"
+             units="threads"
+             symbol_name="PsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Fragment Shader"
+             />
+    <counter name="Pixels Failing Tests"
+             description="The total number of pixels dropped on post-FS alpha, stencil, or depth tests."
+             data_type="uint64"
+             equation="A 25 READ 4 UMUL"
+             underscore_name="pixels_failing_post_ps_tests"
+             units="pixels"
+             symbol_name="PixelsFailingPostPsTests"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="GPU Time Elapsed"
+             description="Time elapsed on the GPU during the measurement."
+             data_type="uint64"
+             equation="GPU_TIME 0 READ 1000000000 UMUL $GpuTimestampFrequency UDIV"
+             underscore_name="gpu_time"
+             units="ns"
+             symbol_name="GpuTime"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="GPU"
+             />
+    <counter name="AVG GPU Core Frequency"
+             description="Average GPU Core Frequency in the measurement."
+             data_type="uint64"
+             max_equation="$GpuMaxFrequency"
+             equation="$GpuCoreClocks 1000000000 UMUL $GpuTime UDIV"
+             underscore_name="avg_gpu_core_frequency"
+             units="hz"
+             symbol_name="AvgGpuCoreFrequency"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame Batch Draw"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="CS Threads Dispatched"
+             description="The total number of compute shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 4 READ"
+             underscore_name="cs_threads"
+             units="threads"
+             symbol_name="CsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Compute Shader"
+             />
+    <counter name="PS FPU1 Pipe Active"
+             description="The percentage of time in which EU FPU1 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 15 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu1_active"
+             units="percent"
+             symbol_name="PsFpu1Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS Send Pipeline Active"
+             description="The percentage of time in which EU send pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 16 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_send_active"
+             units="percent"
+             symbol_name="PsSendActive"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Rasterized Pixels"
+             description="The total number of rasterized pixels."
+             data_type="uint64"
+             equation="A 21 READ 4 UMUL"
+             underscore_name="rasterized_pixels"
+             units="pixels"
+             symbol_name="RasterizedPixels"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer"
+             />
+    <counter name="GPU Busy"
+             description="The percentage of time in which the GPU has been processing GPU commands."
+             data_type="float"
+             max_equation="100"
+             equation="A 0 READ 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gpu_busy"
+             units="percent"
+             symbol_name="GpuBusy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier1 Overview System Frame"
+             mdapi_group="GPU"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="VS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a vertex shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 11 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="vs_fpu0_active"
+             units="percent"
+             symbol_name="VsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Vertex Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="PS FPU0 Pipe Active"
+             description="The percentage of time in which EU FPU0 pipeline was actively processing a pixel shader instruction."
+             data_type="float"
+             max_equation="100"
+             equation="A 14 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="ps_fpu0_active"
+             units="percent"
+             symbol_name="PsFpu0Active"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="EU Array/Pixel Shader"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="DS Threads Dispatched"
+             description="The total number of domain shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 3 READ"
+             underscore_name="ds_threads"
+             units="threads"
+             symbol_name="DsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Domain Shader"
+             />
+    <counter name="Samples Written"
+             description="The total number of samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 26 READ 4 UMUL"
+             underscore_name="samples_written"
+             units="pixels"
+             symbol_name="SamplesWritten"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="EU Stall"
+             description="The percentage of time in which the Execution Units were stalled."
+             data_type="float"
+             max_equation="100"
+             equation="A 8 READ $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_stall"
+             units="percent"
+             symbol_name="EuStall"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="Samples Blended"
+             description="The total number of blended samples or pixels written to all render targets."
+             data_type="uint64"
+             equation="A 27 READ 4 UMUL"
+             underscore_name="samples_blended"
+             units="pixels"
+             symbol_name="SamplesBlended"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Output Merger"
+             />
+    <counter name="Early Depth Test Fails"
+             description="The total number of pixels dropped on early depth test."
+             data_type="uint64"
+             equation="A 23 READ 4 UMUL"
+             underscore_name="early_depth_test_fails"
+             units="pixels"
+             symbol_name="EarlyDepthTestFails"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Rasterizer/Early Depth Test"
+             />
+    <counter name="HS Threads Dispatched"
+             description="The total number of hull shader hardware threads dispatched."
+             data_type="uint64"
+             equation="A 2 READ"
+             underscore_name="hs_threads"
+             units="threads"
+             symbol_name="HsThreads"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="EU Array/Hull Shader"
+             />
+    <counter name="Samples Killed in FS"
+             description="The total number of samples or pixels dropped in fragment shaders."
+             data_type="uint64"
+             equation="A 24 READ 4 UMUL"
+             underscore_name="samples_killed_in_ps"
+             units="pixels"
+             symbol_name="SamplesKilledInPs"
+             semantic_type="event"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier4 Overview Frame Batch Draw"
+             mdapi_hw_unit_type="gpu"
+             mdapi_group="3D Pipe/Fragment Shader"
+             />
+    <counter name="Slice0 L3 Bank5 Stalled"
+             description="The percentage of time in which slice0 L3 bank5 is stalled"
+             data_type="float"
+             max_equation="100"
+             equation="B 2 READ B 3 READ FADD B 0 READ FADD B 1 READ FADD 4 FDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="l30_bank5_stalled"
+             units="percent"
+             symbol_name="L30Bank5Stalled"
+             availability="$SliceMask 1 AND"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier3 Overview Frame Batch Draw"
+             mdapi_group="GTI/L3"
+             mdapi_hw_unit_type="slice"
+             />
+    <counter name="EU Thread Occupancy"
+             description="The percentage of time in which hardware threads occupied EUs."
+             data_type="float"
+             max_equation="100"
+             equation="8 A 10 READ FMUL $EuThreadsCount FDIV $EuCoresTotalCount UDIV 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="eu_thread_occupancy"
+             units="percent"
+             symbol_name="EuThreadOccupancy"
+             semantic_type="duration"
+             mdapi_supported_apis=""
+             mdapi_usage_flags="Tier2 Overview System Frame Batch Draw"
+             mdapi_group="EU Array"
+             mdapi_hw_unit_type="gpu"
+             />
+    <register_config type="NOA">
+        <register type="NOA" address="0x00000D04" value="0x00000200" />
+        <register type="NOA" address="0x00009840" value="0x00000000" />
+        <register type="NOA" address="0x00009884" value="0x00000000" />
+        <register type="NOA" address="0x00009888" value="0x10010400" />
+        <register type="NOA" address="0x00009888" value="0x12010000" />
+        <register type="NOA" address="0x00009888" value="0x0C000400" />
+        <register type="NOA" address="0x00009888" value="0x0E005500" />
+        <register type="NOA" address="0x00009888" value="0x10000155" />
+        <register type="NOA" address="0x00009888" value="0x00010022" />
+        <register type="NOA" address="0x00009888" value="0x06010840" />
+        <register type="NOA" address="0x00009888" value="0x08010828" />
+        <register type="NOA" address="0x00009888" value="0x0A010969" />
+        <register type="NOA" address="0x00009888" value="0x0C010AA4" />
+        <register type="NOA" address="0x00009888" value="0x0E010AE3" />
+        <register type="NOA" address="0x00009888" value="0x04010000" />
+        <register type="NOA" address="0x00009888" value="0x14010000" />
+        <register type="NOA" address="0x00009888" value="0x0C040400" />
+        <register type="NOA" address="0x00009888" value="0x0E045500" />
+        <register type="NOA" address="0x00009888" value="0x10040155" />
+        <register type="NOA" address="0x00009888" value="0x04051000" />
+        <register type="NOA" address="0x00009888" value="0x0A054000" />
+        <register type="NOA" address="0x00009888" value="0x0C055000" />
+        <register type="NOA" address="0x00009888" value="0x0E055000" />
+        <register type="NOA" address="0x00009888" value="0x14050055" />
+        <register type="NOA" address="0x00009888" value="0x24068100" />
+        <register type="NOA" address="0x00009888" value="0x260600FF" />
+        <register type="NOA" address="0x00009888" value="0x00124000" />
+        <register type="NOA" address="0x00009888" value="0x0E124000" />
+        <register type="NOA" address="0x00009888" value="0x18125540" />
+        <register type="NOA" address="0x00009888" value="0x1A120015" />
+        <register type="NOA" address="0x00009888" value="0x04131000" />
+        <register type="NOA" address="0x00009888" value="0x06138000" />
+        <register type="NOA" address="0x00009888" value="0x0813F000" />
+        <register type="NOA" address="0x00009888" value="0x0A13F000" />
+        <register type="NOA" address="0x00009888" value="0x00144000" />
+        <register type="NOA" address="0x00009888" value="0x06148000" />
+        <register type="NOA" address="0x00009888" value="0x0814C000" />
+        <register type="NOA" address="0x00009888" value="0x0A14C000" />
+        <register type="NOA" address="0x00009888" value="0x0C14C000" />
+        <register type="NOA" address="0x00009888" value="0x0E14C000" />
+        <register type="NOA" address="0x00009888" value="0x00154000" />
+        <register type="NOA" address="0x00009888" value="0x0E154000" />
+        <register type="NOA" address="0x00009888" value="0x16152AA8" />
+        <register type="NOA" address="0x00009888" value="0x18150005" />
+        <register type="NOA" address="0x00009884" value="0x00000003" />
+        <register type="NOA" address="0x00009888" value="0x301F8000" />
+        <register type="NOA" address="0x00009888" value="0x501F4800" />
+        <register type="NOA" address="0x00009888" value="0x521F4924" />
+        <register type="NOA" address="0x00009888" value="0x541F0024" />
+        <register type="NOA" address="0x00009888" value="0x3E1F0000" />
+        <register type="NOA" address="0x00009888" value="0x461F0000" />
+        <register type="NOA" address="0x00009888" value="0x481F0000" />
+        <register type="NOA" address="0x00009888" value="0x4A1F0000" />
+        <register type="NOA" address="0x00009888" value="0x4C1F0000" />
+        <register type="NOA" address="0x00009888" value="0x181F0000" />
+        <register type="NOA" address="0x00009888" value="0x4E1F0000" />
+    </register_config>
+    <register_config type="OA">
+        <register type="OA" address="0x00002740" value="0x00000000" />
+        <register type="OA" address="0x00002710" value="0x00000000" />
+        <register type="OA" address="0x00002714" value="0xF0800000" />
+        <register type="OA" address="0x00002720" value="0x00000000" />
+        <register type="OA" address="0x00002724" value="0x00800000" />
+        <register type="OA" address="0x00002770" value="0x00000022" />
+        <register type="OA" address="0x00002774" value="0x0000FFF8" />
+        <register type="OA" address="0x00002778" value="0x00000082" />
+        <register type="OA" address="0x0000277C" value="0x0000FFE7" />
+        <register type="OA" address="0x00002780" value="0x00000402" />
+        <register type="OA" address="0x00002784" value="0x0000FF1F" />
+        <register type="OA" address="0x00002788" value="0x00001002" />
+        <register type="OA" address="0x0000278C" value="0x0000FCFF" />
+    </register_config>
+    <register_config type="FLEX">
+        <register type="FLEX" address="0x0000E458" value="0x00005004" />
+        <register type="FLEX" address="0x0000E558" value="0x00008003" />
+        <register type="FLEX" address="0x0000E658" value="0x00011010" />
+        <register type="FLEX" address="0x0000E758" value="0x00050012" />
+        <register type="FLEX" address="0x0000E45C" value="0x00052051" />
+        <register type="FLEX" address="0x0000E55C" value="0x00000053" />
     </register_config>
   </set>
 
