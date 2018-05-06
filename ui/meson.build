@@ -67,7 +67,7 @@ else
 	       install : true)
   endif
 
-  if get_option('native_ui_gtk') == 'true'
+  if get_option('native_ui_gtk')
     gtk_dep = dependency('gtk+-3.0', version : '>= 3.18.0')
     cogl_dep = dependency('cogl-2.0-experimental')
     libsoup_dep = dependency('libsoup-2.4', version : '>= 2.60.3')
