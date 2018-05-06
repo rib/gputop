@@ -465,20 +465,17 @@ static void
 display_live_i915_perf_usage_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
+    ImVec2 pb_size(ImGui::GetWindowContentRegionWidth() * 2.0f / 3.0f, 0);
     double idle = 1.0f;
 
     list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
-        ImGui::ProgressBar(context->usage_percent,
-                           ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
-        ImGui::SameLine();
+        ImGui::ProgressBar(context->usage_percent, pb_size); ImGui::SameLine();
         ImGui::Text("%s", context->name);
 
         idle -= context->usage_percent;
     }
 
-    ImGui::ProgressBar(idle, ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
-    ImGui::SameLine();
-    ImGui::Text("Idle");
+    ImGui::ProgressBar(idle, pb_size); ImGui::SameLine(); ImGui::Text("Idle");
 }
 
 static void
@@ -493,7 +490,7 @@ show_live_i915_perf_usage_window(void)
 
     snprintf(window->name, sizeof(window->name),
              "i915 perf usage (live)##%p", window);
-    window->size = ImVec2(400, 600);
+    window->size = ImVec2(400, 300);
     window->display = display_live_i915_perf_usage_window;
     window->destroy = hide_window;
     window->opened = true;
