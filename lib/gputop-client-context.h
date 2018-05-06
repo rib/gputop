@@ -69,7 +69,7 @@ struct gputop_hw_context {
     struct gputop_process_info *process;
 
     struct gputop_accumulated_samples *current_graph_samples;
-    struct list_head graphs;
+    struct list_head graphs; /* list of gputop_accumulated_samples */
     uint32_t n_graphs;
 
     /* UI state */
