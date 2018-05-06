@@ -2723,13 +2723,20 @@ main(int argc, char *argv[])
         { 0, 0, 0, 0 }
     };
     char *host = NULL;
-    int opt;
+    int opt, port = 0;
 
     while ((opt = getopt_long(argc, argv, "h:", long_options, NULL)) != -1) {
         switch (opt) {
-        case 'h':
-          host = optarg;
-          break;
+        case 'h': {
+            char *port_str;
+
+            if ((port_str = strstr(optarg, ":")) != NULL) {
+                host = (char *) calloc(port_str - optarg, sizeof(char));
+                memcpy(host, optarg, port_str - optarg);
+                port = atoi(port_str + 1);
+            }
+            break;
+        }
         }
     }
 
@@ -2748,7 +2755,7 @@ main(int argc, char *argv[])
     if (!ImGui_ImplGlfwGL3_Init(context.window, repaint_window, NULL))
         return -1;
 
-    init_ui(host, 0);
+    init_ui(host, port);
 
     uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 
