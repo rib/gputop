@@ -55,7 +55,6 @@ struct gputop_cc_oa_accumulator
     const struct gputop_metric_set *metric_set;
 
     uint64_t aggregation_period;
-    bool enable_ctx_switch_events;
 
     uint64_t first_timestamp;
     uint64_t last_timestamp;
@@ -74,7 +73,6 @@ void gputop_u32_clock_progress(struct gputop_u32_clock *clock,
 void gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
                                    const struct gputop_devinfo *devinfo,
                                    const struct gputop_metric_set *metric_set,
-                                   bool enable_ctx_switch_events,
                                    int aggregation_period,
                                    const uint8_t *first_report);
 void gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator);

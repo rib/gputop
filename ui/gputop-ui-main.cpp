@@ -1301,9 +1301,8 @@ update_timeline_selected_reports(struct timeline_window *window,
         }
 
         struct gputop_cc_oa_accumulator accumulator;
-        gputop_cc_oa_accumulator_init(&accumulator,
-                                      &ctx->devinfo, ctx->metric_set,
-                                      false, 0, NULL);
+        gputop_cc_oa_accumulator_init(&accumulator, &ctx->devinfo,
+                                      ctx->metric_set, 0, NULL);
         gputop_cc_oa_accumulate_reports(&accumulator, last_report, report);
 
         for (int c = 0; c < n_counters; c++) {

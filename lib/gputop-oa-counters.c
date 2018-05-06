@@ -190,7 +190,6 @@ void
 gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
                               const struct gputop_devinfo *devinfo,
                               const struct gputop_metric_set *metric_set,
-                              bool enable_ctx_switch_events,
                               int aggregation_period,
                               const uint8_t *first_report)
 {
@@ -202,7 +201,6 @@ gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
     accumulator->devinfo = devinfo;
     accumulator->metric_set = metric_set;
     accumulator->aggregation_period = aggregation_period;
-    accumulator->enable_ctx_switch_events = enable_ctx_switch_events;
 
     if (first_report) {
         gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo,

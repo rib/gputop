@@ -74,8 +74,8 @@ double gputop_client_context_max_value(struct gputop_client_context *ctx,
     uint32_t counters1[64] = { 0, 1 + gputop_time_scale_timebase(&ctx->devinfo, ns_time),
                                0, gputop_time_scale_timebase(&ctx->devinfo, ns_time), };
     struct gputop_cc_oa_accumulator dummy_accumulator;
-    gputop_cc_oa_accumulator_init(&dummy_accumulator, &ctx->devinfo, counter->metric_set,
-                                  false, 0, NULL);
+    gputop_cc_oa_accumulator_init(&dummy_accumulator, &ctx->devinfo,
+                                  counter->metric_set, 0, NULL);
     gputop_cc_oa_accumulate_reports(&dummy_accumulator,
                                     (uint8_t *) counters0, (uint8_t *) counters1);
 
@@ -760,7 +760,6 @@ get_accumulated_sample(struct gputop_client_context *ctx,
     gputop_cc_oa_accumulator_init(&samples->accumulator,
                                   &ctx->devinfo,
                                   ctx->metric_set,
-                                  false,
                                   ctx->oa_aggregation_period_ns,
                                   report);
 
@@ -804,8 +803,7 @@ gputop_accumulated_samples_print(struct gputop_client_context *ctx,
                                                                  GPUTOP_I915_PERF_FIELD_OA_REPORT);
 
             struct gputop_cc_oa_accumulator acc;
-            gputop_cc_oa_accumulator_init(&acc, &ctx->devinfo, ctx->metric_set,
-                                          false, 0, NULL);
+            gputop_cc_oa_accumulator_init(&acc, &ctx->devinfo, ctx->metric_set, 0, NULL);
             gputop_cc_oa_accumulate_reports(&acc,
                                             gputop_i915_perf_record_field(&ctx->i915_perf_config,
                                                                           last,
