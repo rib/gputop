@@ -63,6 +63,7 @@ gputop_u32_clock_init(struct gputop_u32_clock *clock,
     clock->timestamp = clock->start = gputop_timebase_scale_ns(devinfo, u32_start);
     clock->last_u32 = u32_start;
     clock->devinfo = devinfo;
+    clock->clock_count = 0ULL;
 }
 
 static uint64_t
@@ -73,12 +74,14 @@ gputop_u32_clock_get_time(struct gputop_u32_clock *clock)
 
 static void
 gputop_u32_clock_progress(struct gputop_u32_clock *clock,
-                          uint32_t u32_timestamp)
+                          uint32_t u32_start_timestamp,
+                          uint32_t u32_end_timestamp)
 {
-    uint32_t delta = u32_timestamp - clock->last_u32;
+    uint32_t delta = u32_end_timestamp - clock->last_u32;
 
     clock->timestamp += gputop_timebase_scale_ns(clock->devinfo, delta);
-    clock->last_u32 = u32_timestamp;
+    clock->last_u32 = u32_end_timestamp;
+    clock->clock_count += u32_end_timestamp - u32_start_timestamp;
 }
 
 static void
@@ -171,7 +174,7 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
         assert(0);
     }
 
-    gputop_u32_clock_progress(&accumulator->clock, end[1]);
+    gputop_u32_clock_progress(&accumulator->clock, start[1], end[1]);
     accumulator->last_timestamp =
         gputop_u32_clock_get_time(&accumulator->clock);
 

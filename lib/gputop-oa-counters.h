@@ -47,6 +47,7 @@ struct gputop_u32_clock {
     uint64_t start;
     uint64_t timestamp;
     uint32_t last_u32;
+    uint64_t clock_count;
 };
 
 struct gputop_cc_oa_accumulator
