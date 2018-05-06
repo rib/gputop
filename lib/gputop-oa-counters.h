@@ -49,12 +49,6 @@ struct gputop_u32_clock {
     uint32_t last_u32;
 };
 
-enum gputop_accumulator_flags {
-    GPUTOP_ACCUMULATOR_CTX_SW_TO_SEEN   = 1,
-    GPUTOP_ACCUMULATOR_CTX_SW_FROM_SEEN = 2,
-    GPUTOP_ACCUMULATOR_CTX_TIMER_SEEN   = 4,
-};
-
 struct gputop_cc_oa_accumulator
 {
     const struct gputop_devinfo *devinfo;
@@ -67,7 +61,6 @@ struct gputop_cc_oa_accumulator
     uint64_t last_timestamp;
 #define MAX_RAW_OA_COUNTERS 62
     uint64_t deltas[MAX_RAW_OA_COUNTERS];
-    enum gputop_accumulator_flags flags;
     struct gputop_u32_clock clock;
 
     /* Can be used for binding structure into JavaScript, e.g. to

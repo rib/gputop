@@ -184,7 +184,6 @@ gputop_cc_oa_accumulator_clear(struct gputop_cc_oa_accumulator *accumulator)
     memset(accumulator->deltas, 0, sizeof(accumulator->deltas));
     accumulator->first_timestamp = 0;
     accumulator->last_timestamp = 0;
-    accumulator->flags = 0;
 }
 
 void
