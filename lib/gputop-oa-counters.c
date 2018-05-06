@@ -55,7 +55,7 @@ gputop_time_to_oa_exponent(struct gputop_devinfo *devinfo, uint64_t period_ns)
     return 0;
 }
 
-void
+static void
 gputop_u32_clock_init(struct gputop_u32_clock *clock,
                       const struct gputop_devinfo *devinfo,
                       uint32_t u32_start)
@@ -65,13 +65,13 @@ gputop_u32_clock_init(struct gputop_u32_clock *clock,
     clock->devinfo = devinfo;
 }
 
-uint64_t
+static uint64_t
 gputop_u32_clock_get_time(struct gputop_u32_clock *clock)
 {
     return clock->timestamp;
 }
 
-void
+static void
 gputop_u32_clock_progress(struct gputop_u32_clock *clock,
                           uint32_t u32_timestamp)
 {

@@ -63,13 +63,6 @@ struct gputop_cc_oa_accumulator
     struct gputop_u32_clock clock;
 };
 
-void gputop_u32_clock_init(struct gputop_u32_clock *clock,
-                           const struct gputop_devinfo *devinfo,
-                           uint32_t u32_start);
-uint64_t gputop_u32_clock_get_time(struct gputop_u32_clock *clock);
-void gputop_u32_clock_progress(struct gputop_u32_clock *clock,
-                               uint32_t u32_timestamp);
-
 void gputop_cc_oa_accumulator_init(struct gputop_cc_oa_accumulator *accumulator,
                                    const struct gputop_devinfo *devinfo,
                                    const struct gputop_metric_set *metric_set,
