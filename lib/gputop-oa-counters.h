@@ -62,10 +62,6 @@ struct gputop_cc_oa_accumulator
 #define MAX_RAW_OA_COUNTERS 62
     uint64_t deltas[MAX_RAW_OA_COUNTERS];
     struct gputop_u32_clock clock;
-
-    /* Can be used for binding structure into JavaScript, e.g. to
-     * associate a corresponding v8::Object... */
-    void *js_priv;
 };
 
 void gputop_u32_clock_init(struct gputop_u32_clock *clock,
