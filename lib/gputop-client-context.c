@@ -584,23 +584,12 @@ gputop_client_context_remove_tracepoint(struct gputop_client_context *ctx,
 double
 gputop_client_context_calc_busyness(struct gputop_client_context *ctx)
 {
-    uint64_t all_contexts_ns = 0ULL;
+    double total = 0.0f;
 
-    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
-        if (list_empty(&context->graphs))
-            continue;
+    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link)
+        total += context->usage_percent;
 
-        struct gputop_accumulated_samples *last_sample =
-            list_last_entry(&context->graphs, struct gputop_accumulated_samples, link);
-        uint64_t context_ns =
-            gputop_timebase_scale_ns(&ctx->devinfo,
-                                     last_sample->accumulator.clock.clock_count);
-
-        context->usage_percent = (double) context_ns / ctx->oa_aggregation_period_ns;
-        all_contexts_ns += context_ns;
-    }
-
-    return (double) all_contexts_ns / ctx->oa_aggregation_period_ns;
+    return total;
 }
 
 uint64_t
@@ -745,6 +734,11 @@ hw_context_record_for_time(struct gputop_client_context *ctx,
                                       GPUTOP_I915_PERF_FIELD_CPU_TIMESTAMP);
     samples->timestamp_end =
         cpu_timestamp ? (*cpu_timestamp) : samples->accumulator.last_timestamp;
+
+    uint64_t usage_ns =
+        gputop_timebase_scale_ns(&ctx->devinfo,
+                                 samples->accumulator.clock.clock_count);
+    context->usage_percent = (double) usage_ns / ctx->oa_aggregation_period_ns;
 
     /* Remove excess of samples */
     uint32_t max_graphs =
