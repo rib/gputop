@@ -581,6 +581,28 @@ gputop_client_context_remove_tracepoint(struct gputop_client_context *ctx,
 
 /**/
 
+double
+gputop_client_context_calc_busyness(struct gputop_client_context *ctx)
+{
+    uint64_t all_contexts_ns = 0ULL;
+
+    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+        if (list_empty(&context->graphs))
+            continue;
+
+        struct gputop_accumulated_samples *last_sample =
+            list_last_entry(&context->graphs, struct gputop_accumulated_samples, link);
+        uint64_t context_ns =
+            gputop_timebase_scale_ns(&ctx->devinfo,
+                                     last_sample->accumulator.clock.clock_count);
+
+        context->usage_percent = (double) context_ns / ctx->oa_aggregation_period_ns;
+        all_contexts_ns += context_ns;
+    }
+
+    return (double) all_contexts_ns / ctx->oa_aggregation_period_ns;
+}
+
 uint64_t
 gputop_client_context_convert_gt_timestamp(struct gputop_client_context *ctx,
                                            uint32_t gt_timestamp)

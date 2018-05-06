@@ -76,6 +76,8 @@ struct gputop_hw_context {
     uint64_t visible_time_spent;
     uint64_t visible_time;
 
+    double usage_percent;
+
     uint32_t timeline_row;
     bool selected;
 };
@@ -343,6 +345,8 @@ double gputop_client_context_read_counter_value(struct gputop_client_context *ct
 
 uint64_t gputop_client_context_convert_gt_timestamp(struct gputop_client_context *ctx,
                                                     uint32_t gt_timestamp);
+
+double gputop_client_context_calc_busyness(struct gputop_client_context *ctx);
 
 void gputop_accumulated_samples_print(struct gputop_client_context *ctx,
                                       struct gputop_accumulated_samples *sample);
