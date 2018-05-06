@@ -2380,6 +2380,10 @@ display_main_window(struct window *win)
                     devinfo->timestamp_frequency,
                     1000000000.0f / devinfo->timestamp_frequency);
 
+        ImGui::Text("RCS busyness:"); ImGui::SameLine();
+        ImGui::ProgressBar(gputop_client_context_calc_busyness(ctx),
+                           ImVec2(ImGui::GetContentRegionAvailWidth(), 0.0f));
+
         bool open_popup = ImGui::Button("Select metric");
         if (open_popup)
             ImGui::OpenPopup("metric picker");
