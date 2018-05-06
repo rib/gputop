@@ -155,7 +155,8 @@ static struct {
     struct timeline_window timeline_window;
     struct i915_perf_window global_i915_perf_window;
     struct i915_perf_window contexts_i915_perf_window;
-    struct window live_i915_perf_window;
+    struct window live_i915_perf_counters_window;
+    struct window live_i915_perf_usage_window;
 
     ImVec4 clear_color;
 
@@ -420,7 +421,7 @@ display_i915_perf_counters(struct gputop_client_context *ctx,
 
 
 static void
-display_live_i915_perf_window(struct window *win)
+display_live_i915_perf_counters_window(struct window *win)
 {
     struct gputop_client_context *ctx = &context.ctx;
 
@@ -441,9 +442,9 @@ display_live_i915_perf_window(struct window *win)
 }
 
 static void
-show_live_i915_perf_window(void)
+show_live_i915_perf_counters_window(void)
 {
-    struct window *window = &context.live_i915_perf_window;
+    struct window *window = &context.live_i915_perf_counters_window;
 
     if (window->opened) {
         window->opened = false;
@@ -453,7 +454,47 @@ show_live_i915_perf_window(void)
     snprintf(window->name, sizeof(window->name),
              "i915 perf counters (live)##%p", window);
     window->size = ImVec2(400, 600);
-    window->display = display_live_i915_perf_window;
+    window->display = display_live_i915_perf_counters_window;
+    window->destroy = hide_window;
+    window->opened = true;
+
+    list_add(&window->link, &context.windows);
+}
+
+static void
+display_live_i915_perf_usage_window(struct window *win)
+{
+    struct gputop_client_context *ctx = &context.ctx;
+    double idle = 1.0f;
+
+    list_for_each_entry(struct gputop_hw_context, context, &ctx->hw_contexts, link) {
+        ImGui::ProgressBar(context->usage_percent,
+                           ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
+        ImGui::SameLine();
+        ImGui::Text("%s", context->name);
+
+        idle -= context->usage_percent;
+    }
+
+    ImGui::ProgressBar(idle, ImVec2(ImGui::GetWindowContentRegionWidth() / 2.0f, 0));
+    ImGui::SameLine();
+    ImGui::Text("Idle");
+}
+
+static void
+show_live_i915_perf_usage_window(void)
+{
+    struct window *window = &context.live_i915_perf_usage_window;
+
+    if (window->opened) {
+        window->opened = false;
+        return;
+    }
+
+    snprintf(window->name, sizeof(window->name),
+             "i915 perf usage (live)##%p", window);
+    window->size = ImVec2(400, 600);
+    window->display = display_live_i915_perf_usage_window;
     window->destroy = hide_window;
     window->opened = true;
 
@@ -2431,7 +2472,8 @@ display_main_window(struct window *win)
     ImGui::SliderFloat("OA visible sampling (s)",
                        &ctx->oa_visible_timeline_s, 0.1f, 15.0f);
     if (StartStopSamplingButton(ctx)) { toggle_start_stop_sampling(ctx); } ImGui::SameLine();
-    if (ImGui::Button("Live counters")) { show_live_i915_perf_window(); }
+    if (ImGui::Button("Live counters")) { show_live_i915_perf_counters_window(); } ImGui::SameLine();
+    if (ImGui::Button("Live usage")) { show_live_i915_perf_usage_window(); }
     ImGui::Text("Timelines:"); ImGui::SameLine();
     if (ImGui::Button("Global")) { show_global_i915_perf_window(); } ImGui::SameLine();
     if (ImGui::Button("Per contexts")) { show_contexts_i915_perf_window(); } ImGui::SameLine();
