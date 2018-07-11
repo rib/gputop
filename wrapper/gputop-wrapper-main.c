@@ -322,7 +322,7 @@ static void print_metric_counter(struct gputop_client_context *ctx,
     }
 }
 
-static void print_metric_colum_names(void)
+static void print_metric_column_names(void)
 {
     int i;
     for (i = 0; i < context.n_metric_columns; i++) {
@@ -534,7 +534,7 @@ static bool handle_features()
         print_system_info();
     }
     if (context.print_headers)
-        print_metric_colum_names();
+        print_metric_column_names();
     return false;
 }
 
