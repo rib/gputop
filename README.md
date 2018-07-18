@@ -132,3 +132,42 @@ meson . build -Dnative_ui_gtk=true
 ninja -C build
 ninja -C build install
 ```
+
+## Building GPU Top Web UI
+
+First make sure to have emscripten installed. GPU Top is currently
+only tested with version 1.37.27 of the emscripten SDK. Instructions
+to download the SDK are available here :
+
+https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html
+
+After having run :
+
+```
+./emsdk update
+```
+
+Install the tested version :
+
+```
+./emsdk activate sdk-1.37.27-64bit
+./emsdk install sdk-1.37.27-64bit
+```
+
+Then configure GPU Top to build the Web UI (in that mode it'll only
+build the UI, you'll need to build the server in the different build
+directory).
+
+```
+meson . build-webui -Dwebui=true --cross=scripts/meson-cross/emscripten-docker-debug.txt
+```
+
+Create a directory to serve the UI and copy the files needed :
+
+```
+mkdir webui
+cp ui/*.html ui/*.css ui/favicon.ico webui/
+cp build-webui/ui/*.js build-webui/ui/*.wasm* build-webui/ui/gputop-ui.wast webui/
+```
+
+You should now be able to serve the UI from the webui/ directory.
