@@ -4,7 +4,8 @@ gputop_client_src = [
   'gputop-oa-metrics.c',
 ]
 
-gputop_client_src += custom_target(
+gputop_client_generated_src = []
+gputop_client_generated_src += custom_target(
   'proto-files',
   input : [join_paths(meson.current_source_dir(), '../data/gputop.proto')],
   output : ['gputop.pb-c.c', 'gputop.pb-c.h'],
@@ -28,7 +29,7 @@ foreach hw : hardware
   gen_xml_files += '../data/oa-@0@.xml'.format(hw)
 endforeach
 
-gputop_client_src += custom_target(
+gputop_client_generated_src += custom_target(
   'gputop-gens-metrics',
   input : gen_xml_files,
   output : [ 'gputop-gens-metrics.c', 'gputop-gens-metrics.h' ],
@@ -39,7 +40,7 @@ gputop_client_src += custom_target(
     '@INPUT@',
   ])
 
-gputop_client_src += custom_target(
+gputop_client_generated_src += custom_target(
   'tracepoint-parser',
   output: 'tracepoint_format.leg.h',
   input: 'tracepoint_format.leg',
@@ -48,10 +49,11 @@ gputop_client_src += custom_target(
 gputop_client_inc = include_directories('.')
 
 gputop_client = static_library('gputop_client',
-                               gputop_client_src,
+                               gputop_client_src + gputop_client_generated_src,
                                dependencies : [mesa_dep, protobuf_c_dep],
 	                       include_directories : gputop_client_inc)
 
 gputop_client_dep = declare_dependency(link_with : gputop_client,
                                        dependencies : [mesa_dep, protobuf_c_dep],
+                                       sources : gputop_client_generated_src,
 				       include_directories : gputop_client_inc)
