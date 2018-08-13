@@ -19,9 +19,8 @@ cc = meson.get_compiler('cpp')
 
 prog_python2 = find_program('python2')
 
-build_native_ui = get_option('native_ui')
-build_webui = get_option('webui')
-if build_webui and build_native_ui
+build_ui = get_option('ui')
+if build_ui.contains('web') and (build_ui.contains('x11') or build_ui.contains('wayland'))
   error('Cannot build webui and native tools in the same build')
 endif
 
@@ -36,7 +35,7 @@ endif
 
 subdir('mesa')
 subdir('lib')
-if not build_webui
+if not build_ui.contains('web')
   libuv_dep = subproject('libuv').get_variable('libuv_dep')
   wslay_dep = subproject('wslay').get_variable('wslay_dep')
   h2o_dep = subproject('h2o').get_variable('h2o_dep')
