@@ -1486,8 +1486,10 @@ handle_protobuf_message(struct gputop_client_context *ctx,
         ctx->features = message;
         register_platform_metrics(ctx, message->features->devinfo);
         ctx->i915_perf_config.cpu_timestamps =
-            message->features->has_i915_oa_cpu_timestamps;
+            message->features->has_i915_oa_cpu_timestamps &&
+          message->features->has_i915_oa_gpu_timestamps;
         ctx->i915_perf_config.gpu_timestamps =
+          message->features->has_i915_oa_cpu_timestamps &&
             message->features->has_i915_oa_gpu_timestamps;
         message = NULL; /* Save that structure for internal use */
         break;
