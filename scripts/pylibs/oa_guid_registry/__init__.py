@@ -37,7 +37,7 @@ class Registry:
                 value = int(reg.get('value'), 16)
                 registers_str = registers_str + config_id + ',' + config_priority + ',' + config_availability + ',' + str(addr) + ',' + str(value) + '\n'
 
-        return hashlib.md5(registers_str).hexdigest()
+        return hashlib.md5(registers_str.encode('utf-8')).hexdigest()
 
 
     @staticmethod
