@@ -92,6 +92,7 @@ GPU Top without UI tools has minimal dependencies :
 
 ```
 sudo apt-get install libssl-dev
+sudo -H pip2 install mako
 ```
 
 If you want to build the GLFW UI, also install the following dependencies :

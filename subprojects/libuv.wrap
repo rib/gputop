@@ -7,4 +7,4 @@ source_hash = 54e4734da09172f19d5061dcfd7a536fe4c3a8dc12ed981a14a58ac17efdab88
 
 patch_url = https://fake.url.to.please.meson.but.file.in.packagecache/
 patch_filename = libuv-wrap-v1.18.0.tar
-patch_hash = b310ce358fbbd4f4b33fff21e1322931f2cfa7e88d721d7ad156fb27e3729668
+patch_hash = 16f07003a8511e9aa955ef4ca79fcb160d9e66283dce7c26e46c83fd69548f59
