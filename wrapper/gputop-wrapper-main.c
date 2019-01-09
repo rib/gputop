@@ -609,18 +609,18 @@ static void usage(void)
            "\t -p, --port <port>                 Port on which the server is running\n"
            "\t -P, --period <period>             Accumulation period (in seconds, floating point)\n"
            "\t -m, --metric <name>               Metric set to use\n"
-           "                                     (prints out a list of metric sets if missing)\n"
+           "\t                                   (prints out a list of metric sets with: -m list)\n"
            "\t -M, --max                         Outputs maximum counter values\n"
-           "                                     (first line after units)\n"
+           "\t                                   (first line after units)\n"
            "\t -c, --columns <col0,col1,..>      Columns to print out\n"
-           "                                     (prints out a lists of counters if missing)\n"
+           "\t                                   (prints out a lists of counters with: -c list)\n"
            "\t -n, --no-human-units              Disable human readable units (for machine readable output)\n"
            "\t -N, --no-headers                  Disable headers (for machine readable output)\n"
            "\t -O, --child-output <filename>     Outputs the child's standard output to filename\n"
            "\t -o, --output <filename>           Outputs gputop-wrapper's data to filename\n"
-           "                                     (disables human readable units)\n"
+           "\t                                   (disables human readable units)\n"
            "\t -w, --max-inactive-time <time>    Maximum time of inactivity before killing\n"
-           "                                     the child process (in seconds, floating point)\n"
+           "\t                                   the child process (in seconds, floating point)\n"
            "\n"
         );
 }
@@ -680,24 +680,27 @@ int main (int argc, char **argv)
             host = optarg;
             break;
         case 'm':
-            context.metric_name = optarg;
+            if (strcmp(optarg, "list"))
+                context.metric_name = optarg;
             break;
         case 'M':
             context.print_maximums = true;
             break;
         case 'c': {
-            const char *s = optarg;
-            int n;
-            context.n_metric_columns = 1;
-            while ((s = next_column(s)) != NULL)
-                context.n_metric_columns++;
+            if (strcmp(optarg, "list")) {
+                const char *s = optarg;
+                int n;
+                context.n_metric_columns = 1;
+                while ((s = next_column(s)) != NULL)
+                    context.n_metric_columns++;
 
-            context.metric_columns =
-                calloc(context.n_metric_columns, sizeof(context.metric_columns[0]));
+                context.metric_columns =
+                    calloc(context.n_metric_columns, sizeof(context.metric_columns[0]));
 
-            for (s = optarg, n = 0; s != NULL; s = next_column(s)) {
-                context.metric_columns[n++].symbol_name =
-                    strndup(s, next_column(s) ? (next_column(s) - s - 1) : strlen(s));
+                for (s = optarg, n = 0; s != NULL; s = next_column(s)) {
+                    context.metric_columns[n++].symbol_name =
+                        strndup(s, next_column(s) ? (next_column(s) - s - 1) : strlen(s));
+                }
             }
             break;
         }
