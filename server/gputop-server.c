@@ -613,6 +613,7 @@ handle_open_i915_perf_oa_stream(h2o_websocket_conn_t *conn,
     stream = gputop_open_i915_perf_oa_stream(metric_set,
                                              oa_stream_info->period_exponent,
                                              ctx,
+                                             oa_stream_info->interrupt,
                                              oa_stream_info->cpu_timestamps,
                                              oa_stream_info->gpu_timestamps,
                                              (open_stream->live_updates ?
@@ -1146,6 +1147,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     pb_devinfo.topology = &pb_topology;
 
     pb_features.fake_mode = gputop_fake_mode;
+    pb_features.has_i915_oa_interrupt = gputop_perf_kernel_has_i915_oa_interrupt();
     pb_features.has_i915_oa_cpu_timestamps = gputop_perf_kernel_has_i915_oa_cpu_timestamps();
     pb_features.has_i915_oa_gpu_timestamps = gputop_perf_kernel_has_i915_oa_gpu_timestamps();
 

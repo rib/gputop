@@ -242,6 +242,13 @@ kernel_supports_open_property(uint64_t prop, uint64_t value)
 }
 
 bool
+gputop_perf_kernel_has_i915_oa_interrupt(void)
+{
+    return kernel_supports_open_property(DRM_I915_PERF_PROP_OA_ENABLE_INTERRUPT,
+                                         true);
+}
+
+bool
 gputop_perf_kernel_has_i915_oa_cpu_timestamps(void)
 {
     return kernel_supports_open_property(DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS,
@@ -462,6 +469,7 @@ struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 				int period_exponent,
 				struct ctx_handle *ctx,
+                                bool interrupt,
                                 bool cpu_timestamps,
                                 bool gpu_timestamps,
                                 void (*ready_cb)(struct gputop_perf_stream *),
@@ -511,6 +519,11 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 		ctx->fd, ctx->id);
 	}
 
+        if (interrupt) {
+            properties[p++] = DRM_I915_PERF_PROP_OA_ENABLE_INTERRUPT;
+            properties[p++] = true;
+        }
+
         if (cpu_timestamps) {
             properties[p++] = DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS;
             properties[p++] = true;
@@ -538,6 +551,7 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
     stream->metric_set = metric_set;
     stream->ready_cb = ready_cb;
     stream->per_ctx_mode = ctx != NULL;
+    stream->oa.interrupt_enabled = interrupt;
 
     stream->fd = stream_fd;
 

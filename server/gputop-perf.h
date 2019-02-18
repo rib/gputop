@@ -155,6 +155,7 @@ struct gputop_perf_stream
             uint8_t *last;
             int last_buf_idx;
 
+            bool interrupt_enabled;
             bool header_written;
             uint32_t total_len;
         } oa;
@@ -240,6 +241,7 @@ struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
                                 int period_exponent,
                                 struct ctx_handle *ctx,
+                                bool interrupt,
                                 bool cpu_timestamps,
                                 bool gpu_timestamps,
                                 void (*ready_cb)(struct gputop_perf_stream *),
@@ -288,5 +290,6 @@ void gputop_perf_stream_unref(struct gputop_perf_stream *stream);
 
 const struct gputop_devinfo *gputop_perf_get_devinfo(void);
 
+bool gputop_perf_kernel_has_i915_oa_interrupt(void);
 bool gputop_perf_kernel_has_i915_oa_cpu_timestamps(void);
 bool gputop_perf_kernel_has_i915_oa_gpu_timestamps(void);
