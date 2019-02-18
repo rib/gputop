@@ -31,7 +31,8 @@
 #ifndef BITSET_H
 #define BITSET_H
 
-#include "util/u_math.h"
+#include "util/bitscan.h"
+#include "util/macros.h"
 
 /****************************************************************************
  * generic bitset implementation
@@ -53,7 +54,7 @@
 #define BITSET_ONES(x) memset( (x), 0xff, sizeof (x) )
 
 #define BITSET_BITWORD(b) ((b) / BITSET_WORDBITS)
-#define BITSET_BIT(b) (1 << ((b) % BITSET_WORDBITS))
+#define BITSET_BIT(b) (1u << ((b) % BITSET_WORDBITS))
 
 /* single bit operations
  */

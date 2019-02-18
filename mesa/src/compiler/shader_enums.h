@@ -26,6 +26,8 @@
 #ifndef SHADER_ENUMS_H
 #define SHADER_ENUMS_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,7 +48,15 @@ typedef enum
    MESA_SHADER_GEOMETRY = 3,
    MESA_SHADER_FRAGMENT = 4,
    MESA_SHADER_COMPUTE = 5,
+   /* must be last so it doesn't affect the GL pipeline */
+   MESA_SHADER_KERNEL = 6,
 } gl_shader_stage;
+
+static inline bool
+gl_shader_stage_is_compute(gl_shader_stage stage)
+{
+   return stage == MESA_SHADER_COMPUTE || stage == MESA_SHADER_KERNEL;
+}
 
 /**
  * Number of STATE_* values we need to address any GL state.
@@ -70,7 +80,15 @@ const char *_mesa_shader_stage_to_string(unsigned stage);
  */
 const char *_mesa_shader_stage_to_abbrev(unsigned stage);
 
+/**
+ * GL related stages (not including CL)
+ */
 #define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
+
+/**
+ * All stages
+ */
+#define MESA_ALL_SHADER_STAGES (MESA_SHADER_KERNEL + 1)
 
 
 /**
@@ -397,6 +415,14 @@ typedef enum
    SYSTEM_VALUE_SUBGROUP_LT_MASK,
    /*@}*/
 
+   /**
+    * Builtin variables added by VK_KHR_subgroups
+    */
+   /*@{*/
+   SYSTEM_VALUE_NUM_SUBGROUPS,
+   SYSTEM_VALUE_SUBGROUP_ID,
+   /*@}*/
+
    /*@}*/
 
    /**
@@ -496,6 +522,27 @@ typedef enum
    SYSTEM_VALUE_BASE_VERTEX,
 
    /**
+    * Depending on the type of the draw call (indexed or non-indexed),
+    * is the value of \c basevertex passed to \c glDrawElementsBaseVertex and
+    * similar, or is the value of \c first passed to \c glDrawArrays and
+    * similar.
+    *
+    * \note
+    * It can be used to calculate the \c SYSTEM_VALUE_VERTEX_ID as
+    * \c SYSTEM_VALUE_VERTEX_ID_ZERO_BASE plus \c SYSTEM_VALUE_FIRST_VERTEX.
+    *
+    * \sa SYSTEM_VALUE_VERTEX_ID_ZERO_BASE, SYSTEM_VALUE_VERTEX_ID
+    */
+   SYSTEM_VALUE_FIRST_VERTEX,
+
+   /**
+    * If the Draw command used to start the rendering was an indexed draw
+    * or not (~0/0). Useful to calculate \c SYSTEM_VALUE_BASE_VERTEX as
+    * \c SYSTEM_VALUE_IS_INDEXED_DRAW & \c SYSTEM_VALUE_FIRST_VERTEX.
+    */
+   SYSTEM_VALUE_IS_INDEXED_DRAW,
+
+   /**
     * Value of \c baseinstance passed to instanced draw entry points
     *
     * \sa SYSTEM_VALUE_INSTANCE_ID
@@ -556,7 +603,12 @@ typedef enum
    SYSTEM_VALUE_WORK_GROUP_ID,
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
+   SYSTEM_VALUE_GLOBAL_GROUP_SIZE,
+   SYSTEM_VALUE_WORK_DIM,
    /*@}*/
+
+   /** Required for VK_KHR_device_group */
+   SYSTEM_VALUE_DEVICE_INDEX,
 
    /** Required for VK_KHX_multiview */
    SYSTEM_VALUE_VIEW_INDEX,
@@ -566,6 +618,12 @@ typedef enum
     * calculate stride for stream-out outputs.  Not externally visible.
     */
    SYSTEM_VALUE_VERTEX_CNT,
+
+   /**
+    * Driver internal varying-coord, used for varying-fetch instructions.
+    * Not externally visible.
+    */
+   SYSTEM_VALUE_VARYING_COORD,
 
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
@@ -650,11 +708,13 @@ enum gl_frag_depth_layout
 /**
  * \brief Buffer access qualifiers
  */
-enum gl_buffer_access_qualifier
+enum gl_access_qualifier
 {
-   ACCESS_COHERENT = 1,
-   ACCESS_RESTRICT = 2,
-   ACCESS_VOLATILE = 4,
+   ACCESS_COHERENT      = (1 << 0),
+   ACCESS_RESTRICT      = (1 << 1),
+   ACCESS_VOLATILE      = (1 << 2),
+   ACCESS_NON_READABLE  = (1 << 3),
+   ACCESS_NON_WRITEABLE = (1 << 4),
 };
 
 /**

@@ -63,6 +63,16 @@ _mesa_hash_table_create(void *mem_ctx,
                         uint32_t (*key_hash_function)(const void *key),
                         bool (*key_equals_function)(const void *a,
                                                     const void *b));
+
+bool
+_mesa_hash_table_init(struct hash_table *ht,
+                      void *mem_ctx,
+                      uint32_t (*key_hash_function)(const void *key),
+                      bool (*key_equals_function)(const void *a,
+                                                  const void *b));
+
+struct hash_table *
+_mesa_hash_table_clone(struct hash_table *src, void *dst_mem_ctx);
 void _mesa_hash_table_destroy(struct hash_table *ht,
                               void (*delete_function)(struct hash_entry *entry));
 void _mesa_hash_table_clear(struct hash_table *ht,
@@ -89,6 +99,8 @@ _mesa_hash_table_search_pre_hashed(struct hash_table *ht, uint32_t hash,
                                   const void *key);
 void _mesa_hash_table_remove(struct hash_table *ht,
                              struct hash_entry *entry);
+void _mesa_hash_table_remove_key(struct hash_table *ht,
+                                 const void *key);
 
 struct hash_entry *_mesa_hash_table_next_entry(struct hash_table *ht,
                                                struct hash_entry *entry);
@@ -112,6 +124,9 @@ static inline uint32_t _mesa_hash_pointer(const void *pointer)
    return (uint32_t) ((num >> 2) ^ (num >> 6) ^ (num >> 10) ^ (num >> 14));
 }
 
+struct hash_table *
+_mesa_pointer_hash_table_create(void *mem_ctx);
+
 enum {
    _mesa_fnv32_1a_offset_bias = 2166136261u,
 };
@@ -120,8 +135,6 @@ static inline uint32_t
 _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
 {
    const uint8_t *bytes = (const uint8_t *)data;
-
-   assert(bytes != NULL);
 
    while (size-- != 0) {
       hash ^= *bytes;
@@ -140,9 +153,9 @@ _mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
  * an entry's data with the deleted marker), but not against insertion
  * (which may rehash the table, making entry a dangling pointer).
  */
-#define hash_table_foreach(ht, entry)                   \
-   for (entry = _mesa_hash_table_next_entry(ht, NULL);  \
-        entry != NULL;                                  \
+#define hash_table_foreach(ht, entry)                                      \
+   for (struct hash_entry *entry = _mesa_hash_table_next_entry(ht, NULL);  \
+        entry != NULL;                                                     \
         entry = _mesa_hash_table_next_entry(ht, entry))
 
 static inline void
@@ -152,8 +165,6 @@ hash_table_call_foreach(struct hash_table *ht,
                                          void *closure),
                         void *closure)
 {
-   struct hash_entry *entry;
-
    hash_table_foreach(ht, entry)
       callback(entry->key, entry->data, closure);
 }
