@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<metrics version="1508419706" merge_md5="">
+<metrics version="1553959724" merge_md5="">
   <set name="Render Metrics Basic Gen10"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
-       hw_config_guid="ee9f2b17-a8b3-44c3-bf0c-2608b9665e23"
+       hw_config_guid="2d975e19-7130-41d2-b06f-79d74f91e7c8"
        chipset="CNL"
        symbol_name="RenderBasic"
        >
@@ -825,6 +825,7 @@
         <register type="FLEX" address="0x0000E658" value="0x00012011" />
         <register type="FLEX" address="0x0000E45C" value="0x00051050" />
         <register type="FLEX" address="0x0000E55C" value="0x00053052" />
+        <register type="FLEX" address="0x0000E65C" value="0x00222222" />
     </register_config>
   </set>
 

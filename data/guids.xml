@@ -88,7 +88,7 @@
     <guid config_hash="1747ad69a36707979cd33624333829d0" mdapi_config_hash="a66f0092b99ca3a8ce29e0ce4be513ff" id="d260f03f-b34d-4b49-a44e-436819117332" chipset="bxt" name="TDL_2" />
     <guid config_hash="e6d52ba7af730de63eeaa8d727b36ed7" mdapi_config_hash="6898bc10a62600907cc6c47d1f7004a0" id="c9f5fa3a-d14f-400c-a89a-211206b00ee7" chipset="bxt" name="GpuBusyness" />
     <guid config_hash="6d13f443205926fd1351ae5adeae8965" mdapi_config_hash="24f384a77963d7d64c324b3d89eeb498" id="d49cd0d8-8c7f-4465-94fc-51e08c9050bc" chipset="bxt" name="PMA_Stall" />
-    <guid config_hash="3a73d9a9c8f036d682bf122853c0ae55" mdapi_config_hash="f5d545c95f680a2d5f9fcaa9990073da" id="f519e481-24d2-4d42-87c9-3fdd12c00202" chipset="sklgt2" name="RenderBasic" />
+    <guid config_hash="fc79f102b841df08ac154ddebc634bf6" mdapi_config_hash="3c97b92455702ca6f6a6f846dcc1ebd3" id="07b25942-d9fd-4fce-bd58-e29abd66b7de" chipset="sklgt2" name="RenderBasic" />
     <guid config_hash="3e0e14aef4a2cf7e61098928c034caff" mdapi_config_hash="ecb641130c942e71d5a9de8adb51c7f6" id="00b80b4c-d215-4378-9015-da3dda3b61ea" chipset="sklgt2" name="ComputeBasic" />
     <guid config_hash="d757768d43838dd04e2db7e9928c87d9" mdapi_config_hash="79c6baee9374a6c43b8e0fabda2c1a39" id="2a0c0933-37e7-427c-9951-ded42a78bb27" chipset="sklgt2" name="RenderPipeProfile" />
     <guid config_hash="15938384237d1b01ceb07bc97edd12a9" mdapi_config_hash="22327f250c6079d5d5f9f1a70829dc05" id="246b35f1-44e0-4d03-8936-e452e291d064" chipset="sklgt2" name="MemoryReads" />
@@ -109,7 +109,7 @@
     <guid config_hash="ee7996e47cdaf7722422397285763cdc" mdapi_config_hash="ada812fc71ebbabd1e746dbab67881b1" id="c44a5cf7-886d-477b-bebd-2d738923e4c3" chipset="sklgt2" name="GpuBusyness" />
     <guid config_hash="cec6202194db96d6a09fed71808bb7de" mdapi_config_hash="df4b9b85ed61f457a0b71b03299b282d" id="e0b2aae4-9b8f-4211-8df0-f8e8cb203209" chipset="sklgt2" name="FfBottlenecks" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="e7f3f72cad542f3a17c09686e65487fc" id="27871149-2fa9-40ba-aa73-350d60c03a09" chipset="sklgt2" name="PMA_Stall" />
-    <guid config_hash="e29c38f09173d32947515081c2cc6421" mdapi_config_hash="59a53a0ed9ec1079e5a4160189aa2c78" id="4616d450-2393-4836-8146-53c5ed84d359" chipset="sklgt3" name="RenderBasic" />
+    <guid config_hash="a7f1b241b23898785166ab10ca4ce1bf" mdapi_config_hash="ae3528402606bbb21a08da7ef5ea1530" id="21fef15a-83f4-4ffa-bb81-7da6e38b8e4b" chipset="sklgt3" name="RenderBasic" />
     <guid config_hash="ede53df6549f788495f7fca90475b6dd" mdapi_config_hash="87390c127ce809c3cfab64388ddebd14" id="4320492b-fd03-42ac-922f-dbe1ef3b7b58" chipset="sklgt3" name="ComputeBasic" />
     <guid config_hash="0f8eee02ed3e457362ffdc38ed10036c" mdapi_config_hash="2d95f03caa28b40e2a25f3bc8ac38b55" id="bd2d9cae-b9ec-4f5b-9d2f-934bed398a2d" chipset="sklgt3" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="5218add4f4b16f3db5c92225871eb44c" id="4ca0f3fe-7fd3-4924-98cb-1807d9879767" chipset="sklgt3" name="MemoryReads" />
@@ -129,7 +129,7 @@
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="d05fe58178a1882edcb81d86070551e3" id="2b985803-d3c9-4629-8a4f-634bfecba0e8" chipset="sklgt3" name="TestOa" />
     <guid config_hash="6124b939906bc3cda3621544aabfd890" mdapi_config_hash="24ef7b4026d1ac159bb663946df0e9b0" id="0c5058ff-fdf4-4e0d-81fb-c0310fb76525" chipset="sklgt3" name="GpuBusyness" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="c889fd93-8dc7-4ba5-9451-de34a8b5ea3f" chipset="sklgt3" name="PMA_Stall" />
-    <guid config_hash="d78e88509fa7eaa57d083b362dff5988" mdapi_config_hash="a3a696ec6689c7050b8ca57ee97c5c6d" id="bad77c24-cc64-480d-99bf-e7b740713800" chipset="sklgt4" name="RenderBasic" />
+    <guid config_hash="0a80b2a2caa3386ecce110a7904eb1c1" mdapi_config_hash="61d002ce457b9ce087613d986e6b0544" id="95322a71-bb05-4437-bc27-f7dd7b27d136" chipset="sklgt4" name="RenderBasic" />
     <guid config_hash="898ee42bb4b359d4c0eb97c5919cfd7f" mdapi_config_hash="d596d8f326e5378b871b825eb954e95c" id="7277228f-e7f3-4743-945a-6a2049d11377" chipset="sklgt4" name="ComputeBasic" />
     <guid config_hash="48b5556f95fc27dceb10c65556a16613" mdapi_config_hash="95e3f2b556fe9795e0d0e0d3b0c5ee00" id="463c668c-3f60-49b6-8f85-d995b635b3b2" chipset="sklgt4" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="d39a578cdf930d109c992f4abd7f83cb" id="3ae6e74c-72c3-4040-9bd0-7961430b8cc8" chipset="sklgt4" name="MemoryReads" />
@@ -149,7 +149,7 @@
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="051007cbfaffa4151d7c9365edde7bff" id="882fa433-1f4a-4a67-a962-c741888fe5f5" chipset="sklgt4" name="TestOa" />
     <guid config_hash="6124b939906bc3cda3621544aabfd890" mdapi_config_hash="24ef7b4026d1ac159bb663946df0e9b0" id="4e5b1599-5b01-4b3d-89fa-6b26a25fe02b" chipset="sklgt4" name="GpuBusyness" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="befe9fd6-474e-4a3d-b98e-cd793715cf91" chipset="sklgt4" name="PMA_Stall" />
-    <guid config_hash="3f3e157fb71d7fe04998d2ba22c10662" mdapi_config_hash="6beeb63d0f4e5306e2bb0032b43320e3" id="f8d677e9-ff6f-4df1-9310-0334c6efacce" chipset="kblgt2" name="RenderBasic" />
+    <guid config_hash="afbe2cb999a8303f52eea075f3b8687e" mdapi_config_hash="966416aaaf33b0bce90c0daa51217242" id="99c1a40e-a090-4354-86e3-4d068bb1917e" chipset="kblgt2" name="RenderBasic" />
     <guid config_hash="e337295245fb93eccf7b096f2728ca98" mdapi_config_hash="86040ee918c1b39c616b777101369f16" id="e17fc42a-e614-41b6-90c4-1074841a6c77" chipset="kblgt2" name="ComputeBasic" />
     <guid config_hash="01f86f590b9b0c0371b0075a5e73b902" mdapi_config_hash="7ee27e7f11eea3282e62abde604b61a2" id="d7a17a3a-ca71-40d2-a919-ace80d50633f" chipset="kblgt2" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="0779bba85f8be3baef98ecc5c66fd369" id="57b59202-172b-477a-87de-33f85572c589" chipset="kblgt2" name="MemoryReads" />
@@ -169,7 +169,7 @@
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="5f4afc2f159098e96b8fd90a85979ae3" id="baa3c7e4-52b6-4b85-801e-465a94b746dd" chipset="kblgt2" name="TestOa" />
     <guid config_hash="d36b63d76294172be0ad5e6530109d06" mdapi_config_hash="aa4c1ab961a066b0bc98bf914735b6af" id="6c66fe6e-2988-454a-bfae-7fca3bbcbec2" chipset="kblgt2" name="GpuBusyness" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="b49aa434-4958-4d98-9e6f-443ff27ca74d" chipset="kblgt2" name="PMA_Stall" />
-    <guid config_hash="3c774a4006236921f953545fe102705b" mdapi_config_hash="b601f480e64547ba26a36592e536ef13" id="0286c920-2f6d-493b-b22d-7a5280df43de" chipset="kblgt3" name="RenderBasic" />
+    <guid config_hash="73805d7acd1298aa6d81d3e2278ee411" mdapi_config_hash="9111e46468492c1c14a331510c18a49b" id="17b4f3e0-d578-4ae3-b7a8-98d756d1e0df" chipset="kblgt3" name="RenderBasic" />
     <guid config_hash="e337295245fb93eccf7b096f2728ca98" mdapi_config_hash="f56077c263fafefe554173ce024b2827" id="9823aaa1-b06f-40ce-884b-cd798c79f0c2" chipset="kblgt3" name="ComputeBasic" />
     <guid config_hash="01f86f590b9b0c0371b0075a5e73b902" mdapi_config_hash="808e46d786103380f58d1e8f91402c4c" id="c7c735f3-ce58-45cf-aa04-30b183f1faff" chipset="kblgt3" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="f810d7343822b3a3b9e50820708bfcb3" id="96ec2219-040b-428a-856a-6bc03363a057" chipset="kblgt3" name="MemoryReads" />
@@ -205,7 +205,7 @@
     <guid config_hash="a19a55aad269ccc1ed4380314eda4bed" mdapi_config_hash="ac34c2028f3f4fae92e58aae1496901b" id="15274c82-27d2-4819-876a-7cb1a2c59ba4" chipset="glk" name="ComputeExtra" />
     <guid config_hash="e018d083414e4d28e0ed481554128883" mdapi_config_hash="dce59e977ffff25a57f2486f5d9a7c60" id="dd3fd789-e783-4204-8cd0-b671bbccb0cf" chipset="glk" name="TestOa" />
     <guid config_hash="6d13f443205926fd1351ae5adeae8965" mdapi_config_hash="24f384a77963d7d64c324b3d89eeb498" id="e6868953-fb47-431d-a060-f785916558fc" chipset="glk" name="PMA_Stall" />
-    <guid config_hash="3f3e157fb71d7fe04998d2ba22c10662" mdapi_config_hash="ade383c6d7b39bd1e2e5e3bd892a0cc0" id="2bceea0d-babc-48ba-9289-0d6997c93083" chipset="cflgt2" name="RenderBasic" />
+    <guid config_hash="afbe2cb999a8303f52eea075f3b8687e" mdapi_config_hash="8e8f1f5eb1b0a95dada8e3ddd78f4dd8" id="7fa796a4-0c7a-4201-afc6-cff0b2f528a2" chipset="cflgt2" name="RenderBasic" />
     <guid config_hash="e337295245fb93eccf7b096f2728ca98" mdapi_config_hash="9d5a7e8dd6290726416c3b40bba653ff" id="dc8cf7ea-26b4-4478-ac93-dab174f92ac0" chipset="cflgt2" name="ComputeBasic" />
     <guid config_hash="01f86f590b9b0c0371b0075a5e73b902" mdapi_config_hash="f9a35b936db9a2f76b69d7b5bd5d10ec" id="2221e4d5-ed7b-445e-b2cc-3de1b97f4d42" chipset="cflgt2" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="8b1e5617e61646d7d7d0361107ec2b67" id="82096a90-e2fa-4f38-ac14-562b2496933a" chipset="cflgt2" name="MemoryReads" />
@@ -225,7 +225,7 @@
     <guid config_hash="d36b63d76294172be0ad5e6530109d06" mdapi_config_hash="aa4c1ab961a066b0bc98bf914735b6af" id="e2f162ae-5732-4af0-8b11-69510f57094a" chipset="cflgt2" name="GpuBusyness" />
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="5f4afc2f159098e96b8fd90a85979ae3" id="74fb4902-d3d3-4237-9e90-cbdc68d0a446" chipset="cflgt2" name="TestOa" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="5ccbf9fb-6bf2-456b-a749-bdff7b1aff13" chipset="cflgt2" name="PMA_Stall" />
-    <guid config_hash="3c774a4006236921f953545fe102705b" mdapi_config_hash="4f89366852e2bcada4d860bd3d76fd45" id="80b55814-32e9-4988-95fd-77aded3ac0fe" chipset="cflgt3" name="RenderBasic" />
+    <guid config_hash="73805d7acd1298aa6d81d3e2278ee411" mdapi_config_hash="5d3d4bcf1e36569409cfd84a7e137ade" id="b316bcab-212f-4228-97de-af6b5a1a2ea1" chipset="cflgt3" name="RenderBasic" />
     <guid config_hash="e337295245fb93eccf7b096f2728ca98" mdapi_config_hash="0860a8d90a0aa24c5e766b1062dc9af6" id="607f9cc8-e026-4d5f-bfad-45c77eabc150" chipset="cflgt3" name="ComputeBasic" />
     <guid config_hash="01f86f590b9b0c0371b0075a5e73b902" mdapi_config_hash="498feca145a69e7fcec55b79d239d005" id="9875e050-b1bc-45e6-a6ab-665594601df9" chipset="cflgt3" name="RenderPipeProfile" />
     <guid config_hash="0a75401250565ee5a0e555b47bc9e5b4" mdapi_config_hash="610a6fcb593c50362beb8c0e2172685a" id="49c65f34-e625-4ca4-86b7-88693e624d4c" chipset="cflgt3" name="MemoryReads" />
@@ -245,7 +245,7 @@
     <guid config_hash="de8530fdc36d260415e78771e8cc6929" mdapi_config_hash="3f82064fe17d6d7005b6e5c4bb828c5a" id="22b7e0c2-cade-425f-b099-34479768c72a" chipset="cflgt3" name="GpuBusyness" />
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="228710e94277d74bd4be0c2536a3edd4" id="577e8e2c-3fa0-4875-8743-3538d585e3b0" chipset="cflgt3" name="TestOa" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="c11af8d1-858b-4f8b-98fb-8d683ba8bda0" chipset="cflgt3" name="PMA_Stall" />
-    <guid config_hash="d9a82bcf016671c61b4f59c0a07b9a19" mdapi_config_hash="f9c74ee3aa758d22578d851cc3f451b6" id="ee9f2b17-a8b3-44c3-bf0c-2608b9665e23" chipset="cnl" name="RenderBasic" />
+    <guid config_hash="428ad0859c9dac4ba85dd73106f5b2de" mdapi_config_hash="7baf473e87d0838b628bd2ed289f4783" id="2d975e19-7130-41d2-b06f-79d74f91e7c8" chipset="cnl" name="RenderBasic" />
     <guid config_hash="7365cff2873ed22304dcb350ca19d834" mdapi_config_hash="174f9ff2125d06a7886a258304ba4eae" id="eed14f91-5f03-4e3a-8281-ac38030ac573" chipset="cnl" name="ComputeBasic" />
     <guid config_hash="1878c620a9f0cc5100fba47c83a1457c" mdapi_config_hash="f1baa55e099488db74fd02c9560df40b" id="0666ccac-f5aa-4dc2-aa12-c6e058f383f3" chipset="cnl" name="RenderPipeProfile" />
     <guid config_hash="10d83436d03f71bc19e6b83739072556" mdapi_config_hash="7f0796f55071a69b76c0a0615b2171e6" id="3500dcfd-837b-4ec8-b5cf-fe58b966263f" chipset="cnl" name="MemoryReads" />
