@@ -260,7 +260,7 @@
     <guid config_hash="4bfffb81b9376af931bad919fc66ef3f" mdapi_config_hash="33d7ba5d98519f3038ed07f273fe5f91" id="c46c7bb5-f26d-4634-b491-902394af85b1" chipset="cnl" name="TDL_1" />
     <guid config_hash="e5419b6c232500a6a824c2c58f3b7d32" mdapi_config_hash="b9a01044b9befe9fcf952f26ba4fcc4e" id="aa2d6ab4-99b3-42f8-94d6-4a9aa2baedaf" chipset="cnl" name="TDL_2" />
     <guid config_hash="ccb9fdae1fe1f44c4c32bdc69befc160" mdapi_config_hash="9cf34989f5e721e734d4edf26036c2c5" id="db41edd4-d8e7-4730-ad11-b9a2d6833503" chipset="cnl" name="TestOa" />
-    <guid config_hash="52a86506f9dfe92c40956e18fad50e46" mdapi_config_hash="b454ab766d1d38d5bcdf5e5b1a13d26d" id="621e248e-29c3-404d-a1b1-bb69610c4a99" chipset="icl" name="RenderBasic" />
+    <guid config_hash="52a86506f9dfe92c40956e18fad50e46" mdapi_config_hash="8ef6088f425f2a97b01bed560ad6e2b3" id="621e248e-29c3-404d-a1b1-bb69610c4a99" chipset="icl" name="RenderBasic" />
     <guid config_hash="6b23eee815d02e770dc7e79d2246124f" mdapi_config_hash="460d90c501e2a66273fd830b7a01812d" id="233a477b-f8f0-40f4-bf57-01440c3701d9" chipset="icl" name="ComputeBasic" />
     <guid config_hash="3b6635eb3709f346076901ea88ec1f2b" mdapi_config_hash="402f156b276dfaaaf84eb09ec5347515" id="43eb7fc1-dc5e-45e2-a90a-0053f5397271" chipset="icl" name="ComputeExtended" />
     <guid config_hash="82f99a59ec47e807d35dde01c4013d02" mdapi_config_hash="ccc13942b8756edc6055bb06bee51a46" id="022b8913-ae9f-4559-abcd-583e586170d0" chipset="icl" name="ComputeL3Cache" />
