@@ -222,6 +222,7 @@
     <guid config_hash="09a6efbd43221c7d8456feaeab875621" mdapi_config_hash="775f1d07ed4d225976adf356e8dc9df5" id="fbf2fbc7-c1ce-4b7a-8f32-cf60eb947fa5" chipset="cflgt2" name="TDL_2" />
     <guid config_hash="483a06910590c1753a0266ef8b9f9b70" mdapi_config_hash="4be337ed83e3c95aebf66553ed685602" id="5f679fb0-909e-4c0e-b4b2-8e801f83e71b" chipset="cflgt2" name="ComputeExtra" />
     <guid config_hash="784698b7fb41dad7bc4bf13fac46657b" mdapi_config_hash="2fe32bdaf82fc66774ee95c33a23ea88" id="0d09ba9a-1d1c-457d-83e2-74ac448014d6" chipset="cflgt2" name="VMEPipe" />
+    <guid config_hash="d36b63d76294172be0ad5e6530109d06" mdapi_config_hash="aa4c1ab961a066b0bc98bf914735b6af" id="e2f162ae-5732-4af0-8b11-69510f57094a" chipset="cflgt2" name="GpuBusyness" />
     <guid config_hash="cca1580576ffa8e25aa271ebdac68cc7" mdapi_config_hash="5f4afc2f159098e96b8fd90a85979ae3" id="74fb4902-d3d3-4237-9e90-cbdc68d0a446" chipset="cflgt2" name="TestOa" />
     <guid config_hash="8ae5bda74271c473f88f13e57d6f6828" mdapi_config_hash="4d9fb617c64406cc8b372808461dd3e3" id="5ccbf9fb-6bf2-456b-a749-bdff7b1aff13" chipset="cflgt2" name="PMA_Stall" />
     <guid config_hash="3c774a4006236921f953545fe102705b" mdapi_config_hash="4f89366852e2bcada4d860bd3d76fd45" id="80b55814-32e9-4988-95fd-77aded3ac0fe" chipset="cflgt3" name="RenderBasic" />
