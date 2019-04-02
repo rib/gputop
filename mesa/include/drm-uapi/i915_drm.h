@@ -1511,6 +1511,37 @@ enum drm_i915_perf_property_id {
 	DRM_I915_PERF_PROP_OA_EXPONENT,
 
 	/**
+	 * Specifying this property sets up a hrtimer in nanoseconds at which
+	 * the i915 driver will check the OA buffer for available data. A
+	 * value of 0 means no hrtimer will be started. Values below 100
+	 * microseconds are not allowed.
+	 */
+	DRM_I915_PERF_PROP_POLL_OA_DELAY,
+
+	/**
+	 * Specifying this property sets up the interrupt mechanism for the OA
+	 * buffer in i915. This option in conjuction with a long polling delay
+	 * for avaibility of OA data can reduce CPU load significantly if you
+	 * do not care about OA data being read as soon as it's available.
+	 */
+	DRM_I915_PERF_PROP_OA_ENABLE_INTERRUPT,
+
+	/**
+	 * Specify a global OA buffer size to be allocated in bytes. The size
+	 * specified must be supported by HW (currently supported sizes are
+	 * powers of 2 ranging from 128Kb to 16Mb).
+	 */
+	DRM_I915_PERF_PROP_OA_BUFFER_SIZE,
+
+	/**
+	 * Specifying this property is only valid when specify a context to
+	 * filter with DRM_I915_PERF_PROP_CTX_HANDLE. Specifying this property
+	 * will hold preemption of the particular context we want to gather
+	 * performance data about.
+	 */
+	DRM_I915_PERF_PROP_HOLD_PREEMPTION,
+
+	/**
 	 * The value of this property set to 1 requests inclusion of GPU
 	 * timestamp in the perf sample data.
 	 */

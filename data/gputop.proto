@@ -96,8 +96,9 @@ message Features
     repeated string notices = 12;
     required int32 server_pid = 13;
     repeated string events = 14;
-    required bool has_i915_oa_cpu_timestamps = 15;
-    required bool has_i915_oa_gpu_timestamps = 16;
+    required bool has_i915_oa_interrupt = 15;
+    required bool has_i915_oa_cpu_timestamps = 16;
+    required bool has_i915_oa_gpu_timestamps = 17;
 }
 
 message ProcessInfo
@@ -185,10 +186,12 @@ message OAStreamInfo
     required uint32 period_exponent = 3;
     //TODO: allow specifying a specific context to profile
     required bool per_ctx_mode = 4;
+    // Use OA interrupt
+    required bool interrupt = 5;
     // Adds GPU timestamps in the i915 perf reports
-    required bool gpu_timestamps = 5;
+    required bool gpu_timestamps = 6;
     // Adds CPU timestamps in the i915 perf reports
-    required bool cpu_timestamps = 6;
+    required bool cpu_timestamps = 7;
 }
 
 message TracepointConfig

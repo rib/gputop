@@ -154,6 +154,7 @@ gputop_cc_oa_report_get_reason(const struct gputop_devinfo *devinfo,
 
 struct gputop_i915_perf_configuration {
     bool oa_reports;
+    bool oa_interrupt;
     bool cpu_timestamps;
     bool gpu_timestamps;
 };

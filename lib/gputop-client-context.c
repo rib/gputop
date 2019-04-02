@@ -1241,6 +1241,7 @@ open_i915_perf_stream(struct gputop_client_context *ctx)
     oa_stream.period_exponent =
         gputop_time_to_oa_exponent(&ctx->devinfo, ctx->oa_sampling_period_ns);
     oa_stream.per_ctx_mode = false;
+    oa_stream.interrupt = ctx->i915_perf_config.oa_interrupt;
     oa_stream.cpu_timestamps = ctx->i915_perf_config.cpu_timestamps;
     oa_stream.gpu_timestamps = ctx->i915_perf_config.gpu_timestamps;
 
@@ -1485,6 +1486,8 @@ handle_protobuf_message(struct gputop_client_context *ctx,
             gputop__message__free_unpacked(ctx->features, NULL);
         ctx->features = message;
         register_platform_metrics(ctx, message->features->devinfo);
+        ctx->i915_perf_config.oa_interrupt =
+            message->features->has_i915_oa_interrupt;
         ctx->i915_perf_config.cpu_timestamps =
             message->features->has_i915_oa_cpu_timestamps &&
           message->features->has_i915_oa_gpu_timestamps;
