@@ -49,6 +49,7 @@ RUN curl -sL https://rpm.nodesource.com/setup_6.x | sudo -E bash - && \
     yum install -y nodejs && \
     yum clean all
 RUN ln -sf /usr/bin/ninja-build /usr/bin/ninja
+RUN easy_install-3.4 pip
 RUN pip3 install meson==0.44.0
 RUN groupadd -g $_GID $_GROUP && useradd -u $_UID -g $_GID -G wheel -m $_USER
 RUN echo "%sudo ALL=NOPASSWD: ALL">>/etc/sudoers
