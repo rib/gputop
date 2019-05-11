@@ -352,7 +352,7 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
    uint32_t start_hash_address, hash_address;
    struct hash_entry *available_entry = NULL;
 
-   assert(key != NULL);
+   assert(key != &ht->freed_key);
 
    if (ht->entries >= ht->max_entries) {
       _mesa_hash_table_rehash(ht, ht->size_index + 1);
