@@ -53,155 +53,75 @@ import pylibs.oa_guid_registry as oa_registry
 
 # MDAPI configs include writes to some non-config registers,
 # thus the blacklists...
+
+gen8_11_chipset_params = {
+    'a_offset': 16,
+    'b_offset': 192,
+    'c_offset': 224,
+    'config_reg_blacklist': {
+        0x2364, # OACTXID
+    },
+}
+
 chipsets = {
-        'HSW': {
-            'a_offset': 12,
-            'b_offset': 192,
-            'c_offset': 224,
-            'registers': {
-                # TODO extend the symbol table for nicer output...
+    'HSW': {
+        'a_offset': 12,
+        'b_offset': 192,
+        'c_offset': 224,
+        'oa_report_size': 256,
+        'registers': {
+            # TODO extend the symbol table for nicer output...
                 0x2710: { 'name': 'OASTARTTRIG1' },
-                0x2714: { 'name': 'OASTARTTRIG1' },
-                0x2718: { 'name': 'OASTARTTRIG1' },
-                0x271c: { 'name': 'OASTARTTRIG1' },
-                0x2720: { 'name': 'OASTARTTRIG1' },
-                0x2724: { 'name': 'OASTARTTRIG6' },
-                0x2728: { 'name': 'OASTARTTRIG7' },
-                0x272c: { 'name': 'OASTARTTRIG8' },
-                0x2740: { 'name': 'OAREPORTTRIG1' },
-                0x2744: { 'name': 'OAREPORTTRIG2' },
-                0x2748: { 'name': 'OAREPORTTRIG3' },
-                0x274c: { 'name': 'OAREPORTTRIG4' },
-                0x2750: { 'name': 'OAREPORTTRIG5' },
-                0x2754: { 'name': 'OAREPORTTRIG6' },
-                0x2758: { 'name': 'OAREPORTTRIG7' },
-                0x275c: { 'name': 'OAREPORTTRIG8' },
-                0x2770: { 'name': 'OACEC0_0' },
-                0x2774: { 'name': 'OACEC0_1' },
-                0x2778: { 'name': 'OACEC1_0' },
-                0x277c: { 'name': 'OACEC1_1' },
-                0x2780: { 'name': 'OACEC2_0' },
-                0x2784: { 'name': 'OACEC2_1' },
-                0x2788: { 'name': 'OACEC3_0' },
-                0x278c: { 'name': 'OACEC3_1' },
-                0x2790: { 'name': 'OACEC4_0' },
-                0x2794: { 'name': 'OACEC4_1' },
-                0x2798: { 'name': 'OACEC5_0' },
-                0x279c: { 'name': 'OACEC5_1' },
-                0x27a0: { 'name': 'OACEC6_0' },
-                0x27a4: { 'name': 'OACEC6_1' },
-                0x27a8: { 'name': 'OACEC7_0' },
-                0x27ac: { 'name': 'OACEC7_1' },
-                },
-            'config_reg_blacklist': {
-                0x2364, # OASTATUS1 register
-                },
-            },
-        'BDW': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        'CHV': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        'SKLGT2': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        'SKLGT3': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        'SKLGT4': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        'BXT': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'KBLGT2': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'KBLGT3': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'GLK': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'CFLGT2': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'CFLGT3': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'CNL': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-         'ICL': {
-            'a_offset': 16,
-            'b_offset': 192,
-            'c_offset': 224,
-            'config_reg_blacklist': {
-                0x2364, # OACTXID
-                },
-            },
-        }
+            0x2714: { 'name': 'OASTARTTRIG1' },
+            0x2718: { 'name': 'OASTARTTRIG1' },
+            0x271c: { 'name': 'OASTARTTRIG1' },
+            0x2720: { 'name': 'OASTARTTRIG1' },
+            0x2724: { 'name': 'OASTARTTRIG6' },
+            0x2728: { 'name': 'OASTARTTRIG7' },
+            0x272c: { 'name': 'OASTARTTRIG8' },
+            0x2740: { 'name': 'OAREPORTTRIG1' },
+            0x2744: { 'name': 'OAREPORTTRIG2' },
+            0x2748: { 'name': 'OAREPORTTRIG3' },
+            0x274c: { 'name': 'OAREPORTTRIG4' },
+            0x2750: { 'name': 'OAREPORTTRIG5' },
+            0x2754: { 'name': 'OAREPORTTRIG6' },
+            0x2758: { 'name': 'OAREPORTTRIG7' },
+            0x275c: { 'name': 'OAREPORTTRIG8' },
+            0x2770: { 'name': 'OACEC0_0' },
+            0x2774: { 'name': 'OACEC0_1' },
+            0x2778: { 'name': 'OACEC1_0' },
+            0x277c: { 'name': 'OACEC1_1' },
+            0x2780: { 'name': 'OACEC2_0' },
+            0x2784: { 'name': 'OACEC2_1' },
+            0x2788: { 'name': 'OACEC3_0' },
+            0x278c: { 'name': 'OACEC3_1' },
+            0x2790: { 'name': 'OACEC4_0' },
+            0x2794: { 'name': 'OACEC4_1' },
+            0x2798: { 'name': 'OACEC5_0' },
+            0x279c: { 'name': 'OACEC5_1' },
+            0x27a0: { 'name': 'OACEC6_0' },
+            0x27a4: { 'name': 'OACEC6_1' },
+            0x27a8: { 'name': 'OACEC7_0' },
+            0x27ac: { 'name': 'OACEC7_1' },
+        },
+        'config_reg_blacklist': {
+            0x2364, # OASTATUS1 register
+        },
+    },
+    'BDW': gen8_11_chipset_params,
+    'CHV': gen8_11_chipset_params,
+    'SKLGT2': gen8_11_chipset_params,
+    'SKLGT3': gen8_11_chipset_params,
+    'SKLGT4': gen8_11_chipset_params,
+    'BXT': gen8_11_chipset_params,
+    'KBLGT2': gen8_11_chipset_params,
+    'KBLGT3': gen8_11_chipset_params,
+    'GLK': gen8_11_chipset_params,
+    'CFLGT2': gen8_11_chipset_params,
+    'CFLGT3': gen8_11_chipset_params,
+    'CNL': gen8_11_chipset_params,
+    'ICL': gen8_11_chipset_params,
+}
 
 register_types = { 'OA', 'NOA', 'FLEX', 'PM' }
 
