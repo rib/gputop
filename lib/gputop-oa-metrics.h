@@ -61,6 +61,11 @@ struct gputop_devinfo {
     uint64_t gt_min_freq;
     uint64_t gt_max_freq;
 
+    /* Always false for gputop, we don't have the additional snapshots of
+     * register values, only the OA reports.
+     */
+    bool query_mode;
+
     bool has_dynamic_configs;
 
     struct gputop_devtopology topology;

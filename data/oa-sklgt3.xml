@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1553959548" merge_md5="">
+<metrics version="1562317147" merge_md5="">
   <set name="Render Metrics Basic Gen9"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -4934,7 +4934,7 @@
   <set name="Metric set HDCAndSF"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="hdc_and_sf"
-       hw_config_guid="8071b409-c39a-4674-94d7-32962ecfb512"
+       hw_config_guid="a1b8363b-b986-47b6-929a-847afde3dec8"
        chipset="SKLGT3"
        symbol_name="HDCAndSF"
        >
@@ -4977,6 +4977,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -5468,6 +5483,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x104F0232" />
         <register type="NOA" address="0x00009888" value="0x124F4640" />
@@ -5547,7 +5563,7 @@
   <set name="Metric set L3_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_1"
-       hw_config_guid="5e0b391e-9ea8-4901-b2ff-b64ff616c7ed"
+       hw_config_guid="fa857069-7f95-44c9-a3e0-cb8ccbc35abb"
        chipset="SKLGT3"
        symbol_name="L3_1"
        >
@@ -5605,6 +5621,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -6082,6 +6113,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x126C7B40" />
         <register type="NOA" address="0x00009888" value="0x166C0020" />
@@ -6192,7 +6224,7 @@
   <set name="Metric set L3_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_2"
-       hw_config_guid="25dc828e-1d2d-426e-9546-a1d4233cdf16"
+       hw_config_guid="9830a5f3-a5e2-4773-a49d-6371407c382a"
        chipset="SKLGT3"
        symbol_name="L3_2"
        >
@@ -6235,6 +6267,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -6697,6 +6744,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x126C02E0" />
         <register type="NOA" address="0x00009888" value="0x146C0001" />
@@ -6772,7 +6820,7 @@
   <set name="Metric set L3_3"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="l3_3"
-       hw_config_guid="3dba9405-2d7e-4d70-8199-e734e82fd6bf"
+       hw_config_guid="59452ceb-24bb-4878-87ec-87aab7b4f9db"
        chipset="SKLGT3"
        symbol_name="L3_3"
        >
@@ -6815,6 +6863,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -7277,6 +7340,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x126C4E80" />
         <register type="NOA" address="0x00009888" value="0x146C0000" />
@@ -7351,7 +7415,7 @@
   <set name="Metric set RasterizerAndPixelBackend"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="rasterizer_and_pixel_backend"
-       hw_config_guid="76935d7b-09c9-46bf-87f1-c18b4a86ebe5"
+       hw_config_guid="d2249ff7-34b4-4203-b474-7c11546f9dae"
        chipset="SKLGT3"
        symbol_name="RasterizerAndPixelBackend"
        >
@@ -7394,6 +7458,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -7901,6 +7980,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x102F3800" />
         <register type="NOA" address="0x00009888" value="0x144D0500" />
@@ -7959,7 +8039,7 @@
   <set name="Metric set Sampler"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="sampler"
-       hw_config_guid="1b34c0d6-4f4c-4d7b-833f-4aaf236d87a6"
+       hw_config_guid="c9cf7c63-0065-4226-941e-98590bad8f75"
        chipset="SKLGT3"
        symbol_name="Sampler"
        >
@@ -8017,6 +8097,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -8524,6 +8619,7 @@
              mdapi_group="L3/Data Port/Atomics"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x14152C00" />
         <register type="NOA" address="0x00009888" value="0x16150005" />
@@ -8622,7 +8718,7 @@
   <set name="Metric set TDL_1"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_1"
-       hw_config_guid="b375c985-9953-455b-bda2-b03f7594e9db"
+       hw_config_guid="e3bb1501-89ca-43fb-8668-9d96159e10a2"
        chipset="SKLGT3"
        symbol_name="TDL_1"
        >
@@ -8665,6 +8761,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -9187,6 +9298,7 @@
              mdapi_hw_unit_type="subslice"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x12120000" />
         <register type="NOA" address="0x00009888" value="0x12320000" />
@@ -9290,7 +9402,7 @@
   <set name="Metric set TDL_2"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="tdl_2"
-       hw_config_guid="3e2be2bb-884a-49bb-82c5-2358e6bd5f2d"
+       hw_config_guid="29194a55-7e75-4152-a71f-ef34b1ae4cca"
        chipset="SKLGT3"
        symbol_name="TDL_2"
        >
@@ -9333,6 +9445,21 @@
              mdapi_supported_apis=""
              mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
              mdapi_group="EU Array/Pipes"
+             mdapi_hw_unit_type="gpu"
+             />
+    <counter name="SQ is full"
+             description="The percentage of time when SQ is filled above a threshold (usually 48 entries)"
+             data_type="float"
+             max_equation="100"
+             equation="PERFCNT1 READ_REG 100 UMUL $GpuCoreClocks FDIV"
+             underscore_name="gt_request_queue_full"
+             units="percent"
+             symbol_name="GTRequestQueueFull"
+             availability="true $QueryMode &amp;&amp;"
+             semantic_type="duration"
+             mdapi_supported_apis="OGL4 OCL"
+             mdapi_usage_flags="Tier3 Overview System Frame Batch Draw"
+             mdapi_group="GTI"
              mdapi_hw_unit_type="gpu"
              />
     <counter name="VS Send Pipe Active"
@@ -9855,6 +9982,7 @@
              mdapi_hw_unit_type="subslice"
              />
     <register_config type="NOA">
+        <register type="NOA" address="0x000091BC" value="0xE0500000" />
         <register type="NOA" address="0x00009840" value="0x00000080" />
         <register type="NOA" address="0x00009888" value="0x12124D60" />
         <register type="NOA" address="0x00009888" value="0x12322E60" />

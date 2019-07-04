@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<metrics version="1553959724" merge_md5="">
+<metrics version="1562317149" merge_md5="">
   <set name="Render Metrics Basic Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
-       hw_config_guid="621e248e-29c3-404d-a1b1-bb69610c4a99"
+       hw_config_guid="193093b2-da24-49bf-b407-442c213b71b4"
        chipset="ICL"
        symbol_name="RenderBasic"
        >

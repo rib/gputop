@@ -104,6 +104,9 @@ def mathml_splice_sub(set, args):
 def mathml_splice_read(set, args):
     return ["\n<maction actiontype='tooltip'>\n<mi>" + args[1][0] + args[0][0] + "</mi>\n<mtext>placeholder</mtext>\n</maction>", default_precedence]
 
+def mathml_splice_read_reg(set, args):
+    return ["\n<maction actiontype='tooltip'>\n<mi>" + args[0][0] + "</mi>\n<mtext>placeholder</mtext>\n</maction>", default_precedence]
+
 def mathml_splice_min(set, args):
     operand_0 = check_operand_type(set, args[0][0])
     operand_1 = check_operand_type(set, args[1][0])
@@ -166,6 +169,10 @@ def emit_read(tmp_id, args):
     c("uint64_t tmp{0} = accumulator[metric_set->{1}_offset + {2}];".format(tmp_id, type, args[0]))
     return tmp_id + 1
 
+def emit_read_reg(tmp_id, args):
+    c("uint64_t tmp{0} = 0;".format(tmp_id))
+    return tmp_id + 1
+
 def emit_uadd(tmp_id, args):
     c("uint64_t tmp{0} = {1} + {2};".format(tmp_id, args[1], args[0]))
     return tmp_id + 1
@@ -202,21 +209,22 @@ def emit_and(tmp_id, args):
     return tmp_id + 1
 
 ops = {}
-#             (n operands, emitter1, emitter2)
-ops["FADD"] = (2, emit_fadd, mathml_splice_add)
-ops["FDIV"] = (2, emit_fdiv, mathml_splice_div)
-ops["FMAX"] = (2, emit_fmax, mathml_splice_max)
-ops["FMUL"] = (2, emit_fmul, mathml_splice_mul)
-ops["FSUB"] = (2, emit_fsub, mathml_splice_sub)
-ops["READ"] = (2, emit_read, mathml_splice_read)
-ops["UADD"] = (2, emit_uadd, mathml_splice_add)
-ops["UDIV"] = (2, emit_udiv, mathml_splice_div)
-ops["UMUL"] = (2, emit_umul, mathml_splice_mul)
-ops["USUB"] = (2, emit_usub, mathml_splice_sub)
-ops["UMIN"] = (2, emit_umin, mathml_splice_min)
-ops["<<"]   = (2, emit_lshft, mathml_splice_lshft)
-ops[">>"]   = (2, emit_rshft, mathml_splice_rshft)
-ops["AND"]  = (2, emit_and, mathml_splice_and)
+#                     (n operands, emitter1, emitter2)
+ops["FADD"]     = (2, emit_fadd, mathml_splice_add)
+ops["FDIV"]     = (2, emit_fdiv, mathml_splice_div)
+ops["FMAX"]     = (2, emit_fmax, mathml_splice_max)
+ops["FMUL"]     = (2, emit_fmul, mathml_splice_mul)
+ops["FSUB"]     = (2, emit_fsub, mathml_splice_sub)
+ops["READ"]     = (2, emit_read, mathml_splice_read)
+ops["READ_REG"] = (1, emit_read_reg, mathml_splice_read_reg)
+ops["UADD"]     = (2, emit_uadd, mathml_splice_add)
+ops["UDIV"]     = (2, emit_udiv, mathml_splice_div)
+ops["UMUL"]     = (2, emit_umul, mathml_splice_mul)
+ops["USUB"]     = (2, emit_usub, mathml_splice_sub)
+ops["UMIN"]     = (2, emit_umin, mathml_splice_min)
+ops["<<"]       = (2, emit_lshft, mathml_splice_lshft)
+ops[">>"]       = (2, emit_rshft, mathml_splice_rshft)
+ops["AND"]      = (2, emit_and, mathml_splice_and)
 
 def brkt(subexp):
     if " " in subexp:
@@ -255,6 +263,7 @@ hw_vars = {
         "$GpuMinFrequency": { 'c': "devinfo->gt_min_freq" },
         "$GpuMaxFrequency": { 'c': "devinfo->gt_max_freq" },
         "$SkuRevisionId": { 'c': "devinfo->revision" },
+        "$QueryMode": { 'c': "devinfo->query_mode" },
 }
 
 def splice_mathml_expression(set, equation, tag):

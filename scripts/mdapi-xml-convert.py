@@ -58,6 +58,7 @@ gen8_11_chipset_params = {
     'a_offset': 16,
     'b_offset': 192,
     'c_offset': 224,
+    'oa_report_size': 256,
     'config_reg_blacklist': {
         0x2364, # OACTXID
     },
@@ -131,6 +132,12 @@ default_set_blacklist = { "RenderDX1x", # TODO: rename to something non 'DX'
                           "RenderBalance", # XXX: missing register config
                         }
 
+counter_blacklist = {
+    "DramLlcThroughput", # TODO: The max equation of this counter
+                         # requires dram throughtput value. Need to
+                         # investiguate how to get this value.
+}
+
 sys_vars = { "EuCoresTotalCount",
              "EuSlicesTotalCount",
              "SamplersTotalCount",
@@ -152,6 +159,18 @@ def underscore(name):
 def print_err(*args):
     sys.stderr.write(' '.join(map(str,args)) + '\n')
 
+read_register_offsets = {
+    0x1f0: 'PERFCNT1',
+    0x1f8: 'PERFCNT2',
+}
+
+def read_value(chipset, offset):
+    if offset in read_register_offsets:
+        return read_register_offsets[offset]
+    print_err("Unknown offset register at offset {0}".format(offset))
+    assert 0
+
+
 def read_token_to_rpn_read(chipset, token, raw_offsets):
     width, offset_str = token.split('@')
 
@@ -167,6 +186,7 @@ def read_token_to_rpn_read(chipset, token, raw_offsets):
         a_offset = chipsets[chipset]['a_offset']
         b_offset = chipsets[chipset]['b_offset']
         c_offset = chipsets[chipset]['c_offset']
+        report_size = chipsets[chipset]['oa_report_size']
 
         if offset < a_offset:
             if offset == 4:
@@ -180,8 +200,10 @@ def read_token_to_rpn_read(chipset, token, raw_offsets):
             return "A " + str((offset - a_offset) / 4) + " READ"
         elif offset < c_offset:
             return "B " + str((offset - b_offset) / 4) + " READ"
-        else:
+        elif offset < report_size:
             return "C " + str((offset - c_offset) / 4) + " READ"
+        else:
+            return "{0} READ_REG".format(read_value(chipset, offset))
     else:
         idx = offset / 8
         if chipset == "HSW":
@@ -194,8 +216,10 @@ def read_token_to_rpn_read(chipset, token, raw_offsets):
                 return "A " + str(idx - 1) + " READ"
             elif idx < 54:
                 return "B " + str(idx - 46) + " READ"
-            else:
+            elif idx < 62:
                 return "C " + str(idx - 54) + " READ"
+            else:
+                return "{0} READ_REG".format(read_value(chipset, offset))
         else:
             # For Gen8+ the array of accumulated counters is
             # assumed to start with a GPU_TIME then GPU_CLOCK,
@@ -209,8 +233,10 @@ def read_token_to_rpn_read(chipset, token, raw_offsets):
                 return "A " + str(idx - 2) + " READ"
             elif idx < 46:
                 return "B " + str(idx - 38) + " READ"
-            else:
+            elif idx < 54:
                 return "C " + str(idx - 46) + " READ"
+            else:
+                return "{0} READ_REG".format(read_value(chipset, offset))
 
     assert 0
 
@@ -395,7 +421,7 @@ def process_mux_configs(mdapi_set):
                 print_err("ERROR: unknown register type=\"" + reg_type + "\": MetricSet=\"" + mdapi_set.get('ShortName'))
                 sys.exit(1)
 
-            if reg_type != 'NOA':
+            if reg_type != 'NOA' and reg_type != 'PM':
                 continue
 
             reg = (address, int(mdapi_reg.get('value'), 16))
@@ -623,6 +649,9 @@ for arg in args.xml:
         for mdapi_counter in mdapi_set.findall("Metrics/Metric"):
             symbol_name = mdapi_counter.get('SymbolName')
 
+            if symbol_name in counter_blacklist:
+                continue;
+
             # Have seen at least one MetricSet with a duplicate GpuCoreClocks counter...
             if symbol_name in mdapi_counters:
                 print_err("WARNING: Skipping duplicate counter \"" + symbol_name + \
@@ -755,6 +784,10 @@ for arg in args.xml:
                 mdapi_counter.set('SnapshotReportReadEquation', "dw@0x04 1000000000 UMUL $GpuTimestampFrequency UDIV")
                 mdapi_counter.set('DeltaReportReadEquation', "qw@0x0 1000000000 UMUL $GpuTimestampFrequency UDIV")
 
+            availability = fixup_equation(mdapi_counter.get('AvailabilityEquation'))
+            if availability == "":
+                availability = None
+
             # We prefer to only look at the equations that reference the raw
             # reports since the mapping of offsets back to A,B,C counters is
             # unambiguous, but if necessary we will fallback to mapping
@@ -791,6 +824,16 @@ for arg in args.xml:
                 else:
                     set.remove(counter)
                     continue
+
+            # Some counters are sourced from register values that are
+            # not put into the OA reports. This is why some counters
+            # will have a delta equation but not a raw equation. These
+            # counters are typically only available in query mode. For
+            # this reason we put a particular availability value.
+            if delta_read_eq and not raw_read_eq:
+                assert availability == None
+                availability = "true $QueryMode &&"
+                raw_read_eq = delta_read_eq
 
             # After replacing read tokens with RPN counter READ ops the raw and
             # delta equations are expected to be identical so warn if that's
@@ -871,10 +914,6 @@ for arg in args.xml:
                 continue
 
             counter.set('equation', equation.strip())
-
-            availability = fixup_equation(mdapi_counter.get('AvailabilityEquation'))
-            if availability == "":
-                availability = None
 
             if availability != None:
                 counter.set('availability', availability)
