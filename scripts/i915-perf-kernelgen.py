@@ -264,7 +264,7 @@ def output_sysfs_code(sets):
         c("}")
 
 
-    h("extern void i915_perf_load_test_config_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
+    h("void i915_perf_load_test_config_" + chipset.lower() + "(struct drm_i915_private *dev_priv);")
     h("\n")
 
     c("\n")
