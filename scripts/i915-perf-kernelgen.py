@@ -333,6 +333,7 @@ c.use_tabs = True
 h(header_copyright)
 h("#ifndef __I915_OA_" + chipset + "_H__\n")
 h("#define __I915_OA_" + chipset + "_H__\n\n")
+h("struct drm_i915_private;\n\n")
 
 c(source_copyright)
 
