@@ -31,7 +31,10 @@
 #ifndef HASH_H
 #define HASH_H
 
-#include <GL/gl.h>
+#include <stdbool.h>
+
+typedef unsigned int GLuint;
+typedef bool GLboolean;
 
 #include "c11/threads.h"
 
