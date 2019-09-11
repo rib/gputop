@@ -544,6 +544,7 @@ for arg in args.xml:
         if concurrent_group.get('SupportedGT') != None:
             chipset = chipset + concurrent_group.get('SupportedGT')
         if chipset not in chipsets:
+            print_err("WARNING: unsupported chipset {0}, consider updating {1}".format(chipset, __file__))
             continue
 
         if args.whitelist:
