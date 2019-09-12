@@ -560,7 +560,9 @@ for arg in args.xml:
         if set_symbol_name in set_blacklist:
             continue
 
-        assert mdapi_set.get('SnapshotReportSize') == "256"
+        if mdapi_set.get('SnapshotReportSize') != '256':
+            print_err("WARNING: skipping metric set '{0}', report size {1} invalid".format(set_symbol_name, mdapi_set.get('SnapshotReportSize')))
+            continue
 
         set = et.SubElement(metrics, 'set')
 
