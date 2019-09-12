@@ -1906,7 +1906,7 @@ gputop_perf_initialize(void)
     gen_metrics = NULL;
     gputop_perf_oa_supported_metric_set_uuids = array_new(sizeof(char*), 1);
 
-    if (!gen_get_device_info(intel_dev.device, &devinfo)) {
+    if (!gen_get_device_info_from_pci_id(intel_dev.device, &devinfo)) {
 	gputop_log(GPUTOP_LOG_LEVEL_HIGH, "Failed to recognize device id\n", -1);
 	return false;
     }

@@ -224,7 +224,7 @@ main(int argc, char *argv[])
 
     fprintf(stdout, "Found device id=0x%x\n", devid);
 
-    if (!gen_get_device_info(devid, &devinfo)) {
+    if (!gen_get_device_info_from_pci_id(devid, &devinfo)) {
         fprintf(stderr, "No device info found.\n");
         return EXIT_FAILURE;
     }
