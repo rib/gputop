@@ -246,7 +246,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "Looking at metrics in %s\n", metrics_path);
 
     while ((entry = readdir(metrics_dir))) {
-        char metric_id_path[300];
+        char metric_id_path[sizeof(metrics_path) + sizeof(entry->d_name) + 4];
         uint64_t metric_id;
 
 	if (entry->d_type != DT_DIR)
