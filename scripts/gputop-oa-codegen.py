@@ -258,7 +258,11 @@ hw_vars = {
         "$EuSubslicesTotalCount": { 'c': "devinfo->n_eu_sub_slices" },
         "$EuThreadsCount": { 'c': "devinfo->eu_threads_count" },
         "$SliceMask": { 'c': "devinfo->slice_mask" },
+        # subslice_mask is interchangeable with subslice/dual-subslice
+        # Gen12+ only has dual subslices which can be assimilated with
+        # 16EUs subslices.
         "$SubsliceMask": { 'c': "devinfo->subslice_mask" },
+        "$DualSubsliceMask": { 'c': "devinfo->subslice_mask" },
         "$GpuTimestampFrequency": { 'c': "devinfo->timestamp_frequency" },
         "$GpuMinFrequency": { 'c': "devinfo->gt_min_freq" },
         "$GpuMaxFrequency": { 'c': "devinfo->gt_max_freq" },

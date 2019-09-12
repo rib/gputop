@@ -82,6 +82,8 @@ gputop_gen_for_devinfo(const struct gen_device_info *devinfo)
         return gputop_oa_get_metrics_cnl(&gputop_devinfo);
     if (devinfo->gen == 11)
         return gputop_oa_get_metrics_icl(&gputop_devinfo);
+    if (devinfo->gen == 12)
+        return gputop_oa_get_metrics_tgl(&gputop_devinfo);
     return NULL;
 }
 

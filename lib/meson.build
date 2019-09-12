@@ -21,7 +21,8 @@ hardware = [
   'cflgt2', 'cflgt3',
   'bxt', 'glk',
   'cnl',
-  'icl'
+  'icl',
+  'tgl',
 ]
 
 gen_xml_files = []

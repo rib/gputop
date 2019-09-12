@@ -1169,6 +1169,7 @@ register_platform_metrics(struct gputop_client_context *ctx,
         { "cflgt3", gputop_oa_get_metrics_cflgt3 },
         { "cnl", gputop_oa_get_metrics_cnl },
         { "icl", gputop_oa_get_metrics_icl },
+        { "tgl", gputop_oa_get_metrics_tgl },
     };
 
     struct gputop_devinfo *devinfo = &ctx->devinfo;
@@ -1183,13 +1184,16 @@ register_platform_metrics(struct gputop_client_context *ctx,
     const Gputop__DevTopology *pb_topology = pb_devinfo->topology;
     struct gputop_devtopology *topology = &ctx->devinfo.topology;
 
+    memset(topology, 0, sizeof(*topology));
+
     topology->max_slices = pb_topology->max_slices;
     topology->max_subslices = pb_topology->max_subslices;
     topology->max_eus_per_subslice = pb_topology->max_eus_per_subslice;
     topology->n_threads_per_eu = pb_topology->n_threads_per_eu;
 
-    assert(pb_topology->slices_mask.len == 1);
-    topology->slices_mask[0] = pb_topology->slices_mask.data[0];
+    assert(pb_topology->slices_mask.len <= ARRAY_SIZE(topology->slices_mask));
+    for (uint32_t i = 0; i < pb_topology->slices_mask.len; i++)
+        topology->slices_mask[i] = pb_topology->slices_mask.data[i];
 
     assert(pb_topology->subslices_mask.len <= ARRAY_SIZE(topology->subslices_mask));
     memcpy(topology->subslices_mask, pb_topology->subslices_mask.data,

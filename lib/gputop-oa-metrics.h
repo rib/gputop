@@ -43,9 +43,9 @@ struct gputop_devtopology {
     uint32_t n_threads_per_eu;
 
     /* Max values should be enough for a while. */
-    uint8_t slices_mask[1];
-    uint8_t subslices_mask[10];
-    uint8_t eus_mask[128];
+    uint8_t slices_mask[4];
+    uint8_t subslices_mask[16];
+    uint8_t eus_mask[256];
 
     uint32_t engines[5];
 };
