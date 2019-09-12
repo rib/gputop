@@ -279,4 +279,22 @@
     <guid config_hash="d2188fa3c865ef430532b127a3fd87a5" mdapi_config_hash="ff33e47c767f6f81d9a779153aae6fdb" id="fd25ec19-3ed1-40c9-8648-1d2387449a92" chipset="icl" name="TDL_3" />
     <guid config_hash="b421b29d8557dbbf0fe3068c82b3d8dd" mdapi_config_hash="cc850ab4463c23e6017f069d67785c31" id="40dc79f2-88c8-47c6-8f86-f509e39fbe5d" chipset="icl" name="GpuBusyness" />
     <guid config_hash="7480125fc0806a347f975dc714568e92" mdapi_config_hash="c6b1c7a22e3c2f456cbfdae1bfe394ac" id="3c0bf614-5d67-4326-887f-a24eb8a58244" chipset="icl" name="TestOa" />
+    <guid config_hash="a64c5a38ba7bb9eec5332f3d616d68bf" mdapi_config_hash="11a8cb1a931abb4d83d2cfc8065eac95" id="519a832e-a682-4ef6-a7ac-b12d68116fd7" chipset="tgl" name="RenderBasic" />
+    <guid config_hash="81c21706a1628634edbed8a2d7d5c82f" mdapi_config_hash="94282b74b1429d9f2bb9cd5e178cc2fa" id="c46cfe86-469f-4499-8452-f44012b68dab" chipset="tgl" name="ComputeBasic" />
+    <guid config_hash="87de7aad82eabfb9e8ca28470298c833" mdapi_config_hash="b340b1eac0b354f04e9767f14a42a6e6" id="77ae98cf-9a9e-4e35-be85-597b09ffbe53" chipset="tgl" name="RenderPipeProfile" />
+    <guid config_hash="4bd795338e2cf42726894fedccdd223f" mdapi_config_hash="d6c3023d3da8fda32655bfa1fad4e514" id="dedd95cd-1bd4-4e65-be7f-1fd7aa43fe12" chipset="tgl" name="HDCAndSF" />
+    <guid config_hash="36994d80bab156fab0dbe815184a7303" mdapi_config_hash="739afc9fff139a9b9c8a2d72297abb78" id="a889ccb3-5ebd-437f-b5c6-e951fba822f5" chipset="tgl" name="RasterizerAndPixelBackend" />
+    <guid config_hash="54690c67418eb1b8fb23d9c6b47f07d2" mdapi_config_hash="745b6634b3b72399f738761f4565e924" id="feee2629-03a8-4d31-ab4d-7d16572163fb" chipset="tgl" name="L3_1" />
+    <guid config_hash="13cfb577c221a881210d1f31600a2207" mdapi_config_hash="4b527bab2ce2a95aeeb7764f1d4abf23" id="5266f235-1711-4eef-9493-ebdf0238d512" chipset="tgl" name="L3_2" />
+    <guid config_hash="6402b8deefae23be4db362c3fd853b89" mdapi_config_hash="b21101ed0007ddb167044b476654bd8f" id="9c2cd379-bf93-4ded-b481-f64efd534c4a" chipset="tgl" name="L3_3" />
+    <guid config_hash="9f9021d53f1970e1c9f7e4ea1a8ba24d" mdapi_config_hash="71f1cc0729c56e695307c981f0f410a6" id="6a68185d-0056-4891-a5f6-29aa1e1d81ae" chipset="tgl" name="L3_4" />
+    <guid config_hash="b23742dad95e7fc75edd65fa4dc367b7" mdapi_config_hash="7198d15717542985e3ba8308fa95b3a2" id="3f17a326-ae8b-4869-9f5a-3bccf793e287" chipset="tgl" name="L3_5" />
+    <guid config_hash="6c0871403663ab1617a98afa14b01e42" mdapi_config_hash="0383f07caf50fd4f6818a2138f418409" id="d312c40a-9fb7-489a-9a1a-9cd80aac6d61" chipset="tgl" name="L3_6" />
+    <guid config_hash="b1c971413433261918b4de26d99a4388" mdapi_config_hash="b6833e7b89fc08aa05b8e5c8d200071d" id="f0f255a4-535c-43ed-9d6b-85958cef6c1c" chipset="tgl" name="Sampler_1" />
+    <guid config_hash="8f5e405d5ece3fbd0586a1ca279db170" mdapi_config_hash="44f2a86d917ab0a44332d027036d9c32" id="f47c6b97-fc10-4962-bb67-d623e9d6219b" chipset="tgl" name="Sampler_2" />
+    <guid config_hash="185968c3897d41bcf4b84a5bf23187bb" mdapi_config_hash="64c55773613e6a431df5436de5ff8e8c" id="2e49d25e-93e8-4e2b-b91b-51731f5fb315" chipset="tgl" name="TDL_1" />
+    <guid config_hash="8f99569076014439129d68470313013b" mdapi_config_hash="0ff455e43a1ef70d60afc871bd7a1293" id="2a42ff25-99b1-4048-a121-f0664ed42c90" chipset="tgl" name="TDL_2" />
+    <guid config_hash="d1c4956992d95bf782ae915e306a5343" mdapi_config_hash="3ca22a297940fee9b8d8d78106a93003" id="b763fa13-834e-4468-bba6-5f0d40db9813" chipset="tgl" name="TDL_3" />
+    <guid config_hash="e9992e7e1c679eec0ac61356a3905731" mdapi_config_hash="9328c3e2f515349dd60c6468bad254c7" id="cc935a3e-8d96-4b47-bc46-3d84247e9a3a" chipset="tgl" name="GpuBusyness" />
+    <guid config_hash="09ab4edae45392490c625f2d80f24cd7" mdapi_config_hash="3f5aa997ec9df8552e585ccd7aed9b0c" id="80a833f0-2504-4321-8894-e9277844ce7b" chipset="tgl" name="TestOa" />
 </guids>

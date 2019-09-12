@@ -15,7 +15,8 @@ oa_xml_files = \
 	oa-cflgt2.xml \
 	oa-cflgt3.xml \
 	oa-cnl.xml \
-	oa-icl.xml
+	oa-icl.xml \
+	oa-tgl.xml
 
 drm_files = $(oa_xml_files:oa-%.xml=i915_oa_%.c)
 drm_files += $(oa_xml_files:oa-%.xml=i915_oa_%.h)
@@ -39,6 +40,7 @@ cflgt2_xml = mdapi/MetricsXML_CFL_GT2.xml
 cflgt3_xml = mdapi/MetricsXML_CFL_GT3.xml
 cnl_xml = mdapi/MetricsXML_CNL.xml
 icl_xml = mdapi/MetricsXML_ICL.xml
+tgl_xml = mdapi/MetricsXML_TGL.xml
 
 INTERNAL=0
 ifeq ($(INTERNAL), 1)
