@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<metrics version="1569266429" merge_md5="">
+<metrics version="1572342629" merge_md5="">
   <set name="Render Metrics Basic Gen11"
        mdapi_supported_apis="OGL OCL IO BB"
        underscore_name="render_basic"
@@ -859,7 +859,7 @@
              />
     <counter name="Typed Atomics Accesses"
              description="The total number of typed atomic accesses via Data Port."
-             data_type="float"
+             data_type="uint64"
              max_equation="$GpuCoreClocks 64 UMUL $EuSlicesTotalCount UMUL"
              equation="B 4 READ B 5 READ UADD 2 UDIV $EuSubslicesTotalCount UMUL"
              underscore_name="typed_atomics"
