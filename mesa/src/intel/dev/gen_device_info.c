@@ -66,6 +66,7 @@ gen_device_name_to_pci_device_id(const char *name)
       { "cml", 0x9b41 },
       { "cnl", 0x5a52 },
       { "icl", 0x8a52 },
+      { "ehl", 0x4500 },
    };
 
    for (unsigned i = 0; i < ARRAY_SIZE(name_map); i++) {
@@ -947,6 +948,7 @@ static const struct gen_device_info gen_device_info_icl_1x8 = {
 
 static const struct gen_device_info gen_device_info_ehl_4x8 = {
    GEN11_FEATURES(1, 1, subslices(4), 4),
+   .is_elkhartlake = true,
    .urb = {
       .size = 512,
       .min_entries = {
@@ -968,6 +970,7 @@ static const struct gen_device_info gen_device_info_ehl_4x8 = {
  */
 static const struct gen_device_info gen_device_info_ehl_4x4 = {
    GEN11_FEATURES(1, 1, subslices(4), 4),
+   .is_elkhartlake = true,
    .urb = {
       .size = 512,
       .min_entries = {
@@ -990,6 +993,7 @@ static const struct gen_device_info gen_device_info_ehl_4x4 = {
  */
 static const struct gen_device_info gen_device_info_ehl_2x4 = {
    GEN11_FEATURES(1, 1, subslices(2), 4),
+   .is_elkhartlake = true,
    .urb = {
       .size = 512,
       .min_entries = {
@@ -1104,7 +1108,7 @@ update_from_topology(struct gen_device_info *devinfo,
 
       for (int b = 0; b < devinfo->subslice_slice_stride; b++) {
          devinfo->num_subslices[s] +=
-            __builtin_popcount(devinfo->subslice_masks[b]);
+            __builtin_popcount(devinfo->subslice_masks[s * devinfo->subslice_slice_stride + b]);
       }
       n_subslices += devinfo->num_subslices[s];
    }
@@ -1226,6 +1230,7 @@ gen_get_device_info_from_pci_id(int pci_id,
 #define CHIPSET(id, family, name) \
       case id: *devinfo = gen_device_info_##family; break;
 #include "pci_ids/i965_pci_ids.h"
+#include "pci_ids/iris_pci_ids.h"
    default:
       fprintf(stderr, "Driver does not support the 0x%x PCI ID.\n", pci_id);
       return false;
@@ -1276,6 +1281,7 @@ gen_get_device_name(int devid)
 #undef CHIPSET
 #define CHIPSET(id, family, name) case id: return name;
 #include "pci_ids/i965_pci_ids.h"
+#include "pci_ids/iris_pci_ids.h"
    default:
       return NULL;
    }
@@ -1318,6 +1324,9 @@ query_topology(struct gen_device_info *devinfo, int fd)
    };
 
    if (gen_ioctl(fd, DRM_IOCTL_I915_QUERY, &query))
+      return false;
+
+   if (item.length < 0)
       return false;
 
    struct drm_i915_query_topology_info *topo_info =
