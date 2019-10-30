@@ -21,7 +21,7 @@ hardware = [
   'cflgt2', 'cflgt3',
   'bxt', 'glk',
   'cnl',
-  'icl',
+  'icl', 'lkf',
   'tgl',
 ]
 

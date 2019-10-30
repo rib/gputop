@@ -1169,6 +1169,7 @@ register_platform_metrics(struct gputop_client_context *ctx,
         { "cflgt3", gputop_oa_get_metrics_cflgt3 },
         { "cnl", gputop_oa_get_metrics_cnl },
         { "icl", gputop_oa_get_metrics_icl },
+        { "ehl", gputop_oa_get_metrics_lkf },
         { "tgl", gputop_oa_get_metrics_tgl },
     };
 
