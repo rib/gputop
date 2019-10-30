@@ -122,6 +122,7 @@ chipsets = {
     'CFLGT3': gen8_11_chipset_params,
     'CNL': gen8_11_chipset_params,
     'ICL': gen8_11_chipset_params,
+    'LKF': gen8_11_chipset_params,
     'TGL': gen8_11_chipset_params,
 }
 

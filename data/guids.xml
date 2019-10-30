@@ -297,4 +297,23 @@
     <guid config_hash="d1c4956992d95bf782ae915e306a5343" mdapi_config_hash="3ca22a297940fee9b8d8d78106a93003" id="b763fa13-834e-4468-bba6-5f0d40db9813" chipset="tgl" name="TDL_3" />
     <guid config_hash="e9992e7e1c679eec0ac61356a3905731" mdapi_config_hash="9328c3e2f515349dd60c6468bad254c7" id="cc935a3e-8d96-4b47-bc46-3d84247e9a3a" chipset="tgl" name="GpuBusyness" />
     <guid config_hash="09ab4edae45392490c625f2d80f24cd7" mdapi_config_hash="3f5aa997ec9df8552e585ccd7aed9b0c" id="80a833f0-2504-4321-8894-e9277844ce7b" chipset="tgl" name="TestOa" />
+    <guid config_hash="25380f09a9ab454374c78f1b5d1c4ddf" mdapi_config_hash="4d28665f4702ddf38239e5c47384dc15" id="807f52f4-e457-4da4-b2b6-9a7b6dc2b1ed" chipset="lkf" name="RenderBasic" />
+    <guid config_hash="bf521fa74e9f5285bc3e9a7215cdadd2" mdapi_config_hash="bf085a519814344b241b08064f256921" id="5706829a-b9f3-4d0f-aa88-420f452540bf" chipset="lkf" name="ComputeBasic" />
+    <guid config_hash="9b6d58e5047c130f47999e04b92151e8" mdapi_config_hash="7bf6ffff6913e5536d4ad4dc4fa3b03b" id="2ab52087-3700-4db4-8dda-f73b77edfd93" chipset="lkf" name="ComputeExtended" />
+    <guid config_hash="1819d0fc7e1274aaed4dc79670eb4d33" mdapi_config_hash="6ff2fcd2498448af0ed284e69be555a8" id="498aa71d-ae5c-4523-a246-33fb2769a386" chipset="lkf" name="ComputeL3Cache" />
+    <guid config_hash="93df26813118e45063763661ffce6b77" mdapi_config_hash="d15e72e9d0ba0a4a94ed6985c86690ef" id="045dbb74-1e1a-499c-9a50-bac498e34699" chipset="lkf" name="RenderPipeProfile" />
+    <guid config_hash="91cd4922309b1259d26360831c966532" mdapi_config_hash="bc3b779c816e5763231752dff01b698c" id="63af815c-30f9-4dd5-81fa-351ad6b69b4b" chipset="lkf" name="HDCAndSF" />
+    <guid config_hash="8a7c6d0c784cc13fcb65d3baa8bb44e0" mdapi_config_hash="9aa273f8a120f0a31667c247704bbf6b" id="20df0e83-535f-457f-a08b-76aee88c1e0e" chipset="lkf" name="RasterizerAndPixelBackend" />
+    <guid config_hash="9d588e74e635377125299c5f3aa5c7d6" mdapi_config_hash="ae9e960222e31c486205e0c0f0603138" id="c7d3dc5c-975d-4d3a-a4c8-86fb0085743b" chipset="lkf" name="L3_1" />
+    <guid config_hash="3310298c4729cef20b0f20ddc8658a86" mdapi_config_hash="97d31df77e8723b93d1d215b5e596bd5" id="04003388-30ef-45d6-ae89-86f71ee596f4" chipset="lkf" name="L3_2" />
+    <guid config_hash="5d08c5947d680f307e1a3956cf87b818" mdapi_config_hash="375da2b23bb646620d82fae96f76ceb2" id="12f706a4-3761-4448-83dc-63495da010ff" chipset="lkf" name="L3_3" />
+    <guid config_hash="7ba4d260cd6343472d1e740970b0e7f3" mdapi_config_hash="78e18bf4b7860da80dbdffdef1a57d38" id="b03ae6f7-fdc0-4879-9e65-5b221ac9625f" chipset="lkf" name="L3_4" />
+    <guid config_hash="3890a445c8e58c9d7cefd7c3dcdd07a3" mdapi_config_hash="fd720998c18a22560a36fbf0ebc7346c" id="cdec4315-3c8d-416f-b3ae-33f7590e1439" chipset="lkf" name="L3_5" />
+    <guid config_hash="afa077ca791b2e4ee74ddfaf006d8fe2" mdapi_config_hash="f89f6cde18683374b31354a1a0eb6738" id="377c06c4-5f41-465a-bf2e-60d95200ba94" chipset="lkf" name="Sampler_1" />
+    <guid config_hash="e14383b58aeecf5a983d6ec57e3b2558" mdapi_config_hash="d8162037057cd1550568345e71f20e72" id="58326100-b3e7-4554-b612-592e16dc6fd1" chipset="lkf" name="Sampler_2" />
+    <guid config_hash="dd6e1a4c0aaaa84a36f83bb3772e26f6" mdapi_config_hash="7f0d9b461ff5b0fd927051c95b8f80b1" id="4c71735a-dfbf-4ebe-9df3-6c3db344a466" chipset="lkf" name="TDL_1" />
+    <guid config_hash="39c75fae3e4bc24fce0759413caac64d" mdapi_config_hash="7d8add695c157a7908abfef46b767e28" id="80e75f86-f8bc-4903-bf0f-38fd26cca636" chipset="lkf" name="TDL_2" />
+    <guid config_hash="79df0b5785c2464bedddf7c2ea34fae9" mdapi_config_hash="011bb38aa81c2e56de1e7cf9653a4047" id="9c517add-e263-4cbe-b7f8-9986f737e68a" chipset="lkf" name="TDL_3" />
+    <guid config_hash="051a88dbb1037b1e96ab8742322d5195" mdapi_config_hash="8f1f14586a4a4cbd9603488b87f3a571" id="c3103887-8c7c-482a-b923-3d68dd340598" chipset="lkf" name="GpuBusyness" />
+    <guid config_hash="2f735b47a388ee4876e999e2fe1fdaff" mdapi_config_hash="8d9471fa5f2e9d9ef3bb3be89fbc0372" id="82b6b321-f93e-445a-a285-f30391ef1dc5" chipset="lkf" name="TestOa" />
 </guids>
