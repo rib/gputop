@@ -683,7 +683,7 @@ int main (int argc, char **argv)
     context.ctx.oa_aggregation_period_ns = 1000000000ULL;
 
     while (!opt_done &&
-           (opt = getopt_long(argc, argv, "c:hH:m:Mp:P:-nNO:o:", long_options, NULL)) != -1)
+           (opt = getopt_long(argc, argv, "c:hH:m:Mp:P:-nNO:o:w:", long_options, NULL)) != -1)
     {
         switch (opt) {
         case 'h':
