@@ -12,10 +12,11 @@ add_project_arguments(['-Wno-unused-parameter',
                        '-Wno-sign-compare'],
                       language: ['c', 'cpp'])
 
-protobuf_c_dep = subproject('protobuf-c').get_variable('protobuf_c_dep')
-
 c = meson.get_compiler('c')
 cc = meson.get_compiler('cpp')
+
+protobuf_c_dep = c.find_library('protobuf-c', required : false)
+protoc_c = find_program('protoc', required: false)
 
 prog_python2 = find_program('python2')
 
@@ -26,10 +27,16 @@ if build_webui and build_native_ui
 endif
 
 if meson.is_cross_build()
-  protoc_c = subproject('protobuf-c').get_variable('protoc_c_native')
+  protobuf_c_dep = subproject('protobuf-c').get_variable('protobuf_c_dep')
+  if not protoc.found()
+    protoc_c = subproject('protobuf-c').get_variable('protoc_c_native')
+  endif
   leg = subproject('peg').get_variable('leg_native')
 else
-  protoc_c = subproject('protobuf-c').get_variable('protoc_c')
+  if not protobuf_c_dep.found() or not protoc_c.found()
+    protobuf_c_dep = subproject('protobuf-c').get_variable('protobuf_c_dep')
+    protoc_c = subproject('protobuf-c').get_variable('protoc_c')
+  endif
   leg = subproject('peg').get_variable('leg')
 endif
 
