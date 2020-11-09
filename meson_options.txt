@@ -1,3 +1,5 @@
-option('webui', type : 'boolean', value : 'false')
-option('native_ui', type : 'boolean', value : 'false')
-option('native_ui_gtk', type : 'boolean', value : 'false')
+option('ui',
+  type: 'array',
+  value: [],
+  choices: ['x11', 'wayland', 'gtk', 'web']
+)

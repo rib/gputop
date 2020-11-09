@@ -25,7 +25,7 @@ imgui = static_library('imgui', imgui_src,
                                    '-Wno-sign-compare'],
                        dependencies : imgui_deps)
 
-if build_webui
+if build_ui.contains('web')
   ui_src += [
     'imgui/imgui_impl_sdl_gles2.cpp',
     'gputop-emscripten-network.c',
@@ -38,7 +38,7 @@ if build_webui
              dependencies : gputop_client_dep,
 	     install : true)
 else
-  if build_native_ui
+  if build_ui.contains('x11') or build_ui.contains('wayland')
     glfw_ui_src = ui_src + [ 'imgui/imgui_impl_glfw_gl3.cpp',
                              'gputop-uv-network.c', ]
     glfw_ui_flags = ui_flags + [ '-DGPUTOP_UI_GLFW',
@@ -48,14 +48,15 @@ else
                      libuv_dep, wslay_dep,
                      dependency('threads'), ]
 
-    x11_dep = dependency('x11', required : false)
-    if x11_dep.found()
-      glfw_ui_flags += [ '-DGLFW_EXPOSE_NATIVE_X11', ]
+    if build_ui.contains('x11')
+      x11_dep = dependency('x11')
+      glfw_ui_flags += '-DGLFW_EXPOSE_NATIVE_X11'
       glfw_ui_deps += x11_dep
     endif
-    wayland_dep = dependency('wayland-client', required : false)
-    if wayland_dep.found()
-      glfw_ui_flags += [ '-DGLFW_EXPOSE_NATIVE_WAYLAND', ]
+
+    if build_ui.contains('wayland')
+      wayland_dep = dependency('wayland-client')
+      glfw_ui_flags += '-DGLFW_EXPOSE_NATIVE_WAYLAND'
       glfw_ui_deps += wayland_dep
     endif
 
@@ -67,7 +68,7 @@ else
 	       install : true)
   endif
 
-  if get_option('native_ui_gtk')
+  if build_ui.contains('gtk')
     gtk_dep = dependency('gtk+-3.0', version : '>= 3.18.0')
     cogl_dep = dependency('cogl-2.0-experimental')
     libsoup_dep = dependency('libsoup-2.4', version : '>= 2.60.3')

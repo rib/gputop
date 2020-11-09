@@ -115,16 +115,16 @@ Without UI :
 meson . build
 ```
 
-With GLFW UI :
+With GLFW native UI for X11 and Wayland :
 
 ```
-meson . build -Dnative_ui=true
+meson . build -Dui=x11,wayland
 ```
 
 With Gtk+ UI :
 
 ```
-meson . build -Dnative_ui_gtk=true
+meson . build -Dui=gtk
 ```
 
 ## Building GPU Top
@@ -160,7 +160,7 @@ build the UI, you'll need to build the server in the different build
 directory).
 
 ```
-meson . build-webui -Dwebui=true --cross=scripts/meson-cross/emscripten-docker-debug.txt
+meson . build-webui -Dui=web --cross=scripts/meson-cross/emscripten-docker-debug.txt
 ```
 
 Create a directory to serve the UI and copy the files needed :
